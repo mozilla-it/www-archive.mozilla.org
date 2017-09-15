@@ -1,0 +1,239 @@
+<?xml version="1.0"?>  <!-- -*- Mode: HTML -*- -->
+
+<!--
+
+  This is a simple example of a `wrapper' datasource that intercepts
+  queries bound for another datasource and augments or modifies their
+  values. In this case, the wrapper wraps the file system datasource,
+  and returns a ROT-13'd version of the filename when asked for the
+  `http://home.netscape.com/NC-rdf#mangled-name' property.
+
+-->
+
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+
+<window width="400" height="300"
+  onload="init();" onunload="finish();"
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script>
+    <![CDATA[
+      const NS_RDF_NO_VALUE           = 0xa0002;
+      const NS_RDF_ASSERTION_REJECTED = 0xa0003;
+
+      var RDF =
+        Components
+        .classes["@mozilla.org/rdf/rdf-service;1"]
+        .getService(Components.interfaces.nsIRDFService);
+
+      const NC = "http://home.netscape.com/NC-rdf#";
+      const NC_NAME         = RDF.GetResource(NC + "Name");
+      const NC_MANGLED_NAME = RDF.GetResource(NC + "mangled-name");
+
+      /**
+       * ROT-13 a string.
+       */
+      function rot13(str)
+      {
+        var result = "";
+        for (var i = 0; i < str.length; ++i) {
+          var c = str.charCodeAt(i);
+          if (c >= 97 /*a*/ && c <= 122 /*z*/) {
+            if (c <= 109 /*m*/)
+              c += 13;
+            else
+              c -= 13;
+          }
+          else if (c >= 65 /*A*/ && c <= 90 /*Z*/) {
+            if (c <= 77 /*M*/)
+              c += 13;
+            else
+              c -= 13;
+          }
+          result += String.fromCharCode(c);
+        }
+        return result;
+      }
+
+      function MangledFilesDataSource()
+      {
+        this.mInner = RDF.GetDataSource("rdf:files");
+        this.mInner.AddObserver(this);
+
+        this.mObservers = new Array();
+      }
+
+      MangledFilesDataSource.prototype = {
+        /* nsIRDFDataSource */
+        URI: "rdf:mangled-files",
+
+        GetSource: function(pred, obj, tv) {
+          /* XXX ought to handle NS_MANGLED_NAME here. */
+          return this.mInner.GetSource(pred, obj, tv);
+        },
+
+        GetSources: function(pred, obj, tv) {
+          /* XXX ought to handle NS_MANGLED_NAME here. */
+          return this.mInner.GetSources(pred, obj, tv);
+        },
+
+        GetTarget: function(subj, pred, tv) {
+          if (pred == NC_MANGLED_NAME) {
+            var name = this.mInner.GetTarget(subj, NC_NAME, true)
+              .QueryInterface(Components.interfaces.nsIRDFLiteral)
+              .Value;
+
+            return RDF.GetLiteral(rot13(name));
+          }
+          return this.mInner.GetTarget(subj, pred, tv);
+        },
+
+        GetTargets: function(subj, pred, tv) {
+          /* XXX ought to handle NS_MANGLED_NAME here. */
+          return this.mInner.GetTargets(subj, pred, tv);
+        },
+
+        Assert: function(subj, pred, obj, tv)        { throw NS_RDF_ASSERTION_REJECTED; },
+        Unassert: function(subj, pred, obj, tv)      { throw NS_RDF_ASSERTION_REJECTED; },
+        Change: function(subj, pred, oldobj, newobj) { throw NS_RDF_ASSERTION_REJECTED; },
+        Move: function(oldsubj, newsubj, pred, obj)  { throw NS_RDF_ASSERTION_REJECTED; },
+
+        HasAssertion: function(subj, pred, obj, tv) {
+          if (pred == NC_MANGLED_NAME) {
+            var unmangled = obj
+              .QueryInterface(Components.interfaces.nsIRDFLiteral);
+
+            if (obj)
+              return this.mInner.HasAssertion(subj, pred,
+                                              RDF.GetLiteral(rot13(unmangled.Value)),
+                                              tv);
+          }
+          return this.mInner.HasAssertion(subj, pred, obj, tv);
+        },
+
+        AddObserver: function(aObserver) {
+          this.mObservers.push(aObserver);
+        },
+
+        RemoveObserver: function(aObserver) {
+          for (var i = 0; i < this.mObservers.length; ++i) {
+            if (aObserver == this.mObservers[i]) {
+              this.mObservers.splice(i, 1);
+              break;
+            }
+          }
+        },
+
+        ArcLabelsIn: function(obj) {
+          /* XXX may need to append NC_MANGLED_NAME here. */
+          return this.mInner.ArcLabelsIn(obj);
+        },
+
+        ArcLabelsOut: function(subj) {
+          /* XXX may need to append NC_MANGLED_NAME here. */
+          return this.mInner.ArcLabelsOut(obj);
+        },
+
+        GetAllResources: function() {
+          return this.mInner.GetAllResources();
+        },
+
+        hasArcIn: function(obj, pred) {
+          /* XXX may need to check NC_MANGLED_NAME here. */
+          return this.mInner.hasArcIn(obj, pred);
+        },
+
+        hasArcOut: function(subj, pred) {
+          /* XXX may need to check NC_MANGLED_NAME here. */
+          return this.mInner.hasArcOut(subj, pred);
+        },
+
+        /* nsIRDFObserver */
+        onAssert: function(ds, subj, pred, obj) {
+          /* XXX may need to check changes to NC_NAME here, and
+             additionally broadcast change to NC_MANGLED_NAME. */
+          for (var obs in this.mObservers)
+            obs.onAssert(this, subj, pred, obj);
+        },
+
+        onUnassert: function(ds, subj, pred, obj) {
+          /* XXX may need to check changes to NC_NAME here, and
+             additionally broadcast change to NC_MANGLED_NAME. */
+          for (var obs in this.mObservers)
+            obs.onUnassert(this, subj, pred, obj);
+        },
+
+        onChange: function(ds, subj, pred, oldobj, newobj) {
+          /* XXX may need to check changes to NC_NAME here, and
+             additionally broadcast change to NC_MANGLED_NAME. */
+          for (var obs in this.mObservers)
+            obs.onChange(ds, subj, pred, oldobj, newobj);
+        },
+
+        onMove: function(ds, oldsubj, newsubj, pred, obj) {
+          /* XXX may need to check changes to NC_NAME here, and
+             additionally broadcast change to NC_MANGLED_NAME. */
+          for (var obs in this.mObservers)
+            obs.onMove(ds, oldsubj, newsubj, pred, obj);
+        }
+      };
+
+      var DS = new MangledFilesDataSource;
+
+      function init()
+      {
+        var outliner = document.getElementById("outliner");
+        outliner.database.AddDataSource(DS);
+        outliner.setAttribute("ref", "NC:FilesRoot");
+      }
+
+      function finish()
+      {
+        // XXX better way to do this? We need to break the circularity
+        // between DS and DS.mInner.
+        DS.mInner.RemoveObserver(DS);
+      }
+    ]]>
+  </script>
+
+  <vbox flex="1">
+    <outliner flex="1" id="outliner" datasources="rdf:null"
+              flags="dont-build-content"
+              containment="http://home.netscape.com/NC-rdf#child">
+      <template>
+        <rule>
+          <conditions>
+            <outlineritem uri="?folder" />
+            <member container="?folder" child="?subfolder" />
+          </conditions>
+  
+          <bindings>
+            <binding subject="?subfolder"
+                     predicate="http://home.netscape.com/NC-rdf#Name"
+                     object="?name" />
+            <binding subject="?subfolder"
+                     predicate="http://home.netscape.com/NC-rdf#mangled-name"
+                     object="?mangled" />
+          </bindings>
+  
+          <action>
+            <outlinerchildren>
+              <outlineritem uri="?subfolder">
+                <outlinerrow>
+                  <outlinercell label="?name" />
+                  <outlinercell label="?mangled" />
+                </outlinerrow>
+              </outlineritem>
+            </outlinerchildren>
+          </action>
+        </rule>
+      </template>
+
+      <outlinercols>
+        <outlinercol id="FileName" flex="1" label="Name" sort="?name"
+                     primary="true" />
+        <outlinercol id="MangledName" flex="1" label="Mangled" sort="?mangled" />
+      </outlinercols>
+    </outliner>
+  </vbox>
+</window>

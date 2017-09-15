@@ -1,0 +1,659 @@
+<html>
+<head>
+<title>Mozilla Command Architecture</title>
+<style type="text/css">
+<!--
+.unassigned {  color: #FF0000}
+.change {  color: #6600FF}
+.deftable {  background-color: EEEEEE}
+.term {  clip:   rect(   ); font-style: italic}
+-->
+</style></head>
+
+<body bgcolor="#FFFFFF">
+<h1 align="center">XPFE/App Command Architecture</h1>
+<p align="right"><b> First Draft</b><br>21 Dec 98<br>
+  <a href="mailto:danm@netscape.com">contact</a></p>
+<p>Change history:</p>
+<p>Draft 1: More terms in the Glossary. Changed name of Widget Controller to Window 
+  Glue. Updated description of COM Connect and JavaScript linkage code. Many small 
+  changes and additional explanation. Really, everything has been touched. Please 
+  re-read. </p>
+<p>This document is a written version of some of the concepts the XPFE team have 
+  been discussing for building command structures in Seamonkey. &quot;Command 
+  Structures&quot; are, basically, menus and toolbars and the framework which 
+  binds them to the application shell and other widgets. The authors necessarily 
+  make some assumptions about application architecture, and hope for feedback 
+  from the XP Apps team.</p>
+<p> Feedback is appreciated. We are particularly interested in opinions from members 
+  of XPApps, who may be interested to know we are envisioning an architecture 
+  for them, and from members of Gecko, who will know if some of our expected DOM 
+  manipulations are feasible.</p>
+<h2>Scope</h2>
+<p>This document covers current XPFE team thoughts on command structure: the basic 
+  syntax by which widgets and the commands they issue are specified in XUL, and 
+  the communication pathways along which commands travel.</p>
+<h2>Glossary</h2>
+<p>Some terms used, some terms invented and some terms slightly misused in this 
+  document</p>
+<dl> 
+  <span class="term"><dt>DOM</dt></span>
+  <dd>The Document Object Model; the structure of an (HTML) document, represented 
+    as a hierarchy of components with a standard API suitable for scripting. We 
+    mention this because of the next definition.</dd>
+  <span class="term"><dt>AOM</dt></span>
+  <dd>The Application Object Model. This is the structure of the application, 
+    specified as a hierarchy of elements in XUL and then modeled as a tree of 
+    widgets and other objects. The concept and structure is similar to the content 
+    model built by Gecko to represent an HTML document.</dd>
+  <span class="term"><dt>Application</dt></span>
+  <dd>a complete application, such as a browser or mail client. It is expected 
+    that multiple applications can be hosted within a single executable.</dd>
+  <span class="term"><dt>Application Shell</dt></span>
+  <dd>the controlling application which arbitrates between all the individual 
+    applications living within a single executable.</dd>
+  <span class="term"><dt>Command</dt></span>
+  <dd>An abstraction standing for the concept of of the command. In this paper, 
+    &quot;Close Window&quot; and Copy to Clipboard are commands. This is in contrast 
+    to the idea of executing the command, an idea for which this paper has no 
+    special term. </dd>
+  <span class="term"><dt>Window Glue</dt></span>
+  <dd>Related to the idea of executing a command, this is the application code 
+    that links command originators and recipients together. A better explanation 
+    (one hopes) is built throughout the document.</dd>
+  <span class="term"><dt>Widget</dt></span>
+  <dd>A visible element of a window's UI. Described by a subtree of the AOM. While 
+    it relies on Gecko for its positioning and sizing within its parent window, 
+    its contents are owned only by itself. That is, it must be considered an atomic 
+    rectangle by Gecko.</dd>
+  <span class="term"><dt>Originating Widget</dt></span>
+  <dd>A widget representing a command UI to its host application. A toolbar or 
+    menu, generally, though hopefully the architecture proposed in this document 
+    will not disallow the future inclusion of some unforeseen new control type. 
+    (Note the ambiguity about which is a widget, a toolbar or a toolbar button?)</dd>
+  <span class="term"><dt>Receiving Widget</dt></span>
+  <dd>A widget interested in fulfilling a command. That is, a widget to which 
+    an originating widget can send a command. Receiving widgets should always 
+    be a top-level window, or an application, rather than a <span class="term">widget</span>, 
+    as the term is defined above. In that sense, the term is misleading and may 
+    be changed, though it provides a certain symmetry. The authors are prepared 
+    to rescind this requirement should it become more liability than asset, but 
+    at this time believe the restriction is not a hardship, and will ease the 
+    task of finding receiving widgets when building the UI.</dd>
+  <span class="term"><dt>Control</dt></span>
+  <dd>an <span class="term">Originating Widget</span>.</dd>
+</dl>
+<h2>Introduction</h2>
+<p>The Command System Architecture in most GUI applications is fairly straightforward. 
+  Menus, toolbars, buttons and the like exist in the UI. The application alters 
+  their state directly (enabling and disabling them, for instance) when necessary. 
+  The widgets interact with the user and issue commands to any receiver who cares 
+  to listen (often, the application).</p>
+<p>Mozilla supports a scriptable UI, &quot;downloadable chrome,&quot; and so can 
+  find itself with a new and unexpected set of widgets at any time. The Command 
+  System Architecture outlined in this document is a layer of abstraction between 
+  the application code and the application UI. It allows the application to alter 
+  the state of its command UI (enabling and disabling widgets, for instance) without 
+  directly referencing the widgets themselves. And it allows those widgets to 
+  hook into the application at runtime.</p>
+<p>Another concern of the command system, peripheral to this document but not 
+  completely outside it, is allowing the application shell to arbitrate between 
+  different command UIs expected by its component applications and widgets. This 
+  paper only gives that subject a name, Command Merging, and then touches on it 
+  briefly. A full treatment will come with a later revision, or a second paper. 
+</p>
+<h2>Command Merging</h2>
+<p>Mozilla design teams foresee a need for &quot;mergeable&quot; command widgets. 
+  That is, the environment in which widgets will find themselves is a shared shell 
+  in which different applications are running. These applications will have their 
+  own disparate ideas of what they want in the main menu, and the main toolbar. 
+  They may additionally have their own toolbars and menus. XPFE want to provide 
+  an environment that allows these command structures to interleave automatically, 
+  without special consideration from the hosted applications. This is a concern 
+  of the shell application, and of the command widgets.</p>
+<p>For example, a browser and a mail client inhabiting the same window will each 
+  have a specific implementation of certain commands, such as Copy to Clipboard. 
+  They will also have a set of commands unique to themselves, such as Open Inbox 
+  or Load URL. If these applications share the same window, there must be an arbitration 
+  mechanism by which the applications share the same UI space for their controls. 
+  Some arbitration may also be necessary for separate widgets in the same window, 
+  sharing a single command UI space.</p>
+<p>This is a fairly complicated problem. XPApps and XPFE are currently trying 
+  to figure out who owns it (oddly, both teams seem to want it.) XPFE originally 
+  thought that merging wouldn't be necessary, but the problem of bringing up the 
+  Composer UI in a variety of environments (Browser and Messenger) appears insurmountable 
+  without this facility. A merging scheme seems a useful addition to the Command 
+  System Architecture, but a specification for that will follow at a later time. 
+  This paper is primarily concerned with the abstraction layer introduced above.</p>
+<h2>Command Abstraction</h2>
+<p>Because of its scriptable UI, Mozilla will need a command abstraction layer 
+  -- an API with which applications and receiving widgets speak to create and 
+  maintain originating widgets. An application's UI can be completely reworked 
+  after the app has been compiled: UIs can be specified at nearly any time using 
+  a XUL script. If applications speak to their command UI through an abstraction 
+  layer which carries no knowledge of the UI implementation through to the client 
+  applications, UI designers will need to operate under fewer constraints when 
+  specifying UIs. XPFE believe this is an important consideration which should 
+  be worked into the architecture.</p>
+<p>This abstraction layer is the main thrust of this document. In particular, 
+  the idea of a command is embodied in the <a href="#aomcommandnodes">command 
+  nodes</a>. The application should be programmed to speak to the command nodes, 
+  rather than directly to the widgets it expects, since commands can be worked 
+  into different widgets after the program has been built.</p>
+<h2>Command System Architecture</h2>
+<p>An application's UI is specified with XML. This UI spec is parsed and built 
+  into a content model accessible through the DOM. The UI spec unsurprisingly 
+  includes visible components (widgets), but specifies the command system as well: 
+  the network through which the components interact.</p>
+<h3>Application DOM (or, the AOM)</h3>
+<p>Specifically, the DOM built by Gecko in response to parsing a XUL UI description. 
+  It contains both the command structure and the means of communicating commands 
+  between widgets. </p>
+<p>First, a short digression on UI instantiation from XUL and DOM. (This section 
+  should be moved into a separate document and referenced from here.) The steps 
+  of instantiating a UI from XUL are</p>
+<ul>
+  <li>An XML parser and content sink builds a DOM from XUL.</li>
+  <li>Window creation code traverses the DOM, building the contents of the window, 
+    which are layed out using Gecko. It expects to find XML elements and CSS directives 
+    for displaying them. Some elements correspond to widgets, which are, to the 
+    window instantiation code, atomic pieces of UI. Upon discovery of a widget 
+    node in the DOM, the window creation code reserves a display rectangle, locates 
+    and loads the corresponding widget code, and hands the DOM subtree to it so 
+    it can finish initializing itself.</li>
+  <li>Widgets are free to interpret their subtrees as they see fit: their contents 
+    are specific to the widget and (ideally) invisible to the encompassing window.</li>
+  <li>Any finishing touches necessary to establish necessary links between DOM 
+    and window are performed. The authors expect some linkage between command 
+    nodes and their corresponding originating widgets will need to be explicitly 
+    established. Originating widgets will need to be event listeners for each 
+    command node, so they will receive notification of attribute changes. This 
+    part of the DOM event model is incomplete at time of writing, so the authors 
+    are uncertain exactly how this functionality will be enabled. </li>
+  <li>Once finished, a reference to the created (but still invisible) window is 
+    returned to the caller, which may then do as it wishes with the window. (NB: 
+    there will be methods like &quot;initialize&quot; and &quot;show&quot; in 
+    the window API).</li>
+</ul>
+<p>The point of the above digression is that widget contents are <i>largely</i> 
+  invisible to their environment; their contents being mostly private instructions 
+  to specialized widget creation code. They are however expected to conform to 
+  a standard mechanism by which originating and receiving widgets can be hooked 
+  up by the window creation code.</p>
+<p>Receiving widgets contain nodes describing the commands they can fulfill. Originating 
+  widgets contain references to these commands, cloistered within a subtree with 
+  a root element <code>commands</code>. Widget creation code must expect to find 
+  a <code>commands</code> node in its tree, and ignore it and its children. The 
+  Command System expects to find Command and Window Glue nodes in a flat hierarchy 
+  under the <code>commands</code> node of receiving widgets. Note the entire subtree 
+  specifying the widget is retained in the overall window DOM; it is available 
+  for perusal by any code interested in the window structure (in this case, the 
+  window loader, which is responsible for processing the mysterious <code>commands</code> 
+  subtree).</p>
+<h3><a name="aomcommandnodes"></a>Command Nodes in the AOM</h3>
+<p>In the application UI description, structure is specified as well as visible 
+  components themselves. This structure includes specific mention of commands, 
+  in the same way as widgets are specified. For this reason, commands exist as 
+  nodes in the AOM, just as do widgets.</p>
+<p>Command Nodes embody the idea of a command to be executed by the application. 
+  They are primarily the mechanism by which application code affects the state 
+  of application commands. That is, any change an application wishes to make to 
+  a command widget, such as disabling it, it should do by talking to the corresponding 
+  command node. This ensures that all widgets which surface the command in question 
+  are affected similarly.</p>
+<p>A command node may also contain the actual code for executing the command. 
+  Or more precisely, the <a href="#linkage">linking code</a> that causes the command 
+  to be executed by the receiving widget. This paper specifies that command code 
+  can be executed as either JavaScript or a call to a function compiled into the 
+  application. This code can be found in either the originating widget, or the 
+  corresponding command node.</p>
+<p>There is another way the command could be executed as well. The application 
+  shell could be programmed to receive all commands. It could then locate the 
+  appropriate receiving widget for a command by stepping through some list of 
+  widgets it maintains in the order of which one gets first crack at each incoming 
+  command (a &quot;chain of command,&quot; if you like). Since this paper specifies 
+  that Command Nodes inhabit a well-defined place within receiving widgets, the 
+  application could determine whether each widget in its chain of command is a 
+  suitable receptor by searching for the corresponding Command Node among its 
+  descendants. Or of course it could pass the command to each candidate in turn, 
+  expecting a return value signifying whether the command was handled.</p>
+<p>These are merely suggestions. The command system architecture does not attempt 
+  to specify exact handling of the command; only a standard framework for handling 
+  them, which an application is free to interpret as it wishes.</p>
+<p>Note the authors expect JavaScript event handlers specified in the widgets 
+  to be handled directly by Gecko, but a mechanism for executing JavaScript in 
+  a separate command node will need to be implemented, and this is a fragile point 
+  in this spec. It is also unclear under which circumstances a command node's 
+  handler would be used in preference to the originating widget's handler.</p>
+<p>Command Nodes are nodes within the DOM tree. They directly correspond to no 
+  visible element of the UI; they are merely abstract placeholders for commands. 
+  A DOM command node is implemented as a subclass of the basic DOM node, the subclass 
+  supporting a COM <a href="#nsicommand">nsICommand</a> interface. The interface 
+  is expected to be little more than a set of convenience methods for setting 
+  attributes of the node. For example, calling <code>SetEnable(true)</code> merely 
+  sets the value of the <code>enabled</code> attribute.</p>
+<p>The Command Architecture will rely on DOM notification events heralding a changed 
+  attribute, sent to the node's event listeners. These event listeners are the 
+  command originating widgets; the UI element(s) by which the command is surfaced. 
+  Generally, that is, toolbar buttons or menu items. Therefore, command nodes 
+  are the application's interface to commands: set a command node's attributes, 
+  and all corresponding UI widgets will be messaged, and know that they must change 
+  their appearance or behaviour accordingly.</p>
+<h3>Window Glue Nodes</h3>
+<p>These DOM nodes, along with Command Nodes, define the complete AOM Command 
+  Model. They are a substitute for JavaScript event handlers; an alternate means 
+  by which an originating widget can execute a command. They contain code which 
+  is familiar with the DOM representing a particular window. They can then attach 
+  event handlers explicitly to originating widgets, and route the commands as 
+  they see fit.</p>
+<p>This description obviously could apply equally well to a chunk of code compiled 
+  directly into the application. Window Glue code is exactly that, except built 
+  into a COM object, loadable at runtime, rather than directly into the application. 
+  The reason for doing that is, as always, to separate the compiled application 
+  from its scriptable UI description. A window's structure can be changed after 
+  the application has been compiled. Window Glue Nodes are a place to put code 
+  intimately familiar with the structure of a window, outside the application, 
+  in a place where it can be specified alongside the window structure itself.</p>
+<p>Window Glue Nodes are optional, and <a href="#windowgluecode">described</a> 
+  within the linkage section. They are nodes within the DOM which support the 
+  <a href="#nsiwindowglue"> <code>nsIWindowGlue</code></a> interface. They should 
+  be ignored by the widget creation code. </p>
+<h3>Originating Widgets in the AOM</h3>
+<p>Originating widgets reference their command by name: a string mentioned in 
+  the XUL UI spec. Command names must be unique within an application specification. 
+  The authors expect to define a set of well-known command names and a Mozilla 
+  command namespace.</p>
+<p>When an Originating Widget must issue a command, perhaps in response to some 
+  user action, it calls into a bit of linkage code. Being code, it will have a 
+  great deal of freedom in what it wants to do. XPFE expect most commands to be 
+  simple notifications such as the Window Glue <code>DoCommand(&quot;nscmd:openfile&quot;)</code> 
+  or the JavaScript <code>doOpenFile()</code>. The <a href="#linkage">linkage 
+  code</a> will be specified in this document, but the execution code, which is 
+  expected to be hardwired directly into the target application, will not.</p>
+<h3>Receiving Widgets in the AOM</h3>
+<p> No explicit connection is made by the window creation code between commands 
+  and their receiving widgets. Commands are carried out by arbitrary <a href="#linkage">linkage 
+  code</a>, which may send the command anywhere it pleases.</p>
+<p>Receiving Widgets; that is, widgets which wish to fulfill a command, should 
+  contain command nodes in a <code>commands</code> subtree, whose root is a first-level 
+  child of the widget content model. This relationship will be established in 
+  the <a href="#xul">XUL</a> and carried through to the AOM. Strictly speaking, 
+  this is (probably) not a requirement. XP Apps may wish to design their command 
+  dispatching code to look for command nodes as it bubbles a command up through 
+  the command chain, so such a requirement may come from them. However, XPFE believe 
+  as a matter of style that command nodes representing each command a window can 
+  process should be included as first-level children of all windows. Application 
+  code will then have a well-known place to search for an interface to their command 
+  structure.</p>
+<p>XPFE expect the application shell will have a concept of a chain of command, 
+  not specified by this document and indeed outside the scope of XPFE to specify. 
+  Perhaps this chain of command begins at the widget which currently has focus. 
+  Perhaps XPApps will simply expect all or most commands to be sent directly to 
+  a place of central dispatch in the application (in which case, their command 
+  nodes will be specified in XUL descendants of the application shell.) </p>
+<h3><a name="linkage"></a>Command Linkage</h3>
+<p>The originating widget or the corresponding command node are technically responsible 
+  for carrying out a command, since they contain the first code in the sequence 
+  of execution which ultimately fulfills the command. However, that code generally 
+  should be nothing more than a function call. The receiving widget (or application) 
+  is deemed responsible for actually carrying out the command. The specific response 
+  to a command is outside the scope of this document. We are interested in the 
+  means by which the originating widget carries notification of the command to 
+  the receiving widget.</p>
+<p>This linkage may be carried out in any of four fashions. All four are always 
+  present and always operational; the application build and UI designer should 
+  take care not to implement a command twice. The situation actually simplifies 
+  in practice. Direct Application Code if present, should obviate the need for 
+  any additional code. And Command Node code is really a cooperative thing with 
+  the widget.</p>
+<h4><a name="jsgluecode"></a>JavaScript</h4>
+<p>JavaScript linkage requires COM Connect; a technology currently under development 
+  within Gecko. The facility provided by COM Connect is planned to be a means 
+  of dynamically adding a namespace containing methods and properties to individual 
+  windows, reachable by JavaScript. (Note this capability currently exists and 
+  is somewhat richer for DOM objects. The current state of COM Connect is one 
+  where the DOM interface itself must be modified.) Once the framework has been 
+  established, JavaScript code should be free to call methods unique to the receiving 
+  widget.</p>
+<p>Widgets can have event handlers, just as do form elements in HTML. The specific 
+  events to which an originating widget responds are outside the scope of this 
+  document; they are a subject for the specification of the individual widget. 
+  Command Nodes can themselves contain JavaScript for processing the command using 
+  the <code><a href="#commandnodexul">onCommand</a></code> attribute. Note this 
+  method will probably require some cooperation from COM Connect and may prove 
+  unfeasible, so the authors don't feel they can actually recommend its use. Still, 
+  if possible, XPFE would like to provide a central place of code for fulfilling 
+  a command within the command node itself, rather than distributed among the 
+  individual widgets which surface the command. The widget would reference the 
+  command node in its event handler. (Note: exact syntax to be determined later; 
+  probably something like <code>onClick=&quot;commands.DoCommand()&quot;</code>.)</p>
+<h4>Direct Application Code</h4>
+Applications can of course directly contain linkage code. Linkage may be established 
+by stepping through the DOM, searching for expected nodes by ID, and explicitly 
+adding event listeners. The disadvantage of this approach is that the application 
+must contain explicit knowledge of its UI, which it cannot do since the UI can 
+be changed through XUL. For that reason, this method should never be used except 
+in special cases such as algorithmically generated windows. Window Glue Code is 
+a modification of Direct Application Code, designed to overcome this shortcoming 
+for the general case. 
+<h4><a name="windowgluecode"></a>Window Glue Code</h4>
+<p>The code built into either a glue node or directly into the application can 
+  be identical. Glue nodes merely provide a means by which the application at 
+  large need not necessarily be built with intimate knowledge of its UI. Glue 
+  nodes are specified along with the UI.</p>
+<p>Glue nodes contain linkage code. XPFE expect them to be built as COM objects 
+  in DLLs distributed along with the application and XUL. The <a href="#xul">UI 
+  specification</a> will specify a GUID for an object supporting the <code><a href="nsiwindowglue">nsIWindowGlue</a></code> 
+  interface, and the window loading code will create and instantiate the object 
+  along with the window.</p>
+<h4>Command Node Glue Code</h4>
+<p>In addition to the <a href="#jsgluecode">JavaScript onCommand event handler</a> 
+  mentioned above, the suggestion has been made that a command node should have 
+  the capability to automatically execute a well-defined function in its parent 
+  receiving widget. The authors are uncertain at this point how this should be 
+  implemented. One possibility is that the parent window can choose to implement 
+  the <a href="#nsireceivingwidget"><code>nsIReceivingWidget</code></a> interface. 
+  The command node could use that interface and method, if available. This could 
+  provide a means for specifying command linkage in the XUL file without additional 
+  code, though it has the potential to break the design constraint calling for 
+  the application not to have intimate knowledge of its UI, if used injudiciously.</p>
+<h2><a name="xul"></a>XUL Command Specification</h2>
+<p>The exact syntax has not been worked out yet, pending actually trying this 
+  thing with code.</p>
+<h3>Originating Widgets</h3>
+<p>Originating widgets which wish to issue commands are specified as detailed 
+  in their respective specifications (most of which don't exist at time of writing). 
+  This document specifies merely that any originating widget which may be referenced 
+  by the owning application in a generic, command-oriented way include a <code>cmd</code> 
+  attribute, referencing a Command Element.</p>
+<table border="1" width="100%" class="deftable">
+  <tr> 
+    <th>XML Element</th>
+    <th colspan="2">Command Attribute</th>
+  </tr>
+  <tr valign="top"> 
+    <td>menuitem, button (command widgets)</td>
+    <td>cmd</td>
+    <td>a string naming the command, referencing a corresponding command node</td>
+  </tr>
+</table>
+<h3>Receiving Widgets</h3>
+Receiving Widgets are widgets which expect to fulfill commands, and therefore, 
+to receive notifications of commands to be executed, from originating widgets. 
+Receiving Widgets are specified according to their individual specifications, 
+listed <span class="unassigned">elsewhere</span>. The Command Architecture, however, 
+adds to receiving widgets a <code>commands</code> subtree containing two types 
+of children. This subtree should be ignored by the widget instantiation code. 
+<h4><a name="commandnodexul"></a>Command Nodes</h4>
+<p>Command Nodes must be first-level children of the <code>commands</code> node, 
+  itself a first-level child of a receiving widget. The authors hope that receiving 
+  widgets can be constrained to be top-level windows and applications. (Note this 
+  restriction is placed to ease the task of finding command nodes.) Command Nodes 
+  contain attributes controlling the status of the command, and consequently all 
+  the originating widgets to which it corresponds.</p>
+<table border="1" width="100%" class="deftable">
+  <tr> 
+    <th valign="top">XML Element</th>
+    <th valign="top">Allowed Children</th>
+    <th>Attributes</th>
+  </tr>
+  <tr valign="top"> 
+    <td valign="top">command</td>
+    <td valign="top">&nbsp;</td>
+    <td> 
+      <p>Specifies an abstract command node
+      <table border="0" width="100%">
+        <tr> 
+          <td valign="top">name</td>
+          <td>a string specifying the name of the command, referenced by originating 
+            widgets </td>
+        </tr>
+        <tr> 
+          <td valign="top">enabled</td>
+          <td>&quot;true&quot; or &quot;false&quot;</td>
+        </tr>
+        <tr> 
+          <td valign="top">selected</td>
+          <td>&quot;true&quot; or &quot;false&quot;</td>
+        </tr>
+        <tr> 
+          <td valign="top">tooltip</td>
+          <td>text to be displayed in the tooltip</td>
+        </tr>
+        <tr> 
+          <td valign="top">description</td>
+          <td>text to be displayed in a status bar or some similar display</td>
+        </tr>
+        <tr> 
+          <td valign="top">onCommand</td>
+          <td>JavaScript to execute when the command is triggered</td>
+        </tr>
+        <tr> 
+          <td valign="top" colspan="2">(should we include text and icon sets, 
+            attributes which we feel should be specified in style sheets?)</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<p>These elements will be instantiated by the window builder code as DOM nodes 
+  which support the <code><a href="#nsicommand">nsICommand</a></code> interface. 
+</p>
+<h4>Window Glue Nodes</h4>
+<p>Window Glue Nodes are XUL specifications that the window building code must 
+  satisfy by loading an object from a registry of COM objects (see the hands wave). 
+  The object must support the <a href="#nsiwindowglue"><code>nsIWindowGlue</code></a> 
+  interface and must be prepared to provide code accessible from an originating 
+  widget which fulfills a command within the receiving widget.</p>
+<table border="1" width="100%" class="deftable">
+  <tr> 
+    <th valign="top">XML Element</th>
+    <th valign="top">Allowed Children</th>
+    <th>Attributes</th>
+  </tr>
+  <tr valign="top"> 
+    <td valign="top">windowglue</td>
+    <td valign="top">&nbsp;</td>
+    <td> 
+      <p>Specifies window glue code 
+      <table border="0" width="100%">
+        <tr> 
+          <td valign="top">cid</td>
+          <td>COM CID of object containing the glue code</td>
+        </tr>
+        <tr> 
+          <td valign="top" colspan="2">(expecting the corresponding iid to be 
+            fixed)</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<h3>Shortcuts</h3>
+<p>As an aside, the subject of convenience shortcuts has been raised. While this 
+  is primarily an issue for individual widget developers, there is a need for 
+  a standard set of shortcuts to which all originating widgets conform.</p>
+<table border="1" width="100%" class="deftable">
+  <tr> 
+    <th>Shortcut Attribute</th>
+    <th>Equivalent To</th>
+  </tr>
+  <tr>
+    <td>href = <span class="term">url</span></td>
+    <td>onClick = loadURL(<span class="term">url</span>)</td>
+  </tr>
+  <tr>
+    <td>command = <span class="term">JavaScript</span></td>
+    <td>onClick = doCommand(<span class="term">JavaScript</span>)</td>
+  </tr>
+</table>
+<h2><a name="commandAPI"></a>Command API</h2>
+<h3>nsIFrame </h3>
+<p>XPFE expect all widgets to need to support the Gecko <code>nsIFrame</code> 
+  interface. <code>nsIFrame</code> is a means for fitting into the Gecko layout 
+  code, taking advantage of the Gecko environment. <code>nsIWidget</code> is a 
+  means for constructing foreign (perhaps native) widgets, not tightly bound to 
+  Gecko. In spite of the names, we expect our widgets to be Frame objects. Native 
+  widget implementations will need to include an adapter layer that allows them 
+  to fit into a Frame.</p>
+<h3><a name="nsiwindowglue"></a>nsIWindowGlue</h3>
+<p><code>nsIWindowGlue</code> is an interface which must be supported by DOM Window 
+  Glue nodes. Its specification, too, will probably be moved into code. For now, 
+  the authors present this swag to get things started.</p>
+<code> 
+<pre>class nsIWindowGlue : public nsISupports {
+public:
+  NS_IMETHOD Create(const nsIFrame *aParent);
+  NS_IMETHOD Destroy();
+  NS_IMETHOD Initialize();
+  NS_IMETHOD GetParent(nsIFrame **aParent) const;
+  virtual NS_IMETHOD DoCommand(const nsString &amp;aCmdName);
+}</pre>
+</code> Actual Window Glue objects must probably be subclasses of <code>nsIWindowGlue</code>, 
+and define their own unique methods for executing commands. Originating Widgets 
+must be able to call unique methods by name (such as <code>LoadURL</code>), and 
+be able to add arbitrary parameters to <code>DoCommand</code>, if that method 
+is used. 
+<h3><a name="nsicommand"></a>nsICommand</h3>
+<p><code>nsICommand</code> is the interface which all DOM command nodes must support. 
+  It is a generic means of accessing attributes of a command, as explained in 
+  the body of this document. A Command Node is expected to be nothing more than 
+  a DOM node containing attributes of interest to originating widgets. The <code>nsICommand</code> 
+  interface is expected to be nothing more than convenience functions for setting 
+  node attribute values. Any change in an attribute value is broadcast by the 
+  underlying DOM event mechanism to the node's originating widgets. As with the 
+  other interfaces, its specification will probably be moved into code. For now, 
+  more swag.</p>
+<code>
+<pre>class nsICommand : public nsISupports {
+public:
+  NS_IMETHOD Create();
+  NS_IMETHOD Destroy();
+  NS_IMETHOD GetName(nsString &amp;aName) const;
+  NS_IMETHOD AddOriginatingWidget(const nsIFrame *aWidget);
+  NS_IMETHOD RemoveOriginatingWidget(nsIFrame *aWidget);
+  NS_IMETHOD SetEnabled(PRBool aEnabled);
+  NS_IMETHOD GetEnabled(PRBool *aEnabled) const;
+  NS_IMETHOD SetSelected(PRBool aSelected);
+  NS_IMETHOD GetSelected(PRBool *aSelected) const;
+  NS_IMETHOD SetTooltip(const nsString &amp;aTip);
+  NS_IMETHOD GetTooltip(nsString &amp;aTip) const;
+  NS_IMETHOD SetDescription(const nsString &amp;aDescription);
+  NS_IMETHOD GetDescription(nsString &amp;aDescription) const;
+}</pre></code>
+<p><code> </code>(And, as mentioned above, the question remains, should we include 
+  text and icon sets, attributes which we feel should be specified in style sheets?) 
+</p>
+<h3><a name="nsireceivingwidget"></a>nsIReceivingWidget</h3>
+<p>In this version of this document, this interface is optional. If the parent 
+  of a Command Node supports this interface, the command node will call its one 
+  method, passing as the parameter the value of the command node's <code>name</code> 
+  attribute, when the command should be executed. This may be a means of automatically 
+  executing simple commands without the burden of writing explicit linking code 
+  in the XUL.</p>
+<code>
+<pre>class nsIReceivingWidget : public nsISupports {
+public:
+  virtual NS_IMETHOD DoCommand(nsString &amp;aCommandName);
+}</pre>
+</code>
+<h2>XUL Example</h2>
+<p>Following is a very weak example which the authors hope may help explain the 
+  concepts in this paper. A better example, more clearly explained, will replace 
+  this one in a later revision. For now, we describe a dialog. Note the specifics 
+  of the dialog specification should not be taken literally; the items of interest 
+  here are the ones specific to command issues, as described in this document. 
+  This example is intended to illustrate these points</p>
+<ul>
+  <li>Simple widgets need not be part of the command structure at all. The &quot;see 
+    this?&quot; checkbox, for instance, is assumed to have no effect on any declared 
+    status of the application or dialog. It would be initialized along with the 
+    dialog and then queried after the dialog has been closed.</li>
+  <li>Command linkage code can be either JavaScript or application source code, 
+    and they can probably coexist. The authors feel the application source code 
+    version is best relegated to a COM object.</li>
+  <li>Command linkage code is often best local to a window or widget set, rather 
+    than global to the application. The Window Glue in this example is assumed 
+    to contain C code which runs the dialog widgets (except for those containing 
+    JavaScript event handlers).</li>
+  <li>Simple interactions between widgets within a local environment such as a 
+    dialog need not declare command objects; they can simply affect each other 
+    directly. The Window Glue is again assumed to contain code which enables or 
+    disables directly (using the DOM, not the widget itself) the OK button in 
+    response to the state of the &quot;allow OK&quot; checkbox (which is, again, 
+    a strange way to do things.)</li>
+  <li>Widgets can affect the state of commands within their environment. Again, 
+    the magic Window Glue is assumed to contain code which locates within the 
+    overall AOM the <code>nscmd:stomp</code> node and set its enabled state to 
+    follow the value of the &quot;allow stompage&quot; checkbox.</li>
+</ul>
+<p>This (incomplete and possibly inaccurate regarding attributes specific to individual 
+  widgets) XUL specification declares an application window and a dialog window. 
+  The application is prepared to respond to <code>nscmd:stomp</code> commands. 
+  The dialog contains a checkbox which (unwisely) immediately affects the state 
+  of the application <code>nscmd:stomp</code> command. A real dialog wouldn't 
+  work this way, of course. The example is built so to demonstrate the internal 
+  workings of a widget which does affect the state of an application command. 
+  In this case, the dialog is an originating widget.</p>
+<p>The <code>windowglue</code> code presumably contains C code which links itself 
+  into the DOM corresponding to the dialog, sets itself up as a listener of the 
+  &quot;allow OK&quot; checkbox, and enables or disables the OK button to follow 
+  suit. Window Glue objects, being code, are free to do anything they wish. The 
+  &quot;see this&quot; checkbox presumably has no special event handling code 
+  at all; its status can be queried by the calling application after the dialog 
+  has finished, if the application is interested.</p>
+<code>
+<pre>&lt;!-- main application window --&gt;
+&lt;window title=&quot;Application&quot;&gt;
+&lt;menubar ...&gt;
+  &lt;menu ...&gt;
+    &lt;menuitem cmd=&quot;nscmd:stomp&quot; .../&gt;
+  &lt;/menu&gt;
+&lt;/menubar&gt;
+&lt;toolbar ...&gt;
+  &lt;button cmd=&quot;nscmd:stomp&quot; .../&gt;
+&lt;/toolbar&gt;
+&lt;commands&gt;
+  &lt;command name=&quot;nscmd:stomp&quot;/&gt;
+  &lt;!-- other parameters of command are assumed to have
+    some useful initial value --&gt;
+&lt;/commands&gt;
+&lt; ... more useful content ... &gt;
+&lt;/window&gt;
+
+&lt;!-- dialog --&gt;
+&lt;window id=&quot;overwrite&quot; title=&quot;Overwrite File?&quot;&gt;
+  &lt;commands&gt;
+    &lt;windowglue
+      cid=&quot;f7f7f7f7-7f7f-f7f7-7f7f-f7f7f7f7f7f7&quot;/&gt;
+  &lt;/commands&gt;
+
+  Are you entirely certain, or completely daffy?
+  &lt;checkbox id=&quot;seethis&quot; title=&quot;See this?&quot;/&gt;
+  &lt;checkbox id=&quot;allowstompage&quot; title=&quot;Enable Stompage?&quot;/&gt;
+  &lt;checkbox id=&quot;allow&quot; title=&quot;Allow exit&quot;/&gt;
+  &lt;button onClick=&quot;opener.doDialogOK('overwrite')&quot;&gt;OK&lt;/button&gt;
+  &lt;button onClick=&quot;opener.doDialogCancel('overwrite')&quot;&gt;
+    Cancel&lt;/button&gt;
+&lt;/window&gt;</pre>
+</code> 
+<h2>Unresolved Issues</h2>
+<ul>
+  <li>Does it make sense to declare a JavaScript hierarchy for getting to command 
+    nodes, so a click handler like <code>onClick = &quot;application.commands.nscmdstomp.SetEnabled(false)</code>&quot; 
+    ? (This is not trivially done: there is no direct support for this in JavaScript.)</li>
+  <li>Should Command Nodes be the interface by which the application sets a command's 
+    UI elements, such as the icon? (Inapplicable attributes would be ignored by 
+    widget implementations.) If so, these are probably attributes which should 
+    be specified by style sheet, and we need to figure out that whole story before 
+    we can even try to relegate that data to the command node.</li>
+</ul>
+<p>And from the Suggestion Box:</p>
+<ul>
+  <li>Originating Widgets may want the ability to specify a default target in 
+    their XUL.</li>
+  <li>The example wants to be less contrived, and probably wants diagrams including 
+    the resulting content model and flow-of-control.</li>
+</ul>
+</body>
+</html>

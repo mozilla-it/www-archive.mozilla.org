@@ -1,0 +1,417 @@
+<?xml version="1.0"?> 
+<!--
+The contents of this file are subject to the Netscape Public
+License Version 1.1 (the "License"); you may not use this file
+except in compliance with the License. You may obtain a copy of
+the License at http://www.mozilla.org/NPL/
+
+Software distributed under the License is distributed on an "AS
+IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+implied. See the License for the specific language governing
+rights and limitations under the License.
+
+The Original Code is Mozilla Communicator client code, released
+March 31, 1998.
+
+The Initial Developer of the Original Code is Netscape
+Communications Corporation. Portions created by Netscape are
+Copyright (C) 1998-1999 Netscape Communications Corporation. All
+Rights Reserved.
+-->
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://messenger/skin/" type="text/css"?> 
+<?xul-overlay href="chrome://global/content/globalOverlay.xul"?>
+<?xul-overlay href="chrome://global/content/tasksOverlay.xul"?>
+
+<!DOCTYPE window SYSTEM "chrome://messenger/locale/messenger.dtd">
+                     
+<window xmlns:html="http://www.w3.org/TR/REC-html40"
+		xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+		title="&messengerWindow.title;"
+		onload="OnLoadMessenger()"
+		onunload="OnUnloadMessenger()"
+		id="messengerWindow"
+		style="width:100%;height:100%" align="vertical"
+		width="640" height="480"
+		windowtype="mail:3pane">
+
+
+<html:script src="chrome://messenger/content/widgetglue.js"/>
+<html:script src="chrome://messenger/content/commandglue.js"/>
+<html:script src="chrome://messenger/content/shareglue.js"/>
+
+  <broadcaster id="Messenger:Throbber" busy="false"/>
+  <broadcaster id="Messenger:Status"/>
+  <broadcaster id="Messenger:LoadingProgress"/>
+  <toolbox>
+     <menubar>
+    <menu value="&fileMenu.label;">
+	  <menupopup id="fileMenu">
+      <menu value="&newMenu.label;">
+        <menupopup>
+		<menuitem value="&newNavCmd.label;" onaction="NewBrowserWindow();"/>
+        <menuitem value="&newMessageCmd.label;" onaction="MsgNewMessage();"/>
+        <menuitem value="&newBlankPageCmd.label;" onaction="NewBlankPage();"/>
+        <menuseparator/>
+        <menuitem value="&newPageFromTemplate.label;" onaction="TemplatePage();"/>
+        <menuitem value="&newPageFromWizard.label;" onaction="WizardPage();"/>
+		</menupopup>
+      </menu>
+      <menuitem value="&newFolderCmd.label;" onaction="MsgNewFolder();"/>
+      <menuitem value="&openAttachmentCmd.label;" onaction="MsgOpenAttachment();"/>
+      <menu value="&saveAsMenu.label;">
+        <menupopup>
+		<menuitem value="&saveAsFileCmd.label;" onaction="MsgSaveAsFile();"/>
+        <menuitem value="&saveAsTemplateCmd.label;" onaction="MsgSaveAsTemplate();"/>
+		</menupopup>
+      </menu>
+      <menuseparator/>
+      <menuitem value="&getNewMsgCmd.label;" onaction="MsgGetMessage();"/>
+      <menuitem value="&sendUnsentCmd.label;" onaction="MsgSendUnsentMsg();"/>
+      <menuitem value="&loadFirstDraft.label;" onaction="MsgLoadFirstDraft();"/>      
+      <menuitem value="&emptyTrashCmd.label;" onaction="MsgEmptyTrash();"/>
+      <menuitem value="&subscribeCmd.label;" onaction="MsgSubscribe();"/>
+	  <menuseparator/>
+	  <menuitem value="&renameFolder.label;" onaction="MsgRenameFolder();"/>
+	  <menuitem value="&compactFolder.label;" onaction="MsgCompactFolder();"/>
+      <menuseparator/>
+      <menuitem value="&importCmd.label;" onaction="MsgImport();"/>
+      <menuseparator/>
+      <menu value="&offlineMenu.label;">
+        <menupopup>
+		<menuitem value="&workOfflineCmd.label;" onaction="MsgWorkOffline();"/>
+        <menuitem value="&syncCmd.label;" onaction="MsgSynchronize();"/>
+        <menuitem value="&getSelectedCmd.label;" onaction="MsgGetSelectedMsg();"/>
+        <menuitem value="&getFlaggedCmd.label;" onaction="MsgGetFlaggedMsg();"/>
+		</menupopup>
+      </menu>
+      <menuseparator/>
+      <menuitem id="pageSetup"/>
+      <menuitem value="&printPreviewCmd.label;" onaction="PrintPreview();"/>
+      <menuitem value="&printCmd.label;" onaction="Print();"/>
+      <menuseparator/>
+      <menuitem value="&closeCmd.label;" onaction="CloseMessenger();"/>
+	  </menupopup>
+    </menu>
+    <menu value="&editMenu.label;">
+      <menupopup>
+	  <menuitem value="&undoCmd.label;" onaction="MsgEditUndo();"/>
+      <menuitem value="&redoCmd.label;" onaction="MsgEditRedo();"/>
+      <menuseparator/>
+      <menuitem value="&cutCmd.label;" onaction="MsgEditCut();"/>
+      <menuitem value="&copyCmd.label;" onaction="MsgEditCopy();"/>
+      <menuitem value="&pasteCmd.label;" onaction="MsgEditPaste();"/>
+      <menuitem value="&deleteMsgCmd.label;" onaction="MsgDeleteMessage(false);"/>
+      <menuitem value="&deleteFolderCmd.label;" onaction="MsgDeleteFolder();"/>
+      <menu value="&selectMenu.label;">
+        <menupopup>
+		<menuitem value="&selectAllCmd.label;" onaction="MsgSelectAll();"/>
+        <menuitem value="&selectThreadCmd.label;" onaction="MsgSelectThread();"/>
+        <menuitem value="&selectFlaggedCmd.label;" onaction="MsgSelectFlaggedMsg();"/>
+		</menupopup>
+      </menu>
+      <menuseparator/>
+      <menuitem value="&spamFiltersCmd.label;"/>
+      <menuitem value="&filtersCmd.label;" onaction="MsgFilters();"/>
+      <menuitem value="&folderPropsCmd.label;" onaction="MsgFolderProperties();"/>
+      <menuseparator/>
+      <menuitem value="&accountManagerCmd.label;" onaction="MsgAccountManager();"/>
+      <menuitem value="&prefsCmd.label;" onaction="MsgPreferences();"/>
+      <menuitem value="&accountWizardCmd.label;" onaction="MsgAccountWizard();"/>
+	  </menupopup>
+    </menu>
+    <menu value="&viewMenu.label;">
+	  <menupopup>
+      <menu value="&showToolbarMenu.label;">
+        <menupopup>
+		<menuitem value="&showMessengerToolbarCmd.label;" onaction="MsgShowMsgToolbar();"/>
+		</menupopup>
+      </menu>
+      <menuseparator/>
+      <menu value="&sortMenu.label;">
+        <menupopup>
+		<menuitem value="&sortByDateCmd.label;" onaction="MsgSortByDate();"/>
+        <menuitem value="&sortByFlagCmd.label;" onaction="MsgSortByFlag();"/>
+        <menuitem value="&sortByPriorityCmd.label;" onaction="MsgSortByPriority();"/>
+        <menuitem value="&sortBySenderCmd.label;" onaction="MsgSortBySender();"/>
+        <menuitem value="&sortBySizeCmd.label;" onaction="MsgSortBySize();"/>
+        <menuitem value="&sortByStatusCmd.label;" onaction="MsgSortByStatus();"/>
+        <menuitem value="&sortBySubjectCmd.label;" onaction="MsgSortBySubject();"/>
+        <menuitem value="&sortByThreadCmd.label;" onaction="MsgSortByThread();"/>
+        <menuitem value="&sortByUnreadCmd.label;" onaction="MsgSortByUnread();"/>
+        <menuitem value="&sortByOrderReceivedCmd.label;" onaction="MsgSortByOrderReceived();"/>
+        <menuseparator/>
+        <menuitem value="&sortAscendCmd.label;" onaction="MsgSortAscending();"/>
+        <menuitem value="&sortDescendCmd.label;" onaction="MsgSortDescending();"/>
+		</menupopup>
+      </menu>
+      <menu value="&msgsMenu.label;">
+	    <menupopup>
+	    <menuitem value="&threadsMsgsCmd.label;" onaction="MsgViewAllThreadMsgs();"/>
+        <menuitem value="&allMsgsCmd.label;" onaction="MsgViewAllMsgs();"/>
+        <menuitem value="&unreadMsgsCmd.label;" onaction="MsgViewUnreadMsg();"/>
+        <menuitem value="&threadsWithUnreadMsgsCmd.label;" onaction="MsgViewThreadsUnread();"/>
+        <menuitem value="&watchedThreadsMsgsCmd.label;" onaction="MsgViewWatchedThreadsUnread();"/>
+        <menuseparator/>
+        <menuitem value="&ignoreThreadMsgsCmd.label;" onaction="MsgViewIgnoreThread();"/>
+		</menupopup>
+      </menu>
+      <menu value="&headersMenu.label;">
+        <menupopup>
+		<menuitem value="&headersAllCmd.label;" onaction="MsgViewAllHeaders();"/>
+        <menuitem value="&headersNormalCmd.label;" onaction="MsgViewNormalHeaders();"/>
+        <menuitem value="&headersBriefCmd.label;" onaction="MsgViewBriefHeaders();"/>
+		</menupopup>
+      </menu>
+      <menuseparator/>
+      <menuitem value="&showMessageCmd.label;" onaction="MsgShowMessage();"/>
+      <menuitem value="&viewAttachmentsInlineCmd.label;" onaction="MsgViewAttachInline();"/>
+      <menuitem value="&wrapLongLinesCmd.label;" onaction="MsgWrapLongLines();"/>
+      <menuseparator/>
+      <menuitem value="&increaseFontCmd.label;" onaction="MsgIncreaseFont();"/>
+      <menuitem value="&decreaseFontCmd.label;" onaction="MsgDecreaseFont();"/>
+      <menuseparator/>
+      <menuitem value="&reloadCmd.label;" onaction="MsgReload();"/>
+      <menuitem value="&showImagesCmd.label;" onaction="MsgShowImages();"/>
+      <menuitem value="&stopCmd.label;" onaction="MsgStop();"/>
+      <menuseparator/>
+      <menuitem value="&pageSourceCmd.label;" onaction="MsgViewPageSource();"/>
+      <menuitem value="&pageInfoCmd.label;" onaction="MsgViewPageInfo();"/>
+      <menuseparator/>
+		<menu value="&dcharMenu.label;">
+		     <menupopup>
+				 <menuitem value="&dcharIso1Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-1');"/>
+				 <menuitem value="&dcharIso15Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-15');"/>
+				 <menuitem value="&dcharIso2Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-2');"/>
+				 <menuitem value="&dcharIso3Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-3');"/>
+				 <menuitem value="&dcharIso4Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-4');"/>
+				 <menuitem value="&dcharIsoGreekCmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-7');"/>
+				 <menuitem value="&dcharIso9Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-9');"/>
+				 <menuitem value="&dcharIso10Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-10');"/>
+				 <menuitem value="&dcharIso13Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-13');"/>
+				 <menuitem value="&dcharIso14Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-14');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu1.label;">
+		     <menupopup>
+				 <menuitem value="&dcharJapanCmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-2022-JP');"/>
+				 <menuitem value="&dcharJapanShiftjsCmd.label;" onaction="MessengerSetDefaultCharacterSet('Shift_JIS');"/>
+				 <menuitem value="&dcharJapanEucCmd.label;" onaction="MessengerSetDefaultCharacterSet('EUC-JP');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharTradChiBigCmd.label;" onaction="MessengerSetDefaultCharacterSet('Big5');"/>
+				 <menuitem value="&dcharTriChiEucCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-euc-tw');"/>
+				 <menuitem value="&dcharSimpChiGbCmd.label;" onaction="MessengerSetDefaultCharacterSet('GB2312');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharKoreanCmd.label;" onaction="MessengerSetDefaultCharacterSet('EUC-KR');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharUtf7Cmd.label;" onaction="MessengerSetDefaultCharacterSet('UTF-7');"/>
+				 <menuitem value="&dcharUtf8Cmd.label;" onaction="MessengerSetDefaultCharacterSet('UTF-8');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu2.label;">
+		     <menupopup>
+				 <menuitem value="&dcharRusCmd.label; " onaction="MessengerSetDefaultCharacterSet('KOI8-R');"/>
+				 <menuitem value="&dcharIsoCyrCmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-5');"/>
+				 <menuitem value="&dcharWinCyrCmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1251');"/>
+				 <menuitem value="&dcharEcmaCyrCmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-IR-111');"/>
+				 <menuitem value="&dcharDosCyrCmd.label;" onaction="MessengerSetDefaultCharacterSet('IBM866');"/>
+				 <menuitem value="&dcharMacCyrCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-cyrillic');"/>
+				 <menuitem value="&dcharUkrCmd.label;" onaction="MessengerSetDefaultCharacterSet('KOI8-U');"/>
+				 <menuitem value="&dcharMacUkrCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-ukrainian');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu3.label;">
+		     <menupopup>
+				 <menuitem value="&dcharWinVietCmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1258');"/>
+				 <menuitem value="&dcharVietTcnCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-viet-tcvn5712');"/>
+				 <menuitem value="&dcharVietViCmd.label;" onaction="MessengerSetDefaultCharacterSet('VISCII');"/>
+				 <menuitem value="&dcharVieVpCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-viet-vps');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharThaiCmd.label;" onaction="MessengerSetDefaultCharacterSet('TIS-620');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharArmCmd.label;" onaction="MessengerSetDefaultCharacterSet('ARMSCII-8');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharIso6Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-6');"/>
+				 <menuitem value="&dcharCp1256Cmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1256');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharIso8Cmd.label;" onaction="MessengerSetDefaultCharacterSet('ISO-8859-8');"/>
+				 <menuitem value="&dcharCp1255Cmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1255');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu4.label;">
+		     <menupopup>
+				 <menuitem value="&dcharMacRomCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-roman');"/>
+				 <menuitem value="&dcharMacCenEuroCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-ce');"/>
+				 <menuitem value="&dcharMacTurCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-turkish');"/>
+				 <menuitem value="&dcharMacCroaCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-croatian');"/>
+				 <menuitem value="&dcharMacRomanianCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-romanian');"/>
+				 <menuitem value="&dcharMacIceCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-icelandic');"/>
+				 <menuitem value="&dcharMacGreekCmd.label;" onaction="MessengerSetDefaultCharacterSet('x-mac-greek');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu5.label;">
+		     <menupopup>
+				 <menuitem value="&dcharWinLat2Cmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1250');"/>
+				 <menuitem value="&dcharWinLat1Cmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1252');"/>
+				 <menuitem value="&dcharWinLat5Cmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1254');"/>
+				 <menuitem value="&dcharWinBalRimCmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1257');"/>
+				 <menuitem value="&dcharWinGreekCmd.label;" onaction="MessengerSetDefaultCharacterSet('windows-1253');"/>
+			</menupopup>
+		 </menu>
+	  </menupopup>
+    </menu>
+    <menu value="&searchMenu.label;">
+        <menupopup>
+		<menuitem value="&findCmd.label;" onaction="MsgFind();"/>
+        <menuitem value="&findAgainCmd.label;" onaction="MsgFindAgain();"/>
+        <menuseparator/>
+        <menuitem value="&searchCurrentCmd.label;" onaction="MsgSearchCurrent();"/>
+        <menuitem value="&searchParentCmd.label;" onaction="MsgSearchParent();"/>
+        <menuitem value="&searchParentParentCmd.label;" onaction="MsgSearchParentParent();"/>
+
+        <menuseparator/>
+        <menuitem value="&searchInternetCmd.label;" onaction="MsgSearchInternet();"/>
+        <menuitem value="&searchMailCmd.label;" onaction="MsgSearchMessages();"/>
+        <menuitem value="&searchBookmarksCmd.label;" onaction="MsgSearchBookmarks();"/>
+        <menuitem value="&searchPeopleCmd.label;" onaction="MsgSearchPeople();"/>
+        <menuseparator/>
+        <menuitem value="&searchLocalCmd.label;" onaction="MsgSearchLocal();"/>
+		</menupopup>
+    </menu>
+    <menu value="&goMenu.label;">
+      <menupopup>
+	  <menuitem value="&firstUnreadMsgCmd.label;" onaction="MsgFirstUnreadMessage();"/>
+      <menuitem value="&firstFlaggedMsgCmd.label;" onaction="MsgFirstFlaggedMessage();"/>
+      <menuseparator/>
+      <menu value="&nextMenu.label;">
+        <menupopup>
+		<menuitem value="&nextMsgCmd.label;" onaction="MsgNextMessage();"/>
+        <menuitem value="&nextUnreadMsgCmd.label;" onaction="MsgNextUnreadMessage();"/>
+        <menuitem value="&nextFlaggedMsgCmd.label;" onaction="MsgNextFlaggedMessage();"/>
+		</menupopup>
+      </menu>
+      <menu value="&prevMenu.label;">
+        <menupopup>
+		<menuitem value="&prevMsgCmd.label;" onaction="MsgPreviousMessage();"/>
+        <menuitem value="&prevUnreadMsgCmd.label;" onaction="MsgPreviousUnreadMessage();"/>
+        <menuitem value="&prevFlaggedMsgCmd.label;" onaction="MsgPreviousFlaggedMessage();"/>
+		</menupopup>
+      </menu>
+      <menuseparator/>
+      <menuitem value="&backCmd.label;" onaction="MsgGoBack();"/>
+      <menuitem value="&forwardCmd.label;" onaction="MsgGoForward();"/>
+	  </menupopup>
+    </menu>
+    <menu value="&msgMenu.label;">
+      <menupopup>
+	  <menuitem value="&newMsgCmd.label;" onaction="MsgNewMessage();"/>
+      <menuitem value="&replyMsgCmd.label;" onaction="MsgReplyMessage();"/>
+      <menuitem value="&replyToAllMsgCmd.label;" onaction="MsgReplyToAllMessage();"/>
+      <menuitem value="&forwardMsgCmd.label;" onaction="MsgForwardMessage();"/>
+      <menu value="&forwardAsMenu.label;">
+        <menupopup>
+		<menuitem value="&forwardAsInline.label;" onaction="MsgForwardAsInline();"/>
+        <menuitem value="&forwardAsAttachmentCmd.label;" onaction="MsgForwardAsAttachment();"/>
+		</menupopup>
+      </menu>
+      <menuitem value="&editMsgAsNewCmd.label;" onaction="MsgEditMessageAsNew();"/>
+      <menuseparator/>
+      <menu value="&moveMsgMenu.label;" datasources="rdf:mailnewsfolders rdf:msgaccountmanager" ref="msgaccounts:/" rdf:ignore="http://home.netscape.com/NC-rdf#MessageChild">
+        <menupopup/>
+		<template> 
+          <rule iscontainer="true" isempty="false">
+            <menupopup>
+			<menu uri="..." value="rdf:http://home.netscape.com/NC-rdf#Name"/>
+			</menupopup>
+          </rule>
+          <rule>
+            <menupopup>
+			<menuitem uri="..." value="rdf:http://home.netscape.com/NC-rdf#Name" onaction="MsgMoveMessage(event.target)" />
+			</menupopup>
+          </rule>
+        </template>
+      </menu>
+      <menu value="&copyMsgMenu.label;" datasources="rdf:mailnewsfolders rdf:msgaccountmanager" ref="msgaccounts:/" rdf:ignore="http://home.netscape.com/NC-rdf#MessageChild">
+        <menupopup/>
+		<template>
+          <rule iscontainer="true" isempty="false">
+            <menupopup>
+			<menu uri="..." value="rdf:http://home.netscape.com/NC-rdf#Name"/>
+			</menupopup>
+		  </rule>
+          <rule>
+            <menupopup>
+			<menuitem uri="..." value="rdf:http://home.netscape.com/NC-rdf#Name" onaction="MsgCopyMessage(event.target)" />
+			</menupopup>
+          </rule>
+        </template>
+      </menu>
+      <menuseparator/>
+      <menuitem value="&addSenderToAddressBookCmd.label;" onaction="MsgAddSenderToAddressBook();"/>
+      <menuitem value="&addAllToAddressBookCmd.label;" onaction="MsgAddAllToAddressBook();"/>
+      <menuseparator/>
+      <menu value="&markMenu.label;">
+	    <menupopup>
+        <menuitem value="&markAsReadCmd.label;" onaction="MsgMarkMsgAsRead(true);"/>
+        <menuitem value="&markAsUnreadCmd.label;" onaction="MsgMarkMsgAsRead(false);"/>
+        <menuitem value="&markThreadAsReadCmd.label;" onaction="MsgMarkThreadAsRead();"/>
+        <menuitem value="&markByDateCmd.label;" onaction="MsgMarkByDate();"/>
+        <menuitem value="&markAllReadCmd.label;" onaction="MsgMarkAllRead();"/>
+        <menuseparator/>
+        <menuitem value="&markFlaggedCmd.label;" onaction="MsgMarkAsFlagged();"/>
+		</menupopup>
+      </menu>
+      <menuseparator/>
+      <menuitem value="&ignoreThreadCmd.label;" onaction="MsgIgnoreThread();"/>
+      <menuitem value="&watchThreadCmd.label;" onaction="MsgWatchThread();"/>
+	  </menupopup>
+    </menu>
+    
+	<menu id="tasksMenu"/>
+	<menu id="helpMenu"/>
+	<spring flex="100%"/>
+  </menubar>
+
+	  <toolbar>
+	  <titledbutton src="&getMsgButton.img;" align="top" value="&getMsgButton.label;" onclick="MsgGetMessage()"/>
+	  <titledbutton src="&newMsgButton.img;" align="top" value="&newMsgButton.label;" onclick="MsgNewMessage()"/>
+	  <html:div class="separator" align="vertical"/> 
+	  <titledbutton src="&replyButton.img;" align="top" value="&replyButton.label;" onclick="MsgReplyMessage()"/>
+	  <titledbutton src="&replyAllButton.img;" align="top" value="&replyAllButton.label;" onclick="MsgReplyToAllMessage()"/>
+	  <titledbutton src="&forwardButton.img;" align="top" value="&forwardButton.label;" onclick="MsgForwardMessage()"/>
+	  <titledbutton src="&nextButton.img;" align="top" value="&nextButton.label;" onclick="MsgNextUnreadMessage()"/>
+	  <titledbutton src="&deleteButton.img;" align="top" value="&deleteButton.label;" onclick="MsgDeleteMessage(true)"/>
+      <spring flex="100%"/>
+      <titledbutton id="Throbber" onclick="window.content.location.href='&throbber.url;'">
+         <observes element="Messenger:Throbber" attribute="busy"/>
+      </titledbutton>
+
+      </toolbar>
+    </toolbox>
+
+    <!-- The main mail three pane frame -->
+    <html:iframe id="content-frame" src="contentframe.xul" flex="100%" />
+
+    <!-- Ripped off from navigator.xul; this should be a XUL fragment! -->
+    <box align="horizontal" id="status-bar">
+ 
+      <titledbutton value="[Notification Component]" onclick="doTests()"/>
+	<box align="vertical" style="width:100px">
+		<spring flex="100%"/>
+			<progressmeter id="statusbar-icon" mode="normal" value="0" onclick="dumpProgress()">
+				<observes element="Messenger:LoadingProgress" attribute="mode"/>
+				<observes element="Messenger:LoadingProgress" attribute="value"/>
+				<observes element="Messenger:Throbber" attribute="busy" onchange="onProgress()"/>
+			</progressmeter>
+		<spring flex="100%"/>
+	</box>
+
+	<titledbutton id="statusText" align="left" flex="100%" value="&statusText.label;" style="font-family:sans-serif;font-size:2.5mm">
+                       <observes element="Messenger:Status" attribute="value" onchange="onStatus()"/>         
+	</titledbutton>
+    </box>
+
+	<toolbox id="taskbox"/>
+
+</window>
+

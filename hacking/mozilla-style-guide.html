@@ -1,0 +1,597 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+    <title>Mozilla Coding Style Guide</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<meta name="DC.subject" content="Mozilla Coding Style Guide">
+<meta name="DC.title" content="Mozilla Coding Style Guide">
+<meta name="DC.description" content="Coding style directives for hacking the source code of Mozilla">
+<meta name="DC.date.created" content="2001-05-09T17:29:03+11:00" scheme="W3CDTF">
+<meta name="DC.date.modified" content="2005-02-08T09:54:03+11:00" scheme="W3CDTF">
+
+<link rel="section" href="#General" title="General C/C++ Practices">
+<link rel="section" href="#COMPtr" title="COM and pointers">
+<link rel="section" href="#IDL" title="IDL">
+<link rel="section" href="#Errors" title="Error Handling">
+<link rel="section" href="#Strings" title="Strings">
+<link rel="section" href="#Visual" title="Naming and Formatting code">
+
+    <style type="text/css">
+      pre {background-color: #D3D3D3; /* lightgrey */ color: black;}
+    </style>
+  <script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+  
+
+  
+    <h1>Mozilla Coding Style Guide</h1>
+    
+    <p>    This document attempts to explain the basic styles and patterns that are used
+    in the Mozilla codebase. New code should try to conform to these standards so that it
+    is as easy to maintain as existing code. Of course every rule has an exception, but
+    it's important to know the rules nonetheless!</p>
+
+    <p>This is particularly directed at people new to the Mozilla codebase, who are in
+    the process of getting their code reviewed. Before getting a review, please read over
+    this document and make sure your code conforms to the recommendations here.
+    </p>
+
+    <h3><a href="#General">General C/C++ Practices</a></h3>
+    <h3><a href="#COMPtr">COM and pointers</a></h3>
+    <h3><a href="#IDL">IDL</a></h3>
+    <h3><a href="#Errors">Error Handling</a></h3>
+    <h3><a href="#Strings">Strings</a></h3>
+    <h3><a href="#Visual">Naming and Formatting code</a></h3>
+
+    <hr>
+    <h2><a name="General">General C/C++ Practices</a></h2>
+    <p>
+    <ul>
+      <li>Have you checked for compiler warnings?
+        Warnings often point to real bugs.</li>
+      <li>Are the changes
+        <a href="http://www.testdrive.hp.com">64-bit clean?</a></li>
+      <li>Do the changes meet the
+        <a href="portable-cpp.html">C++ portability guidelines</a></li>
+      <li>Don't use NULL for pointers. On some systems it's declared as
+        <i>void *</i> and causes a compile warning when assigned to a pointer.
+        Use 0 or nsnull instead.</li>
+      <li>When testing a pointer, use !myPtr or (myPtr);
+        don't use myPtr != nsnull or myPtr == nsnull.</li>
+      <li>Do not compare == PR_TRUE or PR_FALSE.  Use (x) or (!x) instead.
+        == PR_TRUE, in fact, is *different* from if (x)!</li>
+      <li>Don't put an else right after a return.  Delete the else,
+        it's unnecessary and increases indentation level.</li>
+      <li>Always check the return value of <i>new</i> for null.</li>
+      <li>Don't leave debug printf()s lying around.</li>
+      <li>Use
+        <a href="http://java.sun.com/j2se/javadoc/writingdoccomments/index.html">JavaDoc-style
+        comments</a> in any new class header files.</li>
+      <li>When fixing a problem, check to see if
+        the problem occurs elsewhere in the same file,
+        and fix it everywhere if possible.</li>
+      <li>On whether to use <code>nsFoo aFoo (bFoo)</code> or
+          <code>nsFoo aFoo = bFoo</code>:
+           For first tier platforms, although the former is theoretically better,
+           there is probably no reason to prefer it over the latter form.
+           This is good, since everyone agrees, the form with "=" looks better. 
+           More data for second tier platforms would be good.
+      </li>
+      <li>Forward declare classes in your header files instead of including them
+          whenever possible.  For example, if you have an interface with a
+          <code>void DoSomething(nsIContent* aContent)</code> function, forward
+          declare with <code>class nsIContent;</code> instead of
+          <code>#include "nsIContent.h"</code>
+      </li>
+    </ul>
+
+    <hr>
+    <h2><a name="COMPtr">COM and pointers</a></h2>
+    <ul>
+      <li>Use <tt>nsCOMPtr&lt;&gt;</tt><br>
+        If you don't know how to use it, start looking in the code for examples.
+        The general rule is that the very act of typing <tt>NS_RELEASE</tt> should
+        be a signal to you to question your code: "Should I be using <tt>nsCOMPtr</tt>
+        here?". Generally the only valid use of <tt>NS_RELEASE</tt> are when you are
+        storing refcounted pointers in a long-lived datastructure.</li>
+      <li>Declare new XPCOM interfaces using
+        <a href="http://www.mozilla.org/scriptable/xpidl/">XPIDL</a> so they
+        will be scriptable.</li>
+      <li>Use
+        <a href="http://www.mozilla.org/projects/xpcom/nsCOMPtr/">nsCOMPtr</a>
+        for strong references, and
+        <a href="http://www.mozilla.org/projects/xpcom/weak_references.html">nsWeakPtr</a>
+        for weak references.</li>
+      <li>String arguments to functions should be declared as
+        <tt>nsAString</tt>.</li>
+      <li>Use <tt>str.IsEmpty()</tt> instead of <tt>str.Length() == 0</tt>.</li>
+      <li>Don't use <tt>QueryInterface</tt> directly.
+          Use <tt>CallQueryInterface</tt> or <tt>do_QueryInterface</tt>
+          instead.</li>
+      <li>nsresult should be declared as rv.  Not res, not result,
+        not foo.</li>
+      <li>For constant strings, use <tt>NS_LITERAL_STRING("...")</tt>
+        instead of <tt>NS_ConvertASCIItoUCS2("...")</tt>,
+        <tt>AssignWithConversion("...")</tt>,
+        <tt>EqualsWithConversion("...")</tt>, or <tt>nsAutoString()</tt></li>
+      <li>Use
+        <a href="news://news.mozilla.org/3994AE3E.D96EF810%40netscape.com">contractids</a>
+        instead of progids or class IDs.</li>
+    </ul>
+
+
+    <hr>
+    <h2><a name="IDL">IDL</a></h2>
+    <ul>
+      <li><b>Use leading-lowercase, or "interCaps"</b>
+      <p>When defining a method or attribute in IDL, the first letter should be lowercase,
+      and each following word should be capitalized. For example:</p>
+      <pre>
+        long updateStatusBar();
+      </pre>
+      </li>
+    </ul>
+
+    <ul>
+      <li><b>Use attributes wherever possible</b></li>
+    </ul>
+
+    <p>Whenever you are retrieving or setting a single value without any context, you
+    should use attributes. Don't use two methods when you could use one attribute.
+    Using attributes logically connects the getting and setting of a value, and makes
+    scripted code look cleaner.</p>
+
+    <p>This example has too many methods:</p>
+    <pre>
+    interface nsIFoo : nsISupports {
+        long getLength();
+        void setLength(in long length);
+        long getColor();
+    };
+    </pre>
+
+    <p>The code below will generate the exact same C++ signature, but is more script-friendly.</p>
+    <pre>
+    interface nsIFoo : nsISupports {
+        attribute long length;
+        readonly attribute long color;
+    };
+    </pre>
+
+    <ul>
+      <li><b>Use java-style constants</b></li>
+    </ul>
+
+    <p>When defining scriptable constants in IDL, the name should be all uppercase, 
+with underscores between words:</p>
+    <pre>
+        const long ERROR_UNDEFINED_VARIABLE = 1;
+    </pre>
+    <hr>
+    <h2><a name="Errors">Error handling</a></h2>
+    <ul>
+      <li><b>Check for errors early and often</b>
+      <p>Every time you make a call into an XPCOM function, you should check for an
+      error condition. You need to do this even if you know that call will never
+      fail. Why?</p>
+      <ul>
+        <li> Someone may change the callee in the future to return a failure condition.</li>
+        <li> The object in question may live on another thread, another process, or
+            possibly even another machine. The proxy could have failed to actually make
+            your call in the first place.</li>
+      </ul>
+      </li>
+    </ul>
+    <ul>
+      <li><b>Use the nice macros</b><br>
+          Use the <code>NS_ENSURE_SUCCESS(rv, rv)</code>
+          and <code>NS_ENSURE_TRUE(expr, rv)</code> macros in place of
+          <code>if (NS_FAILED(rv)) { return rv; }</code> and <code>if (!expr) { return rv; }</code>,
+          <i>unless</i> the failure is a normal condition (i.e.
+          you don't want it to assert).</li>
+    </ul>
+    <ul>
+      <li><b>Return from errors immediately</b></li> 
+    </ul>
+    <p>In most cases, your knee-jerk reaction
+      should be to return from the current function when an error condition occurs.
+      Don't do this:</p>
+    <pre>
+
+    rv = foo->Call1();
+    if (NS_SUCCEEDED(rv)) {
+        rv = foo->Call2();
+            if (NS_SUCCEEDED(rv)) {
+                rv = foo->Call3();
+            }
+        }
+    }
+    return rv;
+    </pre>
+
+    <p>Instead, do this:</p>
+
+    <pre>
+
+    rv = foo->Call1();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = foo->Call2();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = foo->Call3();
+    NS_ENSURE_SUCCESS(rv, rv);
+    </pre>
+
+    <p>Why? Because error handling should not obfuscate the logic of the code. The author's
+    intent in the first example was to make 3 calls in succession, but wrapping the calls
+    in nested if() statements obscured the most likely behavior of the code.
+    </p>
+
+    <p>Consider a more complicated example that actually hides a bug:</p>
+
+    <pre>
+    PRBool val;
+    rv = foo->GetBooleanValue(&amp;val);
+    if (NS_SUCCEEDED(rv) && val)
+        foo->Call1();
+    else
+        foo->Call2();
+    </pre>
+
+    <p>The intent of the author may have been that foo->Call2() would only happen
+    when val had a false value. In fact, foo->Call2() will also be called when
+    foo->GetBooleanValue(&amp;val) fails. This may or may not have been the
+    author's intent, and it is not clear from this code. Here is an updated version:</p>
+
+    <pre>
+    PRBool val;
+    rv = foo->GetBooleanValue(&amp;val);
+    if (NS_FAILED(rv)) return rv;
+    if (val)
+        foo->Call1();
+    else
+        foo->Call2();
+    </pre>
+
+    <p>In this example, the author's intent is clear, and an error condition
+    avoids both calls to foo->Call1() and foo->Call2();
+    </p>
+
+    <p>
+      <i>Possible exceptions:</i> Sometimes it is not fatal if a call fails.
+      For instance, if you are notifying a series of observers that an event
+      has fired, it might be inconsequential that one of these notifications failed:
+      <pre>
+    for (i=0; i&lt;length; i++) {
+        // we don't care if any individual observer fails
+        observers[i]->Observe(foo, bar, baz);
+    }
+    </pre>
+      <p>Another possibility is that you are not sure if a component exists or is
+      installed, and you wish to continue normally if the component is not found.</p>
+    <pre>
+    nsCOMPtr&lt;nsIMyService&gt; service = do_CreateInstance(NS_MYSERVICE_CID, &amp;rv);
+    // if the service is installed, then we'll use it
+    if (NS_SUCCEEDED(rv)) {
+        // non-fatal if this fails too, ignore this error
+        service->DoSomething();
+
+        // this is important, handle this error!
+        rv = service->DoSomethingImportant();
+        if (NS_FAILED(rv)) return rv;
+    }
+        
+    // continue normally whether or not the service exists
+    </pre>
+      
+    <hr>
+    <h2><a name="Strings">Strings</a></h2>
+    
+    <ul>
+      <li><b>Use the <tt>Auto</tt> form of strings for local values</b></li>
+    </ul>
+    <p>When declaring a local, short-lived nsString class, always use nsAutoString or
+          nsCAutoString - these versions pre-allocate a 64-byte buffer on the stack,
+          and avoid fragmenting the heap. Don't do this:</p>
+    <pre>
+    nsresult foo() {
+      nsCString bar;
+      ..
+    }
+    </pre>
+    <p>instead:</p>
+    <pre>
+    nsresult foo() {
+      nsCAutoString bar;
+      ..
+    }
+    </pre>
+
+    <ul>
+      <li><b>Be wary of leaking values from non-XPCOM functions that return char* or
+          PRUnichar*</b></li>
+    </ul>
+    <p>It is an easy trap to return an allocated string from an
+    internal helper function, and then use that function inline in your code
+    without freeing the value. Consider this code:</p>
+    <pre>
+    static char *GetStringValue() {
+        ..
+        return resultString.ToNewCString();
+    }
+
+        ..
+        WarnUser(GetStringValue());
+    </pre>
+
+    <p>In the above example, WarnUser will get the string allocated from resultString.ToNewCString()
+    and throw away the pointer. The resulting value is never freed. Instead, either use
+    the string classes to make sure your string is automatically freed when it goes out
+    of scope, or make sure that your string is freed.</p>
+    <p>Automatic cleanup:</p>
+    <pre>
+    static void GetStringValue(nsAWritableCString&amp; aResult) {
+        ..
+        aResult.Assign("resulting string");
+    }
+
+        ..
+        nsCAutoString warning;
+        GetStringValue(warning);
+        WarnUser(warning.get());
+    </pre>
+    <p>Free the string manually:</p>
+    <pre>
+    static char *GetStringValue() {
+        ..
+        return resultString.ToNewCString();
+    }
+
+        ..
+        char *warning = GetStringValue();
+        WarnUser(warning);
+        nsMemory::Free(warning);
+    </pre>
+
+    <ul>
+      <li><b>Use NS_LITERAL_STRING() to avoid runtime string conversion</b>.</li>
+    </ul>
+         <p>It is very common to need to assign the value of a literal string such as
+          "Some String" into a unicode buffer. Instead of using nsString's AssignWithConversion and
+          AppendWithConversion, use NS_LITERAL_STRING() instead. On most platforms,
+          this will force the compiler to compile in a raw unicode string, and
+          assign it directly.</p>
+    <p>Incorrect:</p>
+    <pre>
+    nsAutoString warning; warning.AssignWithConversion("danger will robinson!");
+    ..
+    foo->SetUnicodeValue(warning.get());
+    </pre>
+    <p>Correct:</p>
+    <pre>
+    NS_NAMED_LITERAL_STRING(warning,"danger will robinson!");
+    ..
+    // if you'll be using the 'warning' string, you can still use it as before:
+    foo->SetUnicodeValue(warning.get());
+
+    // alternatively, use the wide string directly:
+    foo->SetUnicodeValue(NS_LITERAL_STRING("danger will robinson!").get());
+    </pre>
+    <hr>
+    <h2><a name="Visual">Naming and Formatting code</a></h2>
+
+    <ul>     
+      <li><h2>Note: the following is not all set in stone, this is interim to give people a chance to look</h2></li>
+
+      <li><i>Use the prevailing style in a file or module, or ask the owner, if you are on someone else's turf.
+          Module owner rules all.</i></li>
+
+      <li><b>Whitespace:</b> No tabs.  No whitespace at the end of a line.</li>
+
+      <li><b>Line Length:</b> 80 characters or less (for Bonsai and printing).</li>
+
+      <li><b>Control Structures:</b><br>
+<pre>if (...) {
+} else if (...) {
+} else {
+}
+
+while (...) {
+}
+
+do {
+} while (...);
+
+for (...; ...; ...) {
+}
+
+switch (...)
+{
+  case 1:
+    {
+      // When you need to declare a variable in a switch, put the block in braces
+      int var;
+    } break;
+  case 2:
+    ...
+    break;
+  default:
+    break;
+}
+</pre>
+      Note the space here: <code>if (</code>.  switch in particular is not quite agreed-upon ...
+      try really hard to find a module style for that one :)
+      </li>
+      <li><b>Classes:</b><br>
+<pre>class nsMyClass : public X,
+                       public Y
+{
+public:
+  nsMyClass() : mVar(0) { ... };
+  
+private:
+  int mVar;
+};
+</pre>
+      For small functions in a class declaration, it's OK to do the above.  For larger ones use something
+      similar to method declarations below.
+      </li>
+
+      <li><b>Methods:</b><br>
+<pre>int
+nsMyClass::Method(...)
+{
+  ...
+}
+</pre>
+      <li><b>Mode Line:</b> Files should have an Emacs mode line comment as the
+        first line of the file, which should set indent-tabs-mode to nil.
+        For new files, use this, specifying 2-space indentation:
+        <br><pre>
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+        </pre>
+      </li>
+
+      <li><b>Operators</b> should be at the end of a line, not the beginning of the next, if an
+            operator is at a line break.
+      </li>
+
+      <li>Follow naming prefix conventions.<br>
+      <b>Variable prefixes:</b>
+      <ul>
+        <li> k=constant (e.g. <tt>kNC_child</tt>)
+        <li> g=global (e.g. <tt>gPrefService</tt>)
+        <li> m=member (e.g. <tt>mLength</tt>)
+        <li> a=argument (e.g. <tt>aCount</tt>)
+        <li> s=static member (e.g. <tt>sPrefChecked</tt>)
+      </ul>
+      <b>Global functions/macros/etc</b>
+      <ul>
+        <li> Macros begin with <tt>NS_</tt>, and are all caps (e.g. <tt>NS_IMPL_ISUPPORTS</tt>)
+        <li> Global (exported) functions begin with NS_ and use LeadingCaps (e.g. <tt>NS_NewISupportsArray</tt>)
+      </ul>
+      </li>
+</ul>
+    <hr>
+    <p class="author">Original document by <a href="mailto:alecf@flett.org">Alec Flett</a>.<br>
+    Thanks to:</p>
+    <ul>
+      <li> pink</li>
+      <li> smfr</li>
+      <li> waterson</li>
+      <li> jband</li>
+      <li> brendan</li>
+      <li> rogc</li>
+    </ul>
+    <p>for additional comments.<br>
+    Additions by <a href="mailto:akkana@netscape.com">Akkana Peck</a>
+    based on discussions on IRC: thanks to: bbaetz, bz, jfrancis, jkeiser,
+    mjudge, and sdagley for comments, and to
+  <a href="http://www.johnkeiser.com/cgi-bin/jst-review-cgi.pl">John
+  Keiser and JST's Reviewer Simulacrum</a>
+    and
+  <a href="http://www.mozilla.org/hacking/reviewers.html">Brendan and
+  Mitchell's super-review document</a>.</p>
+    <address><a href="mailto:alecf@flett.org"></a></address>
+
+  
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February  8,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/hacking/mozilla-style-guide.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

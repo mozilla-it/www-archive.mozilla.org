@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+
+<meta name="DC.title" content="Bug Sheet for DOM Level 2 Events">
+<meta name="DC.date.modified" content="2006-09-06T09:54:03+11:00" scheme="W3CDTF">
+
+  <title>Bug Sheet for DOM Level 2 Events</title>
+  <link rel="stylesheet" href="../domsite.css">
+  <link rel="stylesheet" href="bugsheet.css">
+  <script type="text/javascript">
+  function linkBugs()
+  {
+    // You know, for a DOM website, this sucks
+    if(document.all) {
+      document.getElementById("bugzilladiv").style.visibility = "visible";
+      document.getElementById("summarydiv").style.display = "none";
+    }
+    if(document.layers) {
+      document.layers["justforfun"].visibility = "hide";
+      document.layers["summarydiv"].visibility = "hide";
+      return;
+    }
+    
+    // I had to separate the bugs and the perf bugs because otherwise the summary at
+    // the end of the page would also be affected by this, and we DON'T want that.
+
+    // Get the "bugs" unordered list tag then grab all its <li> children.
+    var bugul = document.getElementById("bugs");
+    var lis = bugul.getElementsByTagName("li");
+    // Get the "perf" unordered list tag then grab all its <li> children.
+    var perful = document.getElementById("perf");
+    var lis2 = perful.getElementsByTagName("li");
+
+    // For the first set of li's
+    for(var i = 0; i < lis.length; i++)
+    {
+      // Get the string that is composed of the bug number, then its summary.
+      var str = lis[i].firstChild.nodeValue;
+      // Parse the integer that is the bug number
+      var bugNbr = parseInt(str);
+      // Just in case...
+      if(!bugNbr)
+        continue;
+      // Create a new link.
+      var newLink = document.createElement("a");
+      // Set its href to the relevant Bugzilla URL.
+      newLink.setAttribute("href", "http://bugzilla.mozilla.org/show_bug.cgi?id=" + bugNbr);
+      // Create a first text node, with the bug number.
+      var numberNode = document.createTextNode(bugNbr);
+      // Create a second text node, with the rest of the sentence. This is kind of a hack and will break once we reach the 100k bugs... argh! I should probably use toString().
+      var textNode = document.createTextNode(str.substring(5, str.length));
+      // Append the bug number text node as child of the link node.
+      newLink.appendChild(numberNode);
+      // Remove the string next to the original <li>
+      lis[i].removeChild(lis[i].firstChild);
+      // Append the link node to the <li> node.
+      lis[i].appendChild(newLink);
+      // Append the second text node after the link node.
+      lis[i].appendChild(textNode);
+    }
+
+    // Idem for the perf bugs.
+    for(var i = 0; i < lis2.length; i++)
+    {
+      var str = lis2[i].firstChild.nodeValue;
+      var bugNbr = parseInt(str);
+      if(!bugNbr)
+        continue;
+      var newLink = document.createElement("a");
+      newLink.setAttribute("href", "http://bugzilla.mozilla.org/show_bug.cgi?id=" + bugNbr);
+      var numberNode = document.createTextNode(bugNbr);
+      var textNode = document.createTextNode(str.substring(5, str.length));
+      newLink.appendChild(numberNode);
+      lis2[i].removeChild(lis2[i].firstChild);
+      lis2[i].appendChild(newLink);
+      lis2[i].appendChild(textNode);
+    }
+
+    // Add the number of real and perf bugs to the summary
+    var summary = document.getElementById("summary");
+    var realBugs = summary.firstChild.nextSibling;
+    dump(realBugs + "\n");
+    // second <li>
+    var perfBugs = realBugs.nextSibling.nextSibling;
+    // Number to add before the real bugs summary
+    var realBugsNbr = lis.length;
+    // Number to add before the perf bugs summary
+    var perfBugsNbr = lis2.length;
+    // Create a new text node containing the number of real bugs
+    var realBugsNbrNode = document.createTextNode(realBugsNbr.toString() + " ");
+    // Create a new text node containing the number of perf bugs
+    var perfBugsNbrNode = document.createTextNode(perfBugsNbr.toString() + " ");
+    // Append the text node before the sentence of the real bugs
+    realBugs.insertBefore(realBugsNbrNode, realBugs.firstChild);
+    // Append the text node before the sentence of the perf bugs
+    perfBugs.insertBefore(perfBugsNbrNode, perfBugs.firstChild);
+  }
+
+  function goToBug()
+  {
+    var number = document.getElementById("bugNbr").value;
+    top.location = "http://bugzilla.mozilla.org/show_bug.cgi?id=" + number;
+  }
+  
+  </script>
+
+  
+  </head>
+
+<body onload="linkBugs();">
+
+<table id="navigation">
+  <tbody>
+    <tr>
+      <td><a href="../index.html">DOM</a></td>
+      <td>&gt;</td>
+      <td><a href="index.html">Mozilla</a></td>
+      <td>&gt;</td>
+      <td><a href="known.html">Known Bugs</a></td>
+      <td>&gt;</td>
+      <td>DOM Events</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 class="centered">Bug Sheet for the DOM Level 2 Events</h2>
+
+<p class="warning">
+Warning: Some of the bugs listed below are maybe FIXED. If you find any of those that work for you, please comment in the bug, thank you!
+</p>
+
+<div id="bugsdiv">
+Bugs
+  <ul id="bugs">
+  <li>6316 : onmouseout event does not fire when text node changed via DOM</li>
+  <li>45296 : load event not fired if loading of the document is stopped</li>
+  <li>53118 : load, unload, blur, focus events bubble, but they should not</li>
+  <li>60212 : DOM2 UIEvent is not implemented</li>
+  <li>69787 : Offset* not implemented for Mouse events</li>
+  <li>69954 : Control+Alt mapping broken on Win32</li>
+  <li>74218 : SubtreeModified Mutation event is not implemented</li>
+  <li>74219 : NodeInsertedIntoDocument Mutation event is not implemented</li>
+  <li>74220 : NodeRemovedFromDocument Mutation event is not implemented</li>
+  <li>77992 : Event.timeStamp is a number but should be a Date</li>
+  </ul>
+</div>
+
+<div id="perfdiv">
+Performance issues
+  <ul id="perf">
+    <li>None.</li>
+  </ul>
+</div>
+
+<div id="summarydiv">
+Summary
+  <ul id="summary">
+    <li>real bugs in our support for this part of the DOM</li>
+    <li>performance issues</li>
+  </ul>
+</div>
+
+<div id="bugzilladiv" style="visibility: hidden;">
+<form action="http://bugzilla.mozilla.org/show_bug.cgi">
+<div>
+Enter the bug number: 
+<input type="text" name="id">
+<input type="submit" value="Look at the bug">
+</div>
+</form>
+</div>
+
+<div id="justforfun">
+<div style="text-align: center;">And just for the fun:</div>
+The links to the Bugzilla bugs are generated via a nice little <a href="bugsheet.js">DOM script</a>. It saves me some large typing!
+</div>
+
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 3.2//EN">
+<HTML>
+<HEAD>
+   <TITLE>Multithreading the NETLIB protocols</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<TABLE CELLSPACING=0 CELLPADDING=0 WIDTH="100%">
+<TR>
+<TD>
+<H1>NETLIB II</H1>
+</TD>
+
+<TD>
+<DIV ALIGN=right><P><I>You'll laugh again! You'll cry again!! You'll URL
+again!!!</I></P></DIV>
+</TD>
+</TR>
+</TABLE>
+
+<H2>Multithreading the NETLIB protocols</H2>
+
+<P><I><A HREF="http://home.netscape.com/people/roeber/fgmr.html">Frederick
+G.M. Roeber</A></I></P>
+
+<CENTER><P><B>Abstract</B></P></CENTER>
+
+<CENTER><P><I>The existing NETLIB protocol code -- that which takes a URL,
+fetches the object, and presents the contents -- is, for historical reasons,
+written in a single-threaded, callback-based model. Now that the needs
+of Java have prompted the creation of an all-platform multithreaded process
+support library, we can rewrite the NETLIB protocol code to use multiple
+threads. The advantages we anticipate include threadsafe support for the
+<TT>java.net.URLConnection</TT> interface, a more natural code design leading
+to better understanding and support, and a more modular design easing the
+task of any future protocol additions. </I></P></CENTER>
+
+<H3>NETLIB now</H3>
+
+<P>Netlib actually consists of several conceptually separate modules, all
+lumped together by historical accident. Lou is proposing
+<A HREF="netmods.html">a
+functional reorganisation</A>; here we are concerned only with what he
+classifies as the <I>URL Loader Library</I>: basically, the functions that
+are now called <TT>NET_GetURL</TT>, <TT>NET_ProcessNet</TT>, etc.</P>
+
+<P>Currently, one presents an object by calling <TT>NET_GetURL</TT> with
+a URL structure specifying the object, the desired presentation type, the
+front-end window context, and an exit callback routine pointer. <TT>NET_GetURL</TT>
+eventually calls the protocol-specific load routine (e.g., <TT>NET_HTTPLoad</TT>)
+to initiate the object retrieval. This load routine starts the connection
+to the appropriate server, and sets up the protocol state machine. When
+the load routine finds itself doing a potentially blocking operation --
+e.g. <TT>connect(2)</TT> -- it performs the operation in a non-blocking
+manner, registers the socket with the front end, and returns. </P>
+
+<P>When the front end detects that the registered socket is ready, it calls
+<TT>NET_ProcessNet</TT>. This then calls the protocol-specific process
+routine. The protocol-specific routine looks at the current state of the
+protocol FSM, uses this to complete the current operation and continue
+through to the initiation of the next potentially blocking operation before
+setting the state and returning. When the blocking operation is complete,
+the front end again calls <TT>NET_ProcessNet</TT> and the FSM continues.</P>
+
+<P>When enough information is obtained to determine the object type, the
+protocol process routine calls <TT>NET_StreamBuilder</TT> to create a chain
+of modules ending with the front-end presentation code. Then, as the FSM
+reads in data, it pushes the data through this stream.</P>
+
+<P>The protocol-specific modules call several front-end calls for a number
+of reasons: to update the progress display, to prompt for passwords, to
+alert the luser, etc.</P>
+
+<P>When all data has been fetched, everything is cleaned up nicely. If
+one of the NETLIB interrupt routines is called to interrupt one or more
+operations, the appropriate protocol-specific interrupt routines are called
+to jump the FSM into a shutdown state.</P>
+
+<P>Other protocol operations -- POST, etc. -- are handled similarly but
+will not be detailed here.</P>
+
+<H3>The problem</H3>
+
+<P>The biggest problem with this design is the design criteria for the
+FSM: because of the constraint not to block, the state boundaries must
+occur &quot;in the middle&quot; of blocking operations. In other words,
+every state consists of finishing the previous step and initiating the
+next. This design requires a certain twisted thinking, which does not lead
+to easy creation or support. Further, protocols such as IMAP4, in which
+the server may &quot;volunteer&quot; data unexpectedly, may not be properly
+supported. Finally, this design does not naturally lend itself to the requirements
+of the blocking <TT>java.net.URLConnect</TT> interface.</P>
+
+<H3>The opportunity</H3>
+
+<P>Along with giving us the problem of <TT>URLConnect</TT>, the incorporation
+of Java has given us an opportunity: it necessitated the creation of a
+multithreaded-process-supporting &quot;Portable Runtime&quot; library.
+Now, with the ability to spin off a new thread for each URL fetch, we can
+recode the protocol modules is a simple, natural way without blocking the
+main UI thread. These modules will by necessity be thread-safe, and will
+lend themselves nicely to <TT>URLConnect</TT>. They should be easier to
+create from the protocol specifications. They should be much more comprehensible,
+shortening the ramp-up time for new people, making bugfixing and support
+easier, and allowing more people to work with new protocol modules.</P>
+
+<H3>The design</H3>
+
+<P>In short, the new <TT>NET_GetURL</TT> will do the following:</P>
+
+<OL>
+<LI>Create a set of resources that can be used by the protocol modules.
+This would include all the information currently set by or fetched from
+the front end and used by the protocol modules. </LI>
+
+<LI>Create a bidirectional message queue (we expect to use two <TT>PREventQueue</TT>'s).</LI>
+
+<LI>Register the incoming queue monitor with the front end, with a callback
+to <TT>NET_ProcessNet</TT> (or rather, its replacement).</LI>
+
+<LI>Create a new thread, passing it the new queue.</LI>
+
+<LI>Create an event, with the handler being the cross-protocol thread-side
+&quot;get URL&quot; routine, and drop this event in the outgoing queue.</LI>
+
+<LI>Return. </LI>
+</OL>
+
+<P>The new thread then proceeds with the operations common to all protocols,
+then jumps into the protocol-specific code. This thread may happily block
+anywhere -- <TT>connect(2)</TT>, <TT>read(2)</TT>, <TT>gethostbyname(3)</TT>,
+wherever. When the thread needs to communicate with the front end -- to
+update the progress display, to prompt for a password, etc. -- it would
+not call the front-end call directly, but rather a replacement call provided
+to the threaded module code. This replacement call would wrap up the parameters
+in an event and drop it in that thread's message queue. Calls requiring
+a response would automatically use synchronous events.</P>
+
+<P>This event would trigger the condition of the monitor registered with
+the front end. The front end would eventually get around to calling the
+callback, <TT>NET_ProcessNet</TT>. This call would call the event's handler
+routine, which would proceed to do the actual front-end call. The existing
+portable runtime event queue operations support all of this already.</P>
+
+<P>When the thread has enough data for the output stream to be built, it
+will call a new StreamBuild operation which, like the front-end call wrappers,
+will send an event to the main thread. The main thread can safely build
+the outgoing stream, and will note the resulting stream operations. This
+synchronous event will block the subthread until the output stream is ready.
+We decided to place the actual stream building in the master thread, to
+avoid having to rewrite all the stream modules in a thread-safe manner.
+Perhaps eventually some of these modules might be rewritten so that they
+may be called from the individual threads, but this is not necessary.</P>
+
+<P>When the thread fetches some data, it would enqueue an event to the
+main thread. It should not have to block on this, modulo space constraints.
+The front-end will, as usual, notice the monitor condition and call back
+to ProcessNet. ProcessNet will call the stream's <TT>WriteReady</TT> service
+to determine how much data it may send, and then call the <TT>Write</TT>
+operation with up to that much data. Any remaining data will be conceptually
+pushed back on the top of the queue.</P>
+
+<P>Interrupts from the main thread will be handled by the <TT>NET_Interrupt</TT>
+call by signalling or killing the thread. If killed, the thread's cleanup
+routines could handle closing the incoming connection and outgoing stream
+cleanly. If signalled, the handler could trigger the cleanup, and then
+let the thread continue around again to process another &quot;get URL&quot; event.
+This way, if we find that thread creation is expensive, we could keep around
+a &quot;stable&quot; of get-URL threads that keep getting reused.</P>
+
+<H3>New resources required</H3>
+
+<P>We will need a new front-end call that can take a PRMonitor and a callback
+and register them with the main UI event loop. The callback should be called
+when the monitor's condition is signalled. A similar functionality is already
+in place for Java, though it is hardcoded in place. The XFE can do this
+with existing code, and I am told that the other platforms can do this
+easily too.</P>
+
+<P>It would be nice if the NSPR code had a way of signalling a thread that
+may be blocked in a kernel call. There are some concerns about being able
+to kill (cancel) blocked threads on all platforms. One possible solution
+might be to have a function that simulates the blocking call by initiating
+an asynchronous IO operation, then waiting on either its completion
+or interruption.</P>
+
+<P>We would like prioritised event queues. We might end up just doing this
+ourselves.</P>
+
+<H3><A HREF="./thread_netlib_pcode.txt">Pseudocode </A></H3>
+
+</BODY>
+</HTML>

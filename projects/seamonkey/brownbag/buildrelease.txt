@@ -1,0 +1,229 @@
+[N.B.: These notes may no longer reflect reality]
+
+Seamonkey build/release
+I. Build System 
+
+    A. Developer
+
+       For mozilla, this info is up to date at http://www.mozilla.org/build/
+       For commercial, this info is http://warp/projects/client/seamonkey/
+
+       The process for each platform is basically the same:
+           * Configure your machine with the proper toolset
+           * Checkout a script or set of scripts
+           * Use the scripts to checkout the correct source and build the tree
+
+       1. Unix
+
+          Thanks to Steve Lamm and Chris Seawood, we have a great way to 
+          configure unix builds: http://webtools.mozilla.org/build/config.cgi
+
+          Thanks to the efforts of Ramiro and Chris McAfee, the default options
+          are pretty sane.
+
+          a. mozilla
+             * cvs -d :pserver:user%netscape.com@cvs.mozilla.org:/cvsroot 
+               co mozilla/client.mk
+             * cd mozilla; gmake -f client.mk        
+
+             Note that if you have a built tree already, this will re-checkout
+             the source code and use automatically generated dependency
+             files to do a depend build.
+
+             Other useful targets are:
+                 * clean, clobber_all: removes all files specified in the
+                   $(TRASH) macros defined in the local makefiles.
+                 * cleansrcdir: removes all object files and generated files
+                 * checkout, pull_all: check out the source only.
+                 * build: build only (assumes a checked out tree).
+
+          b. commercial
+
+             Building a commercial tree assumes that you've built a 
+             mozilla tree in the directory you're going to check out
+             the ns tree.
+        
+             * cvs -d :pserver:user@cvsserver:/m/src co ns/client.mk
+             * cd ns; gmake -f client.mk
+             
+       2. Windows
+
+          a. mozilla
+             
+             Basically, the same as unix, though not as flexible.
+             
+             * cvs -d :pserver:user%netscape.com@cvs.mozilla.org:/cvsroot 
+               co mozilla/client.mak
+             * cd mozilla 
+             * nmake -f client.mak
+
+          b. commercial
+             * cvs -d :pserver:user@cvsserver:/m/src co ns/client.mak
+             * cd ns
+             * nmake -f client.mak pull_netscape_commercial build_all
+
+             Ironically, build_all only builds the commercial client, so you 
+             still have to build mozilla by hand before starting the
+             commercial build..
+
+       3. Mac
+          a. mozilla
+             * cvs checkout mozilla/build/mac
+             * run PullNGlayout.pl to pull the source
+             * run BuildNGlayoutDebug.pl to build a debug tree
+
+          b. commercial
+             
+
+    B. Release
+
+       Why is the release process different than the developer process?
+       There are a few reasons: developers don't generally care about 
+       packaging, developers generally want debugging symbols in their 
+       binaries, not all developers want to work on all component 
+       integration.
+
+       So, the automation written for release builds does *basically* the
+       same thing that developer builds do, with the following differences:
+            * Release builds create .xpi files and installers
+            * Release builds incorporate other, pre-built components
+              (security, spellchecker, flash, jvm, etc.)
+            * Release builds strip debugging symbols from the binaries and
+              push them to the talkback server, and also generate an id
+              to associate talkback incidents to the correct debugging
+              symbols
+
+       1. Unix
+          For daily releases, we use some automation scripts that are
+          descended from legacy code written to satisfy 2.x-4.x releases.
+          We are working to clean this up so that it reflects the process
+          that developers use, rather than manually doing the steps 
+          that client.mk does automatically and transparently.
+
+          The constantly improving, currently in use, scripts are:
+          ns/build/unix/verification/seamonkey-spawn
+          ns/build/unix/verification/seamonkey-build
+
+          seamonkey-spawn spawns builds on all the machines we do unix
+          builds on (currently only linux and solaris 2.7 for seamonkey).
+
+          seamonkey-build is the meat of the process and does all the build
+          and delivery, forgoing the use of client.mk in favor separately
+          configuring and building.
+
+          This single script does both the mozilla.org releases and the
+          internal commercial build deliveries.
+
+          There are some differences in configure options from the default:
+          --disable-tests to avoid unnecessary building of non-released stuff
+          --with-extensions=default,irc to get the all-important chat client
+          --without-jpeg --without-zlib --without-png, so we build our own,
+          rather than relying on an existing set of system libraries.
+
+
+       2. Windows
+
+          Luckily, we didn't have much in the way of legacy windows automation,
+          affording the opportunity to write something that fits the seamonkey
+          build process better.
+
+          cm/client/windows/build-verification.pl (in /m/src) runs the 
+          windows releases to mozilla.org and the internal commercial.
+
+       3. Mac
+          
+          We don't quite have the applescript someplace readily viewable,
+          but trust me, it's really good!
+
+    C. Mechanics, how to.
+       1. Add files to build
+
+          * cvs add the file to the correct repository
+
+          a. unix
+
+             * Add the new source file to the appropriate *SRCS macro
+               in Makefile.in (this is later used to generate Makefile).
+
+          b. windows
+
+             * For c and c++ files, add the new target object to
+               C_OBJS or CPP_OBJS macro as appropriate.
+             * For idl files, add the idl source file to the XPIDLSRCS macro.
+
+          c. mac
+
+             * for new source files, add the new file to the list of files 
+               getting built in the CodeWarrior project file associated with 
+               the module you're building; add it to both the optimized and 
+               release versions of the product.
+             * for new header files and resources, add the new file to the 
+               MANIFEST file for export.
+             * for new project files, create the project and add it to the
+               list of built projects in 
+               mozilla/build/mac/NGLayoutBuildList.pm, or 
+               ns/build/mac/CommercialBuildList.pm
+
+       2. Add files to installer packaging.
+
+          Once you get your code built, naturally you want to include it in
+          the shipped product. To do this, you have to make sure that your
+          binaries and resource files (xul, gif, jpeg, png, whatever) are
+          included somehow in
+          mozilla/xpinstall/packager/packages-mac
+          mozilla/xpinstall/packager/packages-unix
+          mozilla/xpinstall/packager/packages-win
+
+          or
+
+          ns/xpinstall/packager/packages-mac
+          ns/xpinstall/packager/packages-unix
+          ns/xpinstall/packager/packages-win
+
+          You can even test the installer creation process yourself once
+          you've done a build, and you're on windows, and you have zip.exe
+          in your path, just run:
+          mozilla/xpinstall/wizard/windows/builder/build.pl
+
+          and you'll end up with an installer in
+          mozilla/dist/win32_d.obj/install
+
+II. Verification Process / Development Model
+    A. Verifications
+       Opportunity to
+         * look for regressions.
+         * close the tree and focus on blocking bugs, if any are found.
+         * verify that optimized builds still work.
+         * verify that the packaging manifests are still up-to-date enough.
+
+    B. Tinderbox/Bonsai
+       * Helps make sure code builds XP
+       * Gives an easy way to track checkins and associate them 
+         with bloat/bustage
+       * Gives very visible place to post checkin rules.
+
+    C. Sheriffs
+       1. Why do we need a sheriff?
+
+       2. Why isn't there just one sheriff, like there used to be?
+
+       3. Sheriff's tools:
+          * Bonsai (open/close the tree to checkins)
+          * the hook: http://bonsai.mozilla.org/toplevel.cgi?treeid=SeaMonkey
+            or http://warp.mcom.com/webtools/bonsai/toplevel.cgi
+          * Tinderbox!
+
+III. FAQs
+     A. CVS
+        1. lock files
+           a. for mozilla, page-leaf@mozilla.org, or file a bugzilla bug
+              against server operations (http://bugzilla.mozilla.org)
+           b. internally, x4444 or helpdesk request
+        2. branches
+     B. Tools
+        1. lxr
+        2. bonsai
+        3. tinderbox
+        4. IRC/AIM
+     C. Resources
+

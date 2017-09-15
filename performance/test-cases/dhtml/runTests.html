@@ -1,0 +1,148 @@
+<html>
+<head>
+<script>
+var iterations = 5;  // Number of iterations to run the tests.
+var settime = 0;     // timer interval in ms for tests
+
+var testList = new Array (  // The list of test dirs, relative to this file
+                            // Note that some dirs are not listed; those tests
+                            // are not run at this time.
+  "colorfade",
+  "diagball",
+  "fadespacing",
+  "imageslide",
+  "layers1",
+  "layers2",
+  "layers4",
+  "layers5",
+  "layers6",
+  "meter",
+  "movingtext",
+  "mozilla",
+  "replaceimages",
+  "scrolling",
+  "slidein",
+  "slidingballs",
+  "zoom"
+);
+
+var test = testList.length;   // The number of the current test.
+                              // Init to end, so "iterations" can be 1-based.
+var startTime;  // The time the current test started
+
+var results = new Array(testList.length);  // Array of arrays of result times
+for (var i = 0; i < results.length; ++i) {
+  results[i] = new Array();
+}
+
+var rawData = new Array(testList.length);  // Used during post-processing
+
+// Maximize and place the window
+window.moveTo(0,0);
+window.resizeTo(screen.width, screen.height);
+
+function startTests() {
+  if (iterations % 2 != 1) {
+    throw "iterations must be an odd number";
+  }
+
+  runTest();
+}
+
+function runTest() { // Kick off a single test
+  if (test == testList.length) {
+    if (iterations) {
+      --iterations;
+      test = 0;
+    } else {
+      return finishUp();
+    }
+  }
+
+  document.getElementById("tester").src = testList[test] + "/index.html";
+  ++test;
+}
+
+function mzDhtmlStop() { // Callback for single test run completion
+  // "test" has already been incremented by now in runTest()
+  results[test - 1].push(Date.now() - startTime);
+  runTest();
+}
+
+function startTest(subWindow) { // Callback for single test load completion
+  startTime = Date.now();
+  subWindow.mzDhtmlStart();
+}
+
+function fill(numspaces, charToUse) {
+  if (!charToUse) {
+    charToUse = " ";
+  }
+  for (var j = 0; j < numspaces; ++j) {
+    dump(charToUse);
+  }  
+}
+
+function numDigits(number) {
+  // This assumes "number" is a positive integer
+  return Math.floor(Math.log(number)/Math.log(10)) + 1;
+}
+
+function average(array) { // we only care about round numbers
+  var sum = 0;
+  for (var i = 0; i < array.length; ++i) {
+    sum += array[i];
+  }
+  return Math.round(sum/array.length);
+}
+
+function finishUp() {
+  var i;
+
+  // Find longest test name length
+  var longestLength = 0;
+  for (i = 0; i < testList.length; ++i) {
+    if (testList[i].length > longestLength) {
+      longestLength = testList[i].length;
+    }
+  }
+
+  dump("Test  ");  // Two spaces since each test gets a ": " after the name
+  fill(longestLength - "Test".length);
+  dump("Average Data\n");
+  fill(60, "=");
+  dump("\n");
+  
+  for (i = 0; i < results.length; ++i) {
+    rawData[i] = results[i].join(",");
+  }
+
+  for (i = 0; i < results.length; ++i) {
+    dump(testList[i] + ": ");
+    // Even them up
+    fill(longestLength - testList[i].length);
+
+    dump(average(results[i]));
+    // Even up with "Average "
+    fill("Average ".length - numDigits(average(results[i])));
+
+    dump(rawData[i] + "\n");
+  }
+
+  var totalTime = 1;
+  for (i = 0; i < results.length; ++i) {
+    totalTime *= average(results[i]);
+  }
+
+  // Geometric mean of the averages
+  dump("_x_x_mozilla_dhtml," + Math.round(Math.exp((1/results.length) * Math.log(totalTime))) + "\n");
+
+  // Done
+  window.close();
+}
+
+</script>
+<frameset onload="startTests()" rows="*">
+<frame id="tester" onload="if (this.src) startTest(this.contentWindow);">
+</frameset>
+</html>

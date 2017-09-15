@@ -1,0 +1,260 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Miscellaneous Rationale</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="syntax.html">
+<LINK rel=Next href="../compatibility.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>April 2002 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Miscellaneous</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="syntax.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="../compatibility.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Wednesday, December 5, 2001</P>
+
+<P>This section presents a number of miscellaneous alternatives that were considered while developing this proposal.</P>
+
+<H2><A name="types"></A>Types</H2>
+
+<H3><CODE>Object</CODE></H3>
+
+<P>The root of the type hierarchy was chosen to be the existing JavaScript 1.5 type <A href="../libraries/types.html#Object"><CODE>Object</CODE></A>.
+Primitive numbers, strings, and booleans were made into instances of subclasses of <CODE>Object</CODE> and the existing wrapper
+classes eliminated, thereby eliminating the confusing distinction between boolean primitives and objects, etc. in JavaScript
+1.5.</P>
+
+<P>The alternative was to define a new root type, <CODE>any</CODE>, that is an ancestor of <CODE>Object</CODE> as well as
+primitive numbers, strings, and booleans, which could have their own types <CODE>number</CODE>, <CODE>string</CODE>, and <CODE>boolean</CODE>
+respectively. In this scenario the JavaScript 1.5 classes <CODE>Number</CODE>, <CODE>String</CODE>, and <CODE>Boolean</CODE>
+would still be subclasses of <CODE>Object</CODE>, but the primitive values could not be members of these classes &#8212; for
+example, <CODE>false</CODE> would be a member of the class <CODE>boolean</CODE> but not <CODE>Boolean</CODE>. The object obtained
+by boxing <CODE>false</CODE> would be a member of the class <CODE>Boolean</CODE> but not <CODE>boolean</CODE> and would evaluate
+to true (!) if used in an <CODE>if</CODE> statement.</P>
+
+<P>The <CODE>any</CODE> alternative was more compatible with JavaScript 1.5, but the added complexity and confusion was not
+deemed worthwhile for the extra compatibility. Instead, JavaScript 2.0 simplifies and reguralizes the behavior of JavaScript
+1.5 in this area.</P>
+
+<H3><CODE>Never</CODE> and <CODE>Void</CODE></H3>
+
+<P>The types <A href="../libraries/types.html#Never"><CODE>Never</CODE></A> and <A href="../libraries/types.html#Void"><CODE>Void</CODE></A>
+are different and serve different purposes. When used as a return type, <CODE>Never</CODE> describes the inability to return
+from a function, while <CODE>Void</CODE> states that the function returns, but the value returned is not useful (it&#8217;s always
+<CODE>undefined</CODE>).</P>
+
+<P>The following example illustrates the use of <CODE>Never</CODE> and <CODE>Void</CODE>:</P>
+
+<PRE>// This function returns no useful value.
+function display(message:String):Void {
+  document.write("&lt;\_P&gt;" + message + "&lt;\/P&gt;\n");
+}
+
+// This function cannot return.
+function abort(message:String):Never {
+  display(message);
+  throw AbortException;
+}
+
+function chickenCount(myChickens:Array[Chicken]):Integer {
+  if (notHatched(myChickens))
+    abort("Can&#8217;t count the chickens yet");
+  else
+    return myChickens.length;
+}</PRE>
+
+<P>Note that if the function <CODE>abort</CODE> had no explicit return type or any return type other than <CODE>Never</CODE>,
+then the compiler would likely issue a warning inside the function <CODE>chickenCount</CODE> because it contains a code path
+(the false case of its <CODE>if</CODE>) that appears to fall out of the function without returning a value, while <CODE>chickenCount</CODE>
+is declared to return an <CODE>Integer</CODE>. The <CODE>Never</CODE> return type on <CODE>abort</CODE> tells the compiler
+that there is no such code path inside <CODE>chickenCount</CODE>.</P>
+
+<P>It might be a good idea for a compiler to issue a warning for a function that is declared as returning type <CODE>Never</CODE>
+for which the compiler can&#8217;t verify that the function can&#8217;t return.</P>
+
+<H3><A name="type-expressions"></A>Type Expressions</H3>
+
+<P>We could define other type operators such as the ones in the table below. <VAR>s</VAR> and <VAR>t</VAR> are type expressions.</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Type&nbsp;&nbsp;</TH>
+    <TH valign=TOP align=LEFT>Values</TH>
+    <TH valign=TOP align=LEFT>Implicit coercion of value <VAR>v</VAR></TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>t</VAR><CODE>[]</CODE></TD>
+    <TD valign=TOP><CODE>null</CODE> as well as nonresizable arrays of values of type <VAR>t</VAR></TD>
+    <TD valign=TOP><CODE>undefined</CODE> <SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT> <CODE>null</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>const&nbsp;</CODE><VAR>t</VAR></TD>
+    <TD valign=TOP>Makes type <VAR>t</VAR>, which must be an array type, into a read-only array type</TD>
+    <TD valign=TOP>None</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>+</CODE><VAR>t</VAR></TD>
+    <TD valign=TOP><CODE>null</CODE> or any value belonging to type <VAR>t</VAR></TD>
+    <TD valign=TOP><CODE>null</CODE> <SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT> <CODE>null</CODE>; <CODE>undefined</CODE>
+      <SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT> <CODE>null</CODE> (if <CODE>undefined</CODE> is not a
+      member of <VAR>t</VAR>); any other implicit coercions already defined for <VAR>t</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>s</VAR> <CODE>+</CODE> <VAR>t</VAR></TD>
+    <TD valign=TOP>All values belonging to either type <VAR>s</VAR> or type <VAR>t</VAR> or both</TD>
+    <TD valign=TOP>If <VAR>v</VAR><SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT><VAR>s</VAR><CODE>+</CODE><VAR>t</VAR>,
+      then use <VAR>v</VAR>; otherwise, if <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR> is defined then use <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR>;
+      otherwise, if <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>t</VAR> is defined then use <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>t</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>s</VAR> <CODE>*</CODE> <VAR>t</VAR></TD>
+    <TD valign=TOP>All values simultaneously belonging to both type <VAR>s</VAR> and type <VAR>t</VAR></TD>
+    <TD valign=TOP>If <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>t</VAR> is defined
+      and is a member of <VAR>s</VAR><CODE>*</CODE><VAR>t</VAR>, then use <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>t</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>s</VAR> <CODE>/</CODE> <VAR>t</VAR></TD>
+    <TD valign=TOP>All values belonging to type <VAR>s</VAR> but not type <VAR>t</VAR></TD>
+    <TD valign=TOP>If <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR> is defined and is a member of <VAR>s</VAR><CODE>/</CODE><VAR>t</VAR>,
+      then use <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR>.</TD>
+  </TR>
+  </TABLE>
+</DIV>
+
+<P>The <CODE>[]</CODE> suffix operator could be used to make array types. Unlike <CODE>Array</CODE>, these arrays would be
+dense, indexable only by integers, nonresizable, and non-subclassable &#8212; <VAR>t</VAR><CODE>[]</CODE> has the <A href="../core/definitions.html#class-attributes">class
+modifier</A> <CODE>final</CODE>.</P>
+
+<P>A new <A href="../core/expressions.html#unary">unary operator</A>, <CODE>const</CODE>, could be added. This operator would
+take a <A href="../core/expressions.html#N-PostfixExpressionOrSuper" class=nonterminal>PostfixExpressionOrSuper</A> <VAR>x</VAR>
+as an operand. If <VAR>x</VAR> is an instance of a non-<CODE>ConstArray</CODE> array, <CODE>const&nbsp;</CODE><VAR>x</VAR>
+would return a <CODE>ConstArray[</CODE><VAR>T</VAR><CODE>]</CODE> copy of <VAR>x</VAR>, where <VAR>T</VAR> is the most specific
+type such that every element of <VAR>x</VAR> is a member of <VAR>T</VAR>. If <VAR>x</VAR> is an array type, <CODE>const&nbsp;</CODE><VAR>x</VAR>
+would be the corresponding <CODE>ConstArray</CODE> type.</P>
+
+<UL>
+  <LI><VAR>t</VAR><CODE>[]</CODE> is the type of writable arrays of <VAR>t</VAR>.</LI>
+  <LI><CODE>const&nbsp;</CODE><VAR>t</VAR><CODE>[]</CODE> is the type of constant arrays of <VAR>t</VAR>.</LI>
+  <LI><VAR>t</VAR><CODE>[][]</CODE> is the type of writable arrays of writable arrays of <VAR>t</VAR>.</LI>
+  <LI><CODE>const&nbsp;</CODE><VAR>t</VAR><CODE>[][]</CODE> is the type of constant arrays of writable arrays of <VAR>t</VAR>
+    &#8212; <CODE>const</CODE> binds looser than <CODE>[]</CODE> so it&#8217;s the same as <CODE>const&nbsp;(</CODE><VAR>t</VAR><CODE>[])[]</CODE>.</LI>
+  <LI><CODE>(const&nbsp;</CODE><VAR>t</VAR><CODE>[])[]</CODE> is the type of writable arrays of constant arrays of <VAR>t</VAR>.</LI>
+</UL>
+
+<H2>Attributes</H2>
+
+<H3><A name="namespace-attribute"></A>Namespace Attributes</H3>
+
+<P>Definitions of top-level entities in a package can only be placed in the namespace <CODE>public</CODE> or in namespaces
+(including <CODE>internal</CODE>) defined within that package. This restriction does not apply to non-top-level definitions
+such as those of class members (both instance and static), or local definitions within blocks.</P>
+
+<P>The reason for this restriction is to prevent irresolvable name clashes when importing a package. Suppose that package
+<VAR>P</VAR> defined a namespace <VAR>N</VAR> and defined a top-level entity <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR>. Package
+<VAR>Q</VAR> could then import package <VAR>P</VAR> and define its own top-level entity, also named <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR>.
+Package <VAR>R</VAR> could not import both package <VAR>P</VAR> and package <VAR>Q</VAR> because they define two top-level
+entities, both named <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR>.</P>
+
+<P>Note that this is not an issue for <CODE>public</CODE> top-level definitions because an import statement always moves imported
+<CODE>public</CODE> top-level definitions into their own namespace, which is then <CODE>use</CODE>d.</P>
+
+<H4><A name="primitive"></A><CODE>primitive</CODE></H4>
+
+<P>A <CODE>primitive</CODE> <A href="../core/definitions.html#class-attributes">class modifier attribute</A> was considered.
+This attribute would exclude <CODE>null</CODE> from the set of values that can be stored in variables typed with this class:
+if a class <VAR>C</VAR> is defined using the <CODE>primitive</CODE> attribute, then <CODE>null</CODE> is not considered to
+be a member of the type <VAR>C</VAR> (there would have to be a way to specify a default value for uninitialized variables
+of type <VAR>C</VAR>). This attribute would permit user-defined classes to behave like some predefined classes such as <CODE>Number</CODE>.</P>
+
+<P>This attribute was dropped for now because of circularity problems with classes that haven&#8217;t been defined yet. If class
+<VAR>C</VAR> hasn&#8217;t been defined yet, one can still create a variable of type <VAR>C</VAR>; such a variable is initialized
+to <CODE>null</CODE>. If <VAR>C</VAR> turned out to be a primitive class then the variable&#8217;s value would need to be retroactively
+changed.</P>
+
+<H2><A name="operators"></A>Operators</H2>
+
+<P>Most operators can be <A href="../core/operators.html#operator-overriding">overridden</A>. However, the <CODE>!</CODE>,
+<CODE>||</CODE>, <CODE>^^</CODE>, <CODE>&amp;&amp;</CODE>, and <CODE>?:</CODE> operators cannot be overridden directly; instead,
+they are affected by overrides of <CODE>toBoolean</CODE>. The reason for not overriding <CODE>||</CODE>, <CODE>&amp;&amp;</CODE>,
+and <CODE>?:</CODE> is that they do not always evaluate all of their arguments, and programmers often take advantage of this
+short-circuiting behavior. <CODE>!</CODE> is not overridable in order to preserve useful identities such as:</P>
+
+<UL>
+  <LI><CODE>if&nbsp;(!</CODE><VAR>x</VAR><CODE>)&nbsp;</CODE><VAR>A</VAR><CODE>&nbsp;else&nbsp;</CODE><VAR>B</VAR> <SCRIPT type="text/javascript">document.write(U_equiv)</SCRIPT>
+    <CODE>if&nbsp;(</CODE><VAR>x</VAR><CODE>)&nbsp;</CODE><VAR>B</VAR><CODE>&nbsp;else&nbsp;</CODE><VAR>A</VAR></LI>
+  <LI><CODE>!(</CODE><VAR>x</VAR><CODE>&nbsp;&amp;&amp;&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE> <SCRIPT type="text/javascript">document.write(U_equiv)</SCRIPT>
+    <CODE>!</CODE><VAR>x</VAR><CODE>&nbsp;||&nbsp;!</CODE><VAR>y</VAR></LI>
+  <LI><VAR>x</VAR><CODE>&nbsp;!=&nbsp;</CODE><VAR>y</VAR> <SCRIPT type="text/javascript">document.write(U_equiv)</SCRIPT>
+    <CODE>!(</CODE><VAR>x</VAR><CODE>&nbsp;==&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></LI>
+</UL>
+
+<H3><A name="for-in"></A>For-In Operator</H3>
+
+<P>The for-in operator can be <A href="../core/operators.html#for-in">customized</A> using the three methods <CODE>Iterator::forIn</CODE>,
+<CODE>Iterator::next</CODE>, and <CODE>Iterator::done</CODE>. There are a few design decisions that come into play here:</P>
+
+<UL>
+  <LI>Why use an iterator object instead of a function and a callback (i.e. have <CODE>Iterator::forIn</CODE> take a parameter
+    <VAR>f</VAR> and have it call <VAR>f</VAR> for each element in the collection)? The reason is that the iterator model
+    permits future extensions such as iterating through two collections concurrently. This cannot be done using callbacks.</LI>
+  <LI>Why return an object from <CODE>Iterator::forIn</CODE> and <CODE>Iterator::next</CODE> instead of having <CODE>Iterator::forIn</CODE>
+    and <CODE>Iterator::next</CODE> return just an iterator and having a separate <CODE>Iterator::get</CODE> method that,
+    given an iterator, returns an element? The rationale here is that the separate <CODE>Iterator::get</CODE> method would
+    introduce unavoidable concurrency hazards. Since <CODE>null</CODE> (or any other value) can be a member of a collection,
+    we can&#8217;t use the return value from <CODE>Iterator::get</CODE> to detect the end of iteration; instead, we&#8217;d have to use
+    a <CODE>null</CODE> return value from <CODE>Iterator::forIn</CODE> or <CODE>Iterator::next</CODE> to indicate the end
+    of iteration. In such a case, however, it would be possible for another thread to delete the last element between the
+    call to <CODE>Iterator::forIn</CODE> or <CODE>Iterator::next</CODE> and the call to <CODE>Iterator::get</CODE>, and <CODE>Iterator::get</CODE>
+    would then be stuck. We could use an exception to indicate the end of iteration, but this would put exception handling
+    on the fast path of program execution.</LI>
+  <LI>Why use an object with two named slots rather than a two-element read-only array for the return value? Named slots can
+    have heterogeneous types, while the types of array elements must be the same.</LI>
+  <LI>Why define <CODE>Iterator::done</CODE>? Some objects may erect temporary scaffolding to support iteration. This method
+    informs them that they can take down such scaffolding. Since JavaScript currently lacks finalization, there is no other
+    way for the iterated object to know that the iteration aborted early &#8212; the start of another iteration cannot be
+    used as an indication that the previous iteration completed because several iterations can be happening simultaneously
+    on the same object.</LI>
+</UL>
+
+<H3><A name="class-reflection"></A>Class Reflection Operator</H3>
+
+<P>Earlier drafts of this proposal had a <CODE>.class</CODE> operator that returned an instance&#8217;s class. This operator was
+defined using the grammar production:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>MemberOperator</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-DotOperator" class=nonterminal>DotOperator</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>.</CODE>&nbsp;<CODE class=terminal-keyword>class</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>.</CODE>&nbsp;<A href="../core/expressions.html#N-ParenExpression" class=nonterminal>ParenExpression</A></DIV>
+</DIV>
+
+<P>The operator was removed because obtaining an instance&#8217;s class breaks abstraction. The client of a factory method <VAR>m</VAR>
+could determine whether <VAR>m</VAR> was returning instances of some stated class <VAR>C</VAR> or subclasses of <VAR>C</VAR>,
+and <VAR>m</VAR> could not evolve to alter its implementation decision of what precise instances to return without potentially
+breaking clients.</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Wednesday, December 5, 2001</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="syntax.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="../compatibility.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+</BODY>
+</HTML>

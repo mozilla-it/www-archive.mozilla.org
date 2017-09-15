@@ -1,0 +1,926 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../../images/mozilla-16.png" type="image/png">
+
+   <title>Traversing the HTML Table with JavaScript and DOM interfaces</title>
+<script src="../../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+<center><a href="http://www.mozilla.org/newlayout/bugathon.html"><img SRC="bugathon.gif" height=60
+width=468></a></center>
+<A NAME="DOM Technical NotesTTL"></A>
+<p>
+<b>
+<font size=+1>Traversing an HTML Table with JavaScript and DOM Interfaces</font>
+</b>
+<br><b><i>D<font size=-1>YNAMICALLY </font>M<font size=-1>ANIPULATING
+</font>H<font size=-1>TML
+</font>E<font size=-1>LEMENTS
+</font>W<font size=-1>ITH
+</font>D<font size=-1>OM
+</font>L<font size=-1>EVEL
+1</font></i></b>
+<p>
+<b>By Marcio Galli<br>
+Gecko Technology Evangelist<br>
+</b>
+<hr SIZE=1 NOSHADE WIDTH="100%">
+<b>INTRODUCTION</b>
+<ul>
+This technote is an overview of some powerful, fundamental DOM level 1.0
+methods and how to use them from JavaScript. You will learn how to create,
+access and control, and remove HTML elements dynamically. The DOM methods
+presented here are not specific to HTML; they also apply to XML. The
+demonstrations provided here will work fine in any browser with full support
+for DOM level 1, such as the Mozilla browser or others based on it like the
+next-generation Navigator browser from Netscape. The code samples in this
+document also work on IE5.
+<p>
+<b>Note: The DOM methods presented here are part of the Document Object Model
+(Core) level 1 specification. DOM level 1 includes both methods for generic
+document access and manipulation (DOM 1 Core) as well as methods specific to
+HTML documents (DOM 1 HTML).
+</b>
+</ul>
+<hr SIZE=1 NOSHADE WIDTH="100%">
+<b>CONTENTS</b>
+<ul>
+<b>
+<a href="#quick">Quick Summary Of DOM Methods and Attributes Used in this Technote</a>
+</b>
+<p>
+<b>
+<a href="#getting">Starting With Sample Code - overview of sample1.html</a>
+</b>
+<br> - Sample1 - dynamically creates an example HTML Table with 4 cells
+<br> - The HTML table markup that was dynamically generated
+<br> - Object tree for the sample HTML Table
+<p>
+<b>
+<a href="#fundamental">Fundamental DOM Methods - sample2.html</a>
+</b>
+<br> - Accessing node elements using getElementsByTagName(..) and the item(..) methods
+<br> - Creating TextNodes with document.createTextNode(..)
+<br> - Inserting Ele</font>ments with appendChild(..)
+<br> - Creating New Elements with the Document interface and the createElement(..) method
+<br> - Removing nodes with the removeChild(..) method
+<p>
+<b>
+<a href="#creating">Sample1.html - creating a table dynamically</a>
+</b>
+<br> - Reviewing the HTML Table structure</font>
+<br> - Creating Element Nodes and Inserting Them Into the Document Tree
+<p>
+<b>
+<a href="#manipulating">Manipulating the table with DOM and CSS</a>
+</b>
+<br> - Getting a text node from a table
+<br> - Getting an attribute value
+<br> - Hiding a column by changing style properties
+<p>
+<b>
+<a href="#references">References</a>
+</b>
+<p>
+<b>
+<a href="#support">Support</a>
+</b>
+<p>
+<b>
+<a href="#feedback">Feedback</a>
+</b>
+
+</ul>
+<hr SIZE=1 NOSHADE WIDTH="100%">
+<a NAME="quick"></a><b>QUICK SUMMARY OF DOM METHODS AND ATTRIBUTES USED IN THIS TECHNOTE
+</b>
+<ul>
+method: <b><i>document</i>.getElementsByTagName(<i>tagNameString</i>)</b>
+<ul>
+<pre>Example: <i>myDocumentElements</i>=document.getElementsByTagName("body");</pre>
+What it does: Returns a list of all the elements in the document that have tag name <i>tagNameString</i>
+<br>
+For more Information: W3C's DOM Level 1 - interface <a href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html#method-getElementsByTagName">Document</a>, interface <a href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html#ID-1938918D">Element</a>
+</ul>
+<p>
+method: <b>item(<i>n</i>)</b>
+<ul>
+<pre>Example: <i>myBody</i>=myDocumentElements.item(0);</pre>
+What it does: From a list, returns item number <i>n</i>
+<br>For more Information: W3C's DOM Level 1 - interface <a href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html#method-item">NodeList</a>
+</ul>
+<p>
+method: <b><i>document</i>.createElement(<i>tagNameString</i>)</b>
+<ul>
+<pre>Example: myNewPTAGnode=document.createElement("p");</font></pre>
+What it does: Creates and returns a new element with tag name <i>tagNameString</i></font>
+<br>For more Information: W3C's DOM Level 1 - interface <a href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html#ID-2141741547">Document</a>
+</ul>
+<p>
+method: <b><i>document</i>.createTextNode(<i>textString</i>)</font></b>
+<ul>
+<pre>Example: myTextNode=document.createTextNode("world");</pre>
+What it does: Creates and returns a new text node with <i>textString</i> as its text
+<br>For more Information: W3C's DOM Level 1 - interface <a href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html#ID-1975348127">Document</a>
+</ul>
+<p>
+method: <b><i>parentElement</i>.appendChild(<i>newChildElement</i>)
+</b>
+<ul>
+<pre>Example: myBody.appendChild(myNewPTAGnode);</font></pre>
+What it does: Adds <i>newChildElement</i> as a child element of <i>parentElement</i>
+at the end of the list
+<br>For more Information: W3C's DOM Level 1 - interface <a href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html#ID-184E7107">Node</a>
+</ul>
+<p>
+attribute: <b><i>textNode</i>.data;
+</b>
+<ul>
+<pre>Example: textdata=myceltext.data;</font></pre>
+What it does: Returns a text string that is the content of <i>textNode</i>.
+<br>For more Information: W3C's DOM Level 1 - interface <a href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html#ID-72AB8359">CharacterData</a>
+</ul>
+<p>
+attribute: <b><i>attributeNode</i>.value;
+</b>
+<ul>
+<pre>Example: myattributevalue=myattribute.value;</font></pre>
+What it does: Returns a text string that is the value of <i>attributeNode</i>.
+<br>For more Information: W3C's DOM Level 1 - interface <a href="http://www.w3.org/TR/REC-DOM-Level-1/level-one-core.html#ID-221662474">Attr</a>
+</ul>
+
+</ul>
+<hr SIZE=1 NOSHADE WIDTH="100%">
+<a NAME="getting"></a>
+<b>STARTING WITH SAMPLE CODE - OVERVIEW OF SAMPLE1.HTML</b>
+<ul>
+This technote is an introduction to the DOM through sample code. Once
+you are familiar with the Level 1 DOM's fundamental methods, you can
+continue your study using the additional information in the
+<a href="#references">reference</a> section. To get started, to try out
+the following HTML <a href="sample1.html">sample</a>. It uses DOM level 1
+methods from JavaScript to create an HTML table dynamically.
+<a href="#commented-sample">See below for a fully commented version</a>
+of this code sample. Basically, it creates a small table with four cells
+and text content inside each cell. The text content of the cell is:
+"</font>cell is row y column x" showing the row and column numbers for
+that cell in the table.
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+&lt;html>
+&lt;head>
+&lt;title>Sample code - Traversing an HTML Table with JavaScript and DOM Interfaces&lt;/title>
+&lt;script>
+    function start() {
+        var mybody=document.getElementsByTagName("body").item(0);
+        mytable = document.createElement("TABLE");
+        mytablebody = document.createElement("TBODY");
+        for(j=0;j&lt;2;j++) {
+            mycurrent_row=document.createElement("TR");
+            for(i=0;i&lt;2;i++) {
+                mycurrent_cell=document.createElement("TD");
+                currenttext=document.createTextNode("cell is row "+j+", column "+i);
+                mycurrent_cell.appendChild(currenttext);
+                mycurrent_row.appendChild(mycurrent_cell);
+            }
+            mytablebody.appendChild(mycurrent_row);
+        }
+        mytable.appendChild(mytablebody);
+        mybody.appendChild(mytable);
+        mytable.setAttribute("border","2");
+    }
+&lt;/script>
+&lt;/head>
+&lt;body onload="start()">
+&lt;/body>
+&lt;/html>
+</pre>
+</td>
+</tr>
+</table>
+
+<center>
+<font size=-2>
+<a href="sample1.html">Sample1.html</a> - creates an example HTML Table
+with 4 cells, <a href="sample1.html.txt">source code: sample1.html.txt</a></font></center>
+<p>
+Study carefully the order in which we created the elements and the text node:
+<p>
+<ul>
+<li>
+First we created the TABLE element.
+</li>
+<li>
+Next, we created the TBODY element, which is a child of the TABLE element.
+</li>
+<li>
+Next, we used a loop to create the TR elements, which are children of
+the TBODY element.
+</li>
+<li>
+For each TR element, we used a loop to create the TD elements,
+which are children of TR elements.
+</li>
+<li>
+For each TD element, we then created the text node with the table cell's text.
+</li>
+</ul>
+<p>
+Once we have created the TABLE, TBODY, TR, and TD elements and then the
+text node, we then append each object to its parent in the opposite order:
+<p>
+<ul>
+<li>First, we attach each text node to its parent TD element using</li>
+<br>
+<PRE>
+  mycurrent_cell.appendChild(currenttext);
+</PRE>
+
+<li>
+Next, we attach each TD element to its parent TR element using</li>
+<br>
+<PRE>
+  mycurrent_row.appendChild(mycurrent_cell);
+</PRE>
+
+<li>
+Next, we attach each TR element to the parent TBODY element using
+</li>
+<br>
+<pre>
+mytablebody.appendChild(mycurrent_row);
+</pre>
+<li>
+Next, we attach the TBODY element to its parent TABLE element using
+</li>
+<br>
+<pre>
+mytable.appendChild(mytablebody);
+</pre>
+<li>
+Next, we attach the TABLE element to its parent BODY element using
+</li>
+<br>
+<PRE>
+  mybody.appendChild(mytable);
+</PRE>
+</ul>
+Remember this technique. You will use it frequently in programming for
+the W3C DOM. First, you create elements from the top down; then you attach
+the children to the parents from the bottom up.
+<p>
+Here's the HTML markup generated by the JavaScript code:
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+...
+&lt;TABLE border=5>
+&lt;tr>&lt;td>cell is row 0 column 0&lt;/td>&lt;td>cell is row 0 column 1&lt;/td>&lt;/tr>
+&lt;tr>&lt;td>cell is row 1 column 0&lt;/td>&lt;td>cell is row 1 column 1&lt;/td>&lt;/tr>
+&lt;/TABLE>
+...
+</pre>
+</td>
+</tr>
+</table>
+<center>
+<font size=-2>
+The HTML table markup thatwas dynamically generated
+</font>
+</center>
+
+<p>Here's the DOM object tree generated by the code for the TABLE element and its child elements:
+<p>
+<img SRC="sample1-tabledom.jpg" BORDER=1 height=197 width=318>
+<br>
+<font size=-2>Figure 1 - Object tree for the sample HTML Table</font>
+<p>
+You can build this table and its internal child elements by using just
+a few DOM methods. Remember to keep in mind the tree model for the
+structures you are planning to create; this will make it easier to write
+the necessary code. In the TABLE tree of Figure 1 the element TABLE has
+one child, the element TBODY. TBODY has two children. Each TBODY's child
+(TR) has one child (TD). Finally, each TD has one child, a text node.
+</ul>
+<hr SIZE=1 NOSHADE WIDTH="100%">
+<a NAME="fundamental"></a><b>FUNDAMENTAL DOM METHODS - SAMPLE2.HTML</b>
+<ul>
+<b>
+Accessing node elements by using getElementsByTagName(..) and the item(..) methods</b>
+<p>
+<b>Using getElementsByTagName to retrieve elements by their tag name</b>
+<p>
+getElementByTagName is a method of both the Document interface and the
+Element interface, so both the root document object as well as all Element
+objects have the getElementByTagName method. To get a list of children of
+some element, selecting them by tag names, you can use
+<b><i>element.</i>getElementsByTagName(<i>tagname</i>)</b>.
+<p>getElementsByTagName returns a list of child elements that have the
+specified tagname. From that list of child elements, you can reach an
+individual element by calling the
+<b>item</b> method, passing an index for the item number you
+want returned. The first child element of the list is element
+number zero. It's easy and very simple but needs attention when
+you are working with large structures. In the next topic we
+continue working with the Table sample. The following sample is a
+simpler one, intended to show some basic methods:
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+&lt;html>
+&lt;head>
+&lt;title>Sample code - Traversing an HTML Table with JavaScript and DOM
+Interfaces&lt;/title>
+&lt;script>
+    function start() {
+        // get a list of all the body elements (there will only be one)
+        myDocumentElements=document.getElementsByTagName("body");
+        // the body
+        element itself is the first item of the list
+        myBody=myDocumentElements.item(0);
+        // now, get all the p elements that are children of the body
+        myBodyElements=myBody.getElementsByTagName("p");
+        // get the second item of the list of p elements
+        myP=myBodyElements.item(1);
+    }
+&lt;/script>
+&lt;/head>
+&lt;body onload="start()">
+&lt;p>hi&lt;/p>
+&lt;p>hello&lt;/p>
+&lt;/body>
+&lt;/html>
+</pre>
+</td>
+</tr>
+</table>
+<center>
+<font size=-2><a href="sample2.html">sample2.html</a>. Obtaining
+the reference for the second P element -
+<a href="sample2.html.txt">source code: sample2.html.txt</a></font></center>
+
+<p>
+In this <a href="http://www.geckonnection.com/dompod/samples/traverseTable/sample2.html">example</a>, we set the myP variable to the DOM object for the second <b>p</b> element inside the body:
+<p>
+<ul>
+<li>
+First, we get a list of all the body elements via<br>
+<pre>document.getElementsByTagName("body")</pre>
+Since there is only one body element in any valid HTML document,
+this list will have only one item.<br><br>
+</li>
+<li>
+Next, we get the first element on that list, which will be the
+object for the body element itself, via<br>
+<pre><i>myBody</i>=myDocumentElements.item(0);</pre>
+</li>
+<li>
+Next, we get all the p elements that are children of the body via<br>
+<pre><i>myBodyElements</i>=myBody.getElementsByTagName("p");</pre>
+</li>
+
+<li>
+Finally, we get the second item from the list of p elements via<br>
+<pre><i>myP</i>=myBodyElements.item(1);</pre></li>
+</ul>
+<img SRC="sample2a2.jpg" BORDER=1>
+<p>Once you have gotten the DOM object for an HTML element, you can
+set its properties. For example, if you want to set the style background
+color property, you just add:
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+myP.style.background="rgb(255,0,0)";
+// setting inline STYLE attribute
+</pre>
+</td>
+</tr>
+</table>
+<p>
+<b>Creating TextNodes with document.createTextNode(..)</b>
+<p>Use the document object to invoke the createTextNode method and
+create your text node. You just need to pass the text content. The
+return value is an object that represents the text node.
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+myTextNode=document.createTextNode("world");
+</pre>
+</td>
+</tr>
+</table>
+
+<p>This means that you have created a node of the type TEXT_NODE
+(a piece of text) whose text data is "world", and myTextNode is
+your reference to this node object. To insert this text into your
+HTML page, you need to make this text node a child of some other
+node element.
+
+<p><b>Inserting Elements with appendChild(..)</b>
+
+<p>So, by calling myP.appendChild([node_element]), you are making
+the element a new child of the second P element.
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+myP.appendChild(myTextNode);
+</pre>
+</td>
+</tr>
+</table>
+
+<center><font size=-2><a href="sample2a.html">sample2a.html</a> that is sample2.html with new text node child, <a href="sample2.html.txt">source code: sample2a.html.txt</a></font></center>
+
+<p>Click <a href="sample2a.html.txt">here</a> to see the complete
+source of <a href="sample2a.html">sample2</a>, including these two
+new lines to create a text node that appends itself as child of the
+second P element. After testing this sample, note that the words
+hello and world are together: helloworld. So visually, when you see
+the HTML page it seems like the two text nodes hello and world are
+a single node, but remember that in the document model, there are
+two nodes. The second node is a new node of type TEXT_NODE, and it
+is the second child of the second P tag. The following figure shows
+the recently created Text Node object inside the document tree.
+<p><img SRC="sample2b2.jpg" BORDER=1>
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#CCFFFF">
+<tr>
+<td>
+NOTE: createTextNode and appendChild is a simple way to include
+white space between the words hello and world. Another important
+note is that the appendChild method will append the child after
+the last child, just like the word world has been added after the
+word hello. So if you want to append a Text Node between hello and
+world you will need to use <b>insertBefore</b> instead of appendChild.
+Click <a href="sample5.html">here</a> to see an example with
+insertBefore and <a href="sample5.html.txt">here</a> for its source code.
+</td>
+</tr>
+</table>
+
+<p><b>Creating New Elements with the document object and the
+createElement(..) method</b>
+
+<p>You can create new HTML elements or any other element you want
+with createElement. For example, if you want to create a new P
+element as a child of the BODY element, you can use the myBody in
+the previous example and append a new element node. To create a
+node simply call document.createElement("tagname"). For example:
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC">
+<tr>
+<td>
+<pre>
+myNewPTAGnode=document.createElement("p");
+myBody.appendChild(myNewPTAGnode);
+</pre>
+</td>
+</tr>
+</table>
+<p><img SRC="sample2c.jpg" BORDER=1>
+<p><b>Removing nodes with the removeChild(..) method</b>
+<p>Each node can be removed. The following line removes the text
+node which contains the word world of the myP (second P element).
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td><pre>
+myP.removeChild(myTextNode);
+</pre></td>
+</tr>
+</table>
+
+<p>Finally you can add myTextNode (which contains the word world)
+into the recently created P element:
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td><pre>
+myNewPTAGnode.appendChild(myTextNode);
+</pre></td>
+</tr>
+</table>
+
+<p>Click here to see the <a href="sample2b.html">sample2b.html</a> -
+this final example and <a href="sample2b.html.txt">here</a> for the source
+code. The final state for the modified object tree looks like this:
+<p><img SRC="sample2d.jpg" BORDER=1>
+<br>
+</ul>
+
+<hr SIZE=1 NOSHADE WIDTH="100%">
+<a NAME="creating"></a><b>SAMPLE1.HTML - CREATING A TABLE DYNAMICALLY</b>
+<ul>
+For the rest of this technote we will continue working with sample1.html.
+The following figure shows the table object tree structure for the table
+created in the sample.
+<p>
+<b>Reviewing the HTML Table structure</b>
+<p><img SRC="sample1-tabledom.jpg" BORDER=1>
+<p><b>Creating Element Nodes and Inserting Them Into the Document Tree</b>
+<p>The basic steps to create the table in <a href="sample1.html">sample1.html</a> are:
+<p>
+<ul>
+<li> Get the body object (first item of the document object).
+<li> Create all the elements.
+<li> Finally, append each child according to the table structure (as in
+the above figure). The following source code is a commented version for
+the sample1.html.
+</ul>
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#CCFFFF" >
+<tr>
+<td>
+NOTE: At the end of the start function there is a new line of code.
+The table's border property was set using another DOM method, setAttribute.
+setAttribute has two arguments: the attribute name and the attribute value.
+You can set any attribute of any element using the setAttribute method.
+</td>
+</tr>
+</table>
+<a NAME="commented-sample"></a>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+&lt;head>
+&lt;title>Sample code - Traversing an HTML Table with JavaScript and DOM Interfaces&lt;/title>
+&lt;script>
+    function start() {
+        // get the reference for the body
+        var mybody=document.getElementsByTagName("body").item(0);
+        // creates an element whose tag name is TABLE
+        mytable = document.createElement("TABLE");
+        // creates an element whose tag name is TBODY
+        mytablebody = document.createElement("TBODY");
+        // creating all cells
+        for(j=0;j&lt;2;j++) {
+            // creates an element whose tag name is TR
+            mycurrent_row=document.createElement("TR");
+            for(i=0;i&lt;2;i++) {
+                // creates an element whose tag name is TD
+                mycurrent_cell=document.createElement("TD");
+                // creates a Text Node
+                currenttext=document.createTextNode("cell is row "+j+", column "+i);
+                // appends the Text Node we created into the cell TD
+                mycurrent_cell.appendChild(currenttext);
+                // appends the cell TD into the row TR
+                mycurrent_row.appendChild(mycurrent_cell);
+            }
+            // appends the row TR into TBODY
+            mytablebody.appendChild(mycurrent_row);
+        }
+        // appends TBODY into TABLE
+        mytable.appendChild(mytablebody);
+        // appends TABLE into BODY
+        mybody.appendChild(mytable);
+        // sets the border attribute of mytable to 2;
+        mytable.setAttribute("border","2");
+    }
+&lt;/script>
+&lt;/head>
+&lt;body onload="start()">
+&lt;/body>
+&lt;/html>
+</pre>
+</td>
+</tr>
+</table>
+</ul>
+
+<hr SIZE=1 NOSHADE WIDTH="100%">
+<a NAME="manipulating"></a><b>MANIPULATING THE TABLE WITH DOM AND CSS</b>
+<ul>
+<b>Getting a text node from a table</b> <p>This example introduces
+two new DOM attributes. First it uses the childNodes attribute to
+get the list of child nodes of mycel. The childNodes list includes
+all child nodes, regardless of what their name or type is. Like
+getElementsByTagName, it returns a list of nodes. The difference is
+that getElementsByTagName only returns elements of the specified tag
+name. Once you have the returned list, use item(x) method to retrieve
+the desired child item. This example stores in myceltext the text node
+of the second cell in the second row of the table. Then, to display
+the results in this example, it creates a new text node whose content
+is the data of myceltext and appends it as a child of the BODY element.
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#CCFFFF">
+<tr>
+<td>NOTE: If your object is a text node, you can use the data attribute and retrieve the text content of the node.</td>
+</tr>
+</table>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+mybody=document.getElementsByTagName("body").item(0);
+mytable=mybody.getElementsByTagName("table").item(0);
+mytablebody=mytable.getElementsByTagName("tbody").item(0);
+myrow=mytablebody.getElementsByTagName("tr").item(1);
+mycel=myrow.getElementsByTagName("td").item(1);
+// first item element of the childNodes list of mycel
+myceltext=mycel.childNodes.item(0);
+// content of currenttext is the data content of myceltext
+currenttext=document.createTextNode(myceltext.data);
+mybody.appendChild(currenttext);
+</pre>
+</td>
+</tr>
+</table>
+
+<center><font size=-2><a href="sample1a.html">sample1a.html</a> - sample1 example with additional DOM tests - source code: <a href="sample1a.html.txt">sample1a.html.txt</a></font></center>
+
+<p><b>Getting an attribute value</b>
+<p>At the end of sample1 there is a call to setAttribute on the mytable
+object. This call was used to set the border property of the table. To
+get attributes, use the getAttribute method, which returns an attribute
+object. To retrieve the value of the attribute, use the value property: 
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+myattribute=mytable.getAttribute("boder");
+myattributevalue=myattribute.value;
+alert("myattributevalue");
+</pre>
+</td>
+</tr>
+</table>
+
+<p><b>Hiding a column by changing style properties</b>
+<p>Once you have the object in your JavaScript variable, you can set
+style properties directly. The following code is a modified version
+of sample1.html in which each cell of the second column is hidden and
+each cell of the first column is changed to have a red background. Note
+that the style property was set directly.
+<p>
+<table COLS=1 WIDTH="80%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>
+&lt;html>
+&lt;body onload="start()">
+&lt;/body>
+&lt;script>
+    function start() {
+       var mybody=document.getElementsByTagName("body").item(0);
+       mytable = document.createElement("TABLE");
+       mytablebody = document.createElement("TBODY");
+       for(j=0;j&lt;2;j++) {
+           mycurrent_row=document.createElement("TR");
+           for(i=0;i&lt;2;i++) {
+               mycurrent_cell=document.createElement("TD");
+               currenttext=document.createTextNode("cell is:"+i+j);
+               mycurrent_cell.appendChild(currenttext);
+               mycurrent_row.appendChild(mycurrent_cell);
+               // set the cell background color
+               // if the column is 0. If the column is 1 hide the cel
+               if(i==0) {
+                   mycurrent_cell.style.background="rgb(255,0,0)";
+               } else {
+                   mycurrent_cell.style.display="none";
+               }
+           }
+           mytablebody.appendChild(mycurrent_row);
+       }
+       mytable.appendChild(mytablebody);
+       mybody.appendChild(mytable);
+    }
+&lt;/script>
+&lt;/html>
+</pre>
+</td>
+</tr>
+</table>
+</ul>
+
+
+<hr SIZE=1 NOSHADE WIDTH="100%"><a NAME="references"></a><b>REFERENCES</b>
+<ul>
+<p>SAMPLE CODES OF THIS TECHNOTE
+<br> - <a href="sample1.html">sample1</a> - <a href="sample1.html.txt">source code</a> - Dynamically creating a table
+<br> - <a href="sample2.html">sample2</a> - <a href="sample2.html.txt">source code</a> - Get an object reference with getElementsByTagName
+<br> - <a href="sample2a.html">sample2a</a> - <a href="sample2a.html.txt">source code</a> - Appending new elements
+<br> - <a href="sample2b.html">sample2b</a> - <a href="sample2b.html.txt">source code</a> - Removing elements
+<p> STANDARD DOCUMENTATION AND DIRECTORIES
+<p> - <a href="http://www.w3.org/TR/REC-DOM-Level-1/">Standard Documentation - W3C Document Object Model Level 1 - Specification</a>
+<br> - <a href="http://dmoz.org/Computers/Programming/Languages/JavaScript/W3C_DOM/">JavaScript.W3C_DOM Category at dmoz.org</a>
+<p> SAMPLE CODE AND DEMONSTRATIONS
+<p> - <a href="http://www.widomaker.com/~reboughner/W3C/scrollbanner/scroll.html">Scrolling Banner</a> - demonstrates a scrolling banner implementation - uses DOM1
+and DOM2
+<br> - <a href="http://www.geckonnection.com">Taboca Demonstrations for Gecko</a> - collection of DOM demos
+<br> - <a href="http://web01.fureai.or.jp/~tato/ver5/testcontents.htm">Toshirou
+Takahashi's DOM Sample Code</a> - Numerous samples showing how to use DOM features
+<br> - <a href="http://dmoz.org/Computers/Programming/Languages/JavaScript/W3C_DOM/Demos/">DMOZ.org, DOM demos directory</a> Directory with DOM demonstrations at DMOZ.ORG
+<br> - <a href="http://dmoz.org/Computers/Programming/Languages/JavaScript/W3C_DOM/Sample_Code/style/">Style Sample Codes</a> - Using DOM to access and manipulate styles - DMOZ.ORG
+<p> RELATED TECHNOLOGIES AND DOCUMENTATION
+<p> - <a href="http://www.w3.org/TR/1999/CR-DOM-Level-2-19991210/">Standard Documentation - W3C Document Object Model Level 2 - Draft Specification</a>
+<br> - <a href="http://www.mintert.com/xml/trans/REC-xml-19980210-de.html">XML 1.0 Specification</a>
+<br> - <a href="http://www.w3.org/TR/REC-CSS1">Cascading Style Sheets, level 1 - Specification</a>
+<br>
+</ul>
+<hr SIZE=1 NOSHADE WIDTH="100%"><a NAME="support"></a><b>SUPPORT</b>
+<ul>
+<p>mozilla.org does not provide technical support services to browser
+users or web content developers. mozilla.org does have newsgroups, but
+they are intended for discussions about the design and development of
+the Mozilla browser and its future features, not for user or web developer
+support "how to" questions.
+<p>Much information on these standards and technologies can be found at
+<a href="http://www.w3.org/">http://www.w3.org</a>, <a href="http://www.ecma.ch/">http://www.ecma.ch</a>, and
+<a href="http://developer.netscape.com/">http://developer.netscape.com/</a>.
+If after consulting those resources you have questions about developing content
+and applications using the technologies mentioned in this TechNote, here is a
+list of newsgroups on these topics: 
+<p>
+<table BORDER=1>
+<tr>
+<td><b>Newsgroup</b></td>
+
+<td><b>Topic of Newsgroup</b></td>
+</tr>
+
+<tr>
+<td><a href="news:comp.infosystems.www.authoring.html">comp.infosystems.www.authoring.html</a></td>
+
+<td>Usenet HTML newsgroup</td>
+</tr>
+
+<tr>
+<td><a href="news:netscape.public.dev.html">netscape.public.dev.html</a></td>
+
+<td>Netscape DevEdge HTML 4.0
+newsgroup</td>
+</tr>
+
+<tr>
+<td><a href="news:comp.text.xml">comp.text.xml</a></td>
+
+<td>Usenet XML newsgroup</td>
+</tr>
+
+<tr>
+<td><a href="news:netscape.public.dev.xml">netscape.public.dev.xml</a></td>
+
+<td>Netscape DevEdge XML newsgroup</td>
+</tr>
+
+<tr>
+<td><a href="news:comp.infosystems.www.authoring.stylesheets">comp.infosystems.www.authoring.stylesheets</a></td>
+
+<td>Usenet CSS newsgroup</td>
+</tr>
+
+<tr>
+<td><a href="news:netscape.public.dev.css">netscape.public.dev.css</a></td>
+
+<td>Netscape DevEdge CSS newsgroup</td>
+</tr>
+
+<tr>
+<td><a href="news:netscape.public.dev.dom">netscape.public.dev.dom</a></td>
+
+<td>Netscape DevEdge DOM newsgroup</td>
+</tr>
+
+<tr>
+<td><a href="news:comp.lang.javascript">comp.lang.javascript</a></td>
+
+<td>Usenet JavaScript newsgroup</td>
+</tr>
+
+<tr>
+<td><a href="news:netscape.devs-javascript">netscape.devs-javascript</a></td>
+
+<td>Netscape DevEdge JavaScript
+newsgroup</td>
+</tr>
+</table>
+
+<p>If you would like user or developer support for a particular vendor's
+product, please contact that vendor for details. If you would like technical
+support or other assistance from Netscape regarding the features or
+technologies of shipping (post-release, not beta) Netscape products, please
+visit the <a href="http://developer.netscape.com/support/index.html">Netscape DevEdge Online Support Area</a>.
+
+</ul>
+</ul>
+<hr SIZE=1 NOSHADE WIDTH="100%"><a NAME="feedback"></a><b>FEEDBACK</b>
+<ul>
+<p>Do you have comments or suggestions about this article? Please use the following link:<br>
+<ul>
+<p>
+<li><a href="mailto:mgalli@mgalli.com?SUBJECT=[comment-technote:tn-dom-table] (please don't change subject)">send an e-mail about the article</a>
+</ul>
+</ul>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../../security/">Security Updates</a></li>
+<li><a href="../../../../contact/">Contact Us</a></li>
+<li><a href="../../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September 16,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/docs/dom/technote/tn-dom-table/index.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

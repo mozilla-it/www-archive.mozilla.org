@@ -1,0 +1,341 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+<title>A zero-ASM proposal for XPCOMConnect</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<center><h2>A zero-ASM proposal for XPCOMConnect</h2></center>
+<center><a href="mailto:jband@netscape.com">John Bandhauer</a> - 20 Oct 1998</center>
+<p>
+Perhaps my goals for XPCOM-Connect are not the same as others' goals...
+<p>
+1) Neither of the entities on either side of an XPCOM interface should know or
+care which language was used to implement the entity on the other side.
+<p>
+2) Only interfaces that have been specified in IDL and whose generated code has
+been compiled need to be dealt with -- dynamic constructions of interfaces are
+not important.
+<p>
+3) Support for JavaScript communication to generic MS COM objects is not that
+important -- dealing with pre-built typelibs is not required (anytime soon).
+<p>
+4) Specifying interfaces to be used with XPCOM-Connect should not require
+specialized code to be written by hand or bloat the compiled code greatly. It
+should be the standard practice to specify ALL interesting interfaces in the
+client using IDL that enables XPCOM-Connect interaction.
+<p>
+5) We could live with some reasonable limitations on what sorts of parameters
+can be communicated over XPCOM-Connect interfaces (and any interfaces that might
+want to be used via XPCOM-Connect). Hopefully there will be few or no
+limitations of this sort.
+<p>
+This is a 3 way communication problem: C++ -> JS, JS -> C++, JS -> JS (C++ ->
+C++ makes no calls into XPCOM-Connect - though the IDL compiler is generating
+the .H file from which the interface declaration is compiled by the C++
+compiler)
+<p>
+I think that we can do this with these parts:
+<p>
+1) An appropriate IDL compiler that generates:
+<p>
+  a) a per interface C++ header file 
+<p>
+  b) a per method encoded type 'string'
+<p>  
+  c) a JS2COM proxy C++ class instantiated per object with per method entry 
+     points to allow JavaScript to talk to C++
+<p>
+  d) a COM2JS proxy C++ class instantiated per object with per method entry 
+     points to allow C++ to talk to JavaScript
+<p>
+  e) 'strawman' JS constructors demonstrating an implementation of the interface
+<p>
+2) an XPCOM-Connect runtime used by the proxies to do the grunt work.
+<p>
+C++ implementations of a given interface will use the headerfile generated by
+the IDL compiler, but the proxy classes are independent of user implementation
+-- they need only be compiled. There does need to be a registration process at
+startup of factories for these proxies such that a well known XPCOM-Connect
+runtime function can be later called by anyone and asked for a pointer to a new
+proxy (JS2COM or COM2JS) for a given uuid. The point is that for every
+XPCOM-Connectable interfaces there needs to be some module (either exe or dll)
+that knows how to instantiate the proxy objects for the interface's uuid. That
+module should have some startup function that registers the factory for the
+proxies compiled into the module. This would be the case even if there is no C++
+implementation of the interface itself at all. No changes to the C++
+implementation of a given interface needs to made to support (or use) these
+proxies.
+<p>
+So what do the proxies do?
+<p>
+ -- DISCLAIMER... all the below is heavily pseudo coded --
+<p>
+given IDL that looks something like:
+<pre>
+[object, uuid(some_uuid)] 
+interface IFoo : nsISupports { 
+[property] int        Prop;
+           NS_IMETHOD Method([in] int x, [out] nsString str); 
+}
+</pre>
+we might generate IFoo.h:
+<pre>
+UUID UUID_IFOO = {some_uuid};
+
+class IFoo : nsISupports { 
+public: 
+    NS_IMETHOD getProp(int& i) = 0;  
+    NS_IMETHOD setProp(int& i) = 0;
+
+    NS_IMETHOD Method(int x, nsString& str) = 0;
+}
+</pre>
+
+we might generate IFooConnectProxies.h:
+
+<pre>
+#include "IFoo.h"
+
+class IFooCOM2JSProxy : IFoo { 
+public: 
+    /* declare ctor (and 'init') method here */
+    /* */
+
+    /* implement IFoo */
+    NS_IMETHOD getProp(int& i);  
+    NS_IMETHOD setProp(int& i);
+
+    NS_IMETHOD Method(int x, nsString& str);
+
+    /* internals */
+private:
+    JSObject* self;
+    uint ref_count;
+}
+
+class IFooJS2COMProxy : IFoo { 
+public: 
+    /* declare ctor (and 'init') method here */
+    /* */
+
+    /* implement IFoo */
+    NS_IMETHOD getProp(int& i);  
+    NS_IMETHOD setProp(int& i);
+
+    NS_IMETHOD Method(int x, nsString& str);
+
+    /* internals */
+private:
+    IFoo* self;
+}
+</pre>
+
+we might generate IFooConnectProxies.cpp:
+
+<pre>
+#include "IFooConnectProxies.h"
+
+static const unitN type_getProp[] = /* binary rep of type info for method */
+static const unitN type_Method[] = /* binary rep of type info for method */
+
+/* generated ctor and setter of 'self' */
+
+NS_IMETHOD  
+IFooCOM2JSProxy::getProp(int& i) { 
+    struct {int v0} s; 
+    s.v0 = i;
+    return XPCOMConnectDispatch(self, this, s, type_getProp);
+}
+
+NS_IMETHOD
+IFooCOM2JSProxy::Method(int x, nsString& str) { 
+    struct {int v0, nsString& v1} s; 
+    s.v0 = i; 
+    s.v1 = str; 
+    return XPCOMConnectDispatch(self, this, s, type_Method);
+}
+</pre>
+
+... and so on ...
+<p>
+The points are:
+<p>
+The binary type info can be compiled into this proxy class implementation file.
+It represents:
+<p> 1) the name of the method to be called in JS
+<p> 2) the param types
+<p> 3) the param [in out] mods. 
+<p> 4) some termination value
+<p>
+We hand the XPCOM-Connect runtime function an 'array' of the params and an array
+of type information. That runtime function takes this data, converts it to an
+'array' of jsvals, finds and invokes the JS method of the indicated JSObject,
+converts [out] params and returns.
+<p>
+Some params could be interfaces for which JS2COM proxies need to be created on
+the fly - we may pool and recycle them where we can. I'll talk about them later.
+<p>
+COM2JSProxies are created by JS objects wishing to representing themselves as
+implementing an XPCOM interface. There has to be some XPCOM-Connect runtime 
+bootstrap code to make the JS universe visible to the COM universe at startup. 
+JS objects can call the XPCOM-Connect runtime (from the JS side) and present
+themselves as objects that claim to implement factory interfaces for a given
+class id. At some future point some COM object will ask for the factory and the
+runtime will call the JS object which will return a reference to itself or some
+other JS object. The runtime will automatically wrap the JS object in a
+COM2Proxy wrapper to be handed to COM. This same automatic wrapping happens any
+time a call from COM to JS needs to return an interface pointer. The runtime can
+figure out the type of wrapper needed based on the type of the expected
+interface pointer. In dynamic situations we can use the MS scheme of doing
+something like:
+<pre>
+  foo([in] IID iid, [out, iid_is(iid)] void** ppv)
+</pre>
+Here the type is available at runtime - it just takes a little extra work. The
+runtime could maintain tables of active COM2JSProxies for given interfaces on
+given objects so that it could return existing proxies where possible. This
+allows for not breaking the COM rule of returning the same interface pointer for
+QueryInterface of nsISupports for every interface on a given object.
+<p>
+QueryInterface calls on COM2JSProxy objects need to be routed down to the JS
+object (except for queries of nsISupports).
+<p>
+AddRef and Release calls should be routed to the runtime (along with a pointer
+to a counter uint in the Proxy object) so that the runtime can root/unroot the
+JS object as necessary
+<p>
+JS2COMProxy objects are created by the XPCOM-Connect runtime whenever COM is
+calling JS and handing along an interface pointer. They have methods with the
+normal JS native method signature. The runtime registers JS classes to
+represent them as necessary. On creation they AddRef the COM object they
+represent and Release it in their JS finalize method. 
+<p>
+JS2COMProxy C++ implementations are generated by the IDL compiler into the same
+c++ source file as the COM2JSProxy implementations for the given interface. They
+share the same type information representations.
+<p>
+This might look **SOMETHING*** like this:
+
+<pre>
+CALLBACK(JSBool) 
+IFooJS2COMProxy_Method(JSContext *cx, JSObject *obj, 
+                       uintN argc, jsval *argv, jsval *rval)
+{ 
+    IFooJS2COMProxy* This = JS_GetPrivate(cx, obj); 
+    struct {int v0, nsString& v1} s; 
+
+    if(! XPCOMConnectConvertArgsForJS2COM(cx, s, type_Method, argc, argv)) 
+        return JS_FALSE;
+    if(NS_FAILED(This->self->Method(v0,v1))) 
+        return JS_FALSE; 
+    return XPCOMConnectConvertRetValForJS2COM(cx, s, type_Method, rval))
+}
+</pre>
+
+I don't think that we need separate type libraries on disk. Though at some
+future point we might contemplate building these proxies based on MS typelibs we
+import.
+<p>
+There may be no way for (even the XPCOM-Connect runtime) to detect that both
+sides of an interface are implemented in JS. It may build two complementary
+proxies for this -- Oh well...
+<p>
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December  3,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/scriptable/zero-ASM-proposal.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

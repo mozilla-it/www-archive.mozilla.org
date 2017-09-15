@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+ <title>Threads in SeaMonkey</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+ <h1>Threads in SeaMonkey</h1>
+ <p class="note">Comments to: <a href="mailto:netscape.public.mozilla.xpfe">xpfe newsgroup</a>.
+ <p>This document describes the thoughts on threading issues for SeaMonkey
+  and beyond. This is a preliminary design proposal and outcome of a meeting
+  that was held this week.
+ <h2>Threads in SeaMonkey</h2>
+<p>The current plan for 5.0 for all major platforms (Windows,
+Mac, Unix) is to have one UI thread and one or more netlib threads.
+Processing that occurs in the UI thread includes, parsing, Creation of
+Content model, layout, DOM activity, incremental &amp; resize reflows,
+UI event loop, callbacks and plugins. The netlib threads are
+responsible only for network activities. All the major platforms
+use NSPR module to create the threads. There are 2 things about using
+NSPR to create and manage threads that should not be confused.
+<ol>
+<li>To Use the NSPR threads API
+<li>To Use, user level threads created by NSPR or to use native platform
+threads created for you by NSPR.
+</ol>
+<p>All platforms use the NSPR APIs to create their threads for the obvious
+reason of portability, but not all platforms use NSPR user threads. The
+issues are described in the next section. You can learn more about NSPR
+
+<a href="../docs/refList/refNSPR/">here</a>
+
+<h2>Platform Issues</h2>
+<p>One of the main concerns that were raised in the meeting was, platform
+support for multiple UI threads and the possibility of having multiple
+UI threads.
+
+<h3>Unix</h3>
+<p>Unix, currently supports only one UI thread because the underlying
+libraries Xlib, gtk, Xt, motif are not thread safe. Any situation
+that necessitates multiple threads to access the X libraries (like Java)
+has to go through a locking mechanism that will make sure, only one thread
+accesses X at any given time. This is the solution, communicator
+versions 2+ have used. The granularity of the lock is a key
+factor in deciding which threads to use. NSPR user threads or Native threads.
+? Unix Communicator 4.5 uses NSPR user threads and the XLock mechanism
+is tightly integrated in NSPR.
+
+<h4>Threads in unix for 5.0</h4>
+<p>For 5.0 the current consideration is to continue to use NSPR user threads
+for 1 UI thread one or more netlib threads to take care of the above situation
+with Java or any other plugin that may access the X libraries.
+
+<h4>Threads in unix beyond 5.0</h4>
+<p>The Unix team is however very keen in moving the Xlock mechanism
+out of NSPR to a higher level. This will enable unix
+to use Native threads (which is pthreads in most platforms) which has other
+developmental advantages like easy to debug, ability to interact
+with other software components etc.... This will also enable
+unix to have multiple NSPR UI threads with their own nsGUIEvent
+message pumps and all access to the underlying X/rendering layer
+controlled through the Xlock. The unix team may consider moving
+the xlock out of NSPR for 5.0 depending on how OJI&nbsp;will live in SeaMonkey.
+To learn more about the Xlock issues and java, you can look <a href="http://www.mozilla.org/unix/using-x-with-mozilla-threads.html">here.</a>
+
+<h3>Windows</h3>
+<p>Windows is inherently capable of having multiple UI threads and a native
+event loop per thread. Though this is a great advantage, its usage
+with other modules of SeaMonkey which are not currently thread safe is
+in question. In order to have the model where each toplevel
+window runs in its own thread, we need to have most of the webshell
+interfaces, DOM, XPFE widgets, to be thread safe and we are not there yet.
+
+<h4>Threads in windows for 5.0</h4>
+<p>So, considering all the new work that needs to be done to get to this mode,
+for 5.0, windows will also support only one UI thread for the complete
+application and multiple netlib threads. Windows will use the NSPR threads
+API to create native threads for its needs.
+
+<h3>Mac</h3>
+<p>The current implementation, and future plan for threading on Mac OS lies with
+NSPR threads. The Mac implementation of NSPR threads is a user level and non
+preemptive. It does not rely upon the Mac OS Thread Manager. Should it ever
+become advantageous and plausible to utilize pthreads on top of Mach in
+System X, or the Thread Manager as the implementation of Mac OS NSPR threads,
+the issue can be revisited.
+<p>Since NSPR threads on Mac OS are not preemptive, it allows us to control
+reentrancy and locking issues more easily. In short, the fact that many Mac OS
+Toolbox calls are not thread safe can be dealt with by choosing carefully
+what to lock, and where to yield control of a thread for a possible context
+switch.
+
+<h4>Performance of Threads on Mac OS</h4>
+<p>How well threads perform on Mac OS vs. other, preemptive platforms depends
+largely upon how effectively yield calls are placed in code. On a preemptive
+system, a yield call may either be a no-op or a true yield (I'm not sure
+off the top of my head what it is in NSPR for Win and Unix).
+<p>The NSPR thread scheduling policy for Mac OS threads can also be adjusted
+to give preference to threads which have events pending in their event
+queues for lower event response latency.
+<P>NSPR file I/O on the Mac can be better integrated with NSPR threads
+to provide better performance. For example, a thread that was blocked on
+file I/O but is now ready to run can be giving a higher priority in the
+scheduling policy. This is commonly done on some unix systems to improve
+I/O performance. Also, NSPR file I/O can do speculative look ahead buffering
+to improve the performance of sequential file reads of the same byte size.
+This sort of operation is very common throughout the code base. Speculative
+read ahead buffering allows the sequential file reads of the same or smaller
+size to return immediately without doing a context switch. I have many
+of these changes that I made during the Gromit project but never checked
+in. I'm planning on giving Wan-Teh and the NSPR team these changes Real
+Soon Now for possible integration.
+
+<h4>Threads on Mac OS in Netscape 5.0</h4>
+<p>Mac OS will have just as many NSPR threads as other OSes, one UI thread,
+and one or more NetLib threads. Very little will be different on Mac OS
+than any other platform in this model other than their non-preemptive nature.
+
+<h4>Threads on Mac OS beyond 5.0</h4>
+<p>In the future if we have more UI threads, code can be added to have event
+dispatching from the Mac application's main event loop to the proper thread
+event queue. This sort of marshaling would allow the Mac OS platform differences
+to be further abstracted out, and more code to be written in an XP fashion.
+Again, performance concerns could be addressed within the Mac OS NSPR thread
+scheduler.
+
+<h2>Modal Dialogs:</h2>
+<p>The current proposal to implement modal dialogs is this setup is
+to have a mutex that will allow layout module to finish up any
+layout or reflow operation that may be in progress and then bring up the
+Modal dialog. As long as the modal dialog is up, layout will
+interact only with it.
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December  7,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/xpapps/threads.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

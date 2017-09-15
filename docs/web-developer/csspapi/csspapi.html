@@ -1,0 +1,1277 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.76 [en]C-AOLNSCP  (Win98; U) [Netscape]">
+   <title>Cross-Browser API for Setting CSSP Properties from JavaScript</title>
+<!-- This external script defines cross-browser functions for
+     generating JavaScript code to acces CSS1 properties. -->
+<script LANGUAGE="JavaScript1.2" SRC=xbdhtml.js>
+</script>
+<script LANGUAGE="JavaScript">
+
+function check_navigator() { //Last revision 10 July 1997 by Eric Krock
+if (navigator.appVersion >= "4") { ; }
+else { alert("Sorry, you need Navigator 4.0 or greater to\n"+
+"guarantee the interactive examples will work for you.\n\n"+
+"But please enjoy reading this TechNote!"); }
+} // end function check_navigator
+</script>
+</head>
+<body text="#000000" bgcolor="#FFFFFF" onLoad="check_navigator();">
+<noscript>
+<center><b><font face="Arial, Helvetica"><font size=+2>No JavaScript Capability!</font></font></b></center>
+<font face="Arial, Helvetica"><font size=-1><blink>ATTENTION:
+</blink>This
+TechNote has interactive demonstrations&nbsp;&nbsp;&nbsp;&nbsp; requiring
+the use of a <a href="http://home.netscape.com/comprod/mirror/client_download.html/" TARGET="_top">JavaScript
+1.2 capable browser</a>, such as Netscape Communicator. Please turn JavaScript
+on and reload this page.</font></font></noscript>
+<center><b><font face="Arial, Helvetica"><font size=+2>Cross-Browser DHTML
+Technote:</font></font></b>
+<br><font face="Arial, Helvetica"><font size=+1>API For Setting CSSP Properties
+From JavaScript
+<hr WIDTH=150 SIZE=1 NOSHADE></font><b><font size=-1>Eric Krock, Netscape</font></b></font>
+<br><b><font face="Arial, Helvetica"><font size=-1><a href="mailto:vladimire@netscape.com">Vladimir
+Ermakov</a>, Netscape</font></font></b>
+<br><b><font face="Arial, Helvetica"><font size=-1>&nbsp;and</font></font></b>
+<br><b><font face="Arial, Helvetica"><font size=-1>Marcell Ortutay,</font></font></b>
+<br><b><font face="Arial, Helvetica"><font size=-1><a href="http://www.pluggedin.org/pie">Plugged
+In Enterprises</a></font></font></b>
+
+<p style="color: red; font-size: large">
+  This document is outdated and the information in it
+  should not be relied upon. It may no longer represent web authoring
+  best practice. Please see the 
+  <a href="../index.html">web-developer documentation index page</a> 
+  for more up-to-date documentation.
+</p>
+
+
+</center>
+
+<p>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>INTRODUCTION</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>Positioning HTML Elements
+with Cascading Style Sheets (<a href="#cssp">CSSP</a>) is a W3C Working
+Draft (Since incorporated into Cascading style sheets, level 2) supported
+by Navigator 4.x ,Internet Explorer 4+ and the new Netscape Gecko browser
+engine implemented in Mozilla and Netscape 6 browsers. It enables you to
+position, hide, show, and stack HTML elements on the page using CSSP markup.
+Because CSSP markup is static and hard-coded, if you want to dynamically
+or conditionally position, hide, show, or stack HTML elements, you must
+access the CSSP properties of HTML elements from JavaScript through the
+browser's Document Object Model (DOM).</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>Because these browsers each
+offer a different Document Object Model, writing JavaScript code which
+sets CSSP properties and works on all of them the same way requires careful
+design and testing. Your JavaScript code must detect the user's browser
+and evaluate the appropriate code for that browser's Document Object Model.
+Navigator 4 had its own proprietary Layer DOM which has been deprecated
+and is not supported in Gecko. Netscape 6 and Mozilla are the first browsers
+to fully support the industry standard W3C DOM level 1, and it also has
+robust support in the W3C DOM level 2, including the CSS Interface which
+we use for CSS Positioning from JavaScript. IE4 and IE5 have partial support
+for the W3C DOM.&nbsp; When writing code for the W3C DOM in Netscape 6
+and Mozilla, not everything will work as-is in Internet Explorer 5 which
+also has some support of W3C DOM, so it will sometimes be necessary to
+use proprietary MSIE DOM features to set an application working on IE.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>To make cross-browser DHTML
+development easier, this TechNote offers a freely downloadable, reusable,
+and modifiable cross-browser application programming interface (API) for
+setting CSSP properties from JavaScript on these three browsers. This API
+is based on earlier work done by Danny Goodman (see the <a href="http://developer.netscape.com/viewsource/index.html" TARGET="_top">View
+Source</a> article <a href="http://developer.netscape.com/viewsource/goodman_cssp/goodman_cssp.html">CSS-Positioning:
+The Dynamic HTML Neutral Zone</a>) and Mike Hall.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>This API is being offered
+in the spirit of the open source initiative. It is freely downloadable,
+reusable, and modifiable. In order to make it easier over time to do cross-browser
+DHTML development by enhancing and expanding this API, Netscape requests
+(but does not require) that API enhancements and modifications be submitted
+to Netscape for possible inclusion in future revisions of this TechNote
+and API. If an enhancement is included in a future version of the API,
+the author will receive full credit and a link in the source code. For
+more details, see the section of this TechNote on
+<a href="#submit">submitting
+API enhancements</a>.</font></font>
+<p>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>CONTENTS</font></font></b>
+<p><font face="Arial, Helvetica"><font color="#FF0000"><font size=-1>This
+TechNote is divided into the following sections:</font></font></font>
+<ul>
+<li>
+<font face="Arial, Helvetica"><font color="#FF0000"><font size=-1><a href="#know">What
+You Need To Know</a></font></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font color="#FF0000"><font size=-1><a href="#whycsspfromjs">Why
+Set CSSP Properties From JavaScript?</a></font></font></font></li>
+
+<li>
+<u><a href="#layernote">Note: LAYER, ILAYER, DIV SRC= , and Layer DOM not
+supported in the Netscape Gecko layout engine.</a></u></li>
+
+<li>
+<font face="Arial, Helvetica"><font color="#FF0000"><font size=-1><a href="#position">Declaring
+an Element to be Positioned</a></font></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#markup">Three Approaches
+for Cross-Browser DHTML Markup</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#content">Dynamically
+Generating Other Browser-Dependent Content</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#set">How to Set CSSP
+Properties From JavaScript on All Browsers</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#backcolor">A Hint
+About Background Colors and Images</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#cssp">What is CSSP?</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#download">Viewing
+and Downloading the API and this TechNote</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#bugs">Testing the
+API</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#bugs">Known Problems/Bugs</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#submit">Submit Your
+Enhancements!</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#additional">Additional
+Resources</a></font></font></li>
+</ul>
+<a NAME="know"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>WHAT
+YOU NEED TO KNOW</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>Before reading this TechNote,
+you need to understand the syntax of CSSP rules. In particular, you should
+know how to select elements by their ID attribute value (for example, "#fooelt"
+to select the element with ID=fooelt), how to declare that an element is
+positioned (with rules such as <tt>#fooelt { position: absolute }</tt>
+and <tt>#barelt { position: relative }</tt>), what the CSSP property names
+are (such as "left," "right," and "z-index"), and what the CSSP property
+values are (such as "200px" and integer z-index values).</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>If you need a basic introduction
+to CSSP, click through Netscape's Visual Tutorial on CSSP on the <a href="http://developer.netscape.com/docs/presentations/dynhtml.html">Dynamic
+HTML Presentations Page</a>. Tutorials available elsewhere on the web are
+listed on Netscape's <a href="http://developer.netscape.com/tech/dynhtml/resources.html">Dynamic
+HTML Additional Resources Page</a>. For full details, see the CSS2 Specification
+on the <a href="http://www.w3.org/pub/WWW/TR/" TARGET="_top">W3C Technical
+Reports Page</a>.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>If you don't know how to
+detect what browser is being used to view the script, read the <a href="../sniffer/browser_type.html">Ultimate
+JavaScript Client Sniffer</a> to learn how.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>To learn how to access CSSP
+properties from JavaScript in Navigator 4.x, click through Netscape's Visual
+Tutorial on Accessing CSS Properties from JavaScript via the Document Object
+Model on the <a href="http://developer.netscape.com/docs/manuals/dynhtml.html">Dynamic
+HTML Presentations Page</a>.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>For a general overview of
+the differences between the Navigator 4.x and Internet Explorer DOMs related
+to CSSP positioning from JavaScript and the approach this API uses to bridge
+them, read Danny Goodman's article <a href="http://developer.netscape.com/viewsource/goodman_cssp/goodman_cssp.html">CSS-Positioning:
+The Dynamic HTML Neutral Zone</a> in <a href="http://developer.netscape.com/viewsource/index.html" TARGET="_top">View
+Source</a>. This TechNote will not duplicate the contents of that article,
+so if you aren't familiar with the differences between the Navigator 4.x
+and Internet Explorer DOMs, please read that article now.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>Finally, to learn more about
+the W3C DOM in Netscape Gecko and the MSIE DOM in IE5 I recommend <a href="http://wsabstract.com/javatutors/dom.shtml">Introduction
+to the DOM of IE 5/NS6</a> .</font></font>
+<br><a NAME="whycsspfromjs"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>WHY SET
+CSSP PROPERTIES FROM JAVASCRIPT?</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>Netscape enthusiastically
+supports <a href="#cssp">CSSP</a> and recommends that you use CSSP markup
+whenever possible to position HTML elements on the page. It provides an
+industry-standard, cross-browser way to achieve fine control over the positioning
+of HTML elements. It is a far cleaner approach than the nested tables and
+invisible one-pixel-wide GIFs to which designers resorted for element positioning
+in previous versions of the browsers.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>However, CSSP markup has
+one fundamental limitation. It is completely static and hard-coded. You
+cannot <i>conditionally</i> hide or show elements or <i>dynamically</i>
+position them using CSSP markup alone. For example, you can't create animations
+or hide or show text in response to mouse clicks. To do that, you must
+set CSSP properties from JavaScript.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>Remember this rule of thumb:
+<b>"What
+you can do with CSSP, do with CSSP. What you can't do with CSSP, do with
+JavaScript."</b> In other words, if the value is static and never need
+change, set it with CSSP markup. If the value is conditional or must be
+set dynamically, set it with JavaScript.</font></font>
+<p><a NAME="position"></a>
+<br>
+<hr SIZE=0 WIDTH="100%">
+<br><b><font face="Arial,Helvetica"><font size=-1>NOTE: LAYER, ILAYER,
+DIV SRC= , AND LAYER DOM NOT SUPPORTED IN THE GECKO LAYOUT ENGINE</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>The following proprietary
+extensions supported by Navigator 4 are obsolete and will not be supported
+in the Gecko layout engine implemented in</font></font>
+<br><font face="Arial,Helvetica"><font size=-1>Mozilla and Netscape 6:</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>&nbsp; HTML extensions:</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size=-1>LAYER tag</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>ILAYER tag</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>DIV SRC= attribute</font></font></li>
+</ul>
+<font face="Arial,Helvetica"><font size=-1>&nbsp; Navigator 4.x Layer DOM
+extensions:</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size=-1>document.layers[]</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>document.tags, document.ids,
+document.classes, and document.contextual()</font></font></li>
+</ul>
+<font face="Arial,Helvetica"><font size=-1>These features should only be
+used within code that is evaluated on Navigator 4.x only to provide backward
+compatibility. New</font></font>
+<br><font face="Arial,Helvetica"><font size=-1>code should be developed
+using HTML 4.0, CSS, and the W3C DOM supported in the Gecko layout engine.</font></font>
+<br><font face="Arial,Helvetica"><font size=-1>For more details about how
+to transition code using proprietary features to support W3C standards,
+read&nbsp; <a href="http://sites.netscape.net/ekrockhome/standards.html">Transitioning
+from</a></font></font>
+<br><font face="Arial,Helvetica"><font size=-1><a href="http://sites.netscape.net/ekrockhome/standards.html">Proprietary
+DOMs and Markup to W3C Standards</a>.</font></font>
+<br><a NAME="layernote"></a>
+<br>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>DECLARING
+AN ELEMENT TO BE POSITIONED</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>To set an element's CSSP
+properties from JavaScript and have the code work compatibly across all
+browsers, you must do two things:</font></font>
+<ol>
+<li>
+<font face="Arial, Helvetica"><font size=-1>Give the element a unique name.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>Declare the element to be positioned
+so that it is exposed by the Navigator 4.x DOM.</font></font></li>
+</ol>
+<b><font face="Arial, Helvetica"><font size=-1>Rules for Naming Elements</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>You name an element by setting
+its ID attribute. (If the element is a LAYER tag being used for backward
+compatibility with Navigator 4.x, you also have the option of using the
+NAME attribute, but this LAYER tag attribute has been deprecated in favor
+of ID, so in general, use the ID attribute to assign names to all elements
+including the LAYER tag.) The name should comply with these guidelines:</font></font>
+<ul>
+<li>
+<font face="Arial, Helvetica"><font size=-1>The name should be all-lowercase
+alphanumeric characters.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>The first character should
+be a letter, and the remaining characters should be letters or numbers.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>Do not use special characters
+in the name like the hyphen or underscore as that may cause the element
+to be ignored by the browser.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>ID must be unique (used only
+once) within the HTML document; if two elements have the same ID, the file
+is not a valid HTML document.</font></font></li>
+</ul>
+<b><font face="Arial, Helvetica"><font size=-1>Declaring Elements To Be
+Positioned</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>You declare an element to
+be positioned by using CSSP markup to specify the element's <i>position</i>
+property. (If the element is a LAYER tag, this step is not necessary; LAYER
+tags are used only to position content, so LAYER and ILAYER elements are
+considered positioned by default in Navigator 4.) Setting the element's
+position property to
+<i>absolute</i> (the default) or <i>relative</i> causes
+the element to be exposed in the Navigator 4.x DOM for positioning. (LAYER
+and ILAYER elements are automatically exposed in the Navigator 4.x Layer
+DOM; you do not have to declare them to be positioned elements.)</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>In this code sample, we
+declare the element "foo" to be absolutely positioned and the element "bar"
+to be relatively positioned:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;STYLE TYPE="text/css">
+#foo { position: absolute; }
+#bar { position: relative; }
+&lt;/STYLE>
+&lt;DIV ID="foo">&lt;P>some text&lt;/P>&lt;/DIV>
+&lt;DIV ID="bar">&lt;P>more text&lt;/P>&lt;/DIV>
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial, Helvetica"><font size=-1>Elements that have been
+named and declared to be positioned in this way are accessible in DOM for
+positioning, hiding, showing, and z-order stacking.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>To learn more about positioning
+I recommend reading <a href="http://www.westciv.com/style_master/academy/positioning_tutorial/index.html">Positioning
+with CSS2</a> article. It is very good at explaining differences between
+different positioning types, covering most important DHTML properties,
+and other common questions.</font></font>
+<br><a NAME="markup"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>THREE
+APPROACHES TO CROSS-BROWSER DHTML MARKUP</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>When naming elements and
+declaring them to be positioned, there are three techniques you can use
+in your HTML markup: u<font color="#000000">sing a single named DIV or
+SPAN on all three browsers, dynamically generating a named DIV or SPAN
+on Internet Explorer 4.0,Mozilla and Netscape 6 and a LAYER tag on Navigator
+4.x, and wrapping a named DIV or SPAN in a LAYER tag </font>of the same
+name. The first approach should be your default, but sometimes the second
+or third approach simplifies the development of complex applications, so
+developers should be aware of all three techniques and use whichever is
+appropriate for a particular application.</font></font>
+<p><b><font face="Arial, Helvetica"><font size=-1>Why DIV or SPAN instead
+of Other Elements?</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>DIV or SPAN are not the
+only elements which can be named and positioned. Other elements such as
+&lt;P> can also be used in the same way. However, if the purpose of an
+element is to enclose content which is to be positioned, using DIV or SPAN
+helps to make that purpose explicit to anyone who is reading the markup,
+so use these two elements as your default choice for enclosing positioned
+content.</font></font>
+<p><font size=-1><font face="Arial, Helvetica">It is good HTML style to
+use DIV to enclose a section of one or more block elements (for example,
+<tt>&lt;DIV
+ID="foo">&lt;H1>A Header&lt;/H1>&lt;P>Some text.&lt;/P>&lt;/DIV></tt>)</font><font face="Arial,
+Helvetica">
+and to use SPAN to enclose content without block elements, such as text,
+inline elements, and/or images (for example,
+</font><font face="Arial, Helvetica"><tt>&lt;SPAN
+ID="foo">Some &lt;B>bold text&lt;/B> and an image &lt;IMG SRC="baz.gif">&lt;/SPAN></tt>).
+This complies with the two elements' intended uses in the HTML specification.
+However, the two elements are functionally equivalent and interchangeable
+in most situations. One exception: DIVs used within a TABLE may be displayed
+with a trailing line break; SPANs in a TABLE do not trigger a trailing
+line break.</font></font>
+<p><b><font face="Arial, Helvetica"><font size=-1>Using a Single Named
+DIV or SPAN on all Three Browsers</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>Since Only Navigator 4.x
+supports the LAYER tag, the simplest way to create an element which is
+positioned in all browsers is to use a positioned, named DIV or SPAN, a
+technique which is supported by all browsers. In the HTML page's HEAD,
+you place a CSS style sheet that declares the element to be positioned:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 WIDTH="23%" BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;STYLE TYPE="text/css">
+#foo { position: absolute }
+&lt;/STYLE>
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial, Helvetica"><font size=-1>...and in the BODY, you
+place the named element itself:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;DIV ID="foo">
+&lt;H1>A header&lt;/H1>
+&lt;P>Some text&lt;/P>
+&lt;/DIV>
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><b><font face="Arial, Helvetica"><font size=-1>Dynamically Generating
+a Named DIV or SPAN on Internet Explorer and Netscape 6, and a LAYER Tag
+on Navigator 4.0</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>For some applications, dynamically
+generating markup which is optimized for each browser will simplify development.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>The cross-browser DHTML
+API included in this TechNote includes a function called genElt which generates
+a positioned, named DIV on Internet Explorer, Mozilla and Netscape 6, and
+a named LAYER or ILAYER on Navigator 4.x. Function genElt returns this
+markup as a string; the string can be written out by a document.write()
+statement, perhaps after being concatenated with other strings or enclosed
+in additional markup. A related function called writeElt generates the
+markup and writes it out in a single step. The only difference between
+genElt and writeElt is that genElt returns the markup as a string, whereas
+writeElt writes it out to the document window.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>Functions genElt and writeElt
+have the same argument list, reproduced here for your reference:</font></font>
+<br>&nbsp;
+<table BORDER >
+<tr>
+<td><tt>name</tt></td>
+
+<td><tt>STRING.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Name of element's ID</font></font></td>
+</tr>
+
+<tr>
+<td><tt>content</tt></td>
+
+<td><tt>STRING.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Content written within element</font></font></td>
+</tr>
+
+<tr>
+<td><tt>left</tt></td>
+
+<td><tt>INTEGER.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Left edge of element in
+pixels</font></font></td>
+</tr>
+
+<tr>
+<td><tt>top</tt></td>
+
+<td><tt>INTEGER.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Top edge of element in pixels</font></font></td>
+</tr>
+
+<tr>
+<td><tt>z</tt></td>
+
+<td><tt>INTEGER.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>z-index of element</font></font></td>
+</tr>
+
+<tr>
+<td><tt>width</tt></td>
+
+<td><tt>INTEGER.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>width in pixels</font></font></td>
+</tr>
+
+<tr>
+<td><tt>height</tt></td>
+
+<td><tt>INTEGER.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>height in pixels</font></font></td>
+</tr>
+
+<tr>
+<td><tt>visibility</tt></td>
+
+<td><tt>STRING.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>"visible," "hidden," or
+"inherit"</font></font></td>
+</tr>
+
+<tr>
+<td><tt>backgroundColor</tt></td>
+
+<td><tt>STRING.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Background color of element</font></font></td>
+</tr>
+
+<tr>
+<td><tt>backgroundImage</tt></td>
+
+<td><tt>STRING.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Background image of element</font></font></td>
+</tr>
+
+<tr>
+<td><tt>clip</tt></td>
+
+<td><tt>STRING.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Comma-delimited list (no
+spaces!) of 4 integers in top-right-bottom-left order. Sets clip.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>relative</tt></td>
+
+<td><tt>BOOLEAN.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>If true, position relatively,
+else absolutely. On Navigator 4.x, this determines whether LAYER (absolute)
+or ILAYER (relative) is generated.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>hideEltOnOlderBrowsers</tt></td>
+
+<td><tt>BOOLEAN.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>If true, return '' on Navigator
+3.0, Internet Explorer 3.0, and older.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>useDivInsteadOfLayer</tt></td>
+
+<td><tt>BOOLEAN.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>If true, generate DIV on
+Navigator 4.x, not I/LAYER.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>classname</tt></td>
+
+<td><tt>STRING.</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>CLASS attribute value for
+element</font></font></td>
+</tr>
+</table>
+
+<p><font face="Arial, Helvetica"><font size=-1>Here are some key features
+of genElt and writeElt to be aware of:</font></font>
+<ul>
+<li>
+<font face="Arial, Helvetica"><font size=-1>Only the first argument, <i>name</i>,
+is required.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>All of the other arguments
+default to false and can be omitted.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>The argument <i>relative</i>
+defaults to false; when false, a DIV with position:absolute is generated
+on Internet Explorer, Mozilla and Netscape 6, and a LAYER tag is generated
+on Navigator 4.x; when true, a DIV with position:relative is generated
+on Internet Explorer, Mozilla&nbsp; and Netscape 6, and an ILAYER is generated
+on Navigator 4.x.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>If you wish to generate a DIV
+on Navigator 4.x instead of a LAYER or ILAYER, set argument
+<i>useDivInsteadOfLayer</i>
+to true.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>If you want no markup to be
+generated on browsers older than Navigator 4.0 and Internet Explorer 4.0,
+set argument
+<i>hideEltOnOlderBrowsers</i> to true.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>Argument <i>visibility</i>
+must be set to false or one of the strings "visible," "hidden," or "inherit."</font></font></li>
+</ul>
+<font face="Arial, Helvetica"><font size=-1>Here are some examples of function
+calls and the markup that they return on Navigator 4.0 ,Internet Explorer
+4.0 and Netscape 6:</font></font>
+<br>&nbsp;
+<table BORDER >
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>function call:</font></font></td>
+
+<td><tt>genElt ("foo", "text")</tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Navigator 4.0:</font></font></td>
+
+<td><tt>&lt;LAYER ID="foo">text&lt;/LAYER></tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Internet Explorer
+4.0:</font></font></td>
+
+<td><tt>&lt;DIV ID="foo" STYLE="position:absolute; overflow:none;">text&lt;/DIV></tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Netscape 6</font></font></td>
+
+<td><tt>&lt;DIV ID="foo" STYLE="position:absolute; overflow:none;">text&lt;/DIV></tt></td>
+</tr>
+</table>
+
+<table BORDER >
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>function call:</font></font></td>
+
+<td><tt>genElt ("foo", "&lt;H1>header&lt;/H1>&lt;P>paragraph&lt;/P>")</tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Navigator 4.0:</font></font></td>
+
+<td><tt>&lt;LAYER ID="foo">&lt;H1>header&lt;/H1>&lt;P>paragraph&lt;/P>&lt;/LAYER></tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Internet Explorer
+4.0:</font></font></td>
+
+<td><tt>&lt;DIV ID="foo" STYLE="position:absolute; overflow:none;">&lt;H1>header&lt;/H1>&lt;P>paragraph&lt;/P>&lt;/DIV></tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Netscape 6</font></font></td>
+
+<td><tt>&lt;DIV ID="foo" STYLE="position:absolute; overflow:none;">&lt;H1>header&lt;/H1>&lt;P>paragraph&lt;/P>&lt;/DIV></tt></td>
+</tr>
+</table>
+
+<table BORDER >
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>function call:</font></font></td>
+
+<td><tt>genElt ("foo", "text", 50, 25, 1, 200, 100, false, "red", false,
+"25,250,125,50", false, false, false)</tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Navigator 4.0:</font></font></td>
+
+<td><tt>&lt;LAYER ID="foo" LEFT="50" TOP="25" WIDTH="200" HEIGHT="100"
+Z-INDEX="1" BGCOLOR="red" CLIP="50,25,250,125">text&lt;/LAYER></tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Internet Explorer
+4.0:</font></font></td>
+
+<td><tt>&lt;DIV ID="foo" STYLE="position:absolute; overflow:none; left:50px;
+top:25px; height:100px; width:200px; z-index:1; background-color:red; clip:rect("25,250,125,50");">text&lt;/DIV></tt></td>
+</tr>
+
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>markup on Netscape 6</font></font></td>
+
+<td><tt>&lt;DIV ID="foo" STYLE="position:absolute; overflow:none; left:50px;
+top:25px; height:100px; width:200px; z-index:1; background-color:red; clip:rect("25,250,125,50");">text&lt;/DIV></tt></td>
+</tr>
+</table>
+
+<p><font face="Arial, Helvetica"><font size=-1>For more examples of using
+this function and elements which it can generate, see this function's autotest
+document <a href="testmark.html">testmark.html</a> in the autotest suite.</font></font>
+<p><b><font face="Arial, Helvetica"><font size=-1>Known Problem: Browser
+May Ignore Some Properties of Dynamically Generated Markup</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>If you are dynamically generating
+the markup for positioned elements via document.write() statements as these
+functions do, be aware of the following known problem and workaround. When
+you dynamically generate the markup for a positioned element, there are
+reports that browsers may fail to initialize some properties of the element's
+JavaScript object. In other words, even though you have written out the
+markup to set a particular property like clip, that markup may be ignored
+by the browser.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>If you encounter this problem,
+the workaround is to explicitly set the property to the desired value using
+JavaScript after the document has loaded. (You should wait to set an element's
+properties until the document has loaded, because until the document has
+finished loading, you cannot be certain that the element's markup has been
+parsed and its JavaScript object has been created.) To evaluate code after
+the document has loaded, call the code from within the document's onload
+method, which is invoked when the document finishes loading.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>The autotest suite for xbdhtml.js
+includes an example of this problem and the use of the workaround. The
+test document <a href="testmark.html">testmark.html</a> uses function writeElt
+to dynamically generate the markup for several elements. One is a red rectangle
+with text. This element has the clip value set to hide most of its contents.
+In testing, I discovered that Internet Explorer 4.0 ignored the dynamically
+generated markup that specified the element's clip properties, so the entire
+element was displayed instead of the desired portion. To work around the
+problem, I added this code to get the element and set its clip property
+from JavaScript:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>var frontElt = getElt ("frontelt");
+setEltClip (frontElt, 25, 250, 125, 100);
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial, Helvetica"><font size=-1>The code is evaluated within
+the document's onload event handler to make sure it is called after the
+document loads.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>Mike Hall has also reported
+experiencing this problem with the WIDTH and HEIGHT properties of dynamically
+generated LAYER elements on Navigator 4.x. The bottom line: Be aware that
+when you dynamically generate markup, the browser may ignore some property
+settings, but you can work around this problem by setting those properties
+from JavaScript after the document loads.</font></font>
+<p><b><font face="Arial, Helvetica"><font size=-1>Wrapping a Named DIV
+or SPAN in a LAYER Tag of the Same Name</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>A third approach to creating
+a positioned element on all browsers is to wrap a positioned DIV in a LAYER
+tag of the same name. For example:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;LAYER NAME="foo">
+&lt;DIV ID="foo">Some text&lt;/DIV>
+&lt;/LAYER>
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial, Helvetica"><font size=-1>Internet Explorer, Netscape
+6 and Mozilla ignore the LAYER tag and processes only the DIV tag. Since
+the LAYER and the DIV have the same name, Navigator 4.x maps them to a
+single logical element. This is one more technique that is available if
+you wish to use a LAYER tag on Navigator 4.x and a positioned DIV on Internet
+Explorer, Netscape 6 or Mozilla.</font></font>
+<p><a NAME="content"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font color="#000000"><font size=-1>DYNAMICALLY
+GENERATING OTHER BROWSER-DEPENDENT CONTENT</font></font></font></b>
+<p><font face="Arial, Helvetica"><font color="#000000"><font size=-1>Whatever
+approach you choose to define the DHTML document's markup and structure
+(DIVs only, dynamically generated DIVs or LAYERs, or DIVs wrapped in LAYERs),
+you may still find it necessary to display different content on different
+browsers. This is particularly true if you wish to provide backward compatibility
+with older browsers.</font></font></font>
+<p><font face="Arial, Helvetica"><font color="#000000"><font size=-1>For
+example, Navigator 4.x provides a powerful extension to the mailto: link
+which specifies the content of the mail message by using the syntax BODY=.
+If you're using Navigator 4.x now, <a href="mailto:?SUBJECT=sample subject&BODY=Mail body text specified inNavigator 4.0 mailto link.">click
+here to see it work</a>. However, this BODY= argument is ignored on older
+versions of Navigator and can't be used reliably on Internet Explorer 4.0
+because Internet Explorer 4.0 lacks an integrated email client with this
+functionality across platforms. So if you take advantage of this feature,
+you might wish to write out one mailto: link on Navigator 4.x that specifies
+the BODY. On Internet Explorer 4.0 and older browsers, you might write
+out another mailto: link that doesn't specify the body and also provide
+some extra text explaining what to put in the email body.</font></font></font>
+<p><font face="Arial, Helvetica"><font color="#000000"><font size=-1>This
+TechNote's JavaScript code library, xbdhtml.js, provides four functions
+that test the browser vendor and/or version and then dynamically write
+out strings of text and/or HTML markup. These functions are particularly
+handy when used together with the
+<tt>is</tt> object defined by the <a href="../sniffer/browser_type.html">Ultimate
+JavaScript Client Sniffer</a>. Here is a table summarizing the functions:</font></font></font>
+<br>&nbsp;
+<table BORDER >
+<tr>
+<th>Function</th>
+
+<th>Comments</th>
+</tr>
+
+<tr>
+<td><tt>dw(str, minVersion, maxVersion)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Function name is short for
+"document write." Only document.write() str if browser's major version
+number is >= minVersion and &lt;= maxVersion. For example, this code fragment
+will output "up to date" on Navigator 4.x and Internet Explorer 4 and "out
+of date" on older browsers:</font></font>
+<pre><tt>dw("&lt;P>up to date&lt;/P>", 4);
+dw("&lt;P>out of date&lt;/P>", 2, 3);</tt>
+
+</pre>
+</td>
+</tr>
+
+<tr>
+<td><tt>dwb(str, aBoolean)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Function name is short for
+"document write boolean." Only document.write() str if boolean aBoolean
+is true. For example, this code fragment will output the browser vendor's
+name:</font></font>
+<pre>dwb("&lt;P>Gecko&lt;/P>",is.gecko);
+<tt>dwb("&lt;P>Netscape&lt;/P>", is.nav);
+dwb("&lt;P>Microsoft&lt;/P>", is.ie);
+dwb("&lt;P>Opera Software&lt;/P>", is.opera);</tt></pre>
+</td>
+</tr>
+
+<tr>
+<td><tt>sv(str, minVersion, maxVersion)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Function name is short for
+"string version." Only return str if browser's major version number is
+>= minVersion and &lt;= maxVersion. Otherwise, return empty string. Useful
+when concatenating long strings of conditional text and markup for various
+browser versions.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>sb(str, aBoolean)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Function name is short for
+"string boolean." Only return str if boolean aBoolean is true. Otherwise,
+return empty string. Useful when concatenating long strings of conditional
+text and markup for various browser versions.</font></font></td>
+</tr>
+</table>
+
+<p><a NAME="set"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>HOW TO
+SET CSSP PROPERTIES FROM JAVASCRIPT ON ALL BROWSERS</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>All three browsers make
+CSSP properties of positioned, named elements accessible from JavaScript
+through their Document Object Model (DOM). However, the Navigator 4.x,
+Internet Explorer and W3C standard DOMs are different, so JavaScript code
+that sets CSSP properties on one browser usually won't work on the other
+browser.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>To set an element's CSSP
+properties from JavaScript and have the code work compatibly across all
+browsers, you must do three things:</font></font>
+<ol>
+<li>
+<font face="Arial, Helvetica"><font color="#000000"><font size=-1>Determine
+which browser the user has, using JavaScript browser-detect code like that
+in <a href="../sniffer/browser_type.html">The Ultimate JavaScript Client
+Sniffer</a>. Then, using code appropriate for the Document Object Model
+of the user's browser, you must:</font></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font color="#000000"><font size=-1>Get the
+JavaScript object representing the HTML element you wish to position.</font></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><font color="#000000">Set the
+element's prop</font>erties to the desired values.7</font></font></li>
+</ol>
+<font face="Arial, Helvetica"><font size=-1>This TechNote provides a library
+of JavaScript functions called xbdhtml.js. (If you want to look at the
+source code right away, skip to the section on <a href="#download">Viewing
+and Downloading the API and this TechNote</a>.) The purpose of this library
+is to make cross-browser DHTML development easier by providing a single
+set of functions which get elements and get and set their basic properties
+on Navigator 4.x, user agents implementing Gecko and Internet Explorer.&nbsp;
+Here is a table summarizing the functions of xbdhtml.js. The first function,
+getElt, is most important because it is used to get the element's JavaScript
+object on Navigator 4.x, Mozilla, Netscape 6 and Internet Explorer. All
+of the other functions take the element as an argument and set its properties.
+For more details about the functions, see the comments in the source code.</font></font>
+<br>&nbsp;
+<table BORDER >
+<tr>
+<th>Function</th>
+
+<th>Comments</th>
+</tr>
+
+<tr>
+<td><tt>getElt(name)</tt>
+<br><font face="Arial,Helvetica"><font size=-1>or</font></font>
+<br><tt>getElt(top-level-element-name ... grandparent-name, parent-name,
+name)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Gets the JavaScript object
+representing a named, positioned element. For a top-level (i.e. non-nested)
+element, the argument is the element's name (its ID attribute value). For
+a nested element, the argument list is a list of the enclosing parent element
+IDs, starting at the top level and going in order down to the ID of the
+element itself. For example, this code fragment will get the JavaScript
+objects for:&nbsp;</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size=-1>a top-level positioned element
+with ID "foo" and</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>a second-level positioned element
+(with ID "child") which is nested inside a top-level element with ID "parent".</font></font></li>
+</ul>
+
+<pre><tt>var fooElt = getElt("foo");
+var nestedElt = getElt("parent", "child");</tt>
+
+</pre>
+</td>
+</tr>
+
+<tr>
+<td><tt>setEltVisibility(elt, value)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Hide or show element or
+make it inherit visibility from parent. Argument value must be "visible,"
+"hidden," or "inherit."</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltVisibility(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Return values are strings
+"visible," "hidden," or "inherit."</font></font></td>
+</tr>
+
+<tr>
+<td><tt>moveEltTo(elt, x, y)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Move elt to pixel location
+x,y within its coordinate system, which is the window content area for
+top-level elements or the parent element's coordinates for nested elements
+which have an absolutely positioned parent.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>moveEltBy(elt, x, y)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Offset elt's pixel location
+by x,y pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>setEltLeft(elt, x)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Sets position of left edge
+of elt in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltLeft(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns left edge of elt
+in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>setEltTop(elt, y)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Sets top edge of elt in
+pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltTop(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns top edge of elt
+in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltPageTop(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Cross browser Nav4 pageX
+equivalent</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltPageLeft(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Cross browser Nav4 pageY
+equivalent</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltWidth(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns width of elt in
+pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>setEltWidth(elt,width)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Sets the width of elt in
+pixels</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltHeight(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns height of elt in
+pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>setEltHeight(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Sets the width of elt in
+pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>setEltClip(elt, cliptop, clipright, clipbottom, clipleft)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Sets element clipping area.
+cliptop, clipright, clipbottom, and clipleft are integers.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltClipLeft(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns left edge of clipping
+area of elt in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltClipTop(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns top edge of clipping
+area of elt in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltClipRight(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns right edge of clipping
+area of elt in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltClipBottom(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns bottom edge of clipping
+area of elt in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltClipWidth(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns width of clipping
+area of elt in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltClipHeight(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns height of clipping
+area of elt in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getCurrentWinWidth()</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns width of current
+window content area in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getCurrentWinHeight()</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns height of current
+window content area in pixels.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>setEltZIndex(elt, z)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Sets z-index (stacking order)
+of elt. z is a positive integer.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltZIndex(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns z-index (stacking
+order) of elt, which is a positive integer.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>setEltBackgroundImage(elt, imageFilePath)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Sets background image of
+elt to image at imageFilePath.</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltBackgroundImage(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns file path or URL
+of background image of elt. Note: The return value strings are not identical
+on Navigator 4.x,Internet Explorer 4.0 and Gecko. On Navigator 4.x, we
+get back a string like "file:///F|/DHTML/xbdhtml/xbdhtml/images/redpole.gif".
+On Internet Explorer and Gecko&nbsp; we get back a string like "url(images/redpole.gif)",
+so we trim off the leading "url(" and the trailing ")".</font></font></td>
+</tr>
+
+<tr>
+<td><tt>setEltBackgroundColor(elt, colorNumber)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Sets background color of
+elt to colorNumber. colorNumber is an numeric color code like 0xffffff
+for white, or one of the 16 standard color names from CSS1 like "red."</font></font></td>
+</tr>
+
+<tr>
+<td><tt>getEltBackgroundColor(elt)</tt></td>
+
+<td><font face="Arial,Helvetica"><font size=-1>Returns background color
+of elt as integer.</font></font></td>
+</tr>
+</table>
+
+<p><a NAME="backcolor"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font color="#000000"><font size=-1>A
+HINT ABOUT BACKGROUND COLORS AND IMAGES</font></font></font></b>
+<p><font face="Arial, Helvetica"><font color="#000000"><font size=-1>Two
+properties to pay special attention to for cross-browser compatibility
+are background color and background image, because Navigator, Gecko and
+Internet Explorer have significant differences in their implementations
+of these properties. Following are a few hints about making background
+colors work across all browsers.</font></font></font>
+<p><font face="Arial, Helvetica"><font color="#000000"><font size=-1>To
+make the background color of a positioned element display behind the entire
+element area (not just the element's text) in both browsers, make the contents
+of the element a 1x1 TABLE with WIDTH and HEIGHT set to match the element's
+size in pixels. Place whatever contents you want inside the element inside
+the single cell of the TABLE.</font></font></font>
+<p><font color="#000000"><font size=-1><font face="Arial, Helvetica">If
+the background color of the element is static, hard coded, and never changes,
+you must set the attribute
+<tt>STYLE="background-color: red"</tt></font><font face="Arial,
+Helvetica">
+(with the color name or number specified in place of "red") on the TABLE.
+If the background color of the element is to be settable from JavaScript,
+you must NOT set that attribute on the TABLE.</font></font></font>
+<p><font color="#000000"><font size=-1><font face="Arial,
+Helvetica">When
+you get the background color property for a positioned element, Navigator
+4.x always returns the value as an integer color code. Internet Explorer
+returns a string which is either a leading "#" followed by a 6-digit hexadecimal
+RGB value, or a color name like "red." Netscape 6 and Mozilla return either
+an rgb string like "rgb(255,0,255)" or a color name like "red". To resolve
+this incompatibility, function
+</font><tt><font face="Arial, Helvetica">getEltBackgroundColor</font></tt><font face="Arial,Helvetica">
+automatically maps the return value on Internet Explorer and Gecko to the
+integer color codes returned on Navigator 4.x.</font></font></font>
+<p><font face="Arial,Helvetica"><font color="#000000"><font size=-1>For
+more details about techniques for handling background color across browsers,
+see <a href="../css1technote/css1tojs.html#backcolor">A Hint About Background
+Color</a> in the TechNote on <a href="../css1technote/css1tojs.html">Setting
+CSS1 Properties from JavaScript</a> and comments in the source of xbdhtml.js.</font></font></font>
+<p><a NAME="cssp"></a>
+<br>
+<hr SIZE=0 WIDTH="100%">
+<br><b><font face="Arial,Helvetica"><font color="#000000"><font size=-1>WHAT
+IS CSSP?</font></font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>Shortly after publication
+of the W3C CSS1 recommendation, Netscape and Microsoft decided that they
+needed a way to position elements on the page without using tables and
+invisible gifs. They coauthored a draft specification for positioning elements
+called Cascading Style Sheet Positioning (CSSP) and submitted it to the
+W3C. This specification was later incorporated into the W3C CSS2 recommendation.</font></font>
+<p><a NAME="bugs"></a>
+<br>
+<hr SIZE=0 WIDTH="100%"><b><font face="Arial,Helvetica"><font color="#000000"><font size=-1>KNOWN
+PROBLEMS/BUGS</font></font></font></b>
+<p><font face="Arial,Helvetica"><font color="#000000"><font size=-1>There
+is a serious bug in Netscape 4.74. &lt;Style> tags have to have at least
+a space in between opening and closing tags &lt;STYLE> &lt;/STYLE>, or
+the browser crashes. Keep this in mind when writing your script.</font></font></font><font face="Arial,Helvetica"><font color="#000000"><font size=-1></font></font></font>
+<p><a NAME="download"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font color="#000000"><font size=-1>VIEWING
+AND DOWNLOADING THE API AND THIS TECHNOTE</font></font></font></b>
+<p><font face="Arial,Helvetica"><font color="#000000"><font size=-1>You
+can <a href="xbdhtml.txt">view the source code of xbdhtml.js</a> or download
+<a href="xbdhtml.zip">xbdhtml.ZIP
+for study (25K)</a> or download a <a href="nocoment/xbdhtml.zip">comment-free
+version of xbdhtml.js (xbdhtml.ZIP) for production use (12K)</a>. If you
+would like to download this TechNote to your local machine, just download
+this <a href="csspapi.zip">WinZIP-compatible ZIP file</a> with all of the
+necessary files.</font></font></font>
+<p><a NAME="testapi"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size=-1>TESTING
+THE API</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>This <a href="tests.html">test
+suite</a> demonstrates that these API functions work compatibly across
+all three browsers.</font></font>
+<p><a NAME="bugs"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size=-1>SUBMIT
+YOUR ENHANCEMENTS!</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>This API is being offered
+in the spirit of the open source initiative. It is freely downloadable,
+reusable, and modifiable. In order to make it easier over time to do cross-browser
+DHTML development by enhancing and expanding this API, Netscape requests
+(but does not require) that API enhancements and modifications be submitted
+to Netscape for possible inclusion in future revisions of this TechNote
+and API.</font></font>
+<p><script LANGUAGE="JavaScript"><!--
+// Try to be sneaky and prevent spam-bots from seeing this email address.
+// If they're smart enough to include a JavaScript interpreter which
+// parses the page before they scan it, this won't help.
+var atSign="@"
+var mailProtocol="mailto:"
+
+document.write('<P>Email enhancements and modifications to this API to <A HREF="' + mailProtocol + 'xbrowser' + atSign + 'netscape.com?SUBJECT=CSSP API enhancement (DON&#039;T CHANGE THIS SUBJECT!)">' +
+'xbrowser' + atSign + 'netscape.com</A>. ')
+document.write('Because of the volume of submissions, we usually can&#039;t respond personally, but if we include your enhancement in a future release, we&#039;ll credit you in the source comments. Make sure to mention how you would like your name to appear, what your email address/URL is, and whether you want your email address/URL to appear in the credit notice.')
+
+//--></script>
+
+<hr SIZE=1 NOSHADE><a NAME="additional"></a><b><font face="Arial,Helvetica"><font size=-1>ADDITIONAL
+RESOURCES</font></font></b>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size=-1><a href="http://developer.netscape.com/docs/presentations/dynhtml.html">Dynamic
+HTML Presentations Page</a></font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1><a href="http://www.w3.org/pub/WWW/TR/" TARGET="_top">CSSP
+Working Draft on the W3C Technical Reports Page</a></font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1><a href="../sniffer/browser_type.html">Ultimate
+JavaScript Client Sniffer</a></font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1><a href="http://developer.netscape.com/viewsource/goodman_cssp/goodman_cssp.html">CSS-Positioning:
+The Dynamic HTML Neutral Zone</a></font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1><a href="http://www.dansteinman.com/dynduo/" TARGET="_top">The
+Dynamic Duo Cross-Browser DHTML</a></font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1><a href="http://developer.netscape.com/tech/dynhtml/resources.html">Dynamic
+HTML Additional Resources Page</a></font></font></li>
+</ul>
+<script LANGUAGE="JavaScript"><!--
+
+document.write('<H4>Comments About This TechNote?</H4>')
+document.write('<P>If you would like technical support or other assistance regarding JavaScript, Dynamic HTML, or other Netscape technologies and products, please visit the <A HREF="http://developer.netscape.com/support/index.html" TARGET="_top">support area</A>. ')
+document.write('Email comments and suggestions about this code sample to <A HREF="' + mailProtocol + 'xbrowser' + atSign + 'netscape.com?SUBJECT=CSSP API comments (DON&#039;T CHANGE THIS SUBJECT!)">' +
+'xbrowser' + atSign + 'netscape.com</A>. ')
+document.write('Because of the volume of submissions, we usually can&#039;t respond personally, but we will take your comments into consideration when planning future content for the site.')
+
+
+document.write('<H4>Want Netscape to Keep You Posted on Cross-Browser DHTML?</H4>');
+document.write('<P>From time to time, Netscape will release new resources to assist in cross-browser DHTML development. If you would like to be kept posted on new TechNotes, sample code, and information related to cross-browser Dynamic HTML, ');
+document.write('<A HREF="' + mailProtocol + 'xbrowser-list-request' + atSign + 'netscape.com?SUBJECT=subscribe ENTER_YOUR_EMAIL_ADDRESS_HERE">' +
+'join the xbrowser-list mailing list</A>. ');
+document.write('If you ever change your mind, ');
+document.write('<A HREF="' + mailProtocol + 'xbrowser-list-request' + atSign + 'netscape.com?SUBJECT=unsubscribe ENTER_YOUR_EMAIL_ADDRESS_HERE">' +
+'you can click here to remove yourself from the xbrowser-list mailing list</A>. ');
+document.write('Your email address will not be sold, bartered, or exchanged to any other organization.</P>');
+
+//--></script>
+
+</body>
+</html>

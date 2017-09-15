@@ -1,0 +1,140 @@
+Below is the readme file I (dbaron) put on a CD on which I compiled most
+of the Red Hat 8 errata and a bunch of other things used for setting up
+a Red Hat 8 build machine.
+
+===========================================================================
+
+To set up a Red Hat 8 build machine:
+
+***************************************************************************
+
+Do a **Workstation** install of Red Hat 8 with the defaults, except:
+
+  store the system clock as GMT (but use America/Los_Angeles timezone)
+
+  Use disk druid instead of automatic partitioning.  Set up a reasonable
+  amount of swap space, a small (75MB) /boot partition, and everything
+  else in a / partition
+
+  Create a cltbld account.
+
+***************************************************************************
+
+INSTALL RPM GPG KEY
+
+# rpm --import /usr/share/doc/rpm-4.1/RPM-GPG-KEY
+
+***************************************************************************
+
+INSTALL stat TO SATISFY DEPENDENCY OF UPDATES
+
+Insert disk 3 of the Red Hat 8 disks, and
+
+# mount /mnt/cdrom
+# rpm -Uvh /mnt/cdrom/RedHat/RPMS/stat-3.3-4.i386.rpm
+
+(stat is an added dependency of one of the packages in the updates)
+
+***************************************************************************
+
+INSTALL sharutils SO YOU HAVE uudecode and uuencode
+
+(also on disk 3)
+
+# rpm -Uvh /mnt/cdrom/RedHat/RPMS/sharutils-4.2.1-12.i386.rpm
+# umount /mnt/cdrom
+
+***************************************************************************
+
+INSTALL THE KERNEL UPDATE
+
+Insert *this disk*, and
+
+# mount /mnt/cdrom
+# rpm -qa "kernel*"
+
+and then do an rpm -ivh on the appropriate kernel RPMs in
+/mnt/cdrom/updates-install
+
+and then edit /boot/grub/grub.conf to make the new kernel the default
+
+***************************************************************************
+
+INSTALL REMAINING UPDATES
+
+# cd /mnt/cdrom/updates
+# rpm -Fvh *.rpm
+# mv /etc/nsswitch.conf{.rpmnew,}
+# mv /etc/postfix/main.cf{.rpmnew,}
+
+***************************************************************************
+
+INSTALL vnc
+
+# rpm -Uvh vnc-*.rpm
+
+***************************************************************************
+
+INSTALL glib2 UPGRADE
+
+  This is an RPM built from the spec file in glib 2.0.7 source tarball.
+
+# rpm -Uvh glib2-2.0.7-0.i386.rpm glib2-devel-2.0.7-0.i386.rpm
+
+***************************************************************************
+
+INSTALL gcc 3.3.4
+
+# cd /usr/local
+# tar xjvf /mnt/cdrom/gcc-3.3.4.tar.bz2
+
+  This gcc was built with.
+  "--prefix=/usr/local/gcc-3.3.4 --enable-languages=c++
+  --enable-__cxa_atexit --with-system-zlib --enable-threads=posix
+  --enable-shared --disable-checking --disable-libunwind-exceptions"
+
+
+Edit /etc/ld.so.conf to add to the end:
+
+/usr/local/lib
+/usr/local/gcc-3.4.4/lib
+
+# /sbin/ldconfig
+
+***************************************************************************
+
+Edit headers manually to fix:
+  /usr/include/gnome-vfs-2.0/libgnomevfs/gnome-vfs-file-info.h:46: error: comma at end of enumerator list
+  /usr/include/gnome-vfs-2.0/libgnomevfs/gnome-vfs-xfer.h:81: error: comma at end of enumerator list
+  /usr/include/gnome-vfs-2.0/libgnomevfs/gnome-vfs-xfer.h:90: error: comma at end of enumerator list
+by removing the trailing commas at the ends of the previous lines.
+
+***************************************************************************
+
+$ cp -R /mnt/cdrom/cltbld-dotfiles/.??* ~cltbld/
+
+Edit /etc/X11/gdm/gdm.conf to change AutomaticLoginEnable to true and
+AutomaticLogin to cltbld
+
+# umount /mnt/cdrom
+
+***************************************************************************
+
+# mkdir /builds
+# chown cltbld.cltbld /builds
+
+***************************************************************************
+
+# /sbin/chkconfig portmap off
+# /sbin/chkconfig nfslock off
+# /sbin/chkconfig xinetd off
+
+Reboot, and remove (rpm -e) the old kernel RPMs.
+
+# /sbin/shutdown -r now
+...
+# rpm -e kernel-2.4.18-14
+
+***************************************************************************
+
+L. David Baron <dbaron@dbaron.org>, 2005-04-08

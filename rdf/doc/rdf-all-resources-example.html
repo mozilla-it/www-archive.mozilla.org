@@ -1,0 +1,333 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+  <title>Example: How to Display the Contents of a Datasource</title>
+
+  <style type="text/css">
+    div.code {
+      background: #eee;
+      font: smaller courier;
+      white-space: pre;
+      margin: 0 5% 0;
+      border: 1px solid;
+      padding: 1em;
+    }
+  </style>
+
+ <script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel nomenu">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mBody" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+
+ 
+
+ 
+
+ <h1>Example: How to Display the Contents of a Datasource</h1>
+
+ <p>
+
+   This was
+
+   <a href="news://news.mozilla.org/3BCDC4A1.8000604@rovia.com">posted</a>
+
+   by Adam Fletcher
+
+   (<a href="mailto:adamf+rdf@csh.rit.edu">adamf+rdf@csh.rit.edu</a>)
+
+   to the <code>netscape.public.mozilla.rdf</code> newsgroup.
+
+ </p>
+
+ <hr>
+
+ <p>
+
+   I am posting an example of how to display all of the resources and 
+   literals in an RDF in hopes that others find it useful when they are 
+   learning how to deal with RDF. This is pretty much a summary I've what 
+   I've come to understand about RDF's in the past week or two. A good bit 
+   of this code and understanding came from the RDF In Mozilla FAQ, 
+   availabe at
+
+   <a href="http://www.mozilla.org/rdf/doc/faq.html">http://www.mozilla.org/rdf/doc/faq.html</a>.
+
+ </p>
+
+ <p>
+
+   I hope this helps some people. I know it has helped me understand RDF 
+   and datasources in Mozilla.
+
+ </p>
+
+ <p>
+
+   I'm going to assume that you've got a XUL template like this:
+
+ </p>
+
+ <div class="code">&lt;tree id='my-id' ... datasources="rdf:null">	
+   &lt;template&gt;
+   ...
+   &lt;/template&gt;
+&lt;/tree&gt;</div>
+
+ <p>
+
+   The important thing is to note the
+   <code>datasources="rdf:null"</code>. This means we will build our
+   datasources in memory, instead of explicity loading them when the
+   XUL is parsed.
+
+ </p>
+
+ <p>
+
+   And that this code works. I will also assume you have some RDF that 
+   you've written that is syntacticly valid. To help you test & write your 
+   RDF, you should check out RDFedt, a piece of windows freeware by Jan 
+   Winkler, available from
+
+   <a href="http://www.jan-winkler.de/dev/e_rdfe.htm">http://www.jan-winkler.de/dev/e_rdfe.htm</a>.
+
+ </p>
+
+ <p>
+
+   Okay, now that you have some RDF, and some XUL like the above, we will 
+   write our Javascript to load the RDF and populate a datasource. This 
+   function will take a URI of the RDF, and the ID of the element that has 
+   a template associated with it (in the above case, this id would be 
+   'my-id'). This function should be called when you want to populate the 
+   template, for example on the onload event of the tree.
+
+ </p>
+
+ <div class="code">// begin example code
+// globals
+var myDatasource = null;
+
+function loadDatasource(dsURI, elementToAttachToID) {
+     // get the RDF component from XPCOM
+     var RDF =
+             Components
+             .classes["@mozilla.org/rdf/rdf-service;1"]
+             .getService(Components.interfaces.nsIRDFService);
+
+     // get the datasource from the URI passed to this function
+     myDatasource =
+          RDF.GetDataSource(dsURI);
+
+
+     // Datasources don't load right away- they don't block. If you want
+     // to block, look at nsIRDFRemoteDataSource and the Refresh(true)
+     // method.
+
+     // because they don't block, if we want to know when they are done
+     // loading, we register an observer to watch over it, and
+     // declare callbacks in that observer. The observer code is elswhere
+     // in this source listing
+     // this test code is pretty much verbatim from
+     // http://www.mozilla.org/rdf/doc/faq.html
+     // so props to Chris Waterson for that
+
+     if (myDatasource.loaded) {
+   	consolePrint("the datasource was already loaded!");
+     } else {
+   	consolePrint("the datasource wasn't loaded, but it's loading now!");
+         // RDF/XML Datasources are all nsIRDFXMLSinks
+          var sink =
+               myDatasource.QueryInterface(
+               Components.interfaces.nsIRDFXMLSink);
+        // Attach the observer to the datasource-as-sink
+        sink.addXMLSinkObserver(Observer);
+
+        // Now Observer's methods will be called-back as
+        // the load progresses.
+     }
+
+     // get the element from the ID passed to this function
+     var myElement = document.getElementById(elementToAttachToID);
+
+     // each element has a database of datasouces
+     // (actually an nsIRDFCompositeDataSource)
+     // we add our datasource to this
+
+     myElement.database.AddDataSource(myDatasource);
+     // we rebuild the element to make the template rules get parsed
+     myElement.builder.rebuild();
+}
+
+
+// Now the observer class
+// these are all callbacks
+// we choose just to implement one
+// again, props to Chris Waterson and the RDF-in-Mozilla FAQ
+var Observer = {
+   onBeginLoad: function(aSink)
+     {},
+   onInterrupt: function(aSink) 
+
+     {},
+
+   onResume: function(aSink)
+     {},
+
+   onEndLoad: function(aSink)
+     {
+
+     // here is where we deviate from the RDF-In-Mozilla FAQ
+     // we are going to get all the resources
+     // and print out any values in them
+     // for the entire RDF
+     consolePrint("myDatasource --&gt;" + myDatasource + "&lt;--");
+         var dsResources = myDatasource.GetAllResources();
+         var thisResource = null;
+         var arcCursor = null;
+         var thisArc = null;
+
+         while(dsResources.hasMoreElements()) {
+
+             consolePrint("myDatasource has elements");
+
+             thisResource = dsResources.getNext().QueryInterface(
+                            Components.interfaces.nsIRDFResource);
+
+
+
+             consolePrint("thisResource --&gt; " +
+			thisResource.Value + " &lt;--");
+
+	    // okay, ArcLabelsOut will give us all the "arcs",
+             // or resources with children, in this RDF graph
+             arcCursor = myDatasource.ArcLabelsOut(thisResource);
+
+             // showArcs is the function below. this is a recursive
+	    // function, and is where the magic happens
+             showArcs(thisResource, arcCursor);
+         }
+
+
+         consolePrint("done!"); },
+
+   onError: function(aSink, aStatus, aErrorMsg)
+     { consolePrint("error! " + aErrorMsg); }
+};
+
+
+// the magic function
+// we will travese through the arcs
+// and if they have RDFNodes at the end, print out the value
+// but if they are resources, call this function again until we hit the
+// the end
+function showArcs(thisResource, arcCursor) {
+
+     while(arcCursor.hasMoreElements()) {
+
+         consolePrint("arcCursor has elements:");
+         thisArc = arcCursor.getNext().QueryInterface(
+                   Components.interfaces.nsIRDFResource);
+
+
+         consolePrint("thisArc --&gt; " + thisArc.Value + " &lt;--");
+
+
+         // you should look in the IDL for nsIRDFDataSource
+         // Honestly, I had tried this with GetSources, but that does not
+         // work, and I don't know why.  
+         arcTargets = myDatasource.GetTargets(
+                         thisResource,
+                         thisArc,
+                         true );
+
+
+         while(arcTargets.hasMoreElements()) {
+
+
+             consolePrint("arcTargets has elements");
+             thisTarget = arcTargets.getNext();
+
+             // we are looking to catch the NO_INTERFACE exceptoin
+             // if we cannot attach the nsIRDFLiteral interface
+             // we know we have an nsIRDFResource, and should look at
+             // that resource's arcs.
+
+             try {
+                 thisTarget.QueryInterface(
+                     Components.interfaces.nsIRDFLiteral);
+
+                 consolePrint("thisTarget --&gt; "
+		             + thisTarget.Value + " &lt;--");
+
+             } catch(e) {
+                newArcCursor = myDatasource.ArcLabelsOut(
+                               thisTarget);
+                // recurse down these new arcs
+                showArcs(thisTarget, newArcCursor);
+             }
+
+         }
+     }
+
+}
+
+// that's all folks</div>
+
+<hr class="hide">
+<hr class="hide">
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified October 26,  2002</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/rdf/doc/rdf-all-resources-example.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

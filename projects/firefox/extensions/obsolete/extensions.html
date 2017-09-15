@@ -1,0 +1,456 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../../images/mozilla-16.png" type="image/png">
+
+    <title>Application Extensions</title>
+  <script src="../../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+  
+  
+  
+  
+    <!--
+    - Goals: - To make it easy to install compatible extensions in any new Mozilla app from any web browser.
+             - To make it easy to uninstall extensions properly
+             - To maximize flexibility for extension authors in the types of files that they can provide
+             - To prevent outdated extensions from breaking the application
+             - To provide a scheme to keep extensions and other application components up-to-date.
+             - To design a system to facilitate the above that is forward looking. 
+             
+    - Components:              
+       - web fe
+       - versioning (CR)
+       - mime types for app extensions
+       - uninstallation without limits (XPInstall logging)
+       - safe mode
+    -->       
+         
+    <h1>Application Extensions</h1>
+    <h3>Ben Goodger &lt;ben@mozilla.org&gt;</h3>
+
+    
+    <h2>Abstract</h2>
+    <p>Abstract</p>    
+    
+    <h2>Table of Contents</h2>
+    <ol>
+      <li>Introduction</li>
+      <li>A New Take On Extensions</li>
+      <li>Conclusion</li>
+
+    </ol>
+    
+    <h2>Introduction</h2>
+    
+    <p>Mozilla's two new applications, Firebird and Thunderbird, support user-
+       installable optional components called <strong>extensions</strong> that
+       adapt or enhance application functionality in various ways. Extensions
+       are easy to create, usually tailored to a specific task, usually written
+       in JavaScript and XUL, and as a result are mostly small, managable 
+       compnents. </p>
+       
+    <p>Nonetheless, extension authors and users have uncovered some problems 
+       with the current setup. These include:</p>
+       
+    <ul>
+      <li><strong>Lack of an uninstall capability</strong> - Extensions once
+          installed cannot be automatically uninstalled by the system, only
+          disabled. This results in cruft in the Extensions list, and in the
+          install folder.</li>
+
+      <li><strong>Extensions overwrite critical files</strong> - some 
+          Extensions overwrite critical application files with their own 
+          versions, causing problems and incompatibilities when users update
+          other parts of the application. The classic example of this is
+          Tabbrowser Extensions, which constantly breaks in nightly builds
+          (basically any time the file that it overwrites changes from
+          under it). </li>
+      <li><strong>Extensions incompatible between application versions break
+          the application</strong> - when you upgrade from Application vN to
+          Application vN+1, code changes in the application can cause extensions
+          to stop working, however the extensions are still loaded despite
+          unknown compatibility.</li>
+      <li><strong>Difficulty installing extensions into non-browser 
+          applications</strong> - Users of applications that aren't a browser, 
+          like Thunderbird, have a difficult time installing extensions since
+          there is no easy way to install from the browser. Most often the 
+          user is forced to download the extension through a browser as a XPI 
+          file and then use cumbersome UI in the target application to actually
+          install it.</li>
+      <li><strong>Extension authors must place files in system 
+          locations</strong> - Certain file types, such as XPCOM components and
+          preferences defaults files must be placed in specific locations in
+          order to be recognized by the application framework. This makes
+          identification and removal of extension components more difficult.</li>
+
+      <li><strong>It is difficult to manage and maintain installed 
+          extensions</strong> - Given the nature of extensions, new versions are
+          constantly available. It is often difficult or cumbersome to keep
+          track and update installed extensions. Users must manually identify
+          and install newer versions of extensions, which may or may not be
+          compatible with the current application version.</li>
+    </ul>
+    
+    <p>These changes call for a series of changes to the way extensions are
+       handled.
+    
+    <h2>A New Take on Extensions</h2>
+    
+    <h3>Goals</h3>
+    <ul>
+      <li>To make it easy to install compatible extensions in any new Mozilla
+          app from any web browser.</li>
+
+      <li>To make it easy to uninstall extensions completely.</li>
+      <li>To maximize flexibility for extension authors in the types of files
+          that they can provide.</li>
+      <li>To prevent outdated extensions from breaking the application.</li>
+      <li>To provide a scheme to keep extensions and other application 
+          components up-to-date.</li>
+      <li>To design a system to facilitate the above that is forward 
+          compatible.</li>
+    </ul>
+
+    
+    <h3>Installing Extensions From A Browser</h3>
+    <p>Currently extensions for all browsers bear the xpi file extension and 
+       are identified as application/x-xpinstall. There is no discrimination
+       between intended target application.</p>
+       
+    <p>The proposed solution is to create a variant of the xpinstall content
+       type for each extension consumer, like so:</p>
+    
+    <p><code>
+        application/x-xpinstall;type=extension&app=firebird
+        application/x-xpinstall;type=extension&app=thunderbird
+        application/x-javaarchive;type=skin&app=firebird
+        application/x-javaarchive;type=skin&app=firebird
+       </code></p>
+
+       
+    <p>When an application is installed, it creates a listing in the system 
+       MIME registry associating itself as a handler for that type.</p>
+    <p>For example, when Firebird is installed on Windows, it creates several 
+       keys in the Windows Registry - one associating 
+       <code>application/x-xpinstall;type=extension&app=firebird</code> with
+       the Firebird executable and another associating an extension (e.g.
+       .fbext) with that content type. This means that the file will be 
+       appropriately handled not only when invoked via a link click from any
+       browser (Firebird, IE, Opera etc), but also when invoked from the 
+       system shell (e.g. a double click on a .fbext file in Explorer).</p>
+    <p class="apichange">The effect on extension authors is that they would
+       need to give distinct file extensions to their extension installers, 
+       as defined by each application. Distribution sites would need to
+       send the correct content-type for each extension target application.</p>
+    
+    <h3>Supporting Uninstall</h3>
+    <p>There have been proposals restricting extensions to one file or one 
+       specific set of files in order to make extension uninstallation easier.
+       The proposal here is that any xpinstall install operation should be
+       reversable via a log that is created when the xpi file is installed.</p>
+
+    <p>Every operation performed in a xpi's install.js file should append
+       an entry to the log, which creates a manifest that can be used to
+       uninstall the xpi later on. Files can be removed, backups restored
+       (when files are replaced), registry keys unset and such like. </p>
+    <p>This proposal does not go as far as dictating where this log would 
+       be stored or what format it would assume, although it is intended that
+       the log would be atomically written after the successful completion
+       of each xpinstall command, and that this would be built into the 
+       xpinstall implementation of the various install commands.</p>
+    <p class="apichange">Little or no change would be required by the extension
+       author. If the install log were kept with the installed files (which
+       may be necessary in multi-user systems) then an additional function
+       call at the commencement of the installation may be necessary to 
+       identify the log file.</p>
+    
+    <h3>Keeping Extension Files Together</h3>
+    <p>To rectify the problem of extensions overwriting or tampering with 
+       core system files, extension files should be stored in a location
+       separate from other application files. The proposed structure is:</p>
+    <p><strong>For Application Directory Extensions</strong>:<br><br>
+
+       <code>
+         bin/extensions/&lt;extension_name&gt;/chrome/<br>
+         bin/extensions/&lt;extension_name&gt;/components/<br>
+         bin/extensions/&lt;extension_name&gt;/preferences/<br>
+
+       </code></p>
+    <p><strong>For Profile Directory Extensions</strong>:<br><br>
+       <code>
+         &lt;profile_dir&gt;/extensions/&lt;extension_name&gt;/chrome/<br>
+         &lt;profile_dir&gt;/extensions/&lt;extension_name&gt;/components/<br>
+
+         &lt;profile_dir&gt;/extensions/&lt;extension_name&gt;/preferences/<br>
+       </code></p>
+       
+    <p>The component registry and preferences systems are updated to scan for
+       components and defaults files in these locations for installed and
+       enabled extensions.</p>
+       
+    <p>This mechanism gives extensions full flexibility into the kind of 
+       functionality they can provide.</p>
+       
+    <p><strong>Directory Scan Path Precedence</strong> - One question raised by 
+       the above proposal is the precedence in which files are loaded. In order
+       to prevent extension dlls from clobbering core application files, the
+       precedence would seem to be: System Components, Profile Extensions 
+       Components, System Extensions Components.
+       
+    <h3>Extension Versioning</h3>
+
+    <p>To prevent extensions designed for older versions of applications from
+       causing problems, they should only be loaded if the application version
+       falls within the range supported by the extension. An extension can 
+       identify itself as supporting a range of versions by using the 
+       <code>minAppVersion</code> and <code>maxAppVersion</code> properties on
+       its package contents.rdf chrome registry entry. The version scheme works
+       like this:</p>
+    <p><code>MAJOR_VERSION.MINOR_VERSION.MAINTENANCE_VERSION</code></p>   
+    <p>For example, 0.6.1 (maintenance update to 0.6) is less than 0.8 (minor 
+       version 0.8) is less than 1.3.1 (maintenance update to 1.3). A special
+       case is for extensions targeting trunk development builds between releases,
+       in which case the appropriate version string assumes the form:</p>
+    <p><code>MAJOR_VERSION.MINOR_VERSION+</code></p>
+
+    <p>+ indicates trunk development <em>following</em> MINOR_VERSION, e.g.
+       0.7+ indicates trunk development after 0.7</p>
+    <p>When the application is started, the extensions list is enumerated 
+       and if the app version falls outside the supported range of any extension
+       that extension is disabled (and the update mechanism is invoked). If the
+       extension is disabled for this reason, an annotation is placed in the
+       extension's entry in the chrome registry preventing it from being enabled
+       in this version, and identifying the extension as being disabled because
+       of a compatibility problem.</p>
+    
+    <h3>Extension Updating</h3>
+    <p>Extension Updating is a mechanism for determining if there are newer 
+       compatible extension versions available from the web. This is useful if
+       either the user wants to stay on the cutting edge of their favorite 
+       set of extensions, or the user updates to a newer version of the application
+       and the old set of extensions needs to be updated. These two use cases
+       are outlined below.</p>
+    
+    <h4>Manual Invokation</h4>
+
+    <p>The user will be able to periodically check for updates to the application
+       and installed extensions, or check on demand. When one of these events
+       occurs, a list of installed extensions and their versions is sent to the 
+       extension server and the server matches those with the versions it has 
+       available. If newer versions are available it responds with a list of
+       available updates. The current application version is sent with the list 
+       to ensure that the retrieved list is compatible.</p>
+    
+    <h4>Compatibility Invokation</h4>
+    <p>When a new version of the application is installed, all incompatible 
+       extensions are annotated as described above. This list is sent to the
+       server as in the Manual Invokation case, the user is notified and given
+       the option to visit the extension server where he or she will be presented
+       with a list of available upates to install.</p>
+
+    <p>As long as there are incompatible versions in the chrome registry, the
+       system will periodically check the extension server for new, compatible
+       versions.</p>
+       
+    <p><strong>Note</strong> - if the incompatible version installed is of the
+       same extension version number as the compatible version on the server, 
+       no download is performed, the local incompatible version's maximum 
+       application version value is incremented to that of the compatible version
+       from the server's. This is for the case where an old extension continues
+       to work with a newer version of the application, and the author simply
+       updates its compatibility information on the server.</p>
+
+    
+    <h3>Web Front End - User Level</h3>
+    <p>The Web Front End is designed to show extensions for Mozilla applications
+       that are compatible. The Web FE will be part of a larger software update
+       mechanism that will be hosted on 
+       <a href="http://update.mozilla.org/">update.mozilla.org</a>. The Web FE 
+       will at minimum have the following elements:</p>
+    <ul>
+      <li>A menu listing applications that extensions are available for, 
+          defaulting to Firebird.</li>
+      <li>In the Firebird section, if the user is using Firebird, a list of
+          extensions compatible with that installed version, alternately 
+          a selector is presented defaulting to the most recent release
+          that filters the list. This setting is remembered with a cookie.</li>
+      <li>Extension entries in this list, composed of Extension Name, Extension 
+          Author, Extension Homepage, Extension Version, Extension Description, 
+          Extension File Size, 
+          Extension Last Update Date, Extension Install Icon, Compatibility 
+          range (see above), and an install link. If the user is using Firebird
+          to install an extension into Firebird, the XPInstall link will be a 
+          XPInstall js api link featuring the Extension icon as metadata, otherwise
+          it will be a link to the extension file, which will be handled by the
+          system's native content type dispatch. (e.g. .tbext invokes Thunderbird.
+          See above.)</li>
+
+      <li>The Web FE must be capable of showing a list that only includes a named
+          set of extensions, as required by the Update section above. For example, 
+          if the user has extensions A, B and C installed, and chooses to check for
+          updates, if B and C have newer versions available, a query to the 
+          update server should result in a list containing the newer versions of 
+          B and C being shown. This will also be used in the compatibility check
+          when a new version of an application is installed, see above also.</li>
+    </ul>
+    
+    <p>The Web FE will optionally (hopefully) have these elements:</p>
+    <ul>
+      <li><strong>Categories</strong> - categories of extension for each application.
+          An extension might fit into more than one category. Categories can be
+          used as filters on the extension list.</li>
+      <li><strong>Ratings</strong> - a rating mechanism that lets users rate an
+          extension using a graphical meter out of 5 stars.</li>
+
+      <li><strong>Forums</strong> - each extension should have its own mini forum
+          for user comments.</li>
+      <li><strong>Search</strong> - the text of the extension name and description text
+          at least should be searchable.</li>
+      <li><strong>Best Rated</strong> - Sort by best rated, most popular, etc.</li>
+      <li><strong>Essentials</strong> - Editorial team features best extension.</li>
+
+    </ul>
+    
+    <p><strong>Important</strong> - the important areas of difference between this
+       system and the current implementation on extensionroom are that the list
+       shown is for one app only at any given time and that the list shown is only
+       of extensions compatible with a specific version.</p>
+    
+    <h3>Web Front End - Author Level</h3>
+    <p>Each extension author will have his or her own account with the extension
+       service. Rather than being maintained by a central authority the extension
+       list will be updated by authors. Approval by a moderator may be required
+       for new account requests.</p>
+    
+    <p>The system should allow authors to create an account with an email address
+       and a password, and their name. They will then be able to add as many extensions
+       as they want to this account, each extension will appear in the list for the
+       applicable application.</p>
+       
+    <p>When adding an extension, the author will be asked for the following 
+       information:</p>
+
+       
+    <ul>
+      <li>Extension Name (string)</li>
+      <li>Extension Version (version_string)</li>
+      <li>Target Application (enumeration value, pick from list)</li>
+      <li>Target Application Version Range (from: version_string to: version_string)</li>
+      <li>Extension Homepage URL (string)</li>
+
+      <li>Extension Install Icon URL (string)</li>
+      <li>Extension File (string via File Upload Control)</li>
+      <li>Categories (check list)</li>
+    </ul>
+    
+    <p>The user will be able to see a list of his or her extensions when they log in,
+       and will be able to edit details. For instance, if a new version of the application
+       is released and extension X is still compatible with the new version, the author
+       will be able to log in and increase the upper bound on the Target Application Version
+       Range field so that users of the newer application version will be able to continue
+       using compatible older versions of extensions.</p>
+    
+    <p>The advantages of this author-based system is that the author is empowered 
+       to make changes and update extension files when they become available. Also, 
+       the author can maintain several versions of the same extension for different 
+       versions of the application (e.g. 1.0 vs. 1.3+)</p>
+
+    
+    <h2>Conclusion</h2>
+    <p>Conclusion</p>
+  
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../../security/">Security Updates</a></li>
+<li><a href="../../../../contact/">Contact Us</a></li>
+<li><a href="../../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March  5,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/firefox/extensions/obsolete/extensions.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

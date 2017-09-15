@@ -1,0 +1,242 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>ECMAScript 4 Named Function Parameters Rationale</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="versioning.html">
+<LINK rel=Next href="operators.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=es-title>ECMAScript 4 Netscape Proposal</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Named Function Parameters</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="versioning.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="operators.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Wednesday, January 29, 2003</P>
+
+<!--IMPORT "../../js20/rationale/named.html" -class=js2 -class=js2-hidden +class=es4 +class=es4-hidden -->
+
+<P class=issue>Named function parameters had originally been part of the ECMAScript 4 proposal but were deferred to a future
+version of the language in order to keep ECMAScript 4 small. If implemented, named function parameters might behave as described
+in this section.</P>
+
+<H2>Overview</H2>
+
+<P>The named function parameter extension allows some function parameters to be passed by name instead of by position. Parameter
+names are simple strings. A function with three positional (one of which is optional) and four named parameters might be declared
+as:</P>
+
+<PRE>function f(a: Number, b: Boolean, c: Number = 5, named x: Integer = 7, named y = null, named z = 34, named t = undefined)</PRE>
+
+<P>Such a function can then be invoked as follows:</P>
+
+<PRE>f(2, true, y: 5);
+f(2, true, 8, z: 32, x: 9);</PRE>
+
+<P>Named parameters are always optional and must include default values. A function call may specify positional arguments
+followed by named arguments. Positional parameters can only match positional arguments. Named parameters can only match named
+arguments. The same parameter may not be both positional and named.</P>
+
+<P>The following sections explain the changes to add named function parameters in more detail.</P>
+
+<H2>Lexer</H2>
+
+<P>A new non-reserved keyword named <CODE class=terminal-keyword>named</CODE> is added. This keyword is a valid identifier:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Identifier"></A><SPAN class=nonterminal>Identifier</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=terminal>Identifier</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>get</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>set</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>exclude</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>include</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>named</CODE></DIV>
+</DIV>
+
+<H2>Function Parameter Lists</H2>
+
+<P>A function may take zero or more positional parameters followed by either an optional rest parameter followed by zero or
+more named parameters or a named rest parameter:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Parameters"></A><SPAN class=nonterminal>Parameters</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NonemptyParameters" class=nonterminal>NonemptyParameters</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NonemptyParameters"></A><SPAN class=nonterminal>NonemptyParameters</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ParameterInit" class=nonterminal>ParameterInit</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ParameterInit" class=nonterminal>ParameterInit</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-NonemptyParameters" class=nonterminal>NonemptyParameters</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RestAndNamedParameters" class=nonterminal>RestAndNamedParameters</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-RestAndNamedParameters"></A><SPAN class=nonterminal>RestAndNamedParameters</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-NamedParameters" class=nonterminal>NamedParameters</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RestParameter" class=nonterminal>RestParameter</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RestParameter" class=nonterminal>RestParameter</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-NamedParameters" class=nonterminal>NamedParameters</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NamedRestParameter" class=nonterminal>NamedRestParameter</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamedParameters"></A><SPAN class=nonterminal>NamedParameters</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-NamedParameter" class=nonterminal>NamedParameter</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NamedParameter" class=nonterminal>NamedParameter</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-NamedParameters" class=nonterminal>NamedParameters</A></DIV>
+</DIV>
+
+<P>Individual parameters have the forms:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ParameterCore"></A><SPAN class=nonterminal>ParameterCore</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="../core/variables.html#N-TypedIdentifier" class=nonterminal>TypedIdentifier</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Parameter"></A><SPAN class=nonterminal>Parameter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ParameterCore" class=nonterminal>ParameterCore</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>const</CODE>&nbsp;<A href="#N-ParameterCore" class=nonterminal>ParameterCore</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ParameterInit"></A><SPAN class=nonterminal>ParameterInit</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Parameter" class=nonterminal>Parameter</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Parameter" class=nonterminal>Parameter</A>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<A href="../core/expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamedParameterCore"></A><SPAN class=nonterminal>NamedParameterCore</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="../core/variables.html#N-TypedIdentifier" class=nonterminal>TypedIdentifier</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<A href="../core/expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamedParameter"></A><SPAN class=nonterminal>NamedParameter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>named</CODE>&nbsp;<A href="#N-NamedParameterCore" class=nonterminal>NamedParameterCore</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>const</CODE>&nbsp;<CODE class=terminal-keyword>named</CODE>&nbsp;<A href="#N-NamedParameterCore" class=nonterminal>NamedParameterCore</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>named</CODE>&nbsp;<CODE class=terminal-keyword>const</CODE>&nbsp;<A href="#N-NamedParameterCore" class=nonterminal>NamedParameterCore</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-RestParameter"></A><SPAN class=nonterminal>RestParameter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>...</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>...</CODE>&nbsp;<A href="#N-Parameter" class=nonterminal>Parameter</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamedRestParameter"></A><SPAN class=nonterminal>NamedRestParameter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>...</CODE>&nbsp;<CODE class=terminal-keyword>named</CODE>&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>...</CODE>&nbsp;<CODE class=terminal-keyword>const</CODE>&nbsp;<CODE class=terminal-keyword>named</CODE>&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>...</CODE>&nbsp;<CODE class=terminal-keyword>named</CODE>&nbsp;<CODE class=terminal-keyword>const</CODE>&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+</DIV>
+
+<P>If a <A href="#N-Parameter" class=nonterminal>Parameter</A> is followed by a <CODE>=</CODE>, then that parameter is optional.
+If a function call does not provide an argument for an optional parameter, then that parameter is set to the value of its
+<A href="../core/expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A>, <A href="../libraries/types.html#implicit-coercion">implicitly
+coerced</A> to the parameter&#8217;s type if necessary.</P>
+
+<P>If a parameter is prefixed with <CODE>named</CODE>, then the parameter is matched by name rather than by position. Named
+parameters are always optional and must have initializers.</P>
+
+<P>Attempting to define a function with two different parameters with the same name is an error.</P>
+
+<P>A function with named parameters is never <A href="../core/functions.html#unchecked">unchecked</A>.</P>
+
+<H3><A name="rest"></A>Rest Parameter</H3>
+
+<P>If the <CODE>...</CODE> is present, the function accepts arguments not matched by any of the other listed parameters. If
+a parameter is given after the <CODE>...</CODE>, then that parameter&#8217;s identifier is bound to an array of all remaining
+arguments. That identifier is declared as a local <CODE>const</CODE> using the parameter&#8217;s type, which defaults to <CODE>Array</CODE>.
+If the rest parameter is <CODE>named</CODE>, then the parameter&#8217;s type is always <CODE>Array</CODE> and cannot be specified
+explicitly.</P>
+
+<P>The remaining positional arguments are stored as elements of the rest array with numeric indices starting from 0. If the
+rest parameter is not <CODE>named</CODE>, then there must be no remaining named arguments. Otherwise, extra named arguments
+are allowed and are stored as named properties of the rest array.</P>
+
+<H3>Call Processing</H3>
+
+<P>When a function is called, the following list indicates the order of evaluation of the various expressions in a <A href="../core/functions.html#N-FunctionDefinition" class=nonterminal>FunctionDefinition</A>.
+These steps are taken only <I>after</I> all of the argument names and values have been evaluated.</P>
+
+<OL>
+  <LI>If the function is <A href="../core/functions.html#unchecked">unchecked</A>, bind the <CODE>arguments</CODE> local variable to an array of
+    all arguments and their names.</LI>
+  <LI>Get the saved type <VAR>t</VAR> that was the result of evaluating the first parameter&#8217;s <A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>
+    at the time the function was defined.</LI>
+  <LI>If the first parameter is required and no positional argument has been supplied for it, then raise an error unless the
+    function is <A href="../core/functions.html#unchecked">unchecked</A>, in which case let <CODE>undefined</CODE> be the first parameter&#8217;s
+    value.</LI>
+  <LI>If the first parameter is optional and there is a positional argument remaining, use the value of the positional argument.
+    If there are no remaining positional arguments, then evaluate the first parameter&#8217;s <A href="../core/expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A>
+    and let it be the first parameter&#8217;s value.</LI>
+  <LI>If the first parameter is named and there is a named argument with a matching argument <A href="#named-argument">name</A>,
+    then use the value of that named argument. Otherwise, evaluate the first parameter&#8217;s <A href="../core/expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A>
+    and let it be the first parameter&#8217;s value.</LI>
+  <LI><A href="../libraries/types.html#implicit-coercion">Implicitly coerce</A> the argument (or default) value to type <VAR>t</VAR>
+    and bind the parameter&#8217;s <A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A> to the result.</LI>
+  <LI>Repeat steps 2-6 for each additional required, optional, and named parameter.</LI>
+  <LI>If there is a <A href="#N-RestParameter" class=nonterminal>RestParameter</A> and one or more of the remaining arguments
+    is named, raise an error.</LI>
+  <LI>If there is a <A href="#N-RestParameter" class=nonterminal>RestParameter</A> with an <A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A>,
+    bind that <A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A> to an array of the remaining positional
+    arguments using indices starting from 0.</LI>
+  <LI>If there is a <A href="#N-NamedRestParameter" class=nonterminal>NamedRestParameter</A>, bind its <A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A>
+    to an array of the remaining positional arguments using indices starting from 0 as well as the remaining named arguments
+    stored using named properties.</LI>
+  <LI>If there is no <A href="#N-RestParameter" class=nonterminal>RestParameter</A> or <A href="#N-NamedRestParameter" class=nonterminal>NamedRestParameter</A>
+    and any arguments remain, raise an error unless the function is <A href="../core/functions.html#unchecked">unchecked</A>.</LI>
+  <LI>Evaluate the body.</LI>
+  <LI>Get the saved type <VAR>r</VAR> that was the result of evaluating the result <A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>
+    at the time the function was defined.</LI>
+  <LI><A href="../libraries/types.html#implicit-coercion">Implicitly coerce</A> the result to type <VAR>r</VAR> and return
+    it.</LI>
+</OL>
+
+<H2>Function Calls</H2>
+
+<P>The <VAR>a</VAR><CODE>[</CODE><VAR>args</VAR><CODE>]</CODE> and <VAR>f</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE>
+indexing and function call operators are extended to allow named arguments:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Brackets"></A><SPAN class=nonterminal>Brackets</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>[</CODE>&nbsp;<CODE class=terminal-keyword>]</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>[</CODE>&nbsp;<A href="../core/expressions.html#N-ListExpression" class=nonterminal>ListExpression</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>]</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>[</CODE>&nbsp;<A href="#N-NamedArgumentList" class=nonterminal>NamedArgumentList</A>&nbsp;<CODE class=terminal-keyword>]</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Arguments"></A><SPAN class=nonterminal>Arguments</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ParenExpressions" class=nonterminal>ParenExpressions</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<A href="#N-NamedArgumentList" class=nonterminal>NamedArgumentList</A>&nbsp;<CODE class=terminal-keyword>)</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ParenExpressions"></A><SPAN class=nonterminal>ParenExpressions</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<CODE class=terminal-keyword>)</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamedArgumentList"></A><SPAN class=nonterminal>NamedArgumentList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-LiteralField" class=nonterminal>LiteralField</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-ListExpression" class=nonterminal>ListExpression</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="../core/expressions.html#N-LiteralField" class=nonterminal>LiteralField</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NamedArgumentList" class=nonterminal>NamedArgumentList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="../core/expressions.html#N-LiteralField" class=nonterminal>LiteralField</A></DIV>
+</DIV>
+
+<P><A name="named-argument"></A>A list of arguments can contain both positional and named arguments. The positional arguments
+are the subexpressions separated by commas within the <A href="../core/expressions.html#N-ListExpression" class=nonterminal>ListExpression</A><SUP class=nonterminal-attribute>allowIn</SUP>.
+Named arguments use the same syntax as object literals. All strings except those consisting entirely of digits are legal for
+argument names. No two arguments may have the same name. Named arguments must follow positional arguments, but otherwise the
+order of named arguments is immaterial.</P>
+
+<!--/IMPORT-->
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Wednesday, January 29, 2003</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="versioning.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="operators.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+</BODY>
+</HTML>

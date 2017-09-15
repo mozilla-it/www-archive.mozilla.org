@@ -1,0 +1,2896 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Webclient Requirements Specification Version 1.7</title>
+  </head>
+
+  <body bgcolor="#FFFFFF">
+
+    <h1>Webclient Requirements Specification Version 1.7</h1>
+
+    Review Status: version 1.3 formally reviewed <P></P>
+
+    <H3>NOTE: This document specifies the ideal webclient, not the
+    current webclient or even a future webclient.  That is, not
+    everything in here will be implemented, but nothing will be
+    implemented that isn't in here.  In other words, the actual
+    implementation will be a proper subset of what is specified
+    here.</H3>
+
+    <H3>post feedback to netscape.public.mozilla.java with the subject webclient spec</H3>
+
+<IMG SRC="new-begin.xbm"></IMG><P></P>
+
+    Sections changed since the
+    previous version of the document are bracketed like this.<P></P>
+
+<IMG SRC="new-end.xbm"></IMG><P></P>
+
+
+
+
+
+    <h2>Table of Contents</h2>
+
+    <OL TYPE="I">
+      
+      <LI> <A HREF="#Intro">Introduction</A>
+
+	<OL TYPE="A">
+
+	  <LI> <A HREF="#Context">How the software fits into the larger system</A>
+	  </LI>
+
+	  <LI> <A HREF="#Description">Overall description</A>
+	  </LI>
+	  
+	  <LI> <A HREF="#ProjConstraints">Software Project Constraints</A>
+	  </LI>
+	  
+	</OL>
+
+      </LI>
+
+      <LI> <A HREF="#Problem">Detailed Problem Description</A>
+
+	<OL TYPE="A">
+
+	  <LI> <A HREF="#InfoFlow">Information Flow</A>
+	  </LI>
+
+	  <LI> <A HREF="#Interfaces">System Interface Description</A>
+	  </LI>
+
+	</OL>
+
+      </LI>
+
+      <LI> <A HREF="#Functional">Functional Description</A>
+
+	<OL TYPE="A">
+
+	  <LI> <A HREF="#Partitioning">Functional Partitioning</A>
+
+	    <OL TYPE="1">
+
+	      <LI> <A HREF="#Part1">webclient API</A>
+	      </LI>
+
+	      <LI> <A HREF="#Part2">Event System</A>
+	      </LI>
+
+	    </OL>
+
+	  </LI>
+
+	</OL>
+
+      </LI>
+      
+      <LI> <A HREF="#Behavior">Behavioral Description</A>
+
+	<OL TYPE="A">
+
+	  <LI> <A HREF="#States">System States</A>
+	  </LI>
+
+	  <LI> <A HREF="#Events">Events and Actions</A>
+	  </LI>
+
+	</OL>
+
+      </LI>
+      
+      <LI> <A HREF="#Validation">Validation Criteria</A>
+
+	<OL TYPE="A">
+
+	  <LI> <A HREF="#Perf">Performance Bounds</A>
+	  </LI>
+	  
+	  <LI> <A HREF="#ValidationConsiderations">Special Considerations</A>
+	  </LI>
+	    
+	</OL>
+
+      </LI>
+
+      <LI> <A HREF="#Appendix">Appendices</A>
+
+	<OL TYPE="A">
+
+	  <LI> <A HREF="#OtherProjects">Other Projects Similar to This One</A>
+	  </LI>
+	  <LI> <A HREF="#ImplDiffs">Differences from the Current Implementation</A>
+	  </LI>
+
+	  <LI> <A HREF="#Credits">People who have worked on this document</A>
+	  </LI>
+
+	</OL>
+
+      </LI>
+
+      
+    </OL>
+
+<HR>
+
+    <H2> <A NAME="Intro">Introduction</A> </H2>
+    
+    <UL>
+
+      
+	The webclient project aims to provide a browser neutral Java API
+	that enables Java applications (not applets) to access generic
+	web browsing capability.  This capability includes, but is not
+	limited to: web content rendering, navigation, a history
+	mechanism, and progress notification.  The actual capabilities
+	implemented depend on the underlying browser implementation.
+	Webclient does not deal with web authoring.<P></P>
+
+
+
+	This document is the canonical source of requirements for the
+	software.  If new feature requests or changes are granted, they
+	should first be included in the spec and then in the
+	implementation.  This document should be put under change
+	control once the initial revision is approved. <P></P>
+
+      
+    <H3> <A NAME="Context">How the software fits into the larger system</A> </H3>
+    
+    <UL>
+
+
+      Any Java program may use the Webclient API to access browser
+      functionality.  Webclient will be accessible to an embedding
+      program (the custom app), in the following forms, and only the
+      following forms: <P></P>
+
+	
+
+<UL>
+	  
+	  <LI> <P>Programmatically, as a Jar file from which you can
+	  directly access webclient classes. 
+	  </P></LI>
+
+	  <LI> <P> As a Java Bean, that can be embedded in a program
+	  using a bean enabled development tool.
+	  </P></LI>
+
+	</UL> <P></P>
+
+     There is a related project to webclient, tentatively called
+     "Webclient for the Star Office API", that deals with providing for
+     the StarOffice API what webclient provides for the Java
+     environment.  All of the API's documented here will have an
+     analogous representation in UNO for StarOffice.<P></P>
+
+	Webclient will be available in the following environments:
+	<P></P>
+
+	<h4>Operating Systems</h4>
+
+	<UL> 
+	  
+	  <LI> <P> Windows NT 4.0 SP3 and greater
+	  </P> </LI>
+
+	  <LI> <P> Solaris 2.6 and greater
+	  </P> </LI>
+
+	  <LI> <P> linux PENDING(edburns): what dist and versions?
+	  </P> </LI>
+
+	  <LI> <P> MacOS 8
+	  </P> </LI>
+
+	</UL><P></P>
+
+    <h4>Java environments</h4>
+
+    <UL>
+      
+      <LI> <P> JDK 1.1.7 and JDK1.2.1 and greater from Sun Microsystems
+	</P> </LI>
+
+      <LI> <P> Linux JDK PENDING(edburns): what dist and version?
+	</P> </LI>
+
+      <LI> <P> Macintosh MRJ 2.1.4 from Apple
+	</P> </LI>
+
+
+
+    </UL>
+
+    <h4><A NAME="Browsers">Browser</A> Environments</h4>
+
+    <UL>
+      
+      <LI> <P> Mozilla Milestone 9
+	  </P> </LI>
+
+      <LI> <P> Internet Explorer 5
+	  </P> </LI>
+
+      <LI> <P> Hot Java Browser Bean
+	  </P> </LI>
+
+      While not going into too much implementation specific detail, the
+      current plan calls for wrapping mozilla first, then wrapping
+      IE.<P></P>
+
+    </UL>
+    </UL>
+    
+    <H3> <A NAME="Description">Overall description</A> </H3>
+    
+    <UL>
+
+      <B>Why do we need webclient?</B><BR></BR>
+
+      As mentioned in the introduction, the webclient project aims to
+      provide a browser neutral Java API that enables generic web
+      browsing capability.  Currently, there are several projects that
+      provide generic web browsing capability in Java [<A
+      HREF="#OtherProjects">1</A>].  However, none of these projects
+      leverage the major browsers.  The ability to wrap the major
+      browsers provides several benefits: <BR></BR>
+
+	<UL>
+
+         <LI><P>Webclient puts the burden of "keeping up with the
+         Joneses" where it belongs, on those who have the business need
+         and the resources to keep up with current standards and
+         rendering demands.  </P></LI>
+
+	  <LI><P>The flexible API allows one to provide an
+	  implementation for application specific circumstances, for
+	  example, small footprint devices; PENDING(edburns): add more
+	  value adds for wrapping the major browsers.  </P></LI>
+
+          <LI><P>Webclient gives developers who are building application GUIs
+          with Java world-class HTML rendering capabilities. By
+          world-class we mean: super-fast, fully-functional, and
+          fully-standard-supporting, well supported, widely used, well
+          tested, etc.</P></LI>
+
+
+	  </UL>
+
+      Another reason for webclient's existence is to showcase the power
+      of embedding Mozilla (and other browsers).  The success of the
+      mozilla project is important to Sun (and to many other companies
+      and individuals).  Making Mozilla available to as wide an audience
+      as possible is important. <P></P>
+
+
+      <h4>Goals</H4>
+
+    <UL>
+
+      <LI><P> Multi-browser implementation <BR></BR>
+
+	  Webclient will wrap <A HREF="#Browsers">the above mentioned
+	  browsers</A>.  </P></LI>
+      
+      <LI> <P> Scalability <BR></BR>
+
+	  The full webclient API will expose the union of the
+	  capabilities of all the underlying browsers, however, the api
+	  will behave gracefully if the underlying browser
+	  implementation doesn't support all of the webclient API
+	  features.  For example, suppose there is a webclient
+	  implementation for a small footprint browser, let's say the
+	  beduin browser for pJava.  This browser may not include the
+	  capability for "find in document", but the "find in document"
+	  API exists in webclient.  This will not pose a problem: either
+	  the method(s) for "find in document" will do nothing, or there
+	  will be a subset of the full webclient API that can be
+	  implemented in the case of a reduced capability browser.  </P>
+
+<IMG SRC="new-begin.xbm"></IMG><P></P>
+
+          <P>If the underlying browser doesn't implement a particular
+          method of the spec the
+          <CODE>org.mozilla.webclient.UnimplementedException</CODE>
+          should be thrown.</P>
+
+<IMG SRC="new-end.xbm"></IMG><P></P>
+
+	  <P>Another facet of scalability is partitioning.  For example.
+	  Parts of the webclient API may use Java2 API's such as the
+	  Swing UI toolkit, but webclient will still be deployable in
+	  non-Java2 environments.  </P>
+
+
+	  </LI>
+
+      <LI> <P>Low overhead <BR></BR>
+
+	  Webclient is a thin layer of software on top of a browser and,
+	  as such, will not cause major memory consumption outside of
+	  that already caused by the browser and the VM in which
+	  webclient is running.
+
+      </P></LI> 
+
+      <LI> <P>Accessibility <BR></BR>
+
+	  Webclient will have APIs to make the entire user experience
+	  accessibly to persons with disabilities. PENDING(edburns):
+	  need to investigate.
+
+      </P></LI> 
+
+
+    </UL>
+
+    </UL>
+    
+    <H3> <A NAME="ProjConstraints">Software Project Constraints</A> </H3>
+    
+    <UL>
+
+      Sun aims to complete principal development for the webclient
+      project by the end of calendar 1999.  After that point, Sun may
+      continue to be the steward of webclient development at
+      mozilla.org, but may also pass the mantle on to some other entity.
+      Webclient is designed for Java.  Providing a non-Java
+      implementation is a deviation from this specification.
+
+    </UL>
+    
+    </UL>
+
+    <H2> <A NAME="Problem">Detailed Problem Description</A> </H2>
+    
+    <UL>
+      
+    <H3> <A NAME="InfoFlow">Information Flow</A>	  </H3>
+    
+    <UL>
+
+      Information passes between the custom app and webclient via <A
+      HREF="#Events">events</A> and method invocations.  Generally,
+      events carry information from webclient to the custom app, and
+      method invocations carry information from the custom app to
+      webclient.  Stated another way, events are generated by webclient,
+      but the implementation of what to do with an event is provided by
+      the custom app.  Method invocations come from the custom app, but
+      are implemented by webclient.  The method invocations are listed
+      in the <A HREF="Interfaces">Interface Description section</A>.
+      See <A HREF="#Events">the section on events</A> for detailed
+      information about the events generated by webclient.
+      
+    </UL>
+    
+    <H3> <A NAME="Interfaces">System Interface Description</A>	  </H3>
+    
+    <UL>
+
+
+      To the custom app developer, webclient's graphical user interface
+      is a <CODE>java.awt.Canvas</CODE> subclass,
+      <CODE>BrowserControlCanvas</CODE>, that can be inserted in to the
+      custom app's display hierarchy as the developer sees fit.
+      Webclient pops up no dialogs.  Instead, the API will notify the
+      application of events (see listener interfaces below).  The custom
+      app developer must provide all GUI elements.  A
+      <CODE>BrowserControlCanvas</CODE> instance is a browser window.
+      It may display frames within itself when a page containing frames
+      is visited.  It is perfectly permissible to have multiple
+      <CODE>BrowserControlCanvas</CODE> instances in a custom app, but
+      it is the custom app's business to manage the collection of
+      <CODE>BrowserControlCanvas</CODE> instances.  For Each
+      <CODE>BrowserControlCanvas</CODE> instance there will be a way to
+      access the below methods.  Invoking any of the below methods will
+      affect only the <CODE>BrowserControlCanvas</CODE> instance from
+      which the methods were accessed.  See the section on <A
+      HREF="#Part1">functional partitioning</A> for more
+      information.<P></P>
+
+      The programmatic interface to webclient is a collection of Java
+      interfaces and one Java class, with the interfaces organized by
+      functionality.  All of the following classes and interfaces are
+      implemented by webclient and are callable from the custom app.
+      See also the <A HREF="#Events">EventListener</A> interfaces, which
+      are implemented by the custom app and are called by
+      webclient.<P></P>
+
+<UL>
+<LI><A HREF="#webclient.BrowserControl">interface webclient.BrowserControl</A></LI>
+<LI><A HREF="#webclient.Bookmarks">interface webclient.Bookmarks</A></LI>
+<LI><A HREF="#webclient.BrowserControlCanvas">interface webclient.BrowserControlCanvas</A></LI>
+<LI><A HREF="#webclient.CurrentPage">interface webclient.CurrentPage</A></LI>
+<LI><A HREF="#webclient.EventRegistration">interface webclient.EventRegistration</A></LI>
+<LI><A HREF="#webclient.History">interface webclient.History</A></LI>
+<LI><A HREF="#webclient.Navigation">interface webclient.Navigation</A></LI>
+<LI><A HREF="#webclient.cache.NetDataCacheManager">interface webclient.cache.NetDataCacheManager</A></LI>
+<LI><A HREF="#webclient.cache.CachedNetData ">interface webclient.cache.CachedNetData </A></LI>
+<LI><A HREF="#webclient.cache.NetDataCacheRecord">interface webclient.cache.NetDataCacheRecord</A></LI>
+<LI><A HREF="#webclient.cache.NetDataCache">interface webclient.cache.NetDataCache</A></LI>
+<LI><A HREF="#webclient.cache.NetDiskDataCache">interface webclient.cache.NetDiskDataCache</A></LI>
+<LI><A HREF="#webclient.Preferences">interface webclient.Preferences</A></LI>
+<LI><A HREF="#webclient.Print">interface webclient.Print</A></LI>
+<LI><A HREF="#webclient.WindowControl">interface webclient.WindowControl</A></LI>
+</UL>
+
+
+<A NAME="webclient.BrowserControlFactory"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>class webclient.BrowserControlFactory</B></FONT></TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.BrowserControl</CODE></FONT></TD>
+<TD><CODE><B>newBrowserControl</B>()</CODE>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">Create a new BrowserControl
+instance
+</TD>
+
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+</TABLE> <P></P>
+
+<A NAME="webclient.BrowserControl"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.BrowserControl</B></FONT></TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="20%"><FONT SIZE="-1">
+<CODE>Object</CODE></FONT></TD>
+<TD WIDTH="30%"><CODE><B>queryInterface</B>(java.lang.String interfaceClassName)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="LEFT" VALIGN="top" WIDTH="50%">Gain access to any of the
+interfaces in the webclient API.  The following strings are currently
+the only valid arguments to this method.  Calling queryInterface with
+any one of these strings returns an instance of the appropriate
+class:<BR></BR> 
+
+<CODE><PRE> 
+<A HREF="#webclient.BrowserControlCanvas">webclient.BrowserControlCanvas</A>
+<A HREF="#webclient.CurrentPage">webclient.CurrentPage</A> 
+<A HREF="#webclient.EventRegistration">webclient.EventRegistration</A> 
+<A HREF="#webclient.ExtendedEventRegistration">webclient.ExtendedEventRegistration</A>
+<A HREF="#webclient.History">webclient.History</A> 
+<A HREF="#webclient.Navigation">webclient.Navigation</A> 
+<A HREF="#webclient.cache.NetDataCacheManager">webclient.cache.NetDataCacheManager</A>
+<A HREF="#webclient.Preferences">webclient.Preferences</A> 
+<A HREF="#webclient.Print">webclient.Print</A> 
+<A HREF="#webclient.WindowControl">webclient.WindowControl</A>
+</PRE></CODE>
+</TD>
+
+</TR>
+</TABLE> <P></P>
+
+<A NAME="webclient.Bookmarks"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.Bookmarks</B></FONT> PENDING(edburns): define the type for a bookmark entry</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>addBookmark</B>(java.lang.Object mayBeNullParent, webclient.BookmarkEntry bookmark)</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR><TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;javax.swing.tree.TreeModel</CODE></FONT></TD>
+<TD><CODE><B>getBookmarks</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>removeBookmark</B>(webclient.BookmarkEntry bookmark)</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+</TABLE> <P></P>	
+
+<A NAME="webclient.BrowserControlCanvas"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.BrowserControlCanvas</B></FONT></TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setBounds</B>(int x, int y, int w, int h)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setBounds</B>(Rectangle rect)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.awt.Rectangle</CODE></FONT></TD>
+<TD><CODE><B>getBoundsRelativeToWindow</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.awt.Point</CODE></FONT></TD>
+<TD><CODE><B>getEventCoordsLocalToWindow(MouseEvent evt)</B></CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getWindow</B>(java.awt.DrawingSurfaceInfo dsi)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">get the native window handle
+as an int.
+</TD>
+
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.awt.Rectangle</CODE></FONT></TD>
+<TD><CODE><B>getWindowBounds</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+</TABLE> <P></P>
+
+<A NAME="webclient.CurrentPage"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.CurrentPage</B></FONT></TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>copyCurrentSelectionToSystemClipboard</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>findInPage</B>(java.lang.String stringToFind, boolean forward, boolean matchCase)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>findNextInPage</B>(boolean forward)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getCurrentURL</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>org.w3c.dom.Document</CODE></FONT></TD>
+<TD><CODE><B>getDOM</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">Gain access the DOM for the currently loaded document for this BrowserControl instance.
+</TD>
+
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.PageInfo</CODE></FONT></TD>
+<TD><CODE><B>getPageInfo</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getSource</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;byte []</CODE></FONT></TD>
+<TD><CODE><B>getSourceBytes</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>resetFind</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>selectAll</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+
+</TABLE> <P></P>
+
+<IMG SRC="new-begin.xbm"></IMG><P></P>
+
+<A NAME="webclient.EventRegistration"></A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+      <TR bgColor="#ccccff" class=TableHeadingColor>
+        <TD colSpan=2><B><FONT
+        size="+2">webclient.EventRegistration</FONT></B> See the
+        listeners and events in the <A HREF="#Events">Events Section</A>
+        </TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>addDocumentListener</B>(webclient.DocumentListener 
+          documentListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>removeDocumentListener</B>(webclient.DocumentListener 
+          documentListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>addDocumentLoadListener</B>(webclient.DocumentLoadListener 
+          listener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>removeDocumentLoadListener</B>(webclient.DocumentLoadListener 
+          listener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;</FONT></TT></TD>
+        <TD><TT><B>DOM events are handled via the org.w3c.dom interfaces.</B></TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>addJavaScriptListener</B>(webclient.JavaScriptListener 
+          javaScriptListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>removeJavaScriptListener</B>(webclient.JavaScriptListener 
+          javaScriptListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>addFocusListener</B>(java.awt.event.FocusListener 
+          focusListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>removeFocusListener</B>(java.awt.event.FocusListener
+          focusListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>addKeyListener</B>(java.awt.event.KeyListener 
+          keyListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>removeKeyListener</B>(java.awt.event.KeyListener
+          keyListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>addMouseListener</B>(java.awt.event.MouseListener 
+          mouseListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>removeMouseListener</B>(java.awt.event.MouseListener
+          mouseListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>addWindowListener</B>(java.awt.event.WindowListener 
+          windowListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>removeWindowListener</B>(java.awt.event.WindowListener
+          windowListener)</TT></TD></TR>
+
+
+</TBODY></TABLE> <P></P>
+<IMG SRC="new-end.xbm"></IMG><P></P>
+
+<IMG SRC="new-begin.xbm"></IMG><P></P>
+
+<A NAME="webclient.ExtendedEventRegistration"></A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+      <TR bgColor="#ccccff" class=TableHeadingColor>
+        <TD colSpan=2><B><FONT size="+2">webclient.ExtendedEventRegistration</FONT></B>
+         </TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>addHyperLinkEventListener</B>(javax.swing.event.HyperLinkEventListener hyperLinkEventListener)</TT></TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;void</FONT></TT></TD>
+        <TD><TT><B>removeHyperLinkEventListener</B>(javax.swing.event.HyperLinkEventListener hyperLinkEventListener)</TT></TD></TR>
+
+</TBODY></TABLE> <P></P>
+
+<IMG SRC="new-end.xbm"></IMG><P></P>
+
+<A NAME="webclient.History"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.History</B></FONT></TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>back</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>canBack</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.HistoryEntry []</CODE></FONT></TD>
+<TD><CODE><B>getBackList</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">Get the copied list of previously visited pages from the history.
+</TD>
+
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>clearHistory</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>forward</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>canForward</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.HistoryEntry []</CODE></FONT></TD>
+<TD><CODE><B>getForwardList</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">Get the copied list of previously visited pages from the history.
+</TD>
+
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.HistoryEntry []</CODE></FONT></TD>
+<TD><CODE><B>getHistory</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">Return a copy of the entire history
+</TD>
+
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.HistoryEntry</CODE></FONT></TD>
+<TD><CODE><B>getHistoryEntry</B>(int&nbsp;historyIndex)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getHistoryIndex</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">returns the index of the currently viewed page in the history.
+</TD>
+
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>setHistoryIndex</B>(int&nbsp;historyIndex)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">cause the browser to navigate
+to the HistoryEntry at index historyIndex.
+</TD>
+
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getHistoryLength</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getURL</B>(int&nbsp;historyIndex)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">A convenience method to return
+the url of a HistoryEntry at a given index.
+</TD>
+
+</TR>
+
+</TABLE> <P></P>
+
+<IMG SRC="new-begin.xbm"></IMG><P></P>
+
+
+<A NAME="webclient.Navigation"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.Navigation</B></FONT></TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>loadURL</B>(java.lang.String&nbsp;urlString)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>loadFromStream</B>(java.io.InuptStream stream, String contentType)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>refresh</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>stop</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+</TABLE> <P></P>
+
+<IMG SRC="new-end.xbm"></IMG><P></P>
+
+
+<A NAME="webclient.cache.NetDataCacheManager"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.cache.NetDataCacheManager</B></FONT> See <A HREF="http://lxr.mozilla.org/mozilla/source/netwerk/cache/public/nsINetDataCacheManager.idl">nsINetDataCacheManager.idl</A></TD>
+</TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor> <TD align=right
+      vAlign=top width="1%"><TT><FONT
+      size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>BYPASS_MEMORE_CACHE_MASK</B></TT></TD>
+
+      <TR bgColor="#ffffff" class=TableRowColor> <TD align=right
+      vAlign=top width="1%"><TT><FONT
+      size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>BYPASS_PERSISTENT_CACHE_MASK</B></TT></TD>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>containsDataForURI</B>(java.lang.String uri, java.lang.String secondaryKey, int flags)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.cache.CachedNetData</CODE></FONT></TD>
+<TD><CODE><B>getCachedNetData</B>(java.lang.String uri, java.lang.String secondaryKey, int flags)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.cache.NetDataDiskCache</CODE></FONT></TD>
+<TD><CODE><B>getDiskCache</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getHitRatio</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.cache.NetDataCache</CODE></FONT></TD>
+<TD><CODE><B>getMemoryCache</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getNumEntries</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+
+<CODE>&nbsp;java.util.Enumeration</CODE></FONT>
+
+</TD>
+
+<TD><CODE><B>newCacheEntryEnumerator</B>()</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>removeAll</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+</TABLE> <P></P>
+
+<A NAME="webclient.cache.CachedNetData"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.cache.CachedNetData extends webclient.cache.NetDataCacheRecord</B></FONT> See <A HREF="http://lxr.mozilla.org/mozilla/source/netwerk/cache/public/nsICachedNetData.idl">nsICachedNetData.idl</A></TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+
+<CODE>&nbsp;void</CODE></FONT>
+
+</TD>
+
+<TD><CODE><B>commit</B>()</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.util.Date</CODE></FONT></TD>
+<TD><CODE><B>getExpirationTime</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.util.Date</CODE></FONT></TD>
+<TD><CODE><B>getLastRetrievalTime</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getNumRetrievals</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getSecondaryKey</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>isUpdateInProgress</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+</TABLE> <P></P>
+
+
+<A NAME="webclient.cache.NetDataCacheRecord"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.cache.NetDataCacheRecord</B></FONT> See <A HREF="http://lxr.mozilla.org/mozilla/source/netwerk/cache/public/nsINetDataCacheRecord.idl">nsINetDataCacheRecord.idl</A></TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>delete</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getContentLength</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getKey</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getMetaData</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.io.Reader</CODE></FONT>
+</TD>
+<TD><CODE><B>getReader</B>()</CODE> 
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getRecordID</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+
+<CODE>&nbsp;java.io.Writer</CODE></FONT>
+
+</TD>
+
+<TD><CODE><B>getWriter</B>()</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+</TABLE> <P></P>
+
+
+<A NAME="webclient.cache.NetDataCache"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.cache.NetDataCache</B></FONT> See <A HREF="http://lxr.mozilla.org/mozilla/source/netwerk/cache/public/nsINetDataCache.idl">nsINetDataCache.idl</A></TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>containsDataForKey</B>(java.lang.String key)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+
+<CODE>&nbsp;void</CODE></FONT>
+
+</TD>
+
+<TD><CODE><B>setCacheCapacity</B>(int kiloByteSize)</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+
+<CODE>&nbsp;int</CODE></FONT>
+
+</TD>
+
+<TD><CODE><B>getCacheCapacity</B>()</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.cache.NetDataCacheRecord</CODE></FONT></TD>
+<TD><CODE><B>getCachedNetData</B>(java.lang.String key)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.cache.NetDataCacheRecord</CODE></FONT></TD>
+<TD><CODE><B>getCachedNetDataByID</B>(int RecordID)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getDescription</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getMaxEntries</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+
+<CODE>&nbsp;webclient.cache.NetDataCache</CODE></FONT>
+
+</TD>
+
+<TD><CODE><B>getNextCache</B>()</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getNumEntries</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+
+<CODE>&nbsp;int</CODE></FONT>
+
+</TD>
+
+<TD><CODE><B>getStorageInUse</B>()</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>isEnabled</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;boolean</CODE></FONT></TD>
+<TD><CODE><B>isReadOnly</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.util.Enumeration</CODE></FONT></TD>
+<TD><CODE><B>newCacheEntryEnumerator</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+
+<CODE>&nbsp;void</CODE></FONT>
+
+</TD>
+
+<TD><CODE><B>removeAll</B>()</CODE> 
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+</TABLE> <P></P>
+
+<A NAME="webclient.cache.NetDataDiskCache"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.cache.NetDiskDataCache extends webclient.cache.NetDataCache</B></FONT> See <A HREF="http://lxr.mozilla.org/mozilla/source/netwerk/cache/public/nsINetDataDiskCache.idl">nsINetDataDiskCache.idl</A></TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getCacheLocation</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setCacheLocation</B>(java.lang.String absoluteFileName)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+</TABLE> <P></P>
+
+
+
+<A NAME="webclient.Preferences"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.Preferences</B></FONT></TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>exportBookmarks</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>exportCookies</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setCharacterSet</B>(java.lang.Character.Subset charSet)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.Character.Subset</CODE></FONT></TD>
+<TD><CODE><B>getCharacterSet</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setDefaultOutgoingHttpHeader</B>(java.lang.String headerName, java.lang.String headerValue )</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String []</CODE></FONT></TD>
+<TD><CODE><B>getDefaultOutgoingHttpHeaders</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>clearDefaultOutgoingHttpHeader</B>(java.lang.String headerName)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setProperty</B>(java.lang.String propertyName, java.lang.String propertyValue)</CODE>
+
+<BR>
+<TD>
+The following are valid values for propertyName.  Valid values are indicated in parentheses where appropriate.<BR></BR>
+<CODE><PRE>
+FtpProxyHost
+FtpProxyPort
+GlobalProxyHost
+GlobalProxyPort
+GopherProxyHost
+GopherProxyPort
+HistoryExpirationDays
+HomePageAbsoluteURL
+HttpProxyHost
+HttpProxyPort
+IgnoreColorsOnWebPages (TRUE, FALSE)
+IgnoreFontSizesOnWebPages (TRUE, FALSE)
+IgnoreFontStylesOnWebPages (TRUE, FALSE)
+UserStyleSheetAbsoluteURL
+NoProxyHostnameCommaSepList
+SecureProxyHost
+SecureProxyPort
+SocksServerHost
+SocksServerPort
+</PRE></CODE>
+</TD>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.lang.String</CODE></FONT></TD>
+<TD><CODE><B>getProperty</B>(java.lang.String propertyName)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>clearProperty</B>(java.lang.String propertyName)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>importCookies</B>(java.lang.String hotlistFileString)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setPlainTextFont</B>(java.awt.Font font)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;java.awt.Font</CODE></FONT></TD>
+<TD><CODE><B>getPlainTextFont</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;webclient.Security</CODE></FONT></TD>
+<TD><CODE><B>getSecurity</B>()</CODE> PENDING(edburns)
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setWebPageFont</B>(java.awt.Font font)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+</TABLE> <P></P>
+
+
+
+
+<A NAME="webclient.Print"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2"> <B>interface webclient.Print</B></FONT>PENDING: Can
+someone who knows the Java2 Printing API rework this interface to
+conform to JDK?</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>print</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setPaperSize</B>(java.lang.String tbd)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setPaperSource</B>(java.lang.String tbd)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setPageHeader</B>(java.lang.String headerString)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setPageFooter</B>(java.lang.String footerString)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setOrientation</B>(java.lang.String orientation)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setInchMargins</B>(int left, int right, int top, int bottom)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+</TABLE> <P></P>	
+
+
+<A NAME="webclient.WindowControl"></A>
+<TABLE BORDER="1" CELLPADDING="3" CELLSPACING="0" WIDTH="75%">
+<TR BGCOLOR="#CCCCFF" CLASS="TableHeadingColor">
+<TD COLSPAN="3"><FONT SIZE="+2">
+<B>interface webclient.WindowControl</B></FONT></TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;int</CODE></FONT></TD>
+<TD><CODE><B>getNativeWebShell</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+
+<TD ALIGN="right" VALIGN="top" WIDTH="1%">returns the native pointer to
+the native browser as an int.
+</TD>
+
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>moveWindowTo</B>(int&nbsp;x,
+       int&nbsp;y)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>removeFocus</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>repaint</B>(boolean&nbsp;forceRepaint)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setVisible</B>(boolean newState)</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;void</CODE></FONT></TD>
+<TD><CODE><B>setFocus</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+</TABLE> <P></P>
+
+
+
+    </UL>
+
+  </UL>
+
+    <H2> <A NAME="Functional">Functional Description</A> </H2>
+
+    <UL>
+
+      From the custom app developer's perspective, there are two parts
+      to the system: the webclient APIs and the event system. <P></P>
+
+      <H3> <A NAME="Partitioning">Functional Partitioning</A> </H3>
+    
+        <UL>
+      
+	  <H4> <A NAME="Part1">webclient APIs</A> </H4>
+      
+            <UL>
+
+      There is one entry point to the webclient APIs,
+      <CODE>webclient.BrowserControlFactory</CODE>.  This class is used
+      to create <CODE>webclient.BrowserControl</CODE> instances, each of
+      which can vend out a <CODE>webclient.BrowserControlCanvas</CODE>
+      instance, as well as vending implementations of the interfaces
+      listed in the <A HREF="#Interfaces">System Interfaces</A> section.
+
+            </UL>
+	  
+	  <H4> <A NAME="Part2">Event System</A> </H4>
+      
+            <UL>
+
+      The custom app developer obtains a reference to a
+      <CODE>webclient.EventRegistration</CODE> instance and uses it to
+      register/deregister for various events generated by webclient.
+
+            </UL>
+	  
+	</UL>
+	
+    </UL>
+    
+  </UL>
+
+    
+    <H2> <A NAME="Behavior">Behavioral Description</A> </H2>
+    
+    <UL>
+
+      This section examines the operation of the software as a
+      consequence of external and internal events.  It also covers
+      webclient Thread issues.
+      
+    <H3> <A NAME="States">System States</A>	  </H3>
+    
+    <UL>
+
+      <H4>Startup State</H4>
+
+    <UL>
+      
+      Webclient's startup state involves two stages: 1. one-time
+      initalization, and
+      2. per-<CODE>webclient.BrowserControlCanvas</CODE> instance event
+      registration.  All one-time initialization automatically takes
+      place when the first <CODE>webclient.BrowserControl</CODE>
+      instance is placed in the display hierarchy.  Subsequent
+      <CODE>webclient.BrowserControlCanvas</CODE> instances will not
+      incur the cost of this one-time initialization.  Event
+      registration is simply the act of allowing the custom app to
+      receive events from a <CODE>webclient.BrowserControl</CODE>
+      instance.  Webclient is guaranteed not to generate any events
+      until the custom app starts calling
+      <CODE>webclient.BrowserControl</CODE> methods.  Thus it is
+      permissible to do the startup state in a separate Java thread.
+      
+    </UL>
+
+      <H4>Idle State</H4>
+
+    <UL>
+      
+      Webclient's idle state is when it is not fetching content.  Events
+      can still be generated when webclient is in the idle state.  For
+      example, mouse-over, right-mouse button, and javascript events can
+      be generated during the idle state.
+      
+    </UL>
+
+      <H4>Fetching State</H4>
+
+    <UL>
+      
+      Webclient's fetching state is when the underlying browser is
+      fetching web content.  Progress, document load, authentication,
+      and cookie events can be generated during this state.  Fetching
+      state is entered when any of the <CODE>webclient.Navigation</CODE>
+      methods are invoked (other than <CODE>stop()</CODE>), when the
+      currently loaded page programmatically causes another page to be
+      loaded, or when a javascript event causes something to be loaded.
+      Fetching state is exited when the loading is complete, or when the
+	<CODE>stop()</CODE> method is invoked.
+      
+    </UL>
+
+
+    </UL>
+    
+    <H3> <A NAME="Events">Events and Actions</A>	  </H3>
+    
+    <UL>
+
+
+
+ For the more than minimal browser, it is necessary to get event
+ notifications from the native browser.  Hence, webclient will surface
+ event listener APIs. The custom app developer would implement these
+ APIs in the app, and register their implementations with webclient so
+ that the appropriate callback methods in the custom app would be
+ invoked.  Webclient uses the java 1.1 event model, where event objects
+ are generated and all registered listeners receive the event, which
+ they can interrogate to determine the nature of the event.<P></P>
+
+This table lists the event listener types, all of which inherit from
+<CODE>webclient.WebclientEventListener</CODE>: <P></P>
+
+<A NAME="EventListeners"></A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface webclient.DocumentLoadListener</B></TT></TD> 
+
+<TD>Events relating to the loading of documents in this window</TD>
+
+</TR>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface webclient.DocumentListener</B></TT></TD> 
+
+<TD>Events happening in the currently loaded document</TD>
+
+</TR>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface webclient.JavaScriptListener</B></TT></TD> 
+
+<TD>Events relating to the loading of documents in this window.</TD>
+
+</TR>
+</TBODY></TABLE><P></P>
+
+
+
+<IMG SRC="new-begin.xbm"></IMG><P></P>
+
+<P>In addition to the above listeners, webclient also supports the
+following java listener types:</P>
+
+<A NAME="javaListeners"></A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface java.awt.event.FocusListener</B></TT></TD> 
+
+<TD>Focus events in the BrowserControlCanvas.</TD>
+
+</TR>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface java.awt.event.KeyListener</B></TT></TD> 
+
+<TD>Key events in the BrowserControlCanvas.</TD>
+
+</TR>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface java.awt.event.MouseListener</B></TT></TD> 
+
+<TD>Mouse events in the BrowserControlCanvas.</TD>
+
+</TR>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface java.awt.event.WindowListener</B></TT></TD> 
+
+<TD>Window events in the BrowserControlCanvas.</TD>
+
+</TR>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface javax.swing.event.HyperLinkEventListener</B></TT></TD> 
+
+<TD>HyperLink events in the BrowserControlCanvas.</TD>
+
+</TR>
+ <TR bgColor="#ffffff"  class=TableRowColor> 
+      <TD><TT><B>interface javax.swing.event.HyperLinkEventListener</B></TT></TD> 
+
+<TD>HyperLink events in the BrowserControlCanvas.</TD>
+
+</TR>
+</TBODY></TABLE><P></P>
+
+<IMG SRC="new-end.xbm"></IMG><P></P>
+
+
+ All webclient event listeners inherit from
+ <CODE>webclient.WebclientEventListener</CODE>, but provide no
+ additional methods.  The argument to <CODE>eventDispatched()</CODE> is
+ a <CODE>WebclientEvent</CODE> subclass.  The different
+ <CODE>WebclientEvent</CODE> subclasses are listed in the section <A
+ HREF="#EventClasses">WebclientEvent subclasses.</A>
+ <CODE>WebclientEvent</CODE> implements
+ <CODE>webclient.WebclientEventInterface</CODE>, and thus instances can
+ be asked for the type and an eventData Object for the event.  The type
+ is a long and its meaning depends on the <CODE>WebclientEvent</CODE>
+ subclass.  The meaning of the eventData object also varies with the
+ type of event.  <P></P>
+
+
+<A NAME="webclient.WebclientEventListener"> </A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+      <TR bgColor="#ccccff" class=TableHeadingColor> <TD
+      colSpan=3><B><FONT size="+2">webclient.WebclientEventListener</FONT></B> </TD></TR> <TR bgColor="#ffffff"
+      class=TableRowColor> <TD align=right vAlign=top
+      width="1%"><TT><FONT size=-1>&nbsp;void</FONT></TT></TD>
+      <TD><TT><B>eventDispatched</B>(webclient.WebclientEvent event)</TT></TD> <TD>invoked when an event is generated by webclient.</TD></TR>
+</TBODY></TABLE><P></P>
+
+<A NAME="webclient.WebclientEvent"> </A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+      <TR bgColor="#ccccff" class=TableHeadingColor> <TD
+      colSpan=3><B><FONT size="+2">class webclient.WebclientEvent extends java.util.EventObject implements webclient.WebclientEventInterface</FONT></B> </TD></TR> 
+
+</TBODY></TABLE><P></P>
+
+<A NAME="webclient.WebclientEventInterface"> </A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+      <TR bgColor="#ccccff" class=TableHeadingColor> <TD
+      colSpan=3><B><FONT size="+2">interface .WebclientEventInterface</FONT></B> </TD></TR> 
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;long</CODE></FONT></TD>
+<TD><CODE><B>getType</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+<TR BGCOLOR="white" CLASS="TableRowColor">
+<TD ALIGN="right" VALIGN="top" WIDTH="1%"><FONT SIZE="-1">
+<CODE>&nbsp;Object</CODE></FONT></TD>
+<TD><CODE><B>getEventData</B>()</CODE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+</TR>
+
+</TBODY></TABLE><P></P>
+<p>Listeners must be attached to each BrowserControl
+instance.&nbsp; Multiple listeners can be attached to each
+BrowserControl instance.
+
+<H3><A NAME="EventClasses">WebclientEvent subclasses</A></H3>
+
+<p>The following is a listing of event classes for each of the above
+event listener types, each of which inherit from
+<CODE>webclient.WebclientEvent</CODE> and therefore implement
+<CODE>webclient.WebclientEventInterface</CODE>:
+
+<br>&nbsp;
+<br>&nbsp;
+<A NAME="webclient.DocumentLoadEvent"></A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+      <TR bgColor="#ccccff" class=TableHeadingColor> <TD
+      colSpan=3><B><FONT size="+2">webclient.DocumentLoadEvent extends webclient.WebclientEvent</FONT></B> </TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor> <TD align=right
+      vAlign=top width="1%"><TT><FONT
+      size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>START_DOCUMENT_LOAD_EVENT_MASK</B></TT></TD>
+      <TD>notification before any connection established</TD></TR> <TR
+      bgColor="#ffffff" class=TableRowColor> <TD align=right vAlign=top
+      width="1%"><TT><FONT size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>END_DOCUMENT_LOAD_EVENT_MASK</B></TT></TD>
+      <TD>notification after document loaded</TD></TR> <TR
+      bgColor="#ffffff" class=TableRowColor> <TD align=right vAlign=top
+      width="1%"><TT><FONT size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>START_URL_LOAD_EVENT_MASK</B></TT></TD>
+      <TD>notification after DNS resolution and connection to server
+      established</TD></TR> <TR bgColor="#ffffff" class=TableRowColor> <TD
+      align=right vAlign=top width="1%"><TT><FONT
+      size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>END_URL_LOAD_EVENT_MASK</B></TT></TD>
+      <TD>notification that nsIURI finished loading</TD></TR> <TR
+      bgColor="#ffffff" class=TableRowColor> <TD align=right vAlign=top
+      width="1%"><TT><FONT size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>PROGRESS_URL_LOAD_EVENT_MASK</B></TT></TD>
+      <TD>notification on progress of URL load</TD></TR> <TR
+      bgColor="#ffffff" class=TableRowColor> <TD align=right vAlign=top
+      width="1%"><TT><FONT size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>STATUS_URL_LOAD_EVENT_MASK</B></TT></TD>
+      <TD>notification that status text available for URL being
+      loaded</TD></TR> <TR bgColor="#ffffff" class=TableRowColor> <TD
+      align=right vAlign=top width="1%"><TT><FONT
+      size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>UNKNOWN_CONTENT_EVENT_MASK</B></TT></TD>
+      <TD>notification when content of unknown type occurs</TD></TR> <TR
+      bgColor="#ffffff" class=TableRowColor> <TD align=right vAlign=top
+      width="1%"><TT><FONT size=-1>&nbsp;static int</FONT></TT></TD>
+      <TD><TT><B>FETCH_INTERRUPT_EVENT_MASK</B></TT></TD> <TD>Called
+      when a fetch is interrupted, as when the fetch requires
+      authentication or cookies</TD></TR>
+
+</TBODY></TABLE><P></P>
+
+
+<IMG SRC="new-begin.xbm"></IMG><P></P>
+
+
+<A NAME="webclient.DocumentEvent"></A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+      <TR bgColor="#ccccff" class=TableHeadingColor>
+        <TD colSpan=3><B><FONT size="+2">webclient.DocumentEvent extends webclient.WebclientEvent</FONT></B> 
+&nbsp;</TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>TITLE_CHANGE_EVENT_MASK</B></TT></TD>
+        <TD>The document's title has changed</TD></TR>
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>STATUS_CHANGE_EVENT_MASK</B></TT></TD>
+        <TD>There has been a change in the status of the document.</TD></TR></TBODY></TABLE><P></P>
+<IMG SRC="new-end.xbm"></IMG><P></P>
+
+<A NAME="webclient.JavaScriptEvent"></A>
+    <TABLE border=1 cellPadding=3 cellSpacing=0 width="75%">
+      <TBODY>
+      <TR bgColor="#ccccff" class=TableHeadingColor>
+        <TD colSpan="2"><B><FONT size="+2">webclient.JavaScriptEvent extends webclient.WebclientEvent</FONT></B> <BR></BR>
+See <A HREF="http://developer.netscape.com/docs/manuals/js/client/jsref/handlers.htm">http://developer.netscape.com/docs/manuals/js/client/jsref/handlers.htm</A>
+      &nbsp;</TD></TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>ABORT_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>BLUR_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>CHANGE_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>CLICK_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>DOUBLE_CLICK_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>DRAG_DROP_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>ERROR_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor> <TD align=right
+      vAlign=top COLSPAN="2"><TT><FONT size=-1>&nbsp;Focus events are
+      hanled with the java.awt.event.FocusListener interface and the associated
+      FocusEvent class. </FONT></TT></TD>
+      <TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor> <TD align=right
+      vAlign=top COLSPAN="2"><TT><FONT size=-1>&nbsp;Key events are
+      hanled with the java.awt.event.KeyListener interface and the associated
+      KeyEvent class. </FONT></TT></TD>
+      <TD>
+        </TR>
+
+
+      <TR bgColor="#ffffff" class=TableRowColor> <TD align=right
+      vAlign=top COLSPAN="2"><TT><FONT size=-1>&nbsp;Mouse events are
+      hanled with the java.awt.event.MouseListener interface and associated
+      events. </FONT></TT></TD>
+      <TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>MOVE_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>RESET_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>RESIZE_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>SELECT_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>SUBMIT_EVENT_MASK</B></TT></TD>
+        </TR>
+
+      <TR bgColor="#ffffff" class=TableRowColor>
+        <TD align=right vAlign=top width="1%"><TT><FONT 
+          size=-1>&nbsp;static int</FONT></TT></TD>
+        <TD><TT><B>UNLOAD_EVENT_MASK</B></TT></TD>
+        </TR>
+
+
+
+</TBODY></TABLE><P></P>
+
+<P>For the java listener types, KeyListener, MouseListener,
+FocusListener, and WindowListener, the argument KeyEvent, MouseEvent,
+FocusEvent or WindowEvent will implement
+<CODE>webclient.WebclientEventInterface.</CODE> The custom app can then
+obtain the eventData for this event.</P>
+
+
+<p>Other areas that need to be addressed are the java console, and
+security.
+
+    </UL>
+    
+  </UL>
+
+<h2><a NAME="Validation">Validation</a> Criteria</h2>
+
+<ul>This section describes the attributes of a successful implementation.
+This section should be useful for qualifying an implementation to ensure
+that it conforms to the spec.
+<h3>
+<a NAME="Perf"></a>Performance Bounds</h3>
+
+<ul>&nbsp;
+<br><b>Parsing and Rendering Requirements</b>
+<p>The embedded native browser provides the HTML parser and rendering engine.
+Hence, it is expected that the Java application that embeds it through
+the WebClient API manifests the same parsing and rendering behavior.
+<p><b>Functional/Feature Requirements</b>
+<p>The following table shows the expected supported functions or features
+for each properly implemented WebClient APIs.
+<table BORDER COLS=2 WIDTH="95%" NOSAVE >
+<tr BGCOLOR="#CCCCFF" NOSAVE>
+<td NOSAVE>
+<center><b>WebClient API</b></center>
+</td>
+
+<td>
+<center><b>Functions/Features</b></center>
+</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE><b>interface webclient.Accessibility</b></td>
+
+<td>Move focus to the next/previous elements in the page using the keyboard.
+<br>Overide the page color setting to black and white.
+<br>Use default accessible font sizes and style.
+<br>Format pages with given CSS stylesheet.</td>
+</tr>
+
+<tr>
+<td><b>nterface webclient.Bookmarks</b></td>
+
+<td>Add, read and delete bookmarks entries.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.BrowserControlCanvas</b></td>
+
+<td>Control the boundaries of the browser canvas.
+<br>Monitor actions inside the boundaries.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.Cookies</b></td>
+
+<td>Set and delete cookies. </td>
+</tr>
+
+<tr>
+<td><b>interface webclient.CurrentPage</b></td>
+
+<td>Copy selected text to clipboard.
+<br>Search text in Page.
+<br>Get current page's URL, source, and other information.
+<br>Access current document's DOM.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.EventRegistration</b></td>
+
+<td>Listen to JavaScript, DOM, document, window, focus, events.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.ExtendedEventRegistration</b></td>
+
+<td>Listen to hyper link event.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.History</b></td>
+
+<td>Traverse back and forward on the history's entries.
+<br>Get the list of HistoryEntry and the length.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.Navigation</b></td>
+
+<td>Load a document.
+<br>Do a refresh on the current document.
+<br>Stop the loading of document.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.cache.NetDataCacheManager</b></td>
+
+<td>Retrieve the cached network data, disk cache, memory cache, hit ratio,
+and number of entries.&nbsp;
+<br>Add network data to cache. 
+<br>Delete all cached entries.
+<br>Set and store the data for URI.&nbsp;</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.cache.NetDataCacheRecord</b></td>
+
+<td>Access the cache record's information like content length, primary
+key, meta data, record id, writer and reader.
+<br>Delete a record from the cache.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.cache.CachedNetData&nbsp;</b></td>
+
+<td>Access the cached document's information like expiration and last retrieval
+time, retrievals frequency, secondary key for searching entries in the
+cache and update progress indicator.&nbsp;
+<br>Add/update cached document's information.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.cache.NetDataCache&nbsp;</b></td>
+
+<td>Set and get cache capacity.
+<br>Search and retrieve records in the cache.
+<br>Delete all records from the cache.&nbsp;
+<br>Set and store the data for the search key.</td>
+</tr>
+
+<tr>
+<td><b>nterface webclient.cache.NetDiskDataCache</b></td>
+
+<td>Set the absolute cache location.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.PageInfo</b></td>
+
+<td>Retrieve information about the currently displayed page.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.HistoryEntry</b></td>
+
+<td>Add, retrieve, and delete history entries. </td>
+</tr>
+
+<tr>
+<td><b>interface webclient.Preferences</b></td>
+
+<td>Export/import Bookmarks and Cookies.
+<br>Set and get proxies, home page, character set, plain text and web page
+font, history expiration, default outgoing HTTP header.
+<br>Clear settings for default outgoing HTTP header and proxies,&nbsp;</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.Print</b></td>
+
+<td>Print the current loaded document and do necessary print settings,
+like paper size, source, margins, orientation, page header and footer.</td>
+</tr>
+
+<tr>
+<td><b>interface webclient.WindowControl</b></td>
+
+<td>Move window to given location.
+<br>Set and remove window focus.
+<br>Make window visible and not visible.
+<br>Repaint the window.</td>
+</tr>
+</table>
+
+<p><b>Responsiveness Requirements</b>
+<br>&nbsp;</ul>
+
+<ul>The purpose of the table below is to qualify the perfomance of a Java
+application that uses the WebClient API to access&nbsp; browsing capability
+against the native browsers&nbsp; that provide the underlying implementation.
+Performance is measured by the response time for a specific action item.
+The "Gold" time is the response time of the native browser which would
+be the reference time.&nbsp; The Requirement time is the desired maximum
+response time that the Java application should meet inorder to qualify.</ul>
+
+<ul>&nbsp;
+<table BORDER BGCOLOR="#FFFFFF" NOSAVE >
+<tr BGCOLOR="#CCCCFF" NOSAVE>
+<td WIDTH="40%" NOSAVE>
+<center>Action Item</center>
+</td>
+
+<td WIDTH="30%" NOSAVE>
+<center>Requirement time
+<br>&nbsp;(against "Gold" time)&nbsp;</center>
+</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Image loading time</td>
+
+<td>&nbsp; -5% or better</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Applet loading time</td>
+
+<td>&nbsp; -5% or better</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Table loading time</td>
+
+<td>&nbsp; -5% or better</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Repaint (window, screen) time</td>
+
+<td>&nbsp; -5% or better</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Search text in Page time</td>
+
+<td>&nbsp; -2% or better</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Large document loading time</td>
+
+<td>&nbsp; -5% or better</td>
+</tr>
+</table>
+</ul>
+
+<h3>
+<a NAME="Perf"></a>Classes of Tests</h3>
+
+<ul>This section describes the kinds of test cases that can be used to
+verify the correctness of an implementation, particularly with respect
+to the above performance bounds.
+<p><b>Parsing and Rendering Tests</b>
+<br>&nbsp;
+<table BORDER WIDTH="90%" BGCOLOR="#FFFFFF" NOSAVE >
+<tr BGCOLOR="#CCCCFF" NOSAVE>
+<td WIDTH="50%" NOSAVE>
+<center><b>Kinds of Tests</b></center>
+</td>
+</tr>
+
+<tr NOSAVE>
+<td WIDTH="60%" NOSAVE>&nbsp;Loading pages with bad syntax for the following:
+html, table, frame, javascript, plugin, etc.</td>
+</tr>
+
+<tr>
+<td>&nbsp;Loading pages with good syntax for the following: html, table,
+frame, javascript, plugin, etc.</td>
+</tr>
+</table>
+
+<p><b>Functional/Feature Tests</b>
+<br>&nbsp;
+<table BORDER COLS=2 WIDTH="90%" NOSAVE >
+<tr BGCOLOR="#CCCCFF" NOSAVE>
+<td WIDTH="30%" NOSAVE>
+<center><b>Functions/Features</b></center>
+</td>
+
+<td>
+<center><b>Kinds of Tests</b></center>
+</td>
+</tr>
+
+<tr>
+<td>&nbsp;Bookmarks</td>
+
+<td>Adding, reading, and deleting bookmarks entry</td>
+</tr>
+
+<tr>
+<td>&nbsp;Caching</td>
+
+<td>Document caching, image caching
+<br>Clearing the cache</td>
+</tr>
+
+<tr>
+<td>&nbsp;Cookies</td>
+
+<td>Setting, reading and deleting cookie</td>
+</tr>
+
+<tr>
+<td>&nbsp;Copy/Paste</td>
+
+<td>Copying and pasting text in documents</td>
+</tr>
+
+<tr>
+<td>&nbsp;DOM Access</td>
+
+<td>Accessing document object, inserting/deleting nodes, adding attributes</td>
+</tr>
+
+<tr>
+<td>&nbsp;Document elements navigation</td>
+
+<td>Selecting form elements using keyboard and mouse</td>
+</tr>
+
+<tr>
+<td>&nbsp;Event handling</td>
+
+<td>Focus/unfocusing windows, widgets
+<br>Selecting links&nbsp;</td>
+</tr>
+
+<tr>
+<td>&nbsp;History</td>
+
+<td>Navigating backward and forward on history URLs, adding history entry</td>
+</tr>
+
+<tr>
+<td>&nbsp;HTML</td>
+
+<td>Loading html page with tables, forms, frames, style sheets, applets
+(class &amp; jar files), plugins, etc.</td>
+</tr>
+
+<tr>
+<td>&nbsp;JavaScript</td>
+
+<td>Using JavaScript host and core objects, event and event handlers, liveconnect</td>
+</tr>
+
+<tr>
+<td>&nbsp;Preferences setting</td>
+
+<td>Setting proxies, exporting/importing cookies and bookmarks, setting
+CharacterSet</td>
+</tr>
+
+<tr>
+<td>&nbsp;Printing&nbsp;</td>
+
+<td>Printing documents with text, images, tables, applets, etc.&nbsp;
+<br>Setup printing preferences.</td>
+</tr>
+
+<tr>
+<td>&nbsp;Protocols</td>
+
+<td>Loading http, https, ftp, gopher, file, and other protocols supported
+by the native browser</td>
+</tr>
+
+<tr>
+<td>&nbsp;Search text in Page</td>
+
+<td>Searching text in Page</td>
+</tr>
+
+<tr>
+<td>&nbsp;Window / Display manipulation</td>
+
+<td>Resizing, moving, scrolling the window, reloading</td>
+</tr>
+
+<tr>
+<td>&nbsp;XML (if native browser supports)</td>
+
+<td>Loading XML pages</td>
+</tr>
+</table>
+
+<p><b>Responsiveness Tests</b>
+<br>&nbsp;
+<table BORDER BGCOLOR="#FFFFFF" NOSAVE >
+<tr BGCOLOR="#CCCCFF" NOSAVE>
+<td NOSAVE>
+<center><b>Action Items</b></center>
+</td>
+
+<td>
+<center><b>Instructions</b></center>
+</td>
+
+<td>
+<center><b>"Gold" time</b></center>
+</td>
+
+<td>
+<center><b>Requirement</b>
+<br><b>time</b></center>
+</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Images loading&nbsp;</td>
+
+<td>Load page with many large images.</td>
+
+<td>.</td>
+
+<td>.&nbsp;</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Classes loading</td>
+
+<td>Load page with a huge jar/cab file or multiple jar/cab files.</td>
+
+<td>.&nbsp;</td>
+
+<td>.&nbsp;</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Table loading</td>
+
+<td>Load a complex nested table.</td>
+
+<td>.&nbsp;</td>
+
+<td>.&nbsp;</td>
+</tr>
+
+<tr NOSAVE>
+<td ROWSPAN="3" NOSAVE>&nbsp;Resizing</td>
+
+<td>Load a document with heavy contents and resize the window to the "full
+screen".</td>
+
+<td>.</td>
+
+<td>.</td>
+</tr>
+
+<tr>
+<td>Load a document with heavy contents, scroll to the bottom of the page
+and resize the window to the "full screen".</td>
+
+<td>.</td>
+
+<td>.</td>
+</tr>
+
+<tr>
+<td>Make the window size small. Load a large document with images. Scroll
+the display screen up and down.</td>
+
+<td>.</td>
+
+<td>.</td>
+</tr>
+
+<tr NOSAVE>
+<td ROWSPAN="2" NOSAVE>&nbsp;Large document loading</td>
+
+<td>Load a large document, e.g. a journal, book, RFC, and the likes.</td>
+
+<td>.&nbsp;</td>
+
+<td>.&nbsp;</td>
+</tr>
+
+<tr>
+<td>View the source of the document.</td>
+
+<td>.&nbsp;</td>
+
+<td>.&nbsp;</td>
+</tr>
+
+<tr NOSAVE>
+<td NOSAVE>&nbsp;Search in Page</td>
+
+<td>Load a large document.
+<br>Find a text located at the bottom starting from the top of the document.</td>
+
+<td>.&nbsp;</td>
+
+<td>.&nbsp;</td>
+</tr>
+</table>
+</ul>
+
+<h3>
+</h3>
+</ul>
+
+<h4>
+<font size=+0>&nbsp;</font></h4>
+&nbsp;
+<p>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<table COLS=1 WIDTH="100%" NOSAVE NOBORDER >
+<tr>
+<td></td>
+</tr>
+</table>
+    
+    <H2> <A NAME="Appendix">Appendices</A> </H2>
+    
+    <UL>
+
+
+      
+    <H3> <A NAME="OtherProjects">Other Browsers accessible from Java </A></H3>
+    
+    <UL>
+
+      The following projects contain some similarities to webclient: <BR></BR>
+
+	<UL>
+
+	  <LI><P> Ice Browser: <A HREF="http://www.icesoft.no/ICEBrowser/">http://www.icesoft.no/ICEBrowser/</A>
+          </P></LI>
+
+	  <LI><P> CLUE: <A HREF="http://www.coolclue.com/cluehome.html">http://www.coolclue.com/cluehome.html</A>
+          </P></LI>
+
+	  <LI><P> HotJava bean: <A HREF="http://www.sun.com/software/htmlcomponent/index.html">http://www.sun.com/software/htmlcomponent/index.html</A>
+          </P></LI>
+
+	  <LI><P> Swing JEditorPane: <A HREF="http://java.sun.com/products/jfc/swingdoc-api-1.1/javax/swing/JEditorPane.html">http://java.sun.com/products/jfc/swingdoc-api-1.1/javax/swing/JEditorPane.html</A>
+          </P></LI>
+
+
+
+	</UL> 
+
+
+    </UL>
+
+
+
+    <H3> <A NAME="ImplDiffs">Differences from the Current Implementation</A>	  </H3>
+    
+    <UL>
+
+      This spec differs substantially from the current webclient
+      implementation, as of 17 September 1999.  This section lists some
+      of the differences.<P></P>
+
+	<UL>
+
+	  <LI><P> System Entry Point</P>
+
+	    <P>The current system requires the custom app developer to
+	    use a <CODE>webclient.BrowserControlCanvasFactory</CODE>
+	    static method to create
+	    <CODE>webclient.BrowserControlCanvas</CODE> instances, each
+	    of which can be queried for their associated
+	    <CODE>BrowserControl</CODE> instance, which is then used to
+	    navigate, etc. </P>
+
+	    <P>The spec requires the custom app developer to use a
+	    <CODE>webclient.BrowserControlFactory</CODE> static method
+	    to create <CODE>webclient.BrowserControl</CODE> instances,
+	    each of which can be queried for their associated
+	    <CODE>BrowserControlCanvas</CODE> instance, in addition to
+	    being queriable for other
+	    <CODE>webclient.BrowserControl</CODE> interfaces.</P>
+
+	  </LI> <P></P>
+
+	  <LI><P> Feature Paucity</P>
+
+	<P>The current implementation doesn't provide any events,
+	Bookmarks, Preferences, CurrentPage, Accessibility
+	features.  It provides limited History and WindowControl
+	features.</P>
+
+      </LI>
+
+
+	</UL>
+
+    </UL>
+
+
+    <H3> <A NAME="Credits">People who have worked on this Document</A>	  </H3>
+    
+    <UL>
+
+	  <LI> <A HREF="mailto:ed.burns@sun.com">Ed Burns</A> - primary author
+	  </LI>
+
+	  <LI> <A HREF="mailto:anns@eng.sun.com">Ann Sunhachawee</A> - Events and Actions, reviewer
+	  </LI>
+
+	  <LI> <A HREF="mailto:leila.garin@eng.sun.com">Leila Garin</A> - Validation Criteria
+	  </LI>
+
+	  <LI> <A HREF="mailto:frankm@eng.sun.com">Frank Mitchell</A> - reviewer
+	  </LI>
+
+	  <LI> <A HREF="mailto:mi@stardivision.de">Michael Hoennig</A> - reviewer
+	  </LI>
+
+	  <LI> <A HREF="mailto:atripp@home.com">Andy Tripp</A> - reviewer
+	  </LI>
+
+	  <LI> <A HREF="mailto:igorkh@hotbot.com">Igor Khavkine</A> - reviewer
+	  </LI>
+
+    </UL>
+
+
+
+
+  </UL>
+
+
+<PRE>
+
+Here is a checklist for verifying that your requirements specification
+is complete:
+
+The requirements specification should:
+
+describe the flow and content of information
+
+elaborate all software functions
+
+describe all events that affect the system
+
+uncover design constraints
+
+show evidence and conclusions from research on prior projects that
+addressed the same problem as is being addressed in the specification.
+Specifically, the problems with each prior project should be listed.
+
+specify performance constraints
+
+serve as the basis for a Preliminary User's Manual.
+
+describe the design principles that will be adhered to, for example,
+design for maintainability
+
+describe the benefits of a successful implementation
+
+describe the environment in which the software is to run.
+
+be a cognitive model, that is, it must be described in the user domain,
+with user terms.
+
+separate functionality from implementation
+
+be useful for validating the correctness of an implementation
+
+be tolerent of incompleteness and be augmentable
+
+be modular and loosely coupled
+
+</PRE>
+    
+
+    <hr>
+    <address><a href="mailto:Ed Burns <ed.burns@sun.com>">Ed Burns</a></address>
+<!-- Created: Wed Sep 01 17:40:01 Pacific Daylight Time 1999 -->
+<!-- hhmts start -->
+Last modified: Thu Aug 24 18:16:44 PDT 2000
+<!-- hhmts end -->
+  </body>
+</html>

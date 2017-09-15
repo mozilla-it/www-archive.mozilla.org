@@ -1,0 +1,1092 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Language" content="en">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="Author" content="Rick Potts">
+
+  <title>Mozilla Embedding APIs</title>
+
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+  <h1>Introduction</h1>
+
+  <p>The Mozilla Public API consists of a collection of services and components
+  which are accessed via XPCOM interfaces. Mozilla's XPCOM layer consists of a
+  component model (called XPCOM) and the infrastructure necessary to support
+  dynamic registration, instantiation and manipulation of XPCOM components.</p>
+
+  <p>At the heart of XPCOM's implementation is the Service Manager and the
+  Component Manager. Together, these two services provide a centralized point
+  for gaining access to all of the public Mozilla interfaces.</p>
+
+  <p>The Service Manager exposes all of the available XPCOM services - each
+  service represents a global object which provides some piece of
+  functionality. The Component Manager allows new instances of registered XPCOM
+  components to be instantiated.</p>
+
+  <p><img src="public-apis-image2.gif" height="544" width="541" alt=""></p>
+
+  <p>The embedding layer consists of several components built on top of XPCOM
+  and its services. Much of the Gecko functionality is exposed through a
+  component called the nsWebBrowser. Embedding applications can leverage this
+  component to easily access many of Gecko's features. Each WebBrowser instance
+  represents the "client-area" of a typical browser window. The WebBrowser
+  exposes a set of interfaces which allow the embedding application to control
+  activity and respond to changes within this client area. Using these
+  interfaces an embedding application can build up its own user interface
+  around a WebBrowser instance.<br>
+  <img src="public-apis-image1.gif" height="666" width="634" alt=""></p>
+
+  <h2>Public Classes</h2>
+
+  <p>The following utility classes are available from the XPCOM DLL. They
+  provide some basic functionality which should be leveraged when building new
+  XPCOM components.</p>
+
+  <ul>
+    <li><code>nsCOMPtr&lt;<em>interface-type</em>&gt;</code></li>
+  </ul>
+
+  <p>These are templatized <em>smart pointers</em> which transparently deal
+  with XPCOM reference counting issues. See the <a href=
+  "http://www.mozilla.org/projects/xpcom/nsCOMPtr.html">nsCOMPtr User's
+  Manual</a> for more information.</p>
+
+  <ul>
+    <li><code>nsString</code></li>
+  </ul>
+
+  <p>There are a collection of string classes which support both unicode and
+  ASCII strings. These classes provide a variety of string operations as well
+  as dealing with the memory management issues of storing the underlying data.
+  See the <a href="../../projects/xpcom/string-guide.html">String Guide</a> for
+  more details.</p>
+
+  <ul>
+    <li><code>nsWeakPtr</code></li>
+  </ul>
+
+  <p>This is an nsCOMPtr which encapsulates XPCOM weak reference support. See
+  the <a href=
+  "http://www.mozilla.org/projects/xpcom/weak_references.html">nsIWeakReference</a>
+  document for more information.</p>
+
+  <h2>Public Return Codes</h2>
+
+  <ul>
+    <li><code>NS_SUCCEEDED</code></li>
+
+    <li><code>NS_ERROR_FAILURE</code></li>
+
+    <li><code>NS_ERROR_NOT_IMPLEMENTED</code></li>
+  </ul>
+
+  <h2>Public Functions</h2>
+
+  <p>The following functions are available from the XPCOM DLL.</p>
+
+  <ul>
+    <li>
+      <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/embedding/base/nsEmbedAPI.h#40">NS_InitEmbedding</a></code>
+
+      <p>This function initializes the Gecko embedding support. This must be
+      the first function call made into Gecko.</p>
+    </li>
+
+    <li>
+      <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/embedding/base/nsEmbedAPI.h#47">NS_TermEmbedding</a></code>
+
+      <p>This function shuts down Gecko and cleans up any remaining
+      resources... Currently, once Gecko has been shutdown, it cannot be
+      restarted in the same process space... This should change in the
+      future.</p>
+    </li>
+
+    <li>
+      <code>nsMemory</code>
+
+      <ul>
+        <li><code>nsMemory::Alloc</code></li>
+
+        <li><code>nsMemory::Realloc</code></li>
+
+        <li><code>nsMemory::Free</code></li>
+      </ul>This helper class provides static accessors to the global nsMemory
+      Service.
+    </li>
+
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsComponentManagerUtils.h#63">
+    NS_GetGlobalComponentManager</a></code><br>
+    This function returns an instance of the Component Manager service.</li>
+
+    <li>
+      <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpcom/ds/nsString2.h#626">NS_ConvertASCIItoUCS2</a></code>
+
+      <p>This is a helper class which converts an ASCII string into a UCS2
+      string. Typically, instances of this class are stack allocated, and wrap
+      ASCII arguments which must be converted into UCS2.</p>
+    </li>
+
+    <li><code><a href=
+    "http://www.mozilla.org/projects/xpcom/nsCOMPtr.html#quad2">do_QueryInterface</a></code><br>
+
+    This is a helper class which works in conjunction with nsCOMPtr to perform
+    a simplified call to <code>nsISupports::QueryInterface(...)</code> with a
+    typesafe assignment.</li>
+
+    <li>
+      <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsIInterfaceRequestor.idl#77">
+      do_GetInterface</a></code>
+
+      <p>This function simplfies retrieving interfaces via the
+      <code>nsIInterfaceRequestor::GetInterface(...)</code> method. Using this
+      function, one can use nsISupports instances and still easily access other
+      interfaces via nsIInterfaceRequestor.</p>
+
+      <p>Internally, this function tries to convert the nsISupports argument
+      into an nsIInterfaceRequestor and then calls
+      <code>GetInterface(...)</code> to retrieve the requested interface.</p>
+    </li>
+
+    <li>
+      <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsIWeakReference.idl#134">
+      do_QueryReferent</a></code>
+
+      <p>This function is the equivilent of <code>do_QueryInterface</code>
+      except that it performs the QI through a weak reference.</p>
+    </li>
+
+    <li>
+      <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIServiceManager.h#243">
+      do_GetService</a></code>
+
+      <p>This function simplifies accessing services from the Service
+      Manager.</p>
+    </li>
+
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsComponentManagerUtils.h#240">
+    do_CreateInstance</a></code><br>
+    This function simplifies creating new component instances.</li>
+
+    <li>
+      <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsISupportsUtils.h#1222">
+      nsCOMTypeInfo&lt;<em>interface-type</em>&gt;::GetIID()</a></code>
+
+      <p>This template helper class allows easy access to an interface's nsIID.
+      Typically the <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsISupportsUtils.h#1230">
+      NS_GET_IID(...)</a></code> macro is used instead of using the
+      <code>nsCOMTypeInfo</code> template directly.</p>
+    </li>
+
+    <li>
+      <code><a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsIWeakReference.idl#88">
+      NS_GetWeakReference</a></code>
+
+      <p>This function creates a weak reference to a component which implements
+      the nsIWeakReference interface.</p>
+    </li>
+  </ul>
+
+  <h2>Global Services</h2>
+
+  <h3>nsServiceManager</h3>
+
+  <p>The Service Manager is the central repository for accessing instances of
+  the various XPCOM services. Each service is represented by a singleton object
+  which is instantiated the first time it is requested and remains alive until
+  the Service Manager is shut down, or the service is explicitly unloaded.</p>
+
+  <p>Through the Service Manager, individual services can be loaded, unloaded
+  and accessed.</p>
+
+  <h4>Implemented Interfaces:</h4>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIServiceManager.h">
+    nsIServiceManager</a></code></li>
+  </ul>
+
+  <h4>Related Interfaces:</h4>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIServiceManager.h#158">
+    nsIShutdownListener</a></code></li>
+  </ul>
+
+  <h3>nsMemory</h3>
+
+  <p>The nsMemory service provides the global memory manager implementation for
+  XPCOM. In addition to memory allocation and release, this service provides
+  low memory notifications, called a memory pressure observers, which are
+  notified when memory is <em>low</em> - thus allowing cached resources to be
+  freed.</p>
+
+  <p>All heap access should be done via the nsMemory service. To facilitate
+  this, a set of global functions are available to access the nsMemory methods
+  without requiring an instance of the nsMemory service (see <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsMemory.h">nsMemory.h</a>).</p>
+
+  <h4>Contract-id:</h4>
+
+  <p><code>NS_MEMORY_CONTRACTID</code></p>
+
+  <h4>Implemented Interfaces:</h4>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsIMemory.idl">nsIMemory</a></code></li>
+  </ul>
+
+  <h4>Related Interfaces:</h4>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/ds/nsIObserver.idl">nsIObserver</a></code></li>
+  </ul>
+
+  <h3>nsComponentManager</h3>
+
+  <p>The nsComponentManager service is responsible for creating new instances
+  of XPCOM components. The Component Manager is also responsible for
+  registering and managing the class factories used for component
+  creation...</p>
+
+  <p><strong><em>Contract-id:</em></strong><br>
+  <code>NS_COMPONENTMANAGER_CONTRACTID</code></p>
+
+  <p><strong><em>Implemented Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIComponentManager.idl">
+    nsIComponentManager</a></code></li>
+
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsIInterfaceRequestor.idl">
+    nsIInterfaceRequestor</a></code></li>
+  </ul>
+
+  <p><strong><em>Requestor Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIServiceManager.h">
+    nsIServiceManager</a></code></li>
+  </ul>
+
+  <p><strong><em>Related Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIFactory.idl">nsIFactory</a></code></li>
+  </ul>
+
+  <h3>nsURILoader</h3>
+
+  <p>The nsURILoader service is responsible for targeting a URI at an
+  appropriate content handler. A content handler may be an existing or new
+  window, a helper application or the Unknown Content Handler - if no other
+  handler can be found for the content-type.</p>
+
+  <p><strong><em>Contract-id:</em></strong><br>
+  <code>NS_URI_LOADER_CONTRACTID</code></p>
+
+  <p><strong><em>Implemented Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/uriloader/base/nsIURILoader.idl">nsIURILoader</a></code></li>
+  </ul>
+
+  <p><strong><em>Related Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/uriloader/base/nsIURIContentListener.idl">
+    nsIURIContentListener</a></code></li>
+  </ul>
+
+  <h3>nsUnknownContentTypeHandler</h3>
+
+  <p>The UnknownContentTypeHandler service is the <em>last resort</em> of the
+  URILoader when no other content handler can be located. If no registered
+  content handlers are available, the UnknownContentTypeHandler is
+  notified.</p>
+
+  <p>The default implementation of this service displays a dialog box asking
+  the user if the content should be saved to disk...</p>
+
+  <p><strong><em>Contract-id:</em></strong><br>
+  <code>NS_IUNKNOWNCONTENTTYPEHANDLER_CONTRACTID</code></p>
+
+  <p><strong><em>Implemented Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/xpfe/components/ucth/public/nsIUnkContentTypeHandler.idl">
+    nsIUnknownContentTypeHandler</a></code></li>
+  </ul>
+
+  <h3>HelperApp Launch Dialog</h3>
+
+  <p><strong><em>Contract-id:</em></strong><br>
+  <code>NS_EXTERNALHELPERAPPSERVICE_CONTRACTID</code></p>
+
+  <p><strong><em>Implemented Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/uriloader/exthandler/nsIExternalHelperAppService.idl">
+    nsIExternalHelperAppService</a></code></li>
+  </ul>
+
+  <h3>Preferences Service</h3>
+
+  <p>The Preferences service provides access to persistent data stored within a
+  user's profile directory.</p>
+
+  <p><strong><em>Contract-id:</em></strong><br>
+  <code>NS_PREF_CONTRACTID</code></p>
+
+  <p><strong><em>Implemented Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/modules/libpref/public/nsIPrefService.idl">
+    nsIPrefService</a></code></li>
+
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/modules/libpref/public/nsIPrefBranch.idl">
+    nsIPrefBranch</a></code></li>
+  </ul>
+
+  <p><strong><em>Related Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/modules/libpref/public/nsIPrefListener.idl">
+    nsIPrefListener</a></code></li>
+  </ul>
+
+  <h3>Profile Manager Service</h3>
+
+  <p><strong><em>Contract-id:</em></strong></p>
+
+  <p><strong><em>Implemented Interfaces:</em></strong></p>
+
+  <h3>Document Loader Service (WebProgress)</h3>
+
+  <p>Eventually, this service will be replaced by theWebProgress service...</p>
+
+  <p><strong><em>Contract-id:</em></strong></p>
+
+  <p><code>NS_DOCUMENT_LOADER_SERVICE_CONTRACTID</code></p>
+
+  <p><strong><em>Implemented Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/uriloader/base/nsIWebProgress.idl">
+    nsIWebProgress</a></code></li>
+
+    <li><code>nsIDocumentLoader</code></li>
+  </ul>
+
+  <p><strong><em>Related Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code><a href=
+    "http://lxr.mozilla.org/seamonkey/source/uriloader/base/nsIWebProgressListener.idl">
+    nsIWebProgressListener</a></code></li>
+  </ul>
+
+  <h2>Public Components</h2>
+
+  <h3>nsWebBrowser</h3>
+
+  <p>The nsWebBrowser is the main embedding component which Gecko exposes.
+  Conceptually, each nsWebBrowser instance represents a HTML content area.</p>
+
+  <p>Conceptually, for each document being rendered, Gecko creates a container
+  called a <em>DOMWindow</em>. Each WebBrowser exposes a tree of DOMWindows -
+  representing the frame hierarchy for the current document. As such, access to
+  individual document frames is done via the DOMWindow interfaces. Manipulation
+  of the entire document structure is done via the various WebBrowser
+  interfaces.</p>
+
+  <p><strong><em>Contract-id:</em></strong>
+  <code>NS_WEBBROWSER_CONTRACTID</code></p>
+
+  <p><strong><em>Implemented Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code>nsIWebBrowser</code></li>
+
+    <li><code>nsIWebNavigation</code></li>
+
+    <li><code>nsIWebBrowserSetup</code></li>
+
+    <li><code>nsIWebBrowserPersist</code></li>
+
+    <li><code>nsIWebBrowserFind</code></li>
+
+    <li><code>nsIWebBrowserPrint</code></li>
+
+    <li><code>nsIWebBrowserFocus</code></li>
+
+    <li><code>nsIBaseWindow</code></li>
+  </ul>
+
+  <p><strong><em>Requestor Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code>nsIDOMWindow</code></li>
+
+    <li><code>nsIDOMDocument</code></li>
+
+    <li><code>nsIWebProgress</code></li>
+
+    <li><code>nsIClipboardCommands</code></li>
+
+    <li><code>nsIPrompt</code></li>
+  </ul>
+
+  <p><strong><em>Related Interfaces:</em></strong></p>
+
+  <ul>
+    <li><code>nsIPrompt</code></li>
+
+    <li><code>nsIWebBrowserChrome</code></li>
+
+    <li><code>nsIWebBrowserSiteWindow</code></li>
+
+    <li><code>nsIWebProgressListener</code></li>
+
+    <li><code>nsIContextMenuListener</code></li>
+
+    <li><code>nsIPrintOptions</code></li>
+  </ul>
+
+  <p><strong>Overview:</strong></p>
+
+  <p>Most of Gecko's functionality is exposed through the nsWebBrowser
+  component. The WebBrowser provides a simple mechanism for other applications
+  to leverage Gecko functionality. Each instance of a WebBrowser encapsulates a
+  full featured HTML content area.</p>
+
+  <p>The embedding application receives notifications from Gecko through a set
+  of callback interfaces it may choose to implement.</p>
+
+  <p><img src="public-apis-image3.gif" height="391" width="564" alt=""></p>
+
+  <p>Below is a code snippet which an embedding application can use to create
+  and initialize a WebBrowser:</p>
+
+  <pre class="code">
+            nsresult rv;
+            nsCOMPtr&lt;nsIBaseWindow&gt; baseWindow;
+            nsCOMPtr&lt;nsIWebBrowser&gt; webBrowser;
+
+            <span class="remark">// Create a nsWebBrowser instance...</span>
+            webBrowser = do_CreateInstance(NS_WEBBROWSER_CONTRACTID, &amp;rv);
+            if (NS_FAILED(rv)) return rv;
+
+            <span class=
+"remark">// Give the WebBrowser a pointer to the embedding component which</span>
+            <span class=
+"remark">// implements the callback interfaces. Replace 'this' with</span>
+            <span class="remark">// an appropriate object...</span>
+            rv = webBrowser-&gt;SetContainerWindow((nsIWebBrowserChrome*)this);
+            if (NS_FAILED(rv)) return rv;
+            baseWindow = do_QueryInterface(webBrowser);
+
+            <span class=
+"remark">// Initialize the WebBrowser with a native parent window</span>
+            <span class=
+"remark">// (ie. HWND on Win32). Replace 'nativeWindow' with a</span>
+            <span class=
+"remark">// reference to an appropriate native resource...</span>
+            rv = baseWindow-&gt;InitWindow(nativeWindow, // Native
+            window
+            nsnull, // Always nsnull.
+            x, y, cx, cy); // Initial dimensions...
+            if (NS_FAILED(rv)) return rv;
+
+            <span class=
+"remark">// Create the child window for the WebBrowser.</span>
+            rv = baseWindow-&gt;Create();
+            if (NS_FAILED(rv)) return rv;
+
+            <span class=
+"remark">// At this point webBrowser contains the new initialized instance</span>
+            <span class="remark">// of the nsWebBrowser component...</span>
+            <span class=
+"remark">// Save webBrowser before it goes out of scope :-)</span>
+</pre>
+
+  <p><strong>Web Navigation</strong></p>
+
+  <p>The <code>nsIWebNavigation</code> interface is used to load URIs into the
+  WebBrowser and provide access to session history capabilities - such as back
+  and forward.</p>
+
+  <p><strong>Clipboard</strong></p>
+
+  <p>The WebBrowser exposes access to the system clipboard via the
+  <code>nsIClipboardCommands</code> interface. This interface supports
+  cut/copy/paste operations on the current selection within the WebBrowser
+  window.</p>
+
+  <p><strong>Printing</strong> <em>(not yet implemented)</em></p>
+
+  <p>Printing the contents of a DOMWindow within a WebBrowser is a two step
+  process. First, the printer and page options are collected via the
+  <code>nsIPrintOptions</code> interface. On most platforms this involves
+  displaying a native Print dialog box. Once all of the options have been set,
+  the <code>nsIWebBrowserPrint</code> interface is used to print the contents
+  of the desired DOMWindow.</p>
+
+  <p><strong>Searching</strong></p>
+
+  <p>Searching within a nsWebBrowser is controlled via the
+  <code>nsIWebBrowserFind</code> interface. The search is always performed
+  within the DOMWindow which currently has the focus.</p>
+
+  <p><strong>Focus Management</strong></p>
+
+  <p>Focus managment within the WebBrowser is accessed via the
+  <code>nsIWebBrowserFocus</code> interface.</p>
+
+  <p>This interface serves two purposes. First, it provides methods for the
+  embedding application to notify a WebBrowser of activation/deactivation and
+  to control tabbing order... This interface also allows access to the
+  currently focused DOMWindow and DOMElement.</p>
+
+  <p><strong>Context Menu notifications</strong></p>
+
+  <p>Right-click context menu notifications are passed up to the embedding
+  application through the <code>nsIContextMenuListener</code> interface. These
+  notifications allow the embedding application to display context menus based
+  on user activity within the WebBrowser (such as a right-click on a hypertext
+  link).</p>
+
+  <p><strong>Saving Documents</strong></p>
+
+  <p><strong>Notification Interfaces which the embedding application should
+  implement</strong></p>
+
+  <h3>nsFile</h3>
+
+  <h2>Public Interfaces</h2>
+
+  <h3>nsISupports</h3>
+
+  <p>Base Component Object Model interface. This interface provides runtime
+  interface discovery and a reference counted memory model fashioned after the
+  Microsoft COM IUnknown interface. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsISupports.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> none</p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsISupportsUtils.h#92">nsISupportsUtils.h</a></p>
+
+  <h3>nsIInterfaceRequestor</h3>
+
+  <p>This Interface provides an interface discovery mechanism which does not
+  imply aggregation. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsIInterfaceRequestor.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> none</p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsIInterfaceRequestor.idl">
+  nsIInterfaceRequestor.idl</a></p>
+
+  <h3>nsIWeakReference</h3>
+
+  <p>This interface is used to retern a proxy reference to a component.
+  <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsIWeakReference.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIWeakReference">
+  being reviewed</a></p>
+
+  <p>In<strong>terface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsIWeakReference.idl">nsIWeakReference.idl</a></p>
+
+  <h3>nsISimpleEmunerator</h3>
+
+  <p>This interface provides a simple enumeration abstraction. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsISimpleEnumerator.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsISimpleEnumerator">
+  being reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> nsISimpleEnumerator.idl</p>
+
+  <h3>nsIServiceManager</h3>
+
+  <p>This interface allows access to global services within mozilla.
+  <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsIServiceManager.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> none</p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIServiceManager.h">
+  nsIServiceManager.h</a></p>
+
+  <h3>nsIShutdownListener</h3>
+
+  <p>This interface is used to receive notifications when the Service Manager
+  is being shutdown. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsIShutdownListener.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> none</p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIServiceManager.h#150">
+  nsIServiceManager.h</a></p>
+
+  <h3>nsIComponentManager</h3>
+
+  <p>This interface allows new instances of registered XPCOM components to be
+  instantiated. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsIComponentManager.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> none</p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIComponentManager.idl">
+  nsIComponentManager.idl</a><br>
+  <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIComponentManager.idl">
+  </a></p>
+
+  <h3>nsIFactory</h3>
+
+  <p>This interface is used by the Component Manager to create new instances of
+  a particular XPCOM component. Each component must provide a factory
+  implementation for creating new instances. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsIFactory.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> none</p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIFactory.idl">nsIFactory.idl</a><br>
+
+  <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIFactory.idl"></a></p>
+
+  <h3>nsIMemory</h3>
+
+  <p>This interface provides access to the global memory management
+  functionality.<strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/xpcom/dox/class_nsIMemory.html">More...</a></strong></p>
+
+  <p><strong>Interface status:</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIMemory">being
+  reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/base/nsIMemory.idl">nsIMemory.idl</a></p>
+
+  <h3>nsIDOMWindow</h3>
+
+  <p>This interface is used to represent the window containing a specific
+  document. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/dom/dox/class_nsIDOMWindow.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIDOMWindow">being
+  reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/dom/public/idl/base/nsIDOMWindow.idl">
+  nsIDOMWindow.idl</a><br>
+  <a href=
+  "http://lxr.mozilla.org/seamonkey/source/dom/public/idl/base/nsIDOMWindow.idl">
+  </a></p>
+
+  <h3>nsIBaseWindow</h3>
+
+  <p>This interface provides access to various window operations.
+  <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/widget/dox/class_nsIBaseWindow.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIBaseWindow">
+  being reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/widget/public/nsIBaseWindow.idl">nsIBaseWindow.idl</a></p>
+
+  <h3>nsIRequest</h3>
+
+  <p>This interface provides a means to control various operations.
+  <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/netwerk/dox/class_nsIRequest.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIRequest">being
+  reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/netwerk/base/public/nsIRequest.idl">nsIRequest.idl</a></p>
+
+  <h3>nsIWebBrowser</h3>
+
+  <p>This is the primary interface to the WebBrowser component
+  <strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIWebBrowser">
+  being reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowser.idl">
+  nsIWebBrowser.idl</a></p>
+
+  <h3>nsIWebBrowserSetup</h3>
+
+  <p>This interface is used to enable or disable various capabilities of a
+  nsWebBrowser instance. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/embedding/dox/class_nsIWebBrowserSetup.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIWebBrowserSetup">
+  being reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserSetup.idl">
+  nsIWebBrowserSetup.idl</a></p>
+
+  <h3>nsIWebBrowserChrome</h3>
+
+  <p>This interface provides access to the window containing an nsWebBrowser
+  instance. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/embedding/dox/class_nsIWebBrowserChrome.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIWebBrowserChrome">
+  being reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserChrome.idl">
+  nsIWebBrowserChrome.idl</a></p>
+
+  <h3>nsIWebNavigation</h3>
+
+  <p>This interface exposes the web navigation functionality of the
+  nsWebBrowser component. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/docshell/dox/class_nsIWebNavigation.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIWebNavigation">
+  being reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/docshell/base/nsIWebNavigation.idl">nsIWebNavigation.idl</a></p>
+
+  <h3>nsIWebBrowserPersist</h3>
+
+  <p>This interface exposes the save-as functionality of the nsWebBrowser
+  component. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/embedding/dox/class_nsIWebBrowserPersist.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status...</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIWebBrowserPersist">
+  being reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserPersist.idl">
+  nsIWebBrowserPersist.idl</a><br>
+  <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserPersist.idl">
+  </a></p>
+
+  <h3>nsIWebBrowserPrint</h3>
+
+  <p>This interface allows printing of individual (or a collection of) DOM
+  Windows within a nsWebBrowser component. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/embedding/dox/class_nsIWebBrowserPrint.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status:</strong> <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIWebBrowserPrint">
+  being reviewed</a></p>
+
+  <p><strong>Interfaced definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserPrint.idl">
+  nsIWebBrowserPrint.idl</a><br>
+  <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserPrint.idl">
+  </a></p>
+
+  <h3>nsIWebBrowserFind</h3>
+
+  <p>This interface exposes the searching capabilities of the nsWebBrowser
+  component. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/embedding/dox/class_nsIWebBrowserFind.html">
+  More...</a></strong></p>
+
+  <p><strong>Interface status:</strong> none</p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserFind.idl">
+  nsIWebBrowserFind.idl</a><br>
+  <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserFind.idl">
+  </a></p>
+
+  <h3>nsIWebBrowserFocus</h3>
+
+  <p>This interface provides access to the focus information of a nsWebBrowser
+  instance. <strong><a href=
+  "http://unstable.elemental.com/mozilla/build/latest/mozilla/embedding/dox/class_nsIWebBrowserFocus.html">
+  More...</a></strong></p>
+
+  <p>Interface status: <a href=
+  "http://www.mozilla.org/projects/embedding/apiReviewNotes.html#nsIWebBrowserFocus">
+  being reviewed</a></p>
+
+  <p><strong>Interface definition:</strong> <a href=
+  "http://lxr.mozilla.org/seamonkey/source/embedding/browser/webBrowser/nsIWebBrowserFocus.idl">
+  nsIWebBrowserFocus.idl</a></p>
+
+  <p><code>nsIWebProgress</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIWebProgressListener</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIPrompt</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIPrefs</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIProfile</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIDirectoryServiceProvider</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsILocalFile</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIFile</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIClipboardCommands</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsISelection</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIURILoader</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <p><code>nsIURIContentListener</code></p>
+
+  <p><strong>More...</strong></p>
+
+  <p><strong>Interface status...</strong></p>
+
+  <p><strong>Interface definition:</strong></p>
+
+  <h2>Defining New XPCOM Components</h2>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 28,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/embedding/PublicAPIs.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

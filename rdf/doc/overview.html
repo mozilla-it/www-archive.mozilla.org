@@ -1,0 +1,178 @@
+<html>
+<title>RDF Module Technical Overview</title>
+<body bgcolor="#ffffff" text="#000000"
+      link="#0000ee" vlink="#551a8b" alink="#ff0000">
+
+<center>
+<h2>
+RDF Technical Overview
+</h2>
+<a href="mailto:guha@netscape.com">Guha</a><BR>
+<a href="mailto:rjc@netscape.com">Robert Churchill</a><BR>
+<a href="mailto:jg@netscape.com">John Giannandrea</a><BR>
+</center>
+
+</center>
+
+
+<H1>Status:</H1>
+<P>This document is <B>outdated</B>, and reflects the state of RDF in
+Mozilla before we moved to use of the new layout engine. It remains mostly
+accurate but specifics of technical details are a little dated.
+</P>
+
+<P><SMALL>Last updated: $Id: overview.html,v 1.2 1999/03/18 09:07:57 daniel.brickley%bristol.ac.uk Exp $</SMALL></P>
+
+
+
+<h3>This Document</h3>
+The document is a high level overview about the 
+RDF code in Navigator. You need to 
+understand the material in this document before
+hacking the Navigator RDF code in <code>ns/modules/rdf/</code>.
+<P>
+If all you want to do is use the RDF C Apis for your
+own application, you don't need to understand everything
+given here, but it might be a good idea anyway.
+<P>
+
+
+<h3>The Basic Idea</h3>
+
+
+We have a lot of different pieces of structured data --- bookmarks,
+history, file systems, document structures, sitemaps, etc. The
+creation/access/manipulation code for these are completely
+independent. So, each of them has its own storage system, editing and
+viewing tools, query and manipulation APIs, etc. 
+
+There is a substantial lost opportunity here. There is considerable
+overlap in the data model used by all these different structures. All
+these structures are instances of directed labeled graphs. 
+
+So, the basic idea behind RDF is : if you can manifest yourself via
+the RDF data model (which is built upon directed labeled graphs),
+there is a marketplace of services that you can utilize. Some of these
+services include, 
+
+<OL>
+  <LI> Viewers and Editors for these structures. 
+  <LI> Persistent Storage 
+  <LI> Query Mechanisms 
+  <LI> Inferential services such as type checking and inheritance. 
+  <LI> Compositing, i.e., the ability to provide merged views of multiple
+     graphs. Uses of this are described later. 
+  <LI> Serialization and transmission via the RDF-XML format. 
+  <LI>and many other services that we haven't yet thought about ... 
+</OL>
+
+Another way of looking at it is as follows: Just as COM/beans/...
+allows pieces of code to work together because they manifest a common
+object model, RDF tries to do the same thing for data and the common
+data model is built upon that of directed labeled graphs. 
+
+
+<h3>What is RDF</h3>
+
+There are a couple very different things meant by 
+the term RDF. 
+<UL>
+<LI> RDF as a data model / data abstraction layer / query language.
+Directed Labeled Graphs (DLG) are a very general mechanism
+for representing things. Naturally, it turns out that
+you can model a wide range of information as a DLG.
+It doesn't matter how the information is stored
+on disk or transmitted over the wire --- if it can
+be modeled as a DLG, we can make it queriable as a DLG.
+<LI> RDF as a file format using XML. It would be nice
+to have a canonical file format to ship snippets of
+RDF across the wire. This is the RDF File format.
+
+</UL>
+
+Nodes in RDF DLGs are Resources in the sense of U<B>R</B>Is.
+This means that you can get two different graphs from
+different sources that reference some of the same nodes.
+You can superpose the two graphs (making sure that the
+common nodes are properly aligned) and you have just
+aggregated the information from the two sources.
+<P>
+This aggregation ability is used all around the place 
+with RDF for personalization, overriding, etc.
+
+
+<h3>RDF Database</h3>
+
+An RDF database is a directed labeled graph. Almost all 
+the RDF apis include reference to an RDF Database.
+
+<P>
+The graph consists of 
+ <OL>
+   <LI> A set of nodes called <em>RDF_Resource</em>. 
+<P>   
+        In addition to RDF_Resource, nodes can also be char* or int32.
+        The type of a node (i.e., RDF_Resource, char* or int32) is specified
+        as an argument in many of the APIs.
+ 
+   <LI> A set of arcs, each labeled with a RDF_Resource and a <em>truth value</em>,
+        i.e., a true/false label. 
+ </OL>   
+
+An RDF Database is actually an aggregation of an ordered list of RDF data sources,
+each contributing a portion of the graph. The aggregation of the graphs is
+defined by simple superpositioning. The ordering of data sources specifies
+a priority and if  an arc appears in multiple data sources
+with different truth values, the arc from the higher data source overrides.
+Each data source itself is identified by a uri. The following calls
+are used to create an RDF Database and eventually to dispose it.
+
+The char** argument to RDF_GetDB specifies the uris for the RDF data sources.
+Some standard data sources already built into navigator are <BR>
+<UL>
+<LI> A file encoded in RDF, MCF, Netscape bookmarks or any of the data file
+formats that Navigator understands.
+<LI> FTP directories
+<LI> Local file systems (A, C, D, etc. drives, Mac Volumes, etc.)
+<LI> Berkeley DB encodings of RDF
+<LI> Netscape history format
+</UL>
+
+More data sources can easily be added. We hope this will happen with
+the help of the developers outside Netscape.
+
+
+<h3>RDF Queries</h3>
+The RDF Query API is a very standard graph query API. It can be
+used both to traverse and to edit the graph.
+<P>
+Every RDF Query API takes an RDF database as an argument. Each RDF
+data source is required to implement a set of RDF Data Source APIs. A database
+itself implements the RDF Query API by by issuing RDF Data Source
+API queries to its data sources.
+<P>
+The RDF Data Source API is a strict subset of the RDF Query API.
+This means that an RDF Database can also be an RDF Data source.
+
+
+<P>
+<h3>RDF Data Sources</h3>
+It is easy to expose a new source of data via the RDF APIs. To do this,
+one provides a wrapper (around that data source) that implements the
+RDF APIs.
+<P>
+A data source could be a read-write store or a read-only store. It can
+also be a read-partial-write store, i.e., it can execute only some of 
+the edits presented to it. e.g., folder based file system directories
+are far less expressive than general RDF graphs. In the more general
+model, it is possible to make statements like "File001 contains the
+response to email0017". Neither the file system (nor the email system)
+is capable of representing such a statement. The wrapper for the
+file system (and email system) can legally refuse to perform such
+an edit. If a more general purpose RDF data source (such as the one
+based on Berkeley DB), that database  could perform the addition.
+The user of the query API need not know the difference.
+<P>
+
+</body>
+</html>

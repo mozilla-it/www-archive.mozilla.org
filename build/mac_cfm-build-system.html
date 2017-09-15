@@ -1,0 +1,633 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+	<title>Mac build system</title>
+	<meta name="generator" content="BBEdit 6.0.1">
+
+	<style type="text/css">
+	<!--
+	body {
+		color: #000000;
+		background: #FFFFFF;
+	}
+
+	p.note {
+		font-style:	italic
+	}
+	-->
+	</style>
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<center><h1><a id="The_Mac_Build_System" name="The_Mac_Build_System">The Mac Build System</a></h1></center>
+
+<p style="border: 2px solid red; background-color: #FFFF99; padding: 5px;">
+<b>Note</b>: These instructions are for building the now-obsolete
+CFM build with CodeWarrior. The build instructions for the current
+Mach-O build are <a href="mac.html">here</a>.
+</p>
+
+<hr>
+
+<!--index-->
+<ul>
+	<li><a href="#Introduction">Introduction</a></li>
+	<li><a href="#Driving_the_build">Driving the build</a></li>
+	<li><a href="#Changing_build_options">Changing build options</a></li>
+	<li><a href="#build_examples">Examples of using the build settings</a>
+	    <ul>
+            <li><a href="#Doing_a_Carbon_build">Doing a Carbon build</a></li>
+            <li><a href="#Doing_a_lowmem_build">Doing an optimized build on a low-memory machine</a></li>
+            <li><a href="#Doing_a_debug_and_optimized_build">Doing a debug and optimized build in the same tree</a></li>
+            <li><a href="#Doing_a_static_build">Doing a static build</a></li>
+	    </ul>
+	</li>
+
+	<li><a href="#Adding_new_files_to_the_build">Adding new files to the build</a>
+	<ul>
+		<li><a href="#How_to_add_a_new_project_to_the_build">How to add a new project to the build</a>
+		<ul>
+			<li><a href="#IDL_Projects">IDL Projects</a></li>
+			<li><a href="#C%2FC%2B%2B_Projects">C/C++ Projects</a></li>
+	    </ul>
+	    </li>
+		<li><a href="#How_to_add_a_new_MANIFEST_file_to_the_build">How to add a MANIFEST file to the build</a></li>
+		<li><a href="#How_to_add_a_new_jar_mn_file_to_the_build">How to add a jar.mn file to the build</a></li>
+		<li><a href="#How_to_get_Mac_to_pull_a_new_or_different_CVS_module">How to get Mac to pull a new or different CVS module</a></li>
+	</ul></li>
+    <li><a href="#environment_variable">Having an "environment variable" set a <code>#define</code></a></li>
+	<li><a href="#Creating_a_new_build">Creating a new build</a></li>
+</ul>
+<!--/index-->
+
+<hr>
+
+<h2><a id="Introduction" name="Introduction">Introduction</a></h2>
+
+<p>
+The Mac build system for Mozilla is a set of Perl scripts that drive
+MacCVS Pro and CodeWarrior via AppleEvents. Unlike the distributed make
+system on other platforms, all the build logic lives in the
+<code>mozilla/build/mac/build_scripts</code> directory. The scripts are
+organized into a series of reusable modules (in the <code>Moz</code> subdirectory),
+and three driving scripts. Some of the script input comes from data files
+(<code>MozillaBuildFlags.txt</code>, <code>MozillaCheckoutList.txt</code>), and the rest is in a build-specific
+Perl module called <code>MozillaBuildList.pm</code>. The long-term goal
+is to have the scripts be entirely data-driven, and to have as little
+build-specific logic in perl code as possible.
+</p>
+
+
+<hr>
+
+<h2><a id="Driving_the_build" name="Driving_the_build">Driving the build</a></h2>
+
+
+<p type="note"><i>Note</i>: This instructions assume that you've set <a href="mac.html#macperl">MacPerl
+to run scripts opened from the Finder</a>.
+</p>
+
+<h3>Quick Summary</h3>
+
+<p>
+The first time you run either of the build scripts, you will be prompted to locate the
+MacCVS Pro session file you wish to check out with, and to locate CodeWarrior (if it is
+not already running). After the first time, these details are remembered.
+</p>
+
+<ul>
+    <li><p><b>Debug build</b></p>
+        <p>
+        Double-click on the file <code>mozilla/build/mac/build_scripts/BuildMozillaDebug.pl</code>.
+        </p>
+    </li>
+    
+    <li><p><b>Optimized build</b></p>
+        <p>
+        Double-click on the file <code>mozilla/build/mac/build_scripts/BuildMozilla.pl</code>.
+        </p>
+        <p>
+        If you have less than 128Mb RAM, it is likely that you will run into <a href="mac.html#out_of_memory">memory problems</a>
+        doing an optimized build, since the CodeWarrior optimizer is very memory hungry in
+        certain situations.
+        </p>
+    </li>
+</ul>
+
+<p>
+Both these scripts will do a pull of the tree (either a fresh checkout or update), then run
+the entire build over the tree. If everything goes well, when the build finishes, you should
+end up with the Mozilla binary in <code>mozilla:dist:viewer_debug:</code>
+</p>
+<p>
+If the build stops for some reason, you can restart the build from where it left off
+by simply running the same script again. The build writes progress to a a file which
+is read in at the start of a build, allowing it to start where it left off.
+</p>
+<p>
+To ensure that the build starts from the beginning, trash the file "&bull; Mozilla build progress"
+at the root level of the tree.
+</p>
+
+<hr>
+
+<h2><a id="Changing_build_options" name="Changing_build_options">Changing build options</a></h2>
+
+<p>
+Unlike the old scripts, you should never have to edit files in the tree to change what
+gets built, or how. The build is configurable via a preferences file that can live
+in your system preferences folder (system-wide), or at the root of the tree (tree-specific).
+Each type of build (debug/opt, Mozilla/netscape) has its own preferences file.
+The first time you run the scripts, a default file will be created for you, which is empty
+other than some helpful comments.
+</p>
+
+<p>
+This preferences file can contain the following kinds of lines. (Lines are not
+sensitive to how much whitespace appears between words. Trailing comments, 
+preceded by #, are allowed.)
+</p>
+<p>
+To see the list of available build flags, options, and file paths, see 
+<a href="http://lxr.mozilla.org/mozilla/source/build/mac/build_scripts/MozillaBuildFlags.txt">MozillaBuildFlags.txt</a>.
+</p>
+
+<h4>Build options</h4>
+<pre>
+options  mng                 1      # build mng
+options  chrome_files        1      # put files in chrome
+options  use_jars            0      # load chrome from files, not jars
+</pre>
+<p>
+Use these flags to turn on or off various build options, like MNG, using files in chrome,
+LDAP support etc.
+</p>
+
+<h4>Build start</h4>
+<pre>
+buildfrom   nglayout               # start the build at nglayout
+</pre>
+<p>
+This 'buildfrom' flag is special, and controls where a build will start. In the absence
+of build progress state, this setting will determine where the build starts. If progress
+is present, the build will start from the the more advanced of the two settings.
+</p>
+
+<h4>Perl build flags</h4>
+<pre>
+CLOSE_PROJECTS_FIRST            1              # leave CW projects open until another one is opened (faster)
+PROFILE                         1              # set $main::PROFILE, for a profiling build
+</pre>
+<p>
+The build scripts use a number of flags, set as variables in the scope of <code>$main::</code>.
+For the list of flags used now, see the routine <a href="http://lxr.mozilla.org/mozilla/source/build/mac/build_scripts/Moz/BuildUtils.pm#49">SetupBuildOptions</a>
+in <a href="http://lxr.mozilla.org/mozilla/source/build/mac/build_scripts/Moz/BuildUtils.pm">BuildUtils.pm</a>
+</p>
+
+<h4>Build file locations</h4>
+<pre>
+filepath   idepath             ::codewarrior.txt
+filepath   buildlogfilepath    ":Build Logs:Mozilla build log.txt"  # paths with spaces need quoting
+</pre>
+<p>
+The build uses various files to store state, in the form of paths to the CVS session file,
+to the CodeWarrior application, and for output log files. You can change the locations of
+these files here. Paths are relative to the tree root. Paths containing whitespace
+must be quoted.
+</p>
+
+<hr>
+
+<h2><a name="build_examples">Examples</a> of using the build settings</h2>
+
+<h3><a name="Doing_a_Carbon_build">Doing a Carbon build</a></h3>
+<p>
+<em>NB</em>: Note that to do a Carbon build, you'll need to modifiy your build environment
+according to the instructions on the <a href="/ports/fizzilla/cfm.html">FizillaCFM</a> page.
+</p>
+<p>
+To do a Carbon build, put the following in your build prefs file:
+</p>
+<pre>
+options  carbon  1
+</pre>
+<p>
+Don't forget that there are separate build prefs files for the debug and optimized builds.
+</p>
+
+<h3><a name="Doing_a_lowmem_build">Doing an optimized build on a low-memory machine</a></h3>
+<p>
+Doing an optimized build can be a challenge, because some of the Mozilla code seems to cause
+the CodeWarrior optimizer to go pathological, and run out of memory. We have a build option
+which helps:
+</p>
+<pre>
+options  lowmem  1
+</pre>
+<p>
+This option tunes down the optimization level in a few troublesome files.
+</p>
+
+<h3><a name="Doing_a_debug_and_optimized_build">Doing a debug and optimized build in the same tree</a></h3>
+<p>
+Here we make use of the fact that there are separate build prefs files for the debug and optimized builds.
+Start by doing one of the builds, say the debug build. Then, in the optimized build prefs file
+("Mozilla opt build prefs") put:
+</p>
+<pre>
+buildfrom config
+</pre>
+<p>
+This causes the build to start at the 'config' stage, which comes just after 'dist'. The <code>DefinesOptions.h</code>
+header for the opt build is thus created, but we avoid clobbering all the files in dist, so all the library
+aliases created by the debug build remain.
+</p>
+
+<h3><a name="Doing_a_static_build">Doing a static build</a></h3>
+<p>
+<i>Note that the static build is not currently maintained. It probably won't work.</i>
+</p>
+<p>
+Doing a Mac static build (a build in which all the code which is normally compiled into lots of small
+shared libraries is build as static libraries, which are finally linked into a few large DLLs) is more
+complex, because we have to munge lots of CodeWarrior projects to add targets which build static libraries
+(".o" files). Luckily, this is automated.
+</p>
+
+<p>
+First, if you have not done so already, you need to install some
+<a href="mac.html#static_build_modules">extra MacPerl modules</a>. It's a good idea to allocate more
+memory to MacPerl here (24-26Mb should be fine, if you have virtual memory on). Then, set the following
+in the build prefs files:
+</p>
+
+<pre>
+EXPORT_PROJECTS        1    # causes the script to export CW projects to XML, and munge them
+USE_XML_PROJECTS       1    # causes the scripts to look for .xml project files, and use them
+
+options static_build   1    # do a static build
+</pre>
+
+<p>
+The first time you run a build with these settings, the scripts will open each project, and export
+them to an XML file next to the project. That XML then gets munged, to correct some bad formatting
+that Pro 5 spits out, and to clone and modify &lt;TARGET&gt; nodes in order to create new project
+targets, which are set set up as static ".o" targets. Finally, CodeWarrior reads the XML back in
+to create a new project (named with a leading understcore, like "_layout.mcp"), and builds the new
+static library targets. Later on in the build, some new projects link all the ".o" files together.
+</p>
+<p>
+Note that this XML munging only happens once. If both an XML file and project exist in a folder,
+the scripts compare file modification dates to decide whether to re-munge the project.
+</p>
+
+<hr>
+
+<h2><a id="Adding_new_files_to_the_build" name="Adding_new_files_to_the_build">Adding new files to the build</a></h2>
+
+<p>
+Because the Mac build system is different from the other platforms,
+adding new files or projects can be confusing. Here's a list of the
+likely changes you'd need to make.
+</p>
+
+<h3><a id="How_to_add_a_new_project_to_the_build" name="How_to_add_a_new_project_to_the_build">How to add a new project to the build</a></h3>
+
+<p>
+So you're adding a new module, or perhaps splitting up an existing module,
+and need to create a new CodeWarrior project and add it to the build.
+Convention is to put Mac projects in a directory called <code>macbuild</code> at
+the root of that modules directory hierarchy. Consult a Mac guru for how to
+create the project, but be careful with the following settings mentioned below.
+</p>
+<p>
+Mac project files are now checked into the tree in XML format ("gfx.xml"). The
+build scripts instruct CodeWarrior to convert these to a binary project ("_gfx.mcp")
+before building, and any time the XML version of the project is updated. If you
+make a new project, you should check in the XML file, <em>not</em> the ".mcp" file.
+If you make a change to a project, change the ".mcp" file, use 'Export Project...'
+on the 'File' menu to export to XML, replacing the existing XML version of
+the project, and check that in.
+</p>
+
+<h4><a id="IDL_Projects" name="IDL_Projects">IDL Projects</a></h4>
+
+<p>
+When adding new .idl files to the build, create or edit a MANIFEST_IDL
+file which aliases those files to dist/idl. Ideally, all IDL projects should
+find their IDL files in dist:idl, but some are lazy and just look in the tree.
+The reason to alias all IDL files to dist/idl is that some IDL files include
+others, and aliassing them all to the same place avoids messing with
+access paths in the IDL projects.
+</p>
+<p>
+Add the new MANIFEST_IDL file to the list of manifests in 
+<code>mozilla/build/mac/build_scripts/MozillaBuildList.pm</code>,
+in the subroutine <code>BuildClientDist()</code>.
+</p>
+<p>
+IDL projects do both header generation from IDL files, and generation of .xpt
+files (<a href="http://www.mozilla.org/scriptable/typelib_file.html">typelibs</a>),
+using the <a href="http://www.mozilla.org/scriptable/xpidl/index.html">XPIDL</a>
+compiler and linker which are build as part of the Mozilla build process.
+</p>
+
+<dl>
+    <dt>Output directory (Headers)</dt>
+    <dd>
+    The "headers" target of an IDL project should have the module's folder
+    in dist set as the output directory. E.g. libjar uses <code>dist:libjar</code>.
+    Use a project-relative path, which will look like <code>{Project}::::dist:libjar</code>.
+    </dd>
+
+    <dt>Output directory (.xpt)</dt>
+    <dd>
+    The .xpt target should output into the project's folder. The build scripts
+    alias the resulting .xpt file to dist.
+    </dd>
+
+    <dt>xpidl settings (Headers)</dt>
+    <dd>
+    Ensure that the linker output field contains <code>{module}.headers</code>. This name
+    must be unique, and is used for header generation dependency tracking.
+    </dd>
+    
+    <dt>xpidl settings (.xpt)</dt>
+    <dd>
+    Linker output should be <code>{module}.xpt</code>.
+    </dd>
+</dl>
+
+<p>
+To add the IDL project to the Mac build system, edit
+<code>mozilla/build/mac/build_scripts/MozillaBuildList.pm</code>,
+adding a line of perl to build your new project
+to the subroutine <code>BuildIDLProjects</code>. The second argument
+to the <code>BuildIDLProject()</code> routine is the name of the xpidl module, which
+should match the name of the .xpt file.
+</p>
+
+
+<h4><a name="C%2FC%2B%2B_Projects">C/C++ Projects</a></h4>
+<p>
+Most of the C/C++ projects build shared libraries, though some build static
+libraries. These settings mostly apply to shared library projects.
+</p>
+<dl>
+    <dt>Prefix files</dt>
+    <dd>
+    Prefix files are used for project-specific #defines etc, and are included
+    by the C preprocessor at top of each source file. Debug and non-debug
+    targets should have different prefix files. If you don't have any project-
+    specific settings, use <code>MacSharedPrefix{_debug}.h</code> in 
+    <code>mozilla/config/mac</code>. Prefix files use #pragmas
+    to set most warning and compilation options, overriding those in the project
+    settings.
+    </dd>
+    <dt>Access paths</dt>
+    <dd>Avoid extraneous access paths to folders containing libraries
+    that should be found via aliases in <code>dist</code>. System paths
+    should be just <code>{Compiler}:MSL:</code> and <code>{Compiler}:MacOS:Support:</code>.
+    </dd>
+    <dt>Entry points</dt>
+    <dd>
+    You should use "__NSInitialize" as the Initialization routine (PPC Linker panel),
+    and "__NSTerminate" as the Termination routine. Leave the Main routine blank.
+    "Generate SYM File" should be on.
+    </dd>
+    
+    <dt>Fragment name</dt>
+    <dd>If you've cloned an existing project, be sure to give your library
+    a unique fragment name, in the "PPC PEF" prefs panel.
+    </dd>
+</dl>
+
+<p>
+To add the new project to the build, edit
+<code>mozilla/build/mac/build_scripts/MozillaBuildList.pm</code>
+and add a line to the appropriate subroutine, like:
+</p>
+<pre>
+BuildOneProject(":mozilla:modules:libimg:macbuild:libimg.xml", "libimg$D.shlb", 1, $main::ALIAS_SYM_FILES, 0);
+</pre>
+<p>
+Arguments are:
+</p>
+
+<pre>
+BuildOneProject(":mozilla:foo:foo.xml",   # path to project (XML version of project)
+                "foo$D.shlb",             # target name (= binary name)
+                1,                        # whether to create alias of binary in the bin directory
+                $main::ALIAS_SYM_FILES,   # whether to alias the .xSYM file
+                0);                       # whether this is a component (affects destination dir)
+</pre>
+
+<p>
+If you have more complex build requirements, look around in the scripts for something similar,
+and clone it. Seek help if you are confused.
+</p>
+
+<h3><a name="How_to_add_a_new_MANIFEST_file_to_the_build">How to add a new <code>MANIFEST</code> file to the build</a></h3>
+<p>
+MANIFEST files are used to copy header files to <code>dist</code>. They have also
+been used to copy .idl files to <code>dist</code>, and resource files (XUL, GIF etc) to
+the <code>res</code> directory. They may be variously called MANIFEST, MANIFEST_IDL etc.
+MANIFEST files contain just a list of files. They may contain relative paths ("res:foo.html") but
+this is discouraged.
+</p>
+
+<p>
+To add one to the build, add a new 'InstallFromManifest' line to
+<code>mozilla/build/mac/build_scripts/MozillaBuildList.pm</code>, probably in
+<code>BuildClientDist()</code>. These lines look like:
+</p>
+<pre>
+InstallFromManifest(":mozilla:include:MANIFEST",    # path to manifest file
+                    "$distdirectory:include:");     # destination dir in dist
+</pre>
+
+<p>
+A similar process is used to install non-chrome resources with a MANIFEST file:
+</p>
+<pre>
+InstallResources(":mozilla:xpfe:browser:src:MANIFEST",  # path to manifest file
+                 "$samples_dir");                       # destination dir
+</pre>
+<p>
+Note that <code>InstallResources</code> differs from <code>InstallFromManifest</code>
+in that it preserves relative paths. So if the MANIFEST file contains foo:bar.gif,
+a folder called 'foo' will be created in the destination, and bar.gif copied (or aliased)
+in there.
+</p>
+
+<h3><a name="How_to_add_a_new_jar_mn_file_to_the_build">How to add a new <code>jar.mn</code> file to the build</a></h3>
+<p>
+<code>jar.mn</code> files are used to list files that go into jar files. They
+are cross-platform.
+</p>
+<p>
+To add a new <code>jar.mn</code> file to the Mac build, add a lines to
+<code>ProcessJarManifests()</code> in 
+<code>mozilla/build/mac/build_scripts/MozillaBuildList.pm</code>, like:
+</p>
+<pre>
+CreateJarFromManifest(":mozilla:foo:jar.mn", $chrome_dir, \%jars);
+</pre>
+
+<h3><a name="How_to_get_Mac_to_pull_a_new_or_different_CVS_module">How to get Mac to pull a new or different CVS module</a></h3>
+<p>
+The list of modules which are pulled lives in a text file,
+<a href="http://lxr.mozilla.org/mozilla/source/build/mac/build_scripts/MozillaCheckoutList.txt">MozillaCheckoutList.txt</a>.
+Just add a new line to this file. Note that you can specify a date, and/or a tag to pull from here. If you
+are creating a branch, and want Mac builds on the branch to work, you should edit this file
+to specify that the tree be pulled from your branch tag.
+</p>
+
+<h2><a name="environment_variable">Having an "environment variable" set a <code>#define</code></a></h2>
+<p>
+On other platforms, it's common to use environment variables to set up build options. This
+is emulated on Mac using the build options. The option can be turned on or off in the users'
+build preferences files, which can cause a <code>#define</code> to be generated in a global header file.
+</p>
+<p>
+To add such an option-controlled <code>#define</code>, edit
+<a href="http://lxr.mozilla.org/seamonkey/source/build/mac/build_scripts/MozillaBuildFlags.txt">MozillaBuildFlags.txt</a>,
+and add your preprocessor directive after the option setting, like:
+</p>
+<pre>
+ldap            1      MOZ_LDAP_XPCOM
+</pre>
+<p>
+This will generate <code>#define MOZ_LDAP_XPCOM 1</code> in the generated header <code>DefinesOptions.h</code>,
+which is included in the global Mac header files. Note that the value of the option in <code>MozillaBuildFlags.txt</code>
+specifies whether it is on or off by default.
+</p>
+
+<h2><a name="Creating_a_new_build">Creating a new build</a></h2>
+<p>
+The build scripts have been factored into reusable modules (in <code>build_scripts/moz</code>) and
+build-specific files (in <code>build_scripts</code>). If you want to make a totally new build
+(e.g. to just build NSPR, or for embedding, or whatever), then you should make new versions
+of the following files:
+</p>
+
+<ul>
+	<li>BuildMozilla.pl -- driver for an optimized build</li>
+	<li>BuildMozillaDebug.pl -- driver for a debug build</li>
+	<li>MozillaBuildFlags.txt -- set of build options</li>
+	<li>MozillaBuildList.pm -- non-resuable module containing build logic</li>
+	<li>MozillaCheckoutList.txt -- list of modules to pull</li>
+	<li>PullMozilla.pl -- pull-only script</li>
+</ul>
+
+<p>
+Then edit the new files according to your needs. Since Mozilla is the only build at present,
+doing this may require some further script refactoring.
+</p>
+
+<hr>
+
+<a href="mailto:sfraser@netscape.com">Simon Fraser</a>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March  5,  2003</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/build/mac_cfm-build-system.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

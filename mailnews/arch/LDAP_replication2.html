@@ -1,0 +1,308 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+                 
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+                 
+  <meta name="Generator" content="Microsoft Word 97">
+  <title>LDAP Replication Draft Design Document</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+  
+      <b><u>    
+<p align="Center">LDAP Replication Draft Analysis and Design Document</p>
+ </u></b> 
+<div align="Left">
+<div align="Center">   <small>by Rajiv Dayal </small></div>
+<div align="Left">
+<div align="Center">
+<div align="Center"><small>Reviewers : Mark Smith, Seth Spitzer and Dan Mosedale</small></div>
+<h6>  </h6>
+</div>
+ 
+<h5></h5>
+ </div>
+ <b><u>        </u></b></div>
+ <b>   
+<p><br>
+Background</p>
+      </b>    
+<p>LDAP Replication is a process where a directory is replicated onto the
+  local machine to enable access to data in case if there is no server connection.
+  </p>
+          
+<p>The LDAP replication support we would provide in Mozilla / Netscape 6 is
+for replicating any People / corporate Addresses kinda directories onto the
+local machine in a local Address Book supported Mork database.</p>
+          
+<p>Netscape 4.x provides support for LDAP replication using LDAP SDK to get
+ the entries for replication and stores the data locally in the Address Book
+ neomagic DB that it supports. It provides an offline panel for  each directory
+ to allow the user to set a preference to sync the directory  automatically
+ when the user selects to go offline as well as provide a button  to sync
+the directory instantaneously.</p>
+          
+<p>For the initial version of LDAP support we will provide support for replicating
+  the directory instantaneously.</p>
+      <b>    
+<p>Replication Protocols: LCUP and Change Log</p>
+     </b><font size="2"> </font>    
+<p>There is a couple of standard replication draft protocols called the Change
+ Log  protocol and LCUP (LDAP Client Update Protocol) which can be used for
+ implementing  replication. Although LCUP is the later one, most present
+day  servers do not comply with it yet.</p>
+     <font size="2"> </font>    
+<p>Servers implementing LCUP protocol provide a cookie to the client containing
+  the state information for the client. For each replication search call
+the   client sends back this cookie and the server takes care of returning
+only   the changes done on the server after the last replication from the
+client.   There is much more to this protocol but we will not go too much
+into details  of this since we would not be implementing LCUP in the initial
+version. See <a href="http://search.ietf.org/internet-drafts/draft-ietf-ldup-lcup-02.txt">
+  LCUP Internet draft</a>
+   for details.</p>
+          
+<p>The Change Log protocol works on the basis of a change log. The server
+  has a container which contains a list of changeLog entries. Each change
+log  entry contains an incremental unique changelog number and the details
+of the entry, change type and the changes done to the entry. This container
+is obtained by reading the "changeLog" attribute of the server’s root DSE.
+The client retrieves all the changeLog entries with a changeLog number equal
+to and greater than its last replicated changeLog number for a directory.
+If the  equal to entry is not returned the entire directory needs to be replicated.
+ See <a href="http://search.ietf.org/internet-drafts/draft-good-ldap-changelog-03.txt">
+ Change Log Internet Draft</a>
+   for more details.</p>
+          
+<p>In Netscape 4x the Change Log protocol was implemented to do LDAP replication. 
+ </p>
+   
+<p>Although we will not be implementing the LCUP protocol for the initial 
+ version we will try to separate out the implementation of making the actual 
+ query for replication and the processing of the query results for replication. 
+ The two protocols for getting the changes are quite different but this will 
+ help us to reuse the results processing for replication, which involves parsing
+ the results and saving it in the local Address Book Mork database, whatever
+ may be the protocol implemented. We would also try to figure out a way to
+ query the server, before beginning the initial replication (downloading all
+ entries) for a directory, to find out what is the replication protocol supported
+ by the server for that directory.</p>
+    <b>    
+<p>Alternative Replication Methodology</p>
+     </b>     
+<p>Another alternative to using the standard protocol as suggested by Mark 
+ Smith is to use the time stamps for replicating. The client stores the time 
+ stamp of the last update for the directory and at the time of replication 
+ compare the last update time stamp for the entries on the server. If the 
+time stamp on the server is later the entry in the client is updated with 
+the one on the server.</p>
+          
+<p>This methodology does not require the server to do anything special to
+  support replication except maintain the last update time stamp attribute,
+  which all servers do, as well as allow access to this attribute so that
+the  client can compare its last update time stamp for the entries. One issue
+ is if the naming convention for this operational attribute on the LDAP servers
+  is standard, i.e. is the last update time stamp attribute called the same
+  on all servers ? </p>
+          
+<p>On the other hand this Does have an impact on performance since at the
+  time of replication each entry’s timestamp needs to be compared to decide
+  which entries in the client side needs to be updated. Where as in the case
+  of the Change Log protocol only the list of changelog entries need to be
+ accessed.</p>
+          
+<p>Also for new records or deleted records or records whose RDN have been
+  updated the processing might require to resync the complete directory.
+But  even if this is done it needs to be known when or how often the resync
+needs  to be done.</p>
+          
+<p></p>
+       
+<p><b>Authentication</b></p>
+     
+<p>For the above replication protocols one issue that needs to be considered 
+ is authentication. For the ChangeLog protocol the user need to be able to 
+ access the change log container or the "changeLog" attribute of the RootDSE. 
+ Also even if there is access to this container, all attributes of this container 
+ should be allowed access. For the alternative methodology we need to be able
+ to access the last updateTimestamp operational attribute for the directory 
+ as well as the server needs to be indexed on this by the administrator for 
+ effective server side processing for replication.</p>
+     
+<p>Maybe to deal with the changeLog situation the administrator should define 
+ a replication user authDN and password that can be used to access the Change 
+ Log entries. But maybe prefs is not a good place to store this sensitive
+ information ! We should look more into the implementation done in 4x in
+this regard and see if that is the most effective way to deal with authentication.  
+</p>
+ 
+<p>A better way to deal with this is to make use of the Password Manager /
+Wallet feature in Mozilla / Netscape 6 to store the authDN and password used
+for LDAP replication. This would however require auto-config integration with
+the Password Manager.</p>
+ 
+<p>Also it seems like the search for accessing the change log container can
+ be done by any user however the "changes" attribute can not be accessed.
+To take care of this 4x makes another search to retrieve all the attributes
+for the entries from the change log and then replaces the record for these
+entries with the retrieved attributes data. This may have some performance
+impact since otherwise the modified attributes can be directly accessed without 
+retrieving the entries again.<br>
+ </p>
+     
+<p><b>Preferences</b></p>
+     
+<p>Various user and company specific preferences and details can be specified 
+ for replication :<br>
+   - Restricting the replication to what the user needs is a good way to
+keep  the replication time under check. Each user should be allowed to specify 
+a search filter so that only the entries useful for him/her are downloaded.<br>
+   - replication search base for replication search<br>
+   - lastChangeNumber / last updatedTimestamp<br>
+- configuration file for field mappings associated with the directory<br>
+- replication search timeout</p>
+     
+<p>The autocomplete using LDAP, stores several directory properties and stores 
+the information in the preferences. The code that reads these preferences 
+or definitly the directory preferences can be reused for getting the LDAP 
+properties to do the search for replication.<br>
+   </p>
+   
+<p> </p>
+   
+<p>  <b>Mapping AB fields to LDAP attributes</b></p>
+   
+<p>The LDAP attributes needs to be mapped on to the AB fields / AB card.
+Each corporate customer can have separate attribute names for the People
+details directory attributes. There is a mapping proposed on bug # 118454
+and related bugs. These bugs also deal with cases of multi valued attributes,
+multiple LDAP attribute names mapping to AB field, etc.</p>
+   
+<p>Maybe a configuration file should be defined which specifies this mapping
+ which can be used at runtime to do the search as well as process the search
+ results. There could be a differnet configuration file for each directory
+server. This configuration file should be allowed to be updated by the administrator
+ depending on what attribute names are used by the corporate client and distributed
+ maybe using autoconfig. Maybe a configuration UI can be provided to configure 
+this mapping as part of the N6x MCD version !</p>
+ 
+<p>The current strategy should however be to have a centralized class with 
+the existing code for this hardcoded map which can at a later stage be changed 
+to use a configuration file.<br>
+ </p>
+   
+<p><b>Storing the entries locally</b><br>
+  </p>
+   
+<p>The Address Book uses the mork database to store its data locally. We
+will go ahead with using the Mork databse since it will allow us to use existing
+ Address Book XPCOM interfaces for our implementation. Maybe Berkley DB could
+ be another option which may result into better performance but this may
+require  some more coding even for the Address Book UI to display the data
+as well as will only have a performance gain only during LDAP replication
+of a complete directory which is a rarer event for a user.</p>
+ 
+<p><br>
+ </p>
+   
+<p><br>
+    </p>
+         
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February  6,  2002</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/mailnews/arch/LDAP_replication2.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

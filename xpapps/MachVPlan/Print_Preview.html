@@ -1,0 +1,101 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+  <meta name="author" content="Peter Trudelle">
+  <title>Print Preview</title>
+</head>
+<body>
+<h1 id="P-A1">Print Preview (1 of 2, BE and FE)</h1>
+<h2>Detailed Description</h2>
+<p>Adding the "Print Preview" menu choice, by itself, is trivial.  The menu
+choice                will be enabled/disabled in parallel with the existing
+Print... menu choice.  It                is unclear whether this menu choice
+will be available only in Navigator or also                in Mail/News,
+though.  The assumption here is that we're adding it to Navigator only. 
+           </p>
+<p>That menu choice, when enabled, will either open a new "Print Preview"
+window, or,                change the current window to "print preview mode."
+ The former appears at this time 			   to be vastly simpler to implement
+and is the course we plan to take.             </p>
+<p>The new (or existing window), is put in "print preview mode"  			   by
+QI'ing the nsIWebBrowser (or some other object?) for the nsIWebBrowserPrint 
+               interface and calling that interface's ShowPrintPreview method.
+ That method                returns an nsIPrintPreviewNavigation interface,
+which then provides the methods                that advance through pages,
+etc.             </p>
+<p>Unfortunately, that's all in theory.  nsIWebBrowserPrint doess not currently 
+               declare the method ShowPrintPreview.  It appears that this
+was supposed to be                fixed per                <a href="http://bugzilla.mozilla.org/show_bug.cgi?id=72691">
+bug 72691</a>
+                but that bug was closed (perhaps erroneously).  So the method
+needs to be                added, and more importantly, implemented.  That
+would seem to be a "BE" (back end)                task.             </p>
+<p>Once the proper interfaces are in place and implemented, then it should
+be                relatively straightforward to implement the new window.
+ We will implement that 			   window using any simplifying assumptions that
+can materially reduce the work 			   involved, while not materially reducing
+the value to the user.  For example, it may  			   turn out to be necessary
+to make the Print Preview window "modal" to the browser 			   window from
+which it is opened.  E.g, if it turns out that subsequent navigation  			
+  on that parent window raises significant stability issues.         </p>
+
+<p>
+<b>Update 2001 Oct 19</b>
+</p>
+<p>
+Based on discussions with and input from Rod Spears, it now is looking like
+"print preview" support in layout will be via a "galley mode" in which the
+content will be drawn "wysiwyg" with respect to the printer output.  Basically,
+it will look sort of like Adobe Acrobat where the output appears in the window
+in page-sized chunks with appropriate white background, etc.  Opera does print
+preview this way.
+</p>
+<p>
+Given this, it seems that we won't need a separate window to display print
+preview.  We will simply change Navigator so that the content area appears in
+this "galley mode" format.  Rather than implementing a new window, the work will
+entail modifying Navigator so that it works properly in this mode.  Those
+details will not all be known till the back-end layout support is in place.
+The kind of things we'll have to do include modifying the context menu,
+preventing user actions that don't make sense (e.g., form submission), and so on.
+</p>
+<p>
+This flavor of print preview will require less effort: only 9 days instead of 15.
+The modified task estimates appear below.
+</p>
+<h2>Tasks</h2>
+<ul>
+  <li>Add "Print Preview..." menu item.  <b>1 day</b></li>
+  <li>Implement new "Print Preview" UI (.xul/.css/.dtd) and supporting 				
+   code (.js).  This will be mostly modifications to existing components of
+   the "Navigator window" (e.g., navigator.xul, navigator.js, etc.).
+   <b>8 days</b>
+    <p>This large task is broken down into the following subtasks: 						</p>
+    <ol>
+      <li>Prototype Print Preview to resolve high-order issues re:      
+                          modality, BE interactions, platform-specific issues,
+etc.                                 
+This will basically be code that turns on and off the new "galley mode."
+        <b>2 days</b></li>
+      <li>Implement Print Preview specific UI and underlying function (e.g.,
+          fast path to "Print").
+                     <b>1 day</b></li>
+      <li>Disable Navigator UI/function that doesn't work in Print Preview mode.
+        <b>5 days</b></li>
+    </ol>
+  </li>
+</ul>
+<h2>Issues</h2>
+<ul>
+  <li>This assumes that the "galley mode" approach is an acceptable approach.
+  <li>Navigator-only?  Mail/News (probably not)?  Composer (probably)?  
+                  Other windows (probably not)?  This plan is for Navigator
+only.                 </li>
+  <li>Need to synchronize with back-end effort/schedule.  This line item 				
+   cannot be implemented by the "front end" on the current code base.   
+         </li>
+</ul>
+<h2>Links</h2>
+</body>
+</html>

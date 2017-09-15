@@ -1,0 +1,222 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.73 (Macintosh; I; PPC) [Netscape]">
+   <meta name="Author" content="Jean-Francois Ducarroz <ducarroz@netscape.com>">
+   <title>Message Compose Performance Logging</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<center><b><font size=+2>Tracking Message Compose Performance</font></b>
+<p><b>by Jean-Francois Ducarroz &lt;<a href="mailto:ducarroz@netscape.com">ducarroz@netscape.com</a>></b>
+<br><b>last modified March 5th, 2001&nbsp; 14:43</b></center>
+<p><br>
+<p>In order to be able to measure where we spend our time when creating
+a new message compose window or when replying to a message, I have added
+logging information to both the tip build and the mailnews performance
+branch build. With this loggin, you will be able to gather information
+on all platforms and on a variety of machines. Also you can track progress
+or degradation between builds or between the tip and the performance branch.
+<p>I have split the process of creating a new message (or doing a reply/reply
+all) in the following steps:
+<ul>
+<li>
+Opening a new window (XPApp, JavaScript)</li>
+
+<li>
+Initializing the window (MsgCompose)</li>
+
+<li>
+Initialization of Editor (Editor)</li>
+
+<li>
+Quoting the original message (Mime)</li>
+
+<li>
+Inserting original message and signature (Editor)</li>
+
+<li>
+Updating the addressing widget (AddressingWidget)</li>
+</ul>
+
+<p><br>The log generated by a tip build and a branch build differs slightly
+due to an architecture change but you are still able to compare the total
+time and the time for every step even if they are not occurring in the
+same order.
+<p>Here is a sample log:
+<dd>
+0[a3deb0c]:</dd>
+
+<dd>
+--------------------</dd>
+
+<dd>
+0[a3deb0c]: [ 0][ 0] - Start opening the window, message size = 22518</dd>
+
+<dd>
+0[a3deb0c]: [ 1515][ 1515] - Start Initializing the compose window (ComposeLoad)</dd>
+
+<dd>
+0[a3deb0c]: [ 2364][ 849] - Done with the initialization (ComposeLoad).
+Waiting on editor to load about::blank</dd>
+
+<dd>
+0[a3deb0c]: [ 2618][ 254] - Editor is done loading about::blank. Now let
+mime do its job</dd>
+
+<dd>
+0[a3deb0c]: [ 3509][ 891] - done with mime. Time to insert the body</dd>
+
+<dd>
+0[a3deb0c]: [ 3852][ 343] - Finished inserting data into the editor. The
+window is almost ready!</dd>
+
+<dd>
+0[a3deb0c]: [ 4644][ 792] - addressing widget, windows title and focus
+are now set. The window is finally ready</dd>
+<br>
+<p><b>How to create a Message Compose Performance Log: </b>(adaptation
+of <a href="../../quality/mailnews/mail-troubleshoot.html#imap">original
+document</a> written by Lisa Chiang)<p>
+For all platforms, you'll need to edit your prefs.js file in your user directory (make sure you do this when Mozilla isn't running):<p>
+Add this line in:<p> 
+user_pref("mailnews.logComposePerformance", <strong>true</strong>);<p>
+Then, follow these instructions for each platform:<p>
+<b><blockquote>Windows 95/98</b>:&nbsp;&nbsp; Create "c:\tmp" for the log
+file to reside in if the directory does not exist. Insert the following
+lines into your autoexec.bat file:</blockquote>
+
+<blockquote>
+<blockquote>Set NSPR_LOG_MODULES=msgcompose:5
+<br>Set NSPR_LOG_FILE=c:\tmp\[filename]
+<p>The filename can be defined by you.&nbsp; Reboot.</blockquote>
+<b>WinNT</b>: Use the Control Panel | System | Environment tool to set
+the PRLOG env variables.
+<blockquote>Variables: NSPR_LOG_MODULES&nbsp;&nbsp; Value: msgcompose:5
+<br>Variables: NSPR_LOG_FILE&nbsp;&nbsp;&nbsp; Value: c:\tmp\[filename]
+<p>Follow the remaining steps for Windows 95/98 above.</blockquote>
+<b>Mac</b>: Create a text file that contains the desired commands in a
+text editor such as BBEdit:
+<blockquote>ARGS: -mail
+<br>ENV:NSPR_LOG_MODULES=msgcompose:5
+<br>ENV:NSPR_LOG_FILE=[filename]
+<p>The filename can be defined by you.&nbsp; Save this file and drag and
+drop this file on the Netscape/Mozilla application icon.&nbsp; The log
+file is created in the seamonkey folder.</blockquote>
+<b>Unix</b> (e.g., for csh shells):&nbsp; Add the following lines to ~/.cshrc
+file of the csh shell:
+<blockquote>setenv NSPR_LOG_MODULES msgcompose:5
+<br>setenv NSPR_LOG_FILE /u/[unix userlogin]/tmp/[filename]
+<p>The filename can be defined by you.</blockquote>
+</blockquote>
+The 5 in the first variable above specifies the level of logging you want
+- the lower the number the less logging happens. (Temporarily, though,
+until further notice, it's going to use PR_LOG_ALWAYS.)
+<p>The numbers are supposed to have the following meaning:
+<p>PR_LOG_NONE = 0, /* nothing */
+<br>PR_LOG_ALWAYS = 1, /* always printed */
+<br>PR_LOG_ERROR = 2, /* error messages */
+<br>PR_LOG_WARNING = 3, /* warning messages */
+<br>PR_LOG_DEBUG = 4, /* debug messages */
+<p>On all platforms, the log is written over every time you re-launch the
+mail application.
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September 12,  2001</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/mailnews/performance/msgcompose_loggin.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

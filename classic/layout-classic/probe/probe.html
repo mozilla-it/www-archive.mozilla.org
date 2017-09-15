@@ -1,0 +1,931 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+<title>
+The "Layout Probe" Module(s)
+</title>
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+<center>
+<h1>
+The <em>Layout Probe</em> Module(s)
+</h1>
+Last updated 12:33 AM 8/10/98
+</CENTER>
+<H2>
+Table of Contents
+</H2>
+   <OL>
+      <LI><A href="#overview">Overview</A>
+      <LI><A href="#intra-mozilla">Intra-Mozilla</A>
+      <LI><A href="#extra-mozilla">Extra-Mozilla</A>
+         <OL type=A>
+            <LI><A href="#client">The Client Module</A>
+               <OL type=i>
+                                          <LI><A href="#client-C++">Calling the Layout Probe API from C++</A>
+                  <LI><A href="#client-C">Calling the Layout Probe API from C</A>
+               </OL>
+            <LI><A href="#server">The Server Plugin (Plan A)</A>
+            <LI><A href="#server">The Server Plugin (Plan B)</A>
+            <LI><A href="#ipc">The Client/Server IPC Interface</A>
+         </OL>
+      <LI><A href="#issues">Issues</A>
+      <LI><A href="#mozprobe"><TT>mozprobe.dll</TT></A>
+   </OL>
+<H2><A name="overview">
+Overview
+</A></H2>
+   The <EM>layout probe</EM> API is declared in the file
+   <A href="http://cvs-mirror.mozilla.org/webtools/lxr/source/lib/layout/layprobe.h">
+   <TT>mozilla/lib/layout/layprobe.h</TT></A>. Basically, this API provides the ability to query the HTML elements that comprise a page.
+   <P>
+   This document describes:
+      <UL>
+         <P><LI>The packaging of this API into a <EM>module</EM> (as described
+            <A href="../../docs/modunote.htm">here</A>).
+         <P><LI>The design of additional modules that extend this API so that it can be
+            invoked from other applications.
+      </UL>
+   <P>
+   The design points that led to this proposal included:
+      <UL>
+         <P><LI>Full adoption and exploitation of the Mozilla modularization techniques
+            described in the paper referenced above.  It is hoped that clients (both within
+            Mozilla and outside) will use the interface discovery and access mechanisms
+            provided by XPCom in order to use the probe API.  This buys all the benefits
+            of such modularization:
+               <UL>
+                  <P><LI>Reduced cohesion between the probe APIs and the clients.
+                  <P><LI>The ability to easily replace the probe APIs in the future.
+                  <P><LI>The ability to extend the probe APIs (to enable access from
+                     other processes, for example).
+               </UL>
+         <P><LI>Implementation in Netscape Communicator 4.x and Mozilla "5.0."  Note that
+            this requirement trumps the previous one so we can't actuall build this using
+            the XPCom technique (unless we do an XPCom-based one for Mozilla only).  That's
+            too much extra work at this point so it isn't happening.
+         <P><LI>Provide full access to the probe APIs to external applications (e.g., 
+                QAPartner).
+         <P><LI>Allow user-controlled enabling/disabling of the ability to externally
+            access the probe API.  That is, we'd like to be able to dynamically add a
+            shared library on test systems and permit removal of that library to disable
+            the facility.
+         <P><LI>Enable implementation of these facilities on all platforms with a minimum
+            of effort.
+      </UL>
+<H2><A name="intra-mozilla">
+Intra-Mozilla
+</A></H2>
+   Clearly, code within Mozilla (i.e., the Mozilla executable, aka "mozilla.exe" on Windows)      
+   can simply <TT>#include "layprobe.h"</TT> and call the LO_QA_* functions.  So providing a
+   module doesn't add functionality.  However, it does permit more flexibility in the 
+   implementation of that API.
+   <P>
+   To package the probe API as a module is straightforward, we just implement the functions
+   as members of some <TT>ISupports</TT>-derived interface:
+   <P>
+   <TABLE cols=1 width="100%" bgcolor=lightgrey>
+      <TR>
+         <TD><PRE>   /*
+    * The nsILayoutProbe interface
+    */
+
+   class nsILayoutProbe : public nsISupports {
+
+   public:
+
+      /* Sets probe position to first layout element in document. */
+      NS_IMETHOD GotoFirstElement() = 0;
+
+      /* Advances probe to next element in document. */
+      NS_IMETHOD GotoNextElement() = 0;
+
+      /* Advances probe to first child sub-element. */
+      NS_IMETHOD GotoChildElement() = 0;
+
+      /* Returns probe to parent element. */
+      NS_IMETHOD GotoParentElement() = 0;
+
+      /* Return various attributes of the current element. */
+      NS_IMETHOD_( int )  GetElementType() = 0;
+
+      NS_IMETHOD_( long ) GetElementXPosition() = 0;
+      NS_IMETHOD_( long ) GetElementYPosition() = 0;
+      NS_IMETHOD_( long ) GetElementWidth() = 0;
+      NS_IMETHOD_( long ) GetElementHeight() = 0;
+
+      NS_IMETHOD_( Bool ) HasURL() = 0;
+      NS_IMETHOD_( Bool ) HasText() = 0;
+      NS_IMETHOD_( Bool ) HasColor() = 0;
+      NS_IMETHOD_( Bool ) HasChild() = 0;
+      NS_IMETHOD_( Bool ) HasParent() = 0;
+
+      NS_IMETHOD_( char* ) GetText() = 0;
+      NS_IMETHOD_( char* ) GetURL() = 0;
+
+   };
+         </PRE></TD>
+      </TR>
+   </TABLE>
+   <P>
+   <B>Note:</B> Details of the interface member functions have yet to be ironed out.  There
+   are some issues regarding the mapping of the probe API functions (arguments and return codes).
+   <P>
+   The above interface simply describes an abstract base class.  We will actually implement this
+   interface with a concrete derived class.  clients of this interface don't need to know anything
+   about that implementation class, though.  which is a good thing, since there are still some
+   questions I have about it (how to name it, where to implement it, etc.).  Basically, though, this
+   implementation class will simply store the "probe ID" and implement each member function by calling
+   the corresponding <TT>LO_QA_*</TT> function with that <TT>probeID</TT>.
+   <P>
+   In addition to this interface and its implementation, there also needs to be a "factory"
+   that can be used to create instances of the interface (actually, instances of the concrete
+   implementation class).  This factory is declared something like this:
+   <P>
+   <TABLE cols=1 width="100%" bgcolor=lightgrey>
+      <TR>
+         <TD><PRE>   /*
+    * The nsILayoutProbeFactory declaration
+    */
+
+   class nsILayoutProbeFactory : public nsIFactory {
+
+   public:
+
+      // nsISupports methods   
+      NS_IMETHOD QueryInterface(const nsIID &aIID,    
+                                void **aResult);   
+      NS_IMETHOD_(nsrefcnt) AddRef(void);   
+      NS_IMETHOD_(nsrefcnt) Release(void);   
+
+      // nsIFactory methods   
+      NS_IMETHOD CreateInstance(nsISupports *aOuter,   
+                                const nsIID &aIID,   
+                                void **aResult);   
+
+      NS_IMETHOD_(void) LockFactory(PRBool aLock);
+
+   };
+         </PRE></TD>
+      </TR>
+   </TABLE>
+   <P>
+   This factory will implement <TT>CreateInstance</TT> by creating an instance of the concrete
+   implementation class mentioned above.
+   <P>
+   All that remains (at this point), is to register this factory with the NSRepository.  This
+   will be done somewhere during Mozilla initialization (the exact point yet to be determined).
+   <P>
+   Given the above, it would now be possible for any code within Mozilla that wished to use the
+   probe APIs to do so using the following technique:
+   <P>
+   <TABLE cols=1 width="100%" bgcolor=lightgrey>
+      <TR>
+         <TD><PRE>   /*
+    * Sample intra-Mozilla Layout Probe utilization.
+    */
+   nsILayoutProbe *pProbe;
+   NSRepository::CreateInstance( kILayoutProbeIID, (void**)( &pProbe ) );
+   // ...use pProbe...
+         </PRE></TD>
+      </TR>
+   </TABLE>
+   <P>
+   This doesn't exactly fit with the documented interface to NSRepository (it shows that 
+   <TT>CreateInstance</TT> requires a class ID in addition to the interface ID, and, 
+   needs something called a "delegate."  In any case, this hopefully gives you an idea of how
+   you'd go about using this "intra-Mozilla" layout probe interface/module.
+   <P>
+   <TABLE cols=1 width="100%" bgcolor=red><TR><TD>
+   <B>Note:</B> This inteface will not be implemented at this time since it would not work on
+   Communicator 4.x.
+   </TD></TR></TABLE>
+
+   
+<H2><A name="extra-mozilla">
+Extra-Mozilla
+</A></H2>
+   Our real objective is to make the Layout Probe API available to <EM>other</EM> applications
+   (such as QAPartner).  In this section, I'll describe other "modules" that provide that
+   capability.  These components will also be packaged as XPCom "modules" (aka "interfaces").
+   <TABLE cols=1 width="100%" bgcolor=red><TR><TD>
+   <B>No they won't!</B> These components will not be implemented using XPCom since such an
+   implementation is not practical in Communicator 4.x.
+   </TD></TR></TABLE>
+<H3><A name="client">
+The Client Interface
+</A></H3>
+   The <EM>client</EM>, in this case, is any non-mozilla application (like QAPartner) that wishes
+   to exercise the probe API against a running Mozilla browser window.
+   <P>
+   The plan is to present such clients with precisely the same <TT>nsLayouProbe</TT> interface as
+   described above.  The main difference is that in this case the interface will be implemented by
+   a different concrete derived class.  Objects of that class will implement the member functions
+   by (somehow) doing IPC to the running Mozilla browser.  Code within Mozilla (at the opposite
+   end of that IPC) will, in turn, use the intra-Mozilla layout probe API interface described above.
+   <P>
+   So, the interface is defined.  The concrete implementation will be left as an exercise for the
+   implementor (me, at least on Windows).  Actually, I'll say more about this implementation below,
+   when I talk about the corresponding code in Mozilla and the IPC mechanism.
+   <P>
+   One issue is: How to package this client interface module?  This design is based on the 
+   architecture of the Mail/News MAPI interface (see <TT>ns/cmd/winfe/mapi</TT>) which packages
+   (the equivalent component) as a dynamic link library (i.e., shared library).  I don't see that
+   that is essential (although perhaps QAPartner can better interface with code packaged this way?).
+   In any case, the current plan is to package this client interface module for both dynamic and
+   static linking with applications that wish to use it.
+   <P>
+   That requires that all the required code can be built that way.  The components required include
+   the XPCom stuff and NSPR (which the former utilizes).  I think all that is either already built as
+   a shared library or could be.
+<H4><A name="client-C++">
+Calling the Layout Probe API Using C++
+</A></H3>
+   <P>C++ applications can access the layout probe APIs using objects of type
+   <TT>MozillaLayoutProbe</TT>, which is declared in
+   <A href="http://cvs-mirror.mozilla.org/webtools/lxr/source/cmd/winfe/mozprobe.h"><TT>mozilla/cmd/winfe/mozprobe.h</TT></A>:
+   <TABLE cols=1 width=100% bgcolor=lightgrey><TR><TD>
+      <PRE>      struct MozillaLayoutProbe {
+          // pseudo-Constructor.  You must use this to create an instance (and
+          // then delete it!).  This is to minimize the entry points exported from
+          // mozprobe.dll.
+          static MozillaLayoutProbe *MakeProbe( long context );
+      
+          // Dtor.  This will destroy the probe.
+          virtual ~MozillaLayoutProbe();
+      
+          // Positioning.
+          virtual BOOL GotoFirstElement();
+          virtual BOOL GotoNextElement();
+          virtual BOOL GotoChildElement();
+          virtual BOOL GotoParentElement();
+      
+          // Element attributes.
+          virtual int  GetElementType() const;
+          virtual long GetElementXPosition() const;
+          virtual long GetElementYPosition() const;
+          virtual long GetElementWidth() const;
+          virtual long GetElementHeight() const;
+          virtual long GetElementColor() const;
+          virtual long GetElementTextLength() const;
+          virtual long GetElementText( char *buffer, long bufLen ) const;
+      
+          // Element queries.
+          virtual BOOL ElementHasURL() const;
+          virtual BOOL ElementHasText() const;
+          virtual BOOL ElementHasColor() const;
+          virtual BOOL ElementHasChild() const;
+          virtual BOOL ElementHasParent() const;
+      
+          // Status (indicates whether most recent request succeeded).
+          virtual BOOL IsOK() const;
+      
+          // Internals.
+          private:
+              // Contructor.  This will create the probe.  The "context"
+              // specifies the browser window to probe (1st, 2nd, etc.).
+              // This is private!  Use MakeProbe() to create objects.
+              MozillaLayoutProbe( long context = 1 );
+          
+              // Utilities to consolidate code.
+              BOOL  position( PROBE_IPC_REQUEST ) const;
+              long  getLongAttribute( PROBE_IPC_REQUEST ) const;
+              BOOL  getBOOLAttribute( PROBE_IPC_REQUEST ) const;
+              long  sendRequest( PROBE_IPC_REQUEST, unsigned long = 0, void* = 0 ) const;
+              void  setOK( BOOL ) const;
+      
+              // Shared memory handling.
+              BOOL allocSharedMem( unsigned long ) const;
+      
+              // Data members.
+              long          m_lProbeID;
+              BOOL          m_bOK;
+              HANDLE        m_hSharedMem;
+              unsigned long m_ulSharedMemSize;
+              void*         m_pSharedMem;
+      };
+      </PRE>
+   </TD></TR></TABLE>
+   <P>The member functions of this class correspond pretty much to the layout probe
+   APIs.  The objects hide some of the detail (e.g., the "create" and "destroy" requests,
+   which happen in the constructor/destructor, respectively).  The object also completely
+   hides the internals of the communication with the Mozilla application.
+   <P>To better isolate the client application from the implementation, the constructor is
+   private.  This forces you to call <TT>MozillaLayoutProbe::MakeProbe</TT> in order
+   to create a probe object.  All member function calls are then made through the virtual
+   function callling mechanism, made against the pointer returned by <TT>MakeProbe</TT>.
+   The result is that the only entry point that has to be exported from the
+   <TT>mozprobe.dll</TT> is for the <TT>MakeProbe</TT> function.
+   <P>Here is a prototypical C++ sample program (implemented in the file
+   <A href="http://cvs-mirror.mozilla.org/webtools/lxr/source/cmd/winfe/mozprobe/probe1.cpp"><TT>mozilla/cmd/winfe/probe/probe1.cpp</TT></A>:
+   <TABLE cols=1 width=100% bgcolor=lightgrey><TR><TD>
+      <PRE>      #include <iostream.h>
+      #include <windows.h>
+      
+      #include "mozprobe.h"
+      
+      void main() {
+      
+          cout << "Mozilla layout probe C++ test starting..." << endl;
+      
+          // Loop over "contexts" till done.
+          for ( long context = 1; ; context++ ) {
+              // Create a probe for this context.
+              cout << "\tCreating probe for context " << context << "..." << endl;
+              MozillaLayoutProbe *probe = MozillaLayoutProbe::MakeProbe( context );
+          
+              // Check if it worked.
+              if ( probe->IsOK() ) {
+                  cout << "\t...created OK; now enumerating elements..." << endl;
+      
+                  // Now enumerate all elements.
+                  cout << "\t\tGoing to first element..." << endl;
+                  probe->GotoFirstElement();
+      
+                  while ( probe->IsOK() ) {
+                      cout << "\t\t...OK, here's the element info:" << endl;
+                      cout << "\t\t\ttype      = " << probe->GetElementType() << endl;
+                      cout << "\t\t\tx         = " << probe->GetElementXPosition() << endl;
+                      cout << "\t\t\ty         = " << probe->GetElementYPosition() << endl;
+                      cout << "\t\t\twidth     = " << probe->GetElementWidth() << endl;
+                      cout << "\t\t\theight    = " << probe->GetElementHeight() << endl;
+                      cout << "\t\t\tcolor     = " << probe->GetElementColor() << endl;
+                      cout << "\t\t\ttext len  = " << probe->GetElementTextLength() << endl;
+                      cout << "\t\t\tHasText   = " << probe->ElementHasText() << endl;
+                      cout << "\t\t\tHasURL    = " << probe->ElementHasURL() << endl;
+                      cout << "\t\t\tHasColor  = " << probe->ElementHasColor() << endl;
+                      cout << "\t\t\tHasChild  = " << probe->ElementHasChild() << endl;
+                      cout << "\t\t\tHasParent = " << probe->ElementHasParent() << endl;
+                      // Allocate space for text.
+                      long len = probe->GetElementTextLength() + 1;
+                      char *pText = new char[ len ];
+                      // Ensure it's properly terminated.
+                      *pText = 0;
+                      cout << "\t\t\ttext      = " << ( probe->GetElementText( pText, len ), pText ) << endl;
+                      // Free the text buffer.
+                      delete pText;
+                      // Go on to next element.
+                      cout << "\t\tGoing to the next element..." << endl;
+                      probe->GotoNextElement();
+                  }
+                  cout << "\t...end of element list (or error); GetLastError=0x" << GetLastError() << endl;
+              } else {
+                  cout << "\t...create failed; GetLastError=0x" << hex << GetLastError() << endl;
+                  // Terminate the test.
+                  break;
+              }
+              // Delete probe.
+              delete probe;
+          }
+      
+          cout << "...test completed." << endl;
+      }
+      </PRE>
+   </TD></TR></TABLE>
+<H4><A name="client-C">
+Calling the Layout Probe API Using C
+</A></H3>
+   <P>The interface to be used by C applications is a little more arcane.  It is designed
+   explicitly for use by QAPartner (scripts?) which aren't really C.  As a result, this
+   interface is packaged as a set of external entry points in <TT>mozprobe.dll</TT>.  The
+   entry point names, their interface, and semantics are all identical (at least as much
+   so as is possible) to the APIs declared in <TT>layprobe.h</TT>.
+   <P>The best way of explaining this is to show a sample program (implemented in the file
+   <A href="http://cvs-mirror.mozilla.org/webtools/lxr/source/cmd/winfe/mozprobe/probe2.c"><TT>mozilla/cmd/winfe/probe/probe2.c</TT></A>:
+   <TABLE cols=1 width=100% bgcolor=lightgrey><TR><TD>
+      <PRE>      #include <stdio.h>
+      #include <windows.h>
+      
+      #include "mozprobe.h"
+      
+      /* Clever macro to get DLL entry points. */
+      #define ENTRY_POINT(fn,type) \
+          entryPoints.fn = (type)GetProcAddress( probeDLL, #fn ); \
+          if ( !entryPoints.fn ) { \
+              printf( "\t...error loading entry point %s, GetLastError=0x%lX\n", #fn, GetLastError() ); \
+              goto abortTest;                                                                           \
+          }
+      
+      void main() {
+          long context;
+          BOOL bOK;
+          long probe;
+          HINSTANCE probeDLL;
+          PROBEAPITABLE entryPoints = { 0 };
+      
+          printf( "MozillaLayoutProbe C test starting...\n" );
+      
+          printf( "\tLoading %s.dll...\n", mozProbeDLLName );
+          probeDLL = LoadLibrary( mozProbeDLLName );
+      
+          if ( probeDLL ) {
+              printf( "\t...loaded OK.\n" );
+      
+              printf( "\tGetting entry points in DLL...\n" );
+              ENTRY_POINT( LO_QA_CreateProbe, LONG(*)(struct MWContext_*) );
+              ENTRY_POINT( LO_QA_DestroyProbe, void(*)(long) );
+              ENTRY_POINT( LO_QA_GotoFirstElement, BOOL(*)(long) );
+              ENTRY_POINT( LO_QA_GotoNextElement, BOOL(*)(long) );
+              ENTRY_POINT( LO_QA_GotoChildElement, BOOL(*)(long) );
+              ENTRY_POINT( LO_QA_GotoParentElement, BOOL(*)(long) );
+              ENTRY_POINT( LO_QA_GetElementType, BOOL(*)(long,int*) );
+              ENTRY_POINT( LO_QA_GetElementXPosition, BOOL(*)(long,long*) );
+              ENTRY_POINT( LO_QA_GetElementYPosition, BOOL(*)(long,long*) );
+              ENTRY_POINT( LO_QA_GetElementWidth, BOOL(*)(long,long*) );
+              ENTRY_POINT( LO_QA_GetElementHeight, BOOL(*)(long,long*) );
+              ENTRY_POINT( LO_QA_HasText, BOOL(*)(long,BOOL*) );
+              ENTRY_POINT( LO_QA_HasURL, BOOL(*)(long,BOOL*) );
+              ENTRY_POINT( LO_QA_HasColor, BOOL(*)(long,BOOL*) );
+              ENTRY_POINT( LO_QA_HasChild, BOOL(*)(long,BOOL*) );
+              ENTRY_POINT( LO_QA_HasParent, BOOL(*)(long,BOOL*) );
+              ENTRY_POINT( LO_QA_GetTextLength, BOOL(*)(long,long*) );
+              ENTRY_POINT( LO_QA_GetText, BOOL(*)(long,char*,long) );
+              ENTRY_POINT( LO_QA_GetColor, BOOL(*)(long,long*) );
+              printf( "\t...all entry points loaded OK.\n" );
+      
+              /* Loop over "contexts" till done. */
+              for ( context = 1; ; context++ ) {
+                  /* Create a probe for this context. */
+                  printf( "\tCreating probe for context %ld...\n", context );
+      
+                  probe = entryPoints.LO_QA_CreateProbe( (struct MWContext_*)context );
+              
+                  /* Check if it worked. */
+                  if ( probe ) {
+                      printf( "\t...created OK; now enumerating elements...\n" );
+          
+                      /* Now enumerate all elements. */
+                      printf( "\t\tGoing to first element...\n" );
+      
+                      bOK = entryPoints.LO_QA_GotoFirstElement( probe );
+          
+                      while ( bOK ) {
+                          int type;
+                          long lAttr;
+                          BOOL bAttr;
+                          char *pText;
+                          long textLen;
+      
+                          printf( "\t\t...OK, here's the element info:\n" );
+      
+                          printf( "\t\t\ttype      = %d\n", ( entryPoints.LO_QA_GetElementType( probe, &type ), type ) );
+                          printf( "\t\t\tx         = %ld\n", ( entryPoints.LO_QA_GetElementXPosition( probe, &lAttr ), lAttr ) );
+                          printf( "\t\t\ty         = %ld\n", ( entryPoints.LO_QA_GetElementYPosition( probe, &lAttr ), lAttr ) );
+                          printf( "\t\t\twidth     = %ld\n", ( entryPoints.LO_QA_GetElementWidth( probe, &lAttr ), lAttr ) );
+                          printf( "\t\t\theight    = %ld\n", ( entryPoints.LO_QA_GetElementHeight( probe, &lAttr ), lAttr ) );
+                          printf( "\t\t\tcolor     = %ld\n", ( entryPoints.LO_QA_GetColor( probe, &lAttr ), lAttr ) );
+                          printf( "\t\t\ttext len  = %ld\n", ( entryPoints.LO_QA_GetTextLength( probe, &lAttr ), lAttr ) );
+                          printf( "\t\t\tHasText   = %d\n", ( entryPoints.LO_QA_HasText( probe, &bAttr ), (int)bAttr ) );
+                          printf( "\t\t\tHasURL    = %d\n", ( entryPoints.LO_QA_HasURL( probe, &bAttr ), (int)bAttr ) );
+                          printf( "\t\t\tHasColor  = %d\n", ( entryPoints.LO_QA_HasColor( probe, &bAttr ), (int)bAttr ) );
+                          printf( "\t\t\tHasChild  = %d\n", ( entryPoints.LO_QA_HasChild( probe, &bAttr ), (int)bAttr ) );
+                          printf( "\t\t\tHasParent = %d\n", ( entryPoints.LO_QA_HasParent( probe, &bAttr ), (int)bAttr ) );
+      
+                          /* Allocate space for text. */
+                          entryPoints.LO_QA_GetTextLength( probe, &textLen );
+                          textLen++;
+                          pText = malloc( textLen );
+                          /* Ensure it's properly terminated. */
+                          *pText = 0;
+                          /* Get text. */
+                          entryPoints.LO_QA_GetText( probe, pText, textLen );
+                          printf( "\t\t\ttext      = %s\n", pText );
+                          /* Free the text buffer. */
+                          free( pText );
+                          /* Go on to next element. */
+                          printf( "\t\tGoing to the next element...\n" );
+                          bOK = entryPoints.LO_QA_GotoNextElement( probe );
+                      }
+                      printf( "\t...end of element list (or error); GetLastError=0x%lX\n", GetLastError() );
+                  } else {
+                      printf( "\t...create failed; GetLastError=0x%lX\n", GetLastError() );
+                      /* Terminate the test. */
+                      break;
+                  }
+                  // Destroy the probe.
+                  entryPoints.LO_QA_DestroyProbe( probe );
+              }
+          } else {
+              printf( "\t...load failed; GetLastError=0x%lX\n", GetLastError() );
+          }
+          abortTest:
+          printf( "...test completed.\n" );
+      }
+      </PRE>
+   </TD></TR></TABLE>
+<H3><A name="server">
+The Server Plugin (Plan A)
+</A></H3>
+   The client interface described in the preceding section will need to communicate with a
+   counterpart component residing within the Mozilla executable.  The plan is for that component
+   to be a dynamic load library (shared library) that can be added/removed by the user in order
+   to enable/disable the capability of other applications to probe document layout.
+   <P>
+   Given that, how does Mozilla actually load this library?  Where does it look for it?  When does
+   it load it?
+   <P>
+   Following the principle of doing as little work as we can get away with, it seems plausible to
+   simply use the code in Mozilla that already answers these questions.  So, I think it makes sense
+   to package this component as a standard browser plug-in.  This takes care of getting the dynamic
+   library loaded without requiring any additional work whatsoever.
+   <P>
+   It does pose problems, though:
+      <UL>
+         <P><LI>How does this plug-in access the layout probe API?
+            <P>The presumption is that the standard intra-Mozilla interface is accessible to
+               the plug-in.  In other words, the plug-in (when loaded) can access the
+               NSRepository functions to get a pointer to an nsILayoutProbeFactory object that
+               it can then use to create nsILayoutProbe objects are requests are received from
+               clients.
+            <P>There are reasons why that might not work.  For example, if the XPCom (NSRegistry)
+               code is statically linked into Mozilla, then the plug-in would have to link in its
+               own static copy and these separate "instances" wouldn't know about each other.
+               This means that the factory object registered in Mozilla wouldn't be found by the
+               plug-in.
+            <P>If this proves to be the case, then the fix requires only a minor tweak.  At
+               some point, Mozilla code would have to pass the address of the factory object
+               (or a pointer to the NSRepository functions) to this plug-in.  That seems like
+               a reasonable fall-back plan.
+         <P><LI>How does the client interface component communicate with this plug-in?
+            <P>This is a complicated issue, so I cover it in the next section.
+      </UL>
+<H3><A name="server">
+The Server Plugin (Plan B)
+</A></H3>
+   As it turned out, it was far easier to implement this "plug in" as a simple
+   dynamic load library (.dll) rather than a full-fledged plug-in.  It still had
+   to do the basic work of accepting external requests and converting them to 
+   calls to the layour probe API.  To have to support of bunch of plug-in
+   requirements seemed like unnecessary work.
+   Further, a plug-in provides too arcane an interface for the code that ended up
+   calling this library.
+<H3><A name="ipc">
+The Client/Server IPC Interface
+</A></H3>
+   So how d the client interface module objects pass layout probe API requests to this Mozilla
+   plug-in?  How are the results passed back?
+   <P>
+   There are essentially two aspects to this problem.
+      <UL>
+         <P><LI>First, there must be a means of "marshalling" the arguments on the client side
+            so that they can be passed across.  Conversely, the results on
+            the server side need to be "marshalled" to be passed back to the client.
+         <P><LI>Secondly, the client needs to be able to inform the server when a layout probe
+            API request is pending, the client needs to be suspended while the server (the Mozilla
+            process) services that request, and then the server must notify the client that the
+            request is completed (and it can process the result).
+      </UL>
+   <P>
+   The first issue is solved by use of shared memory (in one form or another).  On Win32
+   systems, shared memory is called "mapping files" (i.e. implemented using the Windows
+   version of memory-mapped files).
+   <P>
+   There were a number of candidates considered as solutions to the second problem:
+      <UL>
+         <P><LI>DDE
+            <P>DDE is expressly designed to facilitate such IPC.  The problems with it are that
+               it is Windows-centric and is more complex a protocol than this problem requires.
+         <P><LI>socket I/O
+            <P>This is more cross-platform amenable, but is still too complex a protocol for this
+               problem (IMHO).  It might enable some more interesting capabilities (liking probing
+               layout on a machine across the network).  
+         <P><LI>signals
+            <P>Any solution based on "signals" (event semaphores, in Windows terms) would be
+               platform specific.  It also requires more work to handle details that are 
+               taken care of automatically by other techniques (i.e., Windows takes care of
+               suspending/resuming the processes automatically if you use SendMessage).
+         <P><LI>WM_COPYDATA
+            <P>This is just a special-purpose Windows message that can be used to send
+               arbitrary data betwen windows.  Yes, it's not XP.  But it's simple and is the
+               mechanism used by the similar Mail/News MAPI support.
+      </UL>
+   <P>
+   The current plan is to use the WM_COPYDATA technique on Windows.  On other platforms, I am
+   presuming that whatever mechanism is used by the MAPI interface on that platform can be
+   used without too much trouble.  The client and server components will be designed to make as
+   much as possible in XP code.  Long term, we might look to implement an XP shared memory 
+   mechanism and a generalized IPC mechanism that these components could use (but that is not
+   planned for short-term).
+   <P>
+   I might look into a completely XP socket-based IPC mechanism.  This might be worth it if it
+   can buy us a more XP solution (a little more up-front work with less total effort in the long
+   haul).  I presume that NSPR provides the necessary socket services in a 100% cross-platform
+   manner.
+   <P>
+   Presuming the WM_COPYDATA technique (and presuming other platforms use their MAPI-ish equivalent),
+   then there's the issue of how these messages get routed to the plug-in.  Now I'm talking WinFE, by
+   the way.  The code that handles the WM_COPYDATA messages for the MAPI hook is in hiddenfr.cpp.
+   Currently, this code presumes all WM_COPYDATA messages are MAPI hooks (unfortunately).
+   <P>
+   I think hiddenfr.cpp can be tweaked to examine the <TT>dwData</TT> field in the
+   <TT>COPYDATASTRUCT</TT> and determine if it is a MAPI hook request or not (this would 
+   let us preserve the MAPI hook code without change).  We would then add a new <TT>dwData</TT>
+   value (or values) for the probe APIs.  When this new <TT>dwData</TT> value is seen, the
+   request would be routed to the plug-in (using some yet-to-be-determined mechanism).  Ideally,
+   this whole process would be generalized to support additional IPC requests down the road.
+   <P>
+   Actually, that's pretty much how it has turned out.  Here is the code that does the job
+   in hiddenfr.cpp:
+   <TABLE cols=1 width=100% bgcolor=lightgrey><TR><TD>
+      <PRE>      LONG CHiddenFrame::OnProcessIPCHook(WPARAM wParam, LPARAM lParam)
+      {
+        PCOPYDATASTRUCT   pcds = (PCOPYDATASTRUCT) lParam;
+      
+        if (!pcds)
+          return(-1);
+      
+      #ifdef MOZ_MAIL_NEWS
+        // Now check for what type of IPC message this really is?
+        if ((pcds->dwData > NSCP_MAPIStartRequestID) && (pcds->dwData < NSCP_MAPIEndRequestID))
+
+        {
+            return ( ProcessNetscapeMAPIHook(wParam, lParam) );
+        }
+      #endif
+      
+        // Not MAPI, try layout probe API...
+        static BOOL triedProbe = FALSE;
+
+        static HINSTANCE hProbe = 0;
+
+        static PROBESERVERPROC serverProc = 0;
+
+      #ifndef USE_PROBE_STUBS
+        static PROBEAPITABLE fnTbl = { LO_QA_CreateProbe,
+                                       LO_QA_DestroyProbe,
+                                       LO_QA_GotoFirstElement,
+                                       LO_QA_GotoNextElement,
+                                       LO_QA_GotoChildElement,
+                                       LO_QA_GotoParentElement,
+                                       LO_QA_GetElementType,
+                                       LO_QA_GetElementXPosition,
+                                       LO_QA_GetElementYPosition,
+                                       LO_QA_GetElementWidth,
+                                       LO_QA_GetElementHeight,
+                                       LO_QA_HasURL,
+                                       LO_QA_HasText,
+                                       LO_QA_HasColor,
+                                       LO_QA_HasChild,
+                                       LO_QA_HasParent,
+                                       LO_QA_GetText,
+                                       LO_QA_GetTextLength,
+                                       LO_QA_GetColor,
+                                       Ordinal2Context };
+      #else
+        static PROBEAPITABLE fnTbl = { stub_LO_QA_CreateProbe,
+                                       stub_LO_QA_DestroyProbe,
+                                       stub_LO_QA_GotoFirstElement,
+                                       stub_LO_QA_GotoNextElement,
+                                       stub_LO_QA_GotoChildElement,
+                                       stub_LO_QA_GotoParentElement,
+                                       stub_LO_QA_GetElementType,
+                                       stub_LO_QA_GetElementXPosition,
+                                       stub_LO_QA_GetElementYPosition,
+                                       stub_LO_QA_GetElementWidth,
+                                       stub_LO_QA_GetElementHeight,
+                                       stub_LO_QA_HasURL,
+                                       stub_LO_QA_HasText,
+                                       stub_LO_QA_HasColor,
+                                       stub_LO_QA_HasChild,
+                                       stub_LO_QA_HasParent,
+                                       stub_LO_QA_GetText,
+                                       stub_LO_QA_GetTextLength,
+                                       stub_LO_QA_GetColor,
+                                       Ordinal2Context };
+      #endif
+        if ((pcds->dwData > NSCP_Probe_StartRequestID) && (pcds->dwData < NSCP_Probe_EndRequestID))
+
+        {
+            // Try one time to get the layout probe hook.
+            if ( !triedProbe ) {
+                triedProbe = TRUE;
+
+                // First, load the DLL.
+                hProbe = LoadLibrary( mozProbeDLLName );
+                if ( hProbe ) {
+                    // Get the entry point for the server proc.
+                    serverProc = (PROBESERVERPROC)GetProcAddress( hProbe, mozProbeServerProcName );
+                    if ( !serverProc ) {
+                        // Something wrong, free the DLL.
+                        FreeLibrary( hProbe );
+                    }
+                }
+            }
+            // If possible, process the layout probe hook.
+            if ( serverProc ) {
+              return ( serverProc(wParam, lParam, &fnTbl) );
+            }
+        }
+      
+        return(-1);
+      }
+      </PRE>
+   </TD></TR></TABLE>
+   <P>
+   A couple of things to note.  First, this code passes the "server proc" a table
+   of function pointers.  This removes any dependency of <TT>mozprobe.dll</TT> on
+   the layout probe API functions.  To resolve those dependencies by statically
+   linking the layout probe code or packaging those APIs as its own shared library
+   would be far too much trouble.
+   <P>
+   There is one more function the server proc needs: some means of converting a
+   simple context "ordinal" to a MWContext* pointer.  This is satisfied by the
+   <TT>Ordinal2Context</TT> static function which is also added to <TT>hiddenfr.cpp</TT>:
+   <TABLE cols=1 width=100% bgcolor=lightgrey><TR><TD>
+      <PRE>      static MWContext *Ordinal2Context( long context ) {
+          MWContext *result = 0;
+        //      Loop through context list.
+        MWContext *pTraverseContext = NULL;
+        CAbstractCX *pTraverseCX = NULL;
+        XP_List *pTraverse = XP_GetGlobalContextList();
+        while (!result && ( pTraverseContext = (MWContext *)XP_ListNextObject(pTraverse) )) {
+                if(pTraverseContext != NULL && ABSTRACTCX(pTraverseContext) != NULL)    {
+                        pTraverseCX = ABSTRACTCX(pTraverseContext);
+      
+                        if(pTraverseCX->GetContext()->type == MWContextBrowser &&
+
+                                pTraverseCX->IsFrameContext() == TRUE &&
+
+                                pTraverseCX->IsDestroyed() == FALSE)    {
+                                CWinCX *pWinCX = (CWinCX *)pTraverseCX;
+                                if(pWinCX->GetFrame()->GetFrameWnd() != NULL)   {
+                          // This is a context for a frame window.  Decrement count
+                          // and quit when it hits zero.
+                          if ( --context == 0 ) {
+                              // Result is the associated context.
+                              result = pWinCX->GetContext();
+                          }
+                                }
+                        }
+      
+                }
+        }
+          return result;
+      }
+      </PRE>
+   </TD></TR></TABLE>
+   <P>
+   The implementation of this function was cribbed from the "ListWindows" function in
+   <TT>dde.cpp</TT>.
+<H2><A name="mozprobe">
+<TT>mozprobe.dll</TT>
+</A></H2>
+   This section describes the implementation of the "extra-Mozilla" interface shared
+   libary <TT>mozprobe.dll</TT>.
+   <P>
+   The only changes that are part of <TT>mozilla.exe</TT> (or <TT>netscape.exe</TT> in
+   the case of Communicator 4.x) are the changes to <TT>hiddenfr.cpp</TT> described above
+   and, the addition of the header that provides the information required by that
+   code to interface with <TT>mozprobe.dll</TT>.  That header file is named
+   <TT>mozprobe.h</TT> and is located in the WinFE directory.
+   <P>
+   The implementation of the shared library functions, two test programs, and a
+   makefile are all located in a separate project that is <B>not</B> part of the
+   standard mozilla/ns source tree.  To build the shared library (and test programs), you
+   need to issue this command:
+      <PRE>      cvs checkout mozilla/cmd/winfe/probe
+      </PRE>
+   (replacing "mozilla" with "ns" for Communicator 4.x).  This will get you a directory with
+   four files:
+      <DL>
+         <P><DT><A href="http://cvs-mirror.mozilla.org/webtools/lxr/source/cmd/winfe/mozprobe/mozprobe.cpp">mozprobe.cpp</A></DT>
+            <DD>The implementation of the class <TT>MozillaLayoutProbe</TT> and
+                the dynamic library entry points named <TT>LO_QA_*</TT> which
+                are called from C applications (such as QAPartner).  The latter
+                are implemented using the former, by the way.
+         <P><DT><A href="http://cvs-mirror.mozilla.org/webtools/lxr/source/cmd/winfe/mozprobe/probe1.cpp">probe1.cpp</A></DT>
+            <DD>The C++ sample/test program.
+         <P><DT><A href="http://cvs-mirror.mozilla.org/webtools/lxr/source/cmd/winfe/mozprobe/probe2.c">probe2.c</A></DT>
+            <DD>The C sample/test program.
+         <P><DT><A href="http://cvs-mirror.mozilla.org/webtools/lxr/source/cmd/winfe/mozprobe/mozprobe.mak">mozprobe.mak</A></DT>
+            <DD>The makefile (see below).
+      </DL>
+   <P>
+   You can then build the shared library and/or the tests by going to that directory and
+   issuing the command:
+      <PRE>      nmake -f mozprobe.mak
+      </PRE>
+   <P>
+   The makefile can build any of these targets:
+      <UL>
+         <P><LI>all (the default)
+            <P>Builds the shared library and both test cases.
+         <P><LI>dll
+            <P>Builds the shared library only.
+         <P><LI>tests
+            <P>Builds just the two test cases.
+      </UL>
+   <P>
+   If you have any questions or problems, please
+   <A href="mailto:law@netscape.com?subject=mozprobe">let me know</A>.
+<H2><A name="issues">
+Issues
+</A></H2>
+   These are the open issues currently being investigated/worked on:
+      <UL>
+         <P><LI>Line up support for Mac/Unix implementations.
+            <P>Up to QA/Automation guys, at this point.
+         <P><LI>Investigate use of sockets for IPC to obtain XP implementation.
+            <P>Not worth the trouble.
+         <P><LI>Can plugins access NSRepository APIs?
+            <P>Moot, given non-XPCom and non-Plugin implementation.
+      </UL>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified October 26,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/classic/layout-classic/probe/probe.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

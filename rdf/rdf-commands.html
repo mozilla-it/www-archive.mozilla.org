@@ -1,0 +1,319 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+   <title>rdf: command proposals</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<center>
+<h1>rdf: command proposals</h1>
+</center>
+
+<p>
+This document discusses two proposals for connecting front-end command
+"events" to back-end RDF command implementations. It's being
+circulated as a request-for-comments more than anything else.
+</p>
+
+<h3>Proposal #1. Exposing the RDF Composite Data Source to JS</h3>
+
+<ul>
+
+<p>
+In this architecture, we directly expose the RDF composite data source
+to JavaScript as the command sink.
+</p>
+
+<ol>
+
+<li>
+We'll add a method to the <b>xul:tree</b> node that will allow you to get
+to the RDF composite data source that is being used to generate content
+for that tree.</li>
+
+<li>
+We'll extend the data source <b>DoCommand()</b> and <b>IsCommandEnabled()</b>
+methods to take a collection of resources as a parameter (instead of just
+one resource). We'll also add a <b>GetCommands()</b> method to allow someone
+to dynamically generate the command set based on a collection of resources.</li>
+
+<li>
+We'll defer on "special" commands that require folder context to work properly
+(e.g., "cut" and "move"). We believe that these will fall out more naturally
+with the standard W3C DOM APIs; e.g., node.removeChild(), node.insertChildAfter().</li>
+
+</ol>
+
+<p>
+Code would end up looking something like this:
+</p>
+
+<ul>
+<pre>
+&lt;!-- Imagine that this is a XUL fragment --&gt;
+
+&lt;html:script&gt;
+// A utility routine that extracts the resources from the current
+selection
+function getResourcesFromSelection(tree)
+{
+    var selectedNodes = theMessageTree.getElementsWithAttribute(
+                             'xul:selected', 'true');
+
+    var selectedResources = new Array();
+    var i;
+    for (i = 0; i &lt; selectedNodes.length; ++i)
+        selectedResources[i] = selectedNodes[i].getAttribute('id');
+
+    return selectedResources;
+}
+
+// XXX These could probably be more generic; e.g., driven by
+// a table or something
+function doReply(tree) {
+    var messages = getResourcesFromSelection();
+    theMessageTree.getDataSource().doCommand('NC:Reply', messages);
+}
+
+function isReplyEnabled() {
+    var messages = getResourcesFromSelection();
+    return theMessageTree.getDataSource().isCommandEnabled(
+                               
+'NC:Reply', messages);
+}
+
+function updateSelection() {
+    if (isReplyEnabled()) {
+        document.getElementByID('Reply').setAttribute('enabled', 'true');
+    }
+    else {
+        document.getElementByID('Reply').setAttribute('enabled', 'false');
+    }
+}
+
+var theMessageTree = document.getElementByID('MessagePane');
+&lt;/html:script&gt;
+
+&lt;xul:toolbar&gt;
+  &lt;xul:imagebutton id="Reply" value="Reply" onclick="doReply();"/&gt;
+&lt;/xul:toolbar&gt;
+
+&lt;xul:tree id="MessagePane" rdf:datasources="rdf:mail"
+          onclick="updateSelection();"&gt;
+
+  &lt;xul:treebody rdf:resource="NC:MailRoot"/&gt;
+&lt;/xul:tree&gt;
+</pre>
+</ul>
+
+<p>
+Exposing the RDF data source seems to be more sensible than sending commands
+to the "tree"; a tree is a widget, not a command sink. Furthermore, by
+exposing the RDF data source, we make it possible to do fancy stuff like
+</p>
+
+<ul>
+<li>
+Add and remove data sources on the fly</li>
+
+<li>
+Use "native" RDF APIs (assert &amp; unassert)</li>
+
+</ul>
+
+<p>
+Although neither of these is important for mail, they may be required for
+the Persistent Client Store.
+</p>
+
+</ul>
+
+<h3>
+Proposal #2. Making Each Node a Command Sink</h3>
+
+<ul>
+
+<p>
+In this model, each XUL node is be a command sink, and acts as a delegate
+for the RDF resource that it names in its <b>id</b> attribute.
+</p>
+
+<ol>
+<li>
+<b>DoCommand()</b> et al. are just extra methods on each DOM node.</li>
+
+<li>
+The DOM node's implementation is responsible for finding the correct data
+source to which to apply <b>DoCommand()</b> et al.</li>
+
+<li>
+As with Proposal #1, special commands ("cut" and "delete") are done using
+Level 1 DOM APIs.</li>
+</ol>
+
+<p>
+Code would end up looking like this:
+</p>
+
+<ul>
+<pre>
+&lt;!-- Imagine that this is a XUL fragment --&gt;
+
+&lt;html:script&gt;
+// XXX These could probably be more generic; e.g., driven by
+// a table or something
+function doReply(tree) {
+    var selectedNodes = theMessageTree.getElementsWithAttribute(
+                               'xul:selected', 'true');
+
+    var i;
+    for (i = 0; i &lt; selectedNodes.length; ++i)
+        selectedNodes[i].doCommand('NC:Reply');
+}
+
+function isReplyEnabled() {
+    var selectedNodes = theMessageTree.getElementsWithAttribute(
+                               'xul:selected', 'true');
+
+    // must be able to reply to _all_ messages if
+    // the command is to be enabled
+    var i;
+    for (i = 0; i &lt; selectedNodes.length; ++i) {
+        if (! selectedNodes[i].isCommandEnabled('NC:Reply'))
+             return false;
+    }
+    return true;
+}
+
+function updateSelection() {
+    if (isReplyEnabled()) {
+        document.getElementByID('Reply').setAttribute('enabled', 'true');
+    }
+    else {
+        document.getElementByID('Reply').setAttribute('enabled', 'false');
+    }
+}
+
+var theMessageTree = document.getElementByID('MessagePane');
+&lt;/html:script&gt;
+
+&lt;xul:toolbar&gt;
+  &lt;xul:imagebutton id="Reply" value="Reply" onclick="doReply();"/&gt;
+&lt;/xul:toolbar&gt;
+
+&lt;xul:tree id="MessagePane" rdf:datasources="rdf:mail"
+          onclick="updateSelection();"&gt;
+
+  &lt;xul:treebody rdf:resource="NC:MailRoot"/&gt;
+&lt;/xul:tree&gt;
+</pre>
+</ul>
+
+<p>
+Commands are issued one-at-a-time, instead of <i>en masse</i> as in proposal
+#1. In some ways, this is more "DOM-like": it extends the DOM Level 1 APIs
+(by adding methods to the individual nodes) rather than forcing a the application
+writer to completely abandon them in favor of the RDF APIs.
+</p>
+
+</ul>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March  1,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/rdf/rdf-commands.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

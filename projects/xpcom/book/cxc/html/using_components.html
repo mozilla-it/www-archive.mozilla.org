@@ -1,0 +1,629 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta name="GENERATOR" content="Quadralay WebWorks Publisher Professional Edition 6.0.5">
+<meta name="TEMPLATEBASE" content="Portable HTML Professional Edition">
+<meta name="LASTUPDATED" content="07/02/03 09:55:40">
+<title>CHAPTER 2 Using XPCOM Components</title>
+</head>
+
+<body link="#3366CC" vlink="#9999CC" text="#000000" alink="#0000CC" bgcolor="#FFFFFF">
+
+<table width="331" border="0" align="right" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23"
+    border="0" alt="TOC"> </a></td>
+    <td><a href="quicktour2.html"><img src="images/navprev.gif" width="81" height="23"
+    border="0" alt="PREV"> </a></td>
+    <td><a href="component_internals2.html"><img src="images/navnext.gif" width="81" height="23"
+    border="0" alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23"
+    border="0" alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+<p><img src="images/xpcom.gif"></p>
+<hr align="left">
+
+<blockquote>
+<h1>
+  <a name="998200"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">CHAPTER 2	 Using XPCOM Components</font>
+</h1><hr>
+
+
+<p>
+  <a name="998479"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">One of the best ways to begin working with XPCOM-especially when you are designing the interface to a component that will be used by others, as we do in the chapter <a href="weblock.html#998205">"Tutorial: Starting WebLock"</a>-is to look at how clients are already using XPCOM components. </font>
+</p>
+
+
+<p>
+  <a name="1007868"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Applications like the Mozilla browser are sophisticated, modularized clients of XPCOM components. In fact, virtually all of the functionality that you associate with a browser-navigation, window management, managing cookies, bookmarks, security, searching, rendering, and other features-is defined in XPCOM components and accessed by means of those component interfaces. Mozilla is <font  face="Verdana, Arial, Helvetica, sans-serif"><i>made</i></font> of XPCOM components. </font>
+</p>
+
+
+<p>
+  <a name="1008058"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This chapter demonstrates how Mozilla uses some of these XPCOM objects, such as the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font>, and shows how access to the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component will be defined.</font>
+</p>
+
+
+<h2>
+  <a name="1007788"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Component Examples</font>
+</h2>
+
+
+<p>
+  <a name="999277"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">We'll say more about how you can use the particular components described here in <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Appendix B, The XPCOM API Reference</i></font>. For now, what's important to see is how components like the ones in this section are obtained and used by the Mozilla browser.  </font>
+</p>
+
+
+<h3>
+  <a name="1000171"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Cookie Manager</font>
+</h3>
+
+
+<p>
+  <a name="1000172"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Cookie management is one of the many sets of functionality that is made available to the browser in the form of an XPCOM component and that can be re-used by developers who want similar functionality in their applications. Whenever a user accesses the Cookie Manager dialog to view, organize, or remove cookies that have been stored on the system, they are using the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component behind the scenes. <a href="using_components.html#1002117"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 1</i></font></a> shows user interface<a href="#1008585"><sup>1</sup></a> that is presented to the user in Mozilla for working with the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component. </font>
+</p>
+
+
+<a name="1002112"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/cookie_mgr_dlog.gif">
+</div><br></font>
+
+<a name="1002117"> </a><font face="Times New Roman">Figure 1.  The Cookie Manager Dialog</font>
+<p>
+  <a name="1004638"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This dialog is written in XUL and JavaScript, and uses a part of XPCOM called <font  face="Verdana, Arial, Helvetica, sans-serif"><i>XPConnect</i></font> to seemlessly connect to the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component (see XPConnect sidebar below). XUL is just one way to expose the functionality of the CookieManager component-but it's a particularly useful one in the Mozilla world.</font>
+</p>
+
+
+<p>
+  <a name="1004787"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The functionality of the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component is available through the <font  face="Verdana, Arial, Helvetica, sans-serif">nsICookieManager</font> interface, which is comprised of the public methods in <a href="using_components.html#1003728"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Table 1</i></font></a>.</font>
+</p>
+
+
+<a name="1003722"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003728"> </a><font face="Times New Roman">TABLE 1.  The nsICookieManager Interface</font></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003732"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">removeAll</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003734"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Remove all cookies from the cookie list.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003736"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">enumerator</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003738"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Enumerate through the cookie list.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003752"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">remove</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003754"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Remove a particular cookie from the list.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1003787"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In XPCOM the interface is guaranteed to stay the same even if the underlying implementation changes. The interfaces are <font  face="Verdana, Arial, Helvetica, sans-serif"><i>public</i></font>, in other words, and the implementations are private<font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#1007638"><sup>2</sup></a></font>. When a user selects one of the cookies displayed in the list and then clicks the Remove buton, the <font  face="Verdana, Arial, Helvetica, sans-serif">Remove</font> method in the <font  face="Verdana, Arial, Helvetica, sans-serif">nsICookieManager</font> interface is called. The function is carried out by the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component, and the selected cookie is deleted from disk and removed from the displayed list. </font>
+</p>
+
+
+<a name="1007644"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1007716"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Connecting to Components from the Interface</font>
+</h4>
+
+
+<p>
+  <a name="1007724"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The Mozilla user interface uses JavaScript that has been given access to XPCOM components in the application core with a technology called <font  face="Verdana, Arial, Helvetica, sans-serif"><i>XPConnect</i></font>. </font>
+</p>
+
+
+<p>
+  <a name="1008845"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPConnect allows interface methods defined via XPIDL to be called from JavaScript, as part of JavaScript objects that represent instances of components like the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font>.</font>
+</p>
+
+
+<p>
+  <a name="1008846"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPConnect is what binds the application code to the user interface of the Mozilla browser, to other Gecko-based XUL, and to JavaScript environments like xpcshell, which is a command-line JavaScript interpreter and XPCOM tool is built with Mozilla.</font>
+</p>
+
+
+<p>
+  <a name="1008609"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">See <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.mozilla.org/scriptable</i></font> for more information about XPConnect and JavaScript.</font>
+</p>
+
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1003783"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The snippet in <a href="using_components.html#1000193"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 2</i></font></a> shows how the <font  face="Verdana, Arial, Helvetica, sans-serif">Remove()</font> method from the XPCOM <br><font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component can be called from JavaScript:</font>
+</p>
+
+
+<a name="1000198"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">// xpconnect to cookiemanager</font><a name="1005950"> </a>
+<font face="Courier New">// get the cookie manager component in JavaScript</font><a name="1008556"> </a>
+<font face="Courier New">var cookiemanager = Components.classes["@mozilla.org/</font><a name="1005953"> </a>
+<font face="Courier New">     cookiemanager;1"].getService();</font><a name="1009012"> </a>
+<font face="Courier New">cookiemanager = cookiemanager.QueryInterface
+     (Components.interfaces.nsICookieManager);</font><a name="1005955"> </a>
+<font face="Courier New"></font><a name="1005956"> </a>
+<font face="Courier New">// called as part of a largerDeleteAllCookies() function</font><a name="1005976"> </a>
+<font face="Courier New">function FinalizeCookieDeletions() {</font><a name="1005960"> </a>
+<font face="Courier New">  for (var c=0; c&lt;deletedCookies.length; c++) {</font><a name="1005961"> </a>
+<font face="Courier New">    cookiemanager.remove(deletedCookies[c].host,</font><a name="1005962"> </a>
+<font face="Courier New">                         deletedCookies[c].name,</font><a name="1005963"> </a>
+<font face="Courier New">                         deletedCookies[c].path);</font><a name="1005964"> </a>
+<font face="Courier New">                         </font><a name="1005965"> </a>
+<font face="Courier New">  }</font><a name="1005966"> </a>
+<font face="Courier New">  deletedCookies.length = 0;</font><a name="1005967"> </a>
+<font face="Courier New">}</font><a name="1001113"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+<a name="1000193"> </a><font face="Times New Roman">Figure 2.  Getting the CookieManager Component in JavaScript</font>
+<p>
+  <a name="1004878"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This isn't quite all there is to it, of course, but this shows an important aspect of XPCOM. The contractual arrangements that XPCOM enforces open up the way to <font  face="Verdana, Arial, Helvetica, sans-serif"><i>binary interoperability</i></font>-to being able to access, use, and reuse XPCOM components at run-time. And they make it possible to use components written in other languages-such as JavaScript, Python, and others-and to use C++-based XPCOM components <font  face="Verdana, Arial, Helvetica, sans-serif"><i>from</i></font> these other languages as well.</font>
+</p>
+
+
+<p>
+  <a name="1004541"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In the Mozilla browser, components are used as often from JavaScript in the interface as they are from C++ or any other language. In fact, a search of the Mozilla source code reveals that this <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component is called <font  face="Verdana, Arial, Helvetica, sans-serif"><i>only</i></font> from JavaScript. We'll be using this component from JavaScript ourselves as part of this tutorial<a href="#1008646"><sup>3</sup></a>.</font>
+</p>
+
+
+<a name="1005461"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1008486"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">JavaScript and Mozilla</font>
+</h4>
+
+
+<p>
+  <a name="1008494"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">JavaScript is the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>lingua franca</i></font> of the Mozilla browser front-end, and the bindings between it and XPCOM are strong and well-defined. <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Scriptability</i></font>, this ability to get and use XPCOM components from JavaScript and other languages for which XPConnect bindings have been created, is a core feature of XPCOM. </font>
+</p>
+
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="1000194"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The WebBrowserFind Component</font>
+</h3>
+
+
+<p>
+  <a name="1001129"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Components are used all over-in high-level browser-like functionality such as <font  face="Verdana, Arial, Helvetica, sans-serif"><b>nsWebBrowserFind</b></font>, which provides <font  face="Verdana, Arial, Helvetica, sans-serif">find()</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">findNext() </font>methods for finding content in web pages, and in low-level tasks such as the manipulation of data. Though not every API in Mozilla is or should be "XPCOMified", much if not all of the typical functionality that browsers provide is available in components that can be reused via browser extensions and/or gecko embedders.</font>
+</p>
+
+
+<p>
+  <a name="1003845"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In addition to the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component, for example, the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebBrowserFind</b></font> component is another part of a large set of  web browsing interfaces you can use. Its  <font  face="Verdana, Arial, Helvetica, sans-serif">nsIWebBrowserFind</font> interface is shown in <a href="using_components.html#1003854"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Table 2</i></font></a>. To use this component, you access it through the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIWebBrowserFind</font> interface and call its methods.</font>
+</p>
+
+
+<a name="1001133"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003854"> </a><font face="Times New Roman">TABLE 2.  The nsIWebBrowserFind Interface</font></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003862"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">findNext</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003864"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Find the next occurence of the search string</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003866"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">findBackwards</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003868"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Boolean attribute that adjusts <font  face="Verdana, Arial, Helvetica, sans-serif">findNext()</font> to search backwards up the document.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003873"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">searchFrames</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003875"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Boolean attribute that indicates whether to search subframes of current document.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003877"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">matchCase</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003879"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Boolean attribute that indicates whether to match case in the search.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003881"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">entireWord</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1003883"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Boolean attribute that specifies whether the entire word should be matched or not.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="998238"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once you use the interface to get to the component, you can ask the component what other interfaces it supports. This service, which is defined in the basic <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> interface and implemented by all XPCOM components, allows you to query and switch interfaces on a component as part of the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>run-time object typing</i></font> capabilities of XPCOM. It is handled by the <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> method, which was introduced in the chapter "What Is XPCOM?" <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Appendix B</i></font> in this book provides a full reference of the XPCOM components available in Mozilla. </font>
+</p>
+
+
+<h3>
+  <a name="1008506"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The WebLock Component</font>
+</h3>
+
+
+<p>
+  <a name="1004983"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Now it's time to look at the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component as another example of XPCOM components (since you'll be creating it shortly). In object-oriented programming, it's typical to design the interface first-to define the functionality that's going to be provided in the abstract, without worrying about how this functionality will be achieved. So we'll put aside the details of the implementation until the next chapter and look at the component from the outside-at the interface to the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component (see <a href="using_components.html#1004986"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Table 3</i></font></a>). 
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004986"> </a><font face="Times New Roman">TABLE 3.  The IWebLock Interface</font></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004990"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">lock</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004992"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">lock the browser to the current site (or to the whitelist of approved sites read from disk).</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004994"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">unlock</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004996"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">unlock the browser for unrestricted use.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004998"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">addSite</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005000"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">add a new site to the whitelist.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005002"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">removeSite</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005004"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">remove a given site from the whitelist.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005006"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">sites</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005008"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">enumerator for the list of approved sites read in the from the whitelist.</font></font></td>
+  </tr>
+</table>
+
+
+
+</font>
+</p>
+
+
+<p>
+  <a name="1005010"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component is software that implements all of these methods in the way described by the interface definition. It registers itself for use when the browser starts up, and provides a factory that creates an instance of it for use when the user or administrator clicks the weblock icon in the browser's user interface.</font>
+</p>
+
+
+<h2>
+  <a name="1008122"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Component Use in Mozilla</font>
+</h2>
+
+
+<p>
+  <a name="1007888"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">So how are components obtained and used in Mozilla? You've seen some enticing snippets of JavaScript in earlier sections of this chapter, but we haven't explained how XPCOM makes components available in general.</font>
+</p>
+
+
+<p>
+  <a name="1007889"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This section discusses practical component use in Mozilla. It's divided into three subsections: one about actually finding all these binary components in Mozilla and two others corresponding to the two main ways that clients typically access XPCOM components:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1007893"> </a><a href="using_components.html#1007903">"Finding Mozilla Components"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1008175"> </a><a href="using_components.html#1008136">"Using XPCOM Components in Your C++"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1007897"> </a><a href="using_components.html#1007915">"XPConnect: Using XPCOM Components From Script"</a></font>
+</ul>
+
+<h3>
+  <a name="1007903"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Finding Mozilla Components</font>
+</h3>
+
+
+<p>
+  <a name="1007905"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This book attempts to provide reference information for XPCOM components and their interfaces that are frozen as of the time of this writing. The Mozilla embedding project (<font  face="Verdana, Arial, Helvetica, sans-serif"><i>www.mozilla.org/projects/embedding</i></font>) tracks the currently frozen interfaces. </font>
+</p>
+
+
+<p>
+  <a name="1008882"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Mozilla also has some tools that can find and display information about the interfaces available in Gecko such as the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>XPCOM Component Viewer</i></font>, described below, and LXR, which is a web-based source code viewing tool you can access from <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://lxr.mozilla.org</i></font>.</font>
+</p>
+
+
+<p>
+  <a name="1008899"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The challenge to making good information about XPCOM components available to prospective clients, however, is that the process of freezing the interfaces that are implemented by these components is still ongoing. The Component Viewer does not distinguish between components that are frozen and those that are not. In the source code you view in LXR, interfaces that have been frozen are marked at the top with <font  face="Verdana, Arial, Helvetica, sans-serif">@status frozen</font>.</font>
+</p>
+
+
+<h5>
+  <a name="1008916"> </a><i><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The XPCOM Component Viewer</font></i>
+</h5>
+
+
+<p>
+  <a name="1008906"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The Component Viewer is an add-on you can install in your browser from <font  face="Verdana, Arial, Helvetica, sans-serif"><i>www.hacksrus.com/~ginda/cview</i></font> (see <a href="using_components.html#1008893"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 3</i></font></a>), </font>
+</p>
+
+
+<a name="1008891"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/using_componentsa.gif" height="637" width="693">
+</div><br></font>
+
+<a name="1008893"> </a><font face="Times New Roman">Figure 3.  XPCOM Component Viewer</font>
+<p>
+  <a name="1008677"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The left column shows the components-in this case a subset returned from a search on `gfx' as part of the contractc ID and the right column a list of the interfaces. When you open a component on the left, you can see the interfaces it implements along with a list of the methods provided by each interface.</font>
+</p>
+
+
+<p>
+  <a name="1008678"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The XPCOM Component Viewer can be extremely useful for this sort of gross interrogation, but again: it displays <font  face="Verdana, Arial, Helvetica, sans-serif"><i>all</i></font> of the components and interfaces in your build, many of which are not practical for actual reuse or stable enough to be used reliably in your own application development. Use comprehensive lists like this with caution.</font>
+</p>
+
+
+<h3>
+  <a name="1008136"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Using XPCOM Components in Your C++</font>
+</h3>
+
+
+<p>
+  <a name="1008165"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPConnect makes it easy to acess XPCOM components as JavaScript objects, but using XPCOM components in C++ is not much more difficult.</font>
+</p>
+
+
+<p>
+  <a name="1008141"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="using_components.html#1008158"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 4</i></font></a> duplicates code from Figure 5, but in C++ instead of JavaScript.</font>
+</p>
+
+
+<a name="1008156"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsCOMPtr&lt;nsIServiceManager&gt; servMan;</font><a name="1008415"> </a>
+<font face="Courier New">nsresult rv = NS_GetServiceManager(getter_AddRefs(servMan));</font><a name="1008416"> </a>
+<font face="Courier New">if (NS_FAILED(rv))</font><a name="1008417"> </a>
+<font face="Courier New">  return -1;</font><a name="1008418"> </a>
+<font face="Courier New"></font><a name="1008419"> </a>
+<font face="Courier New">nsCOMPtr&lt;nsICookieManager&gt; cookieManager;</font><a name="1008420"> </a>
+<font face="Courier New">rv = servMan-&gt;GetServiceByContractID("@mozilla.org/cookiemanager", NS_GET_IID(nsICookieManager), getter_AddRefs(cookieManager));</font><a name="1008421"> </a>
+<font face="Courier New"></font><a name="1008422"> </a>
+<font face="Courier New">if (NS_FAILED(rv))</font><a name="1008423"> </a>
+<font face="Courier New">  return -1;</font><a name="1008424"> </a>
+<font face="Courier New"></font><a name="1008425"> </a>
+<font face="Courier New">PRUint32 len;</font><a name="1008426"> </a>
+<font face="Courier New">deletedCookies-&gt;GetLength(&amp;len);</font><a name="1008427"> </a>
+<font face="Courier New"></font><a name="1008428"> </a>
+<font face="Courier New">for (int c=0; c&lt;len; c++)</font><a name="1008429"> </a>
+<font face="Courier New">    cookiemanager-&gt;Remove(deletedCookies[c].host,</font><a name="1008430"> </a>
+<font face="Courier New">                          deletedCookies[c].name,</font><a name="1008431"> </a>
+<font face="Courier New">                          deletedCookies[c].path);</font><a name="1008432"> </a>
+<font face="Courier New"></font><a name="1008433"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+<a name="1008158"> </a><font face="Times New Roman">Figure 4.  Managing Cookies from C++</font>
+<p>
+  <a name="1008162"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">If your application written in C++, then <a href="using_components.html#1008158"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 4</i></font></a> shows the steps you  take to get an XPCOM component, specify the interface on that component you want to use, and call methods on that interface.</font>
+</p>
+
+
+<h3>
+  <a name="1007915"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XPConnect: Using XPCOM Components From Script</font>
+</h3>
+
+
+<p>
+  <a name="1008323"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component we discussed at the beginning of this chapter provides a good opportunity to talk further about using components from JavaScript. In the following code fragment from the Cookie Manager dialog in Mozilla, you can see a singleton of the the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component being created with the <font  face="Verdana, Arial, Helvetica, sans-serif">getService()</font> method and used to provide the functionality that lets users load and remove cookies from the user interface. </font>
+</p>
+
+
+<a name="1007941"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">var cookiemanager = Components.classes["@mozilla.org/    cookiemanager;1"].getService();</font><a name="1007919"> </a>
+<font face="Courier New">cookiemanager = cookiemanager
+     .QueryInterface(Components.interfaces.nsICookieManager);</font><a name="1007920"> </a>
+<font face="Courier New"></font><a name="1007921"> </a>
+<font face="Courier New">function loadCookies() {</font><a name="1007922"> </a>
+<font face="Courier New">  // load cookies into a table</font><a name="1007923"> </a>
+<font face="Courier New">  var enumerator = cookiemanager.enumerator;</font><a name="1007924"> </a>
+<font face="Courier New">  var count = 0;</font><a name="1007925"> </a>
+<font face="Courier New">  var showPolicyField = false;</font><a name="1007926"> </a>
+<font face="Courier New">  while (enumerator.hasMoreElements()) {</font><a name="1007927"> </a>
+<font face="Courier New">    var nextCookie = enumerator.getNext();</font><a name="1007928"> </a>
+<font face="Courier New">    nextCookie = nextCookie.QueryInterface
+      (Components.interfaces.nsICookie);</font><a name="1007929"> </a>
+<font face="Courier New">    ....</font><a name="1007930"> </a>
+<font face="Courier New">}</font><a name="1007931"> </a>
+<font face="Courier New">function FinalizeCookieDeletions() {</font><a name="1007932"> </a>
+<font face="Courier New">  for (var c=0; c&lt;deletedCookies.length; c++) {</font><a name="1007933"> </a>
+<font face="Courier New">    cookiemanager.remove(deletedCookies[c].host,</font><a name="1007934"> </a>
+<font face="Courier New">                         deletedCookies[c].name,</font><a name="1007935"> </a>
+<font face="Courier New">                         deletedCookies[c].path,</font><a name="1007936"> </a>
+<font face="Courier New">  }</font><a name="1007938"> </a>
+<font face="Courier New">  deletedCookies.length = 0;</font><a name="1007939"> </a>
+<font face="Courier New">}</font><a name="1007940"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+<a name="1007942"> </a><font face="Times New Roman">Figure 5.  Managing Cookies from JavaScript</font>
+<p>
+  <a name="1007943"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Beyond the methods that are being called on the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> itself (e.g., <font  face="Verdana, Arial, Helvetica, sans-serif">cookiemanager.remove</font>, which maps to the <font  face="Verdana, Arial, Helvetica, sans-serif">remove()</font> function from the IDL in <a href="using_components.html#1003728"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Table 1</i></font></a> above), note the special XPConnect objects and methods that reflect the XPCOM component into JavaScript.</font>
+</p>
+
+
+<p>
+  <a name="1007944"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">Components</font> is the JavaScript object that controls the connection to components, and <font  face="Verdana, Arial, Helvetica, sans-serif">classes</font> is an array of all of the classes you can ask for by contract ID. To instantiate an XPCOM component in JavaScript, you create a new <font  face="Verdana, Arial, Helvetica, sans-serif">Component</font> object and pass in the contract ID for the component you want and ask for either a singleton or an instance of that component to be returned:</font>
+</p>
+
+
+<a name="1008521"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">var cookiemanager = Components.classes
+     ["@mozilla.org/cookiemanager;1"].getService();</font><a name="1008531"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1008723"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The resulting <font  face="Verdana, Arial, Helvetica, sans-serif">cookiemanager</font> object then provides access to all of the methods for that component that have been defined in IDL and compiled into the type library. Using the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>CookieManager</b></font> component, you could write code like this to delete all cookies from the system:</font>
+</p>
+
+
+<a name="1008732"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">cmgr = Components.classes
+       ["@mozilla.org/cookiemanager;1"]
+        .getService();</font><a name="1008726"> </a>
+<font face="Courier New">cookiemanager = cookiemanager.QueryInterface
+     (Components.interfaces.nsICookieManager);</font><a name="1008992"> </a>
+<font face="Courier New"></font><a name="1008727"> </a>
+<font face="Courier New">// delete all cookies</font><a name="1008728"> </a>
+<font face="Courier New">function trashEm() {</font><a name="1008729"> </a>
+<font face="Courier New">   cmgr.removeAll()</font><a name="1008730"> </a>
+<font face="Courier New">}</font><a name="1008731"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1008783"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Another vital feature of the XPConnect glue this example shows is the availability of the <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> method on all objects that are reflected into JavaScript from XPCOM. As in C++, you can use this method to ask for other interfaces that are available on the given object.</font>
+</p>
+
+
+<a name="1008784"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1008793"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Services Versus Regular Instances</font>
+</h4>
+
+<a name="1008802"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Whether to have clients use your component as an instance or a service is a design question, really, and something you should be clear about in the documentation for your component. Actually, the <font  face="Verdana, Arial, Helvetica, sans-serif">getService()</font> method in the example here calls through to the <font  face="Verdana, Arial, Helvetica, sans-serif">createInstance()</font> method that is also available from the Component object and caches the result, making it a singleton rather than a normal instance.</font><a name="1008818"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The singleton design pattern that is used to create services is described in <a href="quicktour2.html#1003594">"XPCOM Services" on page 23</a>. </font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1008785"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Remember, <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> allows you to query an object for the interfaces it supports. In the case of the snippet in <a href="using_components.html#1007942"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 5</i></font></a>, the <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> method is being used to get the <font  face="Verdana, Arial, Helvetica, sans-serif">nsICookie</font> interface from the enumerator so that, for instance, the JavaScript code can access the <font  face="Verdana, Arial, Helvetica, sans-serif">value</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">name</font> attributes for each cookie. </font>
+</p>
+
+
+<p>
+  <a name="1007997"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"></font>
+</p>
+
+
+  
+<a name="1008585"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#1000172"><sup>1</sup></a>
+<a name="1008585"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that the interface is not part of the component itself. XPCOM makes it easy to use components like CookieManager from Mozilla's Cross Platform Front End (XPFE) and other user interfaces, but the component itself doesn't provide it's own UI.<br></font>
+
+<br></font>
+
+
+<a name="1007638"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#1003787"><sup>2</sup></a>
+<a name="1007638"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There are exceptions to this. Some XPCOM interfaces are also private and not made for general use. Private interfaces do not have the same requirements as the ones that are made available publicly in IDL.<br></font>
+
+<br></font>
+
+
+<a name="1008646"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#1004541"><sup>3</sup></a>
+<a name="1008646"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The CookieManager component is used to persist for the web locking functionality described in this tutorial.<br></font>
+
+<br></font>
+</blockquote>
+
+<hr>
+
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+  <td><font size="1"><font face="courier"> Copyright (c)
+  2003 by Doug Turner and Ian Oeschger. This material may be
+  distributed only subject to the terms and conditions set forth in
+  the <a href="http://www.opencontent.org/openpub/">Open Publication
+  License</a>, v1.02 or later. Distribution of substantively modified
+  versions of this document is prohibited without the explicit
+  permission of the copyright holder. Distribution of the work or
+  derivative of the work in any standard (paper) book form is
+  prohibited unless prior permission is obtained from the copyright
+  holder.</td>
+  </tr>
+</table>
+
+<table width="331" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23" border="0"
+    alt="TOC"> </a></td>
+    <td><a href="quicktour2.html"><img src="images/navprev.gif" width="81" height="23" border="0"
+    alt="PREV"> </a></td>
+    <td><a href="component_internals2.html"><img src="images/navnext.gif" width="81" height="23" border="0"
+    alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23" border="0"
+    alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+</body>
+</html>

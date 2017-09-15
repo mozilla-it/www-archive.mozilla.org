@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Packages</TITLE>
+<LINK rel=stylesheet href="../styles.css">
+<LINK rel=Start href="index.html">
+<LINK rel=Contents href="index.html">
+<LINK rel=Prev href="classes.html">
+<LINK rel=Next href="versions.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>February 1999 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title1>Packages</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="classes.html"><IMG src="../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="versions.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Thursday, February 18, 1999</P>
+
+<H1>Overview</H1>
+
+<P>Packages are an abstraction mechanism for grouping and distributing related code. Packages are designed to be linked at
+run time to allow a program to take advantage of packages written elsewhere or provided by the embedding environment. JavaScript
+2.0 offers a number of facilities to make packages robust for dynamic linking:</P>
+
+<UL>
+  <LI>Selected package contents can be protected from outside reference</LI>
+  <LI>Classes can maintain invariants that cannot be violated by code outside the class and/or package</LI>
+  <LI>Function arguments and data structure references can be type-checked to limit the kinds of unexpected inputs the package's
+    code can experience</LI>
+  <LI>Packages can export multiple versions, allowing graceful upgrades to packages without changing the code that uses them</LI>
+</UL>
+<P>A package is a file (or analogous container) of JavaScript 2.0 code. There is no specific JavaScript statement that introduces
+or names a package -- every file is presumed to be a package. A package itself has no name, but it has a specific URI by which
+other packages can import it.</P>
+
+<P>A package <VAR>P</VAR> typically starts with <CODE>import</CODE> statements that import other packages used by package
+<VAR>P</VAR>. A package that is meant to be used by other packages typically has one or more <A href="versions.html#version-declaration"><CODE>version</CODE>
+declarations</A> that declare versions available for export.</P>
+
+<H2>Package Loading</H2>
+
+<P>A package's body is described by the <SPAN class=nonterminal>Program</SPAN> grammar nonterminal. A package is loaded (its
+body is evaluated) when the package is first imported or invoked directly (if, for example, the package is on an HTML web
+page). Some standard packages may also be loaded when the JavaScript engine first starts up.</P>
+
+<P>When a package is loaded, all of its statements are evaluated in order, which may cause other packages to be loaded along
+the way when <CODE>import</CODE> statements are encountered. A package's symbols are available for export to other packages
+only after the package's body has been successfully evaluated. Unlike in Java, circularities are not allowed in the graph
+of package imports.</P>
+
+<P>To create packages <VAR>A</VAR> and <VAR>B</VAR> that access each others' symbols, we need to instead define a hidden package <VAR>C</VAR>
+that consists of all of the code that would have gone into <VAR>A</VAR> and <VAR>B</VAR>. Package <VAR>C</VAR> should define versions
+<VAR>verA</VAR> and <VAR>verB</VAR> and tag the symbols it exports with either <VAR>verA</VAR> or <VAR>verB</VAR> to indicate whether these
+symbols belong in package <VAR>A</VAR> or <VAR>B</VAR>. Package <VAR>A</VAR> should then be empty except for a directive (or several directives
+if there are multiple versions of <VAR>A</VAR> and <VAR>verA</VAR>) that reexports <VAR>C</VAR>'s symbols tagged with <VAR>verA</VAR>. Similarly,
+package <VAR>B</VAR> should reexport <VAR>C</VAR>'s symbols tagged with <VAR>verB</VAR>. <SPAN class=issue>To make this work we need
+a reexport directive. Is this really necessary? Also, do we want a mechanism for hiding package <VAR>C</VAR> from general view
+so that users can only use it through <VAR>A</VAR> or <VAR>B</VAR>?</SPAN></P>
+
+<H2>Exports</H2>
+
+<P>We can export a symbol in a package by giving it <A href="declarations.html#declaration-visibility"><CODE>public</CODE>
+<SPAN class=nonterminal>Visibility</SPAN></A>.</P>
+
+<H2><A name="import"></A>Imports</H2>
+
+<P>To import symbols from a package we use the <CODE>import</CODE> statement:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>ImportStatement</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<SPAN class=nonterminal>ImportList</SPAN>&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<SPAN class=nonterminal>ImportList</SPAN>&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<SPAN class=nonterminal>ImportList</SPAN>&nbsp;<SPAN class=nonterminal>Block</SPAN>&nbsp;<CODE class=terminal-keyword>else</CODE>&nbsp;<SPAN class=nonterminal>CodeStatement</SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>ImportList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>ImportItem&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;...&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;ImportItem</SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>ImportItem</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[[<CODE class=terminal-keyword>protected</CODE>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>]&nbsp;<SPAN class=nonterminal>NonAssignmentExpression</SPAN>&nbsp;[<CODE class=terminal-keyword>:</CODE>&nbsp;<SPAN class=nonterminal>Version</SPAN>]</DIV>
+</DIV>
+<P>The first form of the <CODE>import</CODE> statement (without a <SPAN class=nonterminal>Block</SPAN>) imports symbols into
+the current lexical scope. The second and third forms import symbols into the lexical scope of the <SPAN class=nonterminal>Block</SPAN>.
+If the imports are unsuccessful, the first two forms of the <CODE>import</CODE> statement throw an exception, while the last
+form executes the <SPAN class=nonterminal>CodeStatement</SPAN> after the <CODE class=terminal-keyword>else</CODE> keyword.</P>
+
+<P>An <CODE>import</CODE> statement can import one or more packages separated by commas. Each <SPAN class=nonterminal>ImportItem</SPAN>
+specifies one package to be imported. The <SPAN class=nonterminal>NonAssignmentExpression</SPAN> should evaluate to a string
+that contains a URI where the package may be found. If present, <SPAN class=nonterminal>Version</SPAN> indicates the version
+of the package's exports to be imported; if not present, <SPAN class=nonterminal>Version</SPAN> defaults to version 1.</P>
+
+<P>An <SPAN class=nonterminal>ImportItem</SPAN> can introduce a name for the imported package if the <SPAN class=nonterminal>NonAssignmentExpression</SPAN>
+is preceded by <SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>. <SPAN class=nonterminal>Identifier</SPAN>
+becomes bound (either in the current lexical scope or in the <SPAN class=nonterminal>Block</SPAN>'s scope) to the imported package
+as a whole. Individual symbols can be extracted from the package by using <SPAN class=nonterminal>Identifier</SPAN> with the
+<CODE class=terminal-keyword>::</CODE> operator. For example, if package at URI <VAR>P</VAR> has <CODE>public</CODE> symbols
+<CODE>a</CODE> and <CODE>b</CODE>, then after the statement</P>
+
+<P class=syntax><CODE>import&nbsp;x=</CODE><VAR>P</VAR><CODE>;</CODE></P>
+
+<P><VAR>P</VAR>'s symbols can be referenced as either <CODE>a</CODE>, <CODE>b</CODE>, <CODE>x::a</CODE>, or <CODE>x::b</CODE>.</P>
+
+<P>If an <SPAN class=nonterminal>ImportItem</SPAN> contains the keyword <CODE class=terminal-keyword>protected</CODE>, then
+the imported symbols can only be accessed using the <CODE class=terminal-keyword>::</CODE> operator. If we were to import
+package <VAR>P</VAR> using</P>
+
+<P class=syntax><CODE>import&nbsp;protected x=</CODE><VAR>P</VAR><CODE>;</CODE></P>
+
+<P>then we'd have to access <VAR>P</VAR>'s symbols using either <CODE>x::a</CODE> or <CODE>x::b</CODE>.</P>
+
+<P>If two imports in the same scope import packages with clashing symbols, then neither symbol is accessible unless qualified
+using the <CODE class=terminal-keyword>::</CODE> operator. If an imported symbol clashes with a symbol declared in the same
+scope, then the declared symbol shadows the imported symbol. <A href="declarations.html#scope-rules">Scope rules</A> 3 and
+4 apply here as well, so the following code is illegal because <CODE>a</CODE> is referenced and then redefined:</P>
+
+<P class=syntax><CODE>import&nbsp;x=</CODE><VAR>P</VAR><CODE>;<BR>
+var y=a;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE> References <VAR>P</VAR>'s <CODE>a<BR>
+const a=17;&nbsp;&nbsp;//</CODE> Redefines <CODE>a</CODE> in same scope</P>
+
+<P>Version names cannot be imported.</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Thursday, February 18, 1999</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="classes.html"><IMG src="../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="versions.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

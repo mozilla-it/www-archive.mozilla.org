@@ -1,0 +1,1101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+<title>Creating a New Protocol Handler</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<center>
+<h1>Writing A Mozilla Protocol Handler</h1>
+Contact: Brian Ryner &lt;<a href="mailto:bryner@brianryner.com">bryner@brianryner.com</a>&gt;
+</center>
+<br>
+<b>NOTE: This document has fallen somewhat out-of-date.</b>  For the most 
+current documentation, please see the <a href="/projects/netlib">main 
+Necko page</a> and direct questions to the <a 
+href="news://news.mozilla.org/netscape.public.mozilla.netlib">Necko 
+newsgroup</a>.<br><br>
+
+<p style="border: solid thin red; padding: 0.5em;">
+An up-to-date version of the finger protocol handler is available
+<a href="http://lxr.mozilla.org/seamonkey/source/extensions/finger/">here</a>.
+</p>
+
+Contents:<ul>
+<li><a href="#arch">Architecture</a>
+<li><a href="#build">Setting up the Build</a>
+<li><a href="#handler">The Protocol Handler</a>
+<li><a href="#channel">The Channel</a>
+<li><a href="#module">Finishing up: the Module</a>
+</ul>
+
+This document is meant to give you a quick introduction to writing a new
+protocol handler for use in Mozilla.  Note: The files here are
+presented without a license for brevity, but they are all subject to
+the Mozilla Public License version 1.1.<br>
+
+<h2><a name="arch">Architecture</a></h2>
+Protocol handlers are implemented as loadable network library  
+modules. What this means is that adding a precompiled protocol handler to
+an existing installation is simply a matter of copying the shared library
+into the components directory. This allows easy distribution of new
+handlers to end-users.<br>
+
+<h2><a name="build">Setting up the Build</a></h2>
+In this example, we will be adding a new handler for the "finger"
+protocol. The first thing to do is create a directory structure for the
+new module. Create the following directories:<br><br>
+
+<code>
+netwerk/protocol/finger<br>
+netwerk/protocol/finger/src<br>
+</code>
+<br>
+Now, you need to set up Makefiles for your protocol.  For testing, of course, 
+you can just set up a Makefile for your own platform, but before checking in 
+you should at least create Unix and Windows Makefiles.  You can use the 
+following examples:<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<b>netwerk/protocol/finger/Makefile.in:</b><pre>
+DEPTH           = ../../..
+topsrcdir       = @top_srcdir@
+srcdir          = @srcdir@
+VPATH           = @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+ 
+DIRS            = src
+ 
+include $(topsrcdir)/config/rules.mk
+</pre>
+<b>netwerk/protocol/finger/makefile.win:</b><pre>
+DEPTH = ..\..\..
+
+MODULE = necko
+
+DIRS=      \
+    src    \
+    $(NULL)
+ 
+include <$(DEPTH)\config\rules.mak>
+</pre>
+<b>netwerk/protocol/finger/src/Makefile.in:</b><pre>
+DEPTH           = ../../../..
+topsrcdir       = @top_srcdir@
+srcdir          = @srcdir@
+VPATH           = @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+ 
+MODULE          = necko
+LIBRARY_NAME    = necko_finger
+IS_COMPONENT    = 1
+
+CPPSRCS         = \
+                nsFingerHandler.cpp \
+                nsFingerChannel.cpp \
+                nsFingerModule.cpp \
+                $(NULL)
+
+EXTRA_DSO_LDOPTS += $(MOZ_COMPONENT_LIBS)
+
+include $(topsrcdir)/config/rules.mk
+</pre>
+<b>netwerk/protocol/finger/src/makefile.win:</b><pre>
+MODULE = necko
+
+DEPTH = ..\..\..\..
+
+MAKE_OBJ_TYPE=DLL
+DLLNAME=nkfinger
+DLL=.\$(OBJDIR)\$(DLLNAME).dll
+ 
+LCFLAGS = -DWIN32_LEAN_AND_MEAN -D_IMPL_NS_NET
+ 
+CPP_OBJS =                                 \
+        .\$(OBJDIR)\nsFingerHandler.obj      \
+        .\$(OBJDIR)\nsFingerChannel.obj      \
+        .\$(OBJDIR)\nsFingerModule.obj       \
+        $(NULL)
+
+LLIBS=                                     \
+        $(DIST)\lib\xpcom.lib              \
+        $(LIBNSPR) 
+
+INCS = $(INCS)                  \
+        -I$(DEPTH)\dist\include \
+        $(NULL)
+ 
+include <$(DEPTH)\config\rules.mak>
+ 
+install:: $(DLL)
+        $(MAKE_INSTALL) .\$(OBJDIR)\$(DLLNAME).dll $(DIST)\bin\components
+</pre>
+</table><br>
+
+If you do not have access to a Macintosh, you will need to find someone to
+add the files to the Mac build for you.  Ask around on #mozilla on 
+irc.mozilla.org.<br><br>
+
+<i>Note: In the actual Mozilla tree, the finger handler is statically linked 
+into libnecko2.so.  These Makefiles are provided as an example of how to 
+make your handler a separate component.</i><br>
+
+<h2><a name="handler">The Protocol Handler</a></h2>
+The protocol handler is a class which implements nsIProtocolHandler.  It
+is responsible for returning basic information about the protocol to the
+network library (such as the default port and URI format) and for creating
+the appropriate type of <b>channel</b> to handle the request.<br><br>
+
+Our example protocol handler will be relatively simple.  Most of the
+code in this example can be used with only minor modifications for
+whatever protocol you want to implement.  In your finger/src directory,
+create nsFingerHandler.h:<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+// The finger protocol handler creates "finger" URIs of the form
+// "finger:user@host" or "finger:host".
+
+#ifndef nsFingerHandler_h___
+#define nsFingerHandler_h___
+
+#include "nsIProtocolHandler.h"
+
+#define FINGER_PORT 79
+
+// {0x76d6d5d8-1dd2-11b2-b361-850ddf15ef07}
+#define NS_FINGERHANDLER_CID     \
+{ 0x76d6d5d8, 0x1dd2, 0x11b2, \
+   {0xb3, 0x61, 0x85, 0x0d, 0xdf, 0x15, 0xef, 0x07} }
+
+class nsFingerHandler : public nsIProtocolHandler
+{
+public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIPROTOCOLHANDLER
+
+    // nsFingerHandler methods:
+    nsFingerHandler();
+    virtual ~nsFingerHandler();
+
+    // Define a Create method to be used with a factory:
+    static NS_METHOD Create(nsISupports* aOuter, const nsIID&amp; aIID, void* *aResult);
+};
+
+#endif /* nsFingerHandler_h___ */
+</pre>
+</td></tr></table>
+<br>
+The CID in this file must be unique -- do not use this one!  You can get a
+unique CID by going to #mozilla on irc.mozilla.org and typing:<br><br>
+<code>mozbot uuid</code>
+<br><br>
+This will cause mozbot to generate a UUID for you.  Reformat this value as
+shown above.<br><br>
+
+Now, create the corresponding nsFingerHandler.cpp:<br><br>
+
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+#include "nspr.h"
+#include "nsFingerChannel.h"
+#include "nsFingerHandler.h"
+#include "nsIURL.h"
+#include "nsCRT.h"
+#include "nsIComponentManager.h"
+#include "nsIServiceManager.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsIProgressEventSink.h"
+
+static NS_DEFINE_CID(kSimpleURICID, NS_SIMPLEURI_CID);
+
+////////////////////////////////////////////////////////////////////////////////
+
+nsFingerHandler::nsFingerHandler() {
+    NS_INIT_REFCNT();
+}
+
+nsFingerHandler::~nsFingerHandler() {
+}
+
+NS_IMPL_ISUPPORTS(nsFingerHandler, NS_GET_IID(nsIProtocolHandler));
+
+NS_METHOD
+nsFingerHandler::Create(nsISupports* aOuter, const nsIID&amp; aIID, void* *aResult) {
+
+    nsFingerHandler* ph = new nsFingerHandler();
+    if (ph == nsnull)
+        return NS_ERROR_OUT_OF_MEMORY;
+    NS_ADDREF(ph);
+    nsresult rv = ph-&gt;QueryInterface(aIID, aResult);
+    NS_RELEASE(ph);
+    return rv;
+}
+    
+////////////////////////////////////////////////////////////////////////////////
+// nsIProtocolHandler methods:
+
+NS_IMETHODIMP
+nsFingerHandler::GetScheme(char* *result) {
+    *result = nsCRT::strdup("finger");
+    if (!*result) return NS_ERROR_OUT_OF_MEMORY;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerHandler::GetDefaultPort(PRInt32 *result) {
+    *result = FINGER_PORT;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerHandler::NewURI(const char *aSpec, nsIURI *aBaseURI,
+                             nsIURI **result) {
+    nsresult rv;
+
+    // no concept of a relative finger url
+    NS_ASSERTION(!aBaseURI, "base url passed into finger protocol handler");
+
+    nsIURI* url;
+    rv = nsComponentManager::CreateInstance(kSimpleURICID, nsnull,
+                                            NS_GET_IID(nsIURI),
+                                            (void**)&amp;url);
+    if (NS_FAILED(rv)) return rv;
+    rv = url-&gt;SetSpec((char*)aSpec);
+    if (NS_FAILED(rv)) {
+        NS_RELEASE(url);
+        return rv;
+    }
+
+    *result = url;
+    return rv;
+}
+
+NS_IMETHODIMP
+nsFingerHandler::NewChannel(nsIURI* url, nsIChannel* *result)
+{
+    nsresult rv;
+    
+    nsFingerChannel* channel;
+    rv = nsFingerChannel::Create(nsnull, NS_GET_IID(nsIChannel), (void**)&amp;channel);
+    if (NS_FAILED(rv)) return rv;
+
+    rv = channel-&gt;Init(url);
+    if (NS_FAILED(rv)) {
+        NS_RELEASE(channel);
+        return rv;
+    }
+
+    *result = channel;
+    return NS_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+</pre>
+</td></tr></table>
+<br>
+Again, most of this code is fairly independent of the protocol.  There are
+four areas you may need to customize to use this for your protocol:
+<ul>
+<li>GetScheme: Change this to return the prefix that your protocol uses.
+
+<li>GetDefaultPort: Change this to return the default port that your
+protocol runs on.  For protocols that do not use a port, you can
+return -1.
+
+<li>NewURI: Here NS_SIMPLEURI_CID is used, which parses simple URL's,
+such as those without a path.  For information on other URI parsing
+schemes you can use, see <a
+href="http://lxr.mozilla.org/seamonkey/source/netwerk/base/public/nsIURI.idl">nsIURI.idl</a>.
+
+<li>NewChannel: In most cases you can just change this method to return an
+ns(Foo)Channel, where Foo is the protocol you are implementing.
+</ul>
+
+<h2><a name="channel">The Channel</a></h2>
+The Channel is one of the most important parts of the protocol handler code.
+It is responsible for providing a layer of abstraction to the protocol.  In 
+particular, the channel needs to be able to:<ul>
+<li>Give the content type of the data being read
+<li>Support synchronous and/or asynchronous reads (and possibly writes,
+such as an FTP file upload).
+</ul><br>
+To start, here is nsFingerChannel.h:<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+#ifndef nsFingerChannel_h___
+#define nsFingerChannel_h___
+
+#include "nsString.h"
+#include "nsILoadGroup.h"
+#include "nsIInputStream.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsCOMPtr.h"
+#include "nsXPIDLString.h"
+#include "nsIChannel.h"
+#include "nsIURI.h"
+#include "nsFingerHandler.h"
+#include "nsIStreamListener.h"
+
+
+class nsFingerChannel : public nsIChannel, public nsIStreamListener {
+public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIREQUEST
+    NS_DECL_NSICHANNEL
+    NS_DECL_NSISTREAMLISTENER
+    NS_DECL_NSISTREAMOBSERVER
+
+    // nsFingerChannel methods:
+    nsFingerChannel();
+    virtual ~nsFingerChannel();
+
+    // Define a Create method to be used with a factory:
+    static NS_METHOD
+    Create(nsISupports* aOuter, const nsIID&amp; aIID, void* *aResult);
+    
+    nsresult Init(nsIURI* uri);
+
+protected:
+    nsCOMPtr&lt;nsIInterfaceRequestor&gt;     mCallbacks;
+    nsCOMPtr&lt;nsIURI&gt;                    mOriginalURI;
+    nsCOMPtr&lt;nsIURI&gt;                    mUrl;
+    nsCOMPtr&lt;nsIStreamListener&gt;         mListener;
+    PRUint32                            mLoadAttributes;
+    nsCOMPtr&lt;nsILoadGroup&gt;              mLoadGroup;
+    nsCString                           mContentType;
+    PRInt32                             mContentLength;
+    nsCOMPtr&lt;nsISupports&gt;               mOwner; 
+    PRUint32                            mBufferSegmentSize;
+    PRUint32                            mBufferMaxSize;
+    PRBool                              mActAsObserver;
+
+    PRInt32                             mPort;
+    nsXPIDLCString                      mHost;
+    nsXPIDLCString                      mUser;
+
+    nsXPIDLCString                      mRequest;
+
+    nsCOMPtr&lt;nsISupports&gt;               mResponseContext;
+    nsCOMPtr&lt;nsIChannel&gt;                mTransport;
+    nsresult                            mStatus;
+
+protected:
+    nsresult SendRequest(nsIChannel* aChannel);
+};
+
+#endif /* nsFingerChannel_h___ */
+</pre>
+</td></tr></table>
+<br><br>
+And here is nsFingerChannel.cpp, with some extra comments to explain tricky 
+sections of code.<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+// finger implementation
+
+#include "nsFingerChannel.h"
+#include "nsIServiceManager.h"
+#include "nsILoadGroup.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsXPIDLString.h"
+#include "nsISocketTransportService.h"
+#include "nsIStringStream.h"
+#include "nsMimeTypes.h"
+#include "nsIStreamConverterService.h"
+#include "nsITXTToHTMLConv.h"
+
+static NS_DEFINE_CID(kSocketTransportServiceCID, NS_SOCKETTRANSPORTSERVICE_CID);
+static NS_DEFINE_CID(kStreamConverterServiceCID, NS_STREAMCONVERTERSERVICE_CID);
+
+#define BUFFER_SEG_SIZE (4*1024)
+#define BUFFER_MAX_SIZE (64*1024)
+</pre></td></tr></table><br>
+The buffer segment size and buffer max size are important to get the optimal
+performance from your protocol.  If you set these values too low, you will
+probably see very poor performance.  The buffer segment size is the maximum
+amount of data that will be read from the socket in a single read call.  The 
+buffer max size is the maximum amount of data that will be buffered (while 
+the content is being parsed or rendered).  If you have no idea what values 
+to use, 4K for the segment size and 64K for the maximum size are usually 
+good defaults.<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+// nsFingerChannel methods
+nsFingerChannel::nsFingerChannel()
+    : mContentLength(-1),
+      mActAsObserver(PR_TRUE),
+      mPort(-1),
+      mStatus(NS_OK)
+{
+    NS_INIT_REFCNT();
+}
+
+nsFingerChannel::~nsFingerChannel() {
+}
+
+NS_IMPL_THREADSAFE_ISUPPORTS4(nsFingerChannel, nsIChannel, nsIRequest,
+                              nsIStreamListener, nsIStreamObserver)
+
+nsresult
+nsFingerChannel::Init(nsIURI* uri)
+{
+    nsresult rv;
+    nsXPIDLCString autoBuffer;
+
+    NS_ASSERTION(uri, "no uri");
+
+    mUrl = uri;
+
+//  For security reasons, we do not allow the user to specify a
+//  non-default port for finger: URL's.
+
+    mPort = FINGER_PORT;
+
+    rv = mUrl-&gt;GetPath(getter_Copies(autoBuffer)); // autoBuffer = user@host
+    if (NS_FAILED(rv)) return rv;
+
+    nsCString cString(autoBuffer);
+    nsCString tempBuf;
+
+    PRUint32 i;
+</pre></td></tr></table><br><br>
+The following section of code is responsible for parsing the URL (in this 
+case, finger:user@host) that was passed in.<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+    // Now parse out the user and host
+    for (i=0; cString[i] != '\0'; i++) {
+      if (cString[i] == '@') {
+        cString.Left(tempBuf, i);
+        mUser = tempBuf;
+        cString.Right(tempBuf, cString.Length() - i - 1);
+        mHost = tempBuf;
+        break;
+       }
+    }
+
+    // Catch the case of just the host being given
+
+    if (cString[i] == '\0') {
+      mHost = cString;
+    }
+</pre></td></tr></table>
+If your protocol's URL follows a more standard form (protocol://host:port/path)
+, you might be better off using the STANDARDURL implementation.  For a
+better explanation of the predefined URI types, see 
+<a href="http://lxr.mozilla.org/seamonkey/source/netwerk/base/public/nsIURL.idl">
+nsIURL.idl</a>.  It is also  possible for you to create your own URI type,
+for an example see 
+<a
+href="http://lxr.mozilla.org/seamonkey/source/netwerk/protocol/jar/src/nsJARURI.cpp">nsJARURI.cpp</a>
+.<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+    if (!*(const char *)mHost) return NS_ERROR_NOT_INITIALIZED;
+
+    return NS_OK;
+}
+
+NS_METHOD
+nsFingerChannel::Create(nsISupports* aOuter, const nsIID&amp; aIID, void* *aResult)
+{
+    nsFingerChannel* fc = new nsFingerChannel();
+    if (fc == nsnull)
+        return NS_ERROR_OUT_OF_MEMORY;
+    NS_ADDREF(fc);
+    nsresult rv = fc-&gt;QueryInterface(aIID, aResult);
+    NS_RELEASE(fc);
+    return rv;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// nsIRequest methods:
+
+NS_IMETHODIMP
+nsFingerChannel::IsPending(PRBool *result)
+{
+    NS_NOTREACHED("nsFingerChannel::IsPending");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetStatus(nsresult *status)
+{
+    *status = mStatus;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::Cancel(nsresult status)
+{
+    NS_ASSERTION(NS_FAILED(status), "shouldn't cancel with a success code");
+    nsresult rv = NS_ERROR_FAILURE;
+
+    mStatus = status;
+    if (mTransport) {
+      rv = mTransport-&gt;Cancel(status);
+    }
+    return rv;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::Suspend(void)
+{
+    NS_NOTREACHED("nsFingerChannel::Suspend");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::Resume(void)
+{
+    NS_NOTREACHED("nsFingerChannel::Resume");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// nsIChannel methods:
+
+NS_IMETHODIMP
+nsFingerChannel::GetOriginalURI(nsIURI* *aURI)
+{
+    *aURI = mOriginalURI ? mOriginalURI : mUrl;
+    NS_ADDREF(*aURI);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetOriginalURI(nsIURI* aURI)
+{
+    mOriginalURI = aURI;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetURI(nsIURI* *aURI)
+{
+    *aURI = mUrl;
+    NS_IF_ADDREF(*aURI);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetURI(nsIURI* aURI)
+{
+    mUrl = aURI;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::OpenInputStream(nsIInputStream **_retval)
+{
+    nsresult rv = NS_OK;
+
+    NS_WITH_SERVICE(nsISocketTransportService, socketService, kSocketTransportServiceCID, &amp;rv);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr&lt;nsIChannel&gt; channel;
+    rv = socketService-&gt;CreateTransport(mHost, mPort, mHost, BUFFER_SEG_SIZE,
+            BUFFER_MAX_SIZE, getter_AddRefs(channel));
+    if (NS_FAILED(rv)) return rv;
+
+    rv = channel-&gt;SetNotificationCallbacks(mCallbacks);
+    if (NS_FAILED(rv)) return rv;
+
+    return channel-&gt;OpenInputStream(_retval);
+}
+
+NS_IMETHODIMP
+nsFingerChannel::OpenOutputStream(nsIOutputStream **_retval)
+{
+    NS_NOTREACHED("nsFingerChannel::OpenOutputStream");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::AsyncRead(nsIStreamListener *aListener, nsISupports *ctxt)
+{
+    nsresult rv = NS_OK;
+
+    NS_WITH_SERVICE(nsISocketTransportService, socketService, kSocketTransportServiceCID, &amp;rv);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr&gt;nsIChannel&gt; channel;
+    rv = socketService-&gt;CreateTransport(mHost, mPort, mHost, BUFFER_SEG_SIZE,
+      BUFFER_MAX_SIZE, getter_AddRefs(channel));
+    if (NS_FAILED(rv)) return rv;
+
+    rv = channel-&gt;SetNotificationCallbacks(mCallbacks);
+    if (NS_FAILED(rv)) return rv;
+
+    mListener = aListener;
+    mResponseContext = ctxt;
+    mTransport = channel;
+
+    return SendRequest(channel);
+}
+</pre></td></tr></table><br><br>
+Although it looks fairly inconspicuous, AsyncRead needs some explanation.  It 
+is important to note that <b>the consumer of the channel's data is not 
+responsible for opening and closing a connection</b>.  It is up to the channel 
+to open a connection, if necessary, when it is asked to read or write data. 
+In this case, when asked for an asynchronous read, we create a SocketTransport 
+and then call SendRequest() to write the request to the open socket. 
+<b>Transports are channels too</b> and as such, we are not responsible for
+explicitly opening it or waiting for the connection to be established, we 
+can simply write the data to it.  AsyncRead also saves the nsIStreamListener 
+passed in; this will be used again to make sure the correct callbacks get 
+called when we are ready to read data.<br><br>
+
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+NS_IMETHODIMP
+nsFingerChannel::AsyncWrite(nsIInputStream *fromStream,
+                            nsIStreamObserver *observer,
+                            nsISupports *ctxt)
+{
+    NS_NOTREACHED("nsFingerChannel::AsyncWrite");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetLoadAttributes(PRUint32 *aLoadAttributes)
+{
+    *aLoadAttributes = mLoadAttributes;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetLoadAttributes(PRUint32 aLoadAttributes)
+{
+    mLoadAttributes = aLoadAttributes;
+    return NS_OK;
+}
+
+#define FINGER_TYPE TEXT_HTML
+
+NS_IMETHODIMP
+nsFingerChannel::GetContentType(char* *aContentType) {
+    if (!aContentType) return NS_ERROR_NULL_POINTER;
+
+    *aContentType = nsCRT::strdup(FINGER_TYPE);
+    if (!*aContentType) return NS_ERROR_OUT_OF_MEMORY;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetContentType(const char *aContentType)
+{
+    //It doesn't make sense to set the content-type on this type
+    // of channel...
+    return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetContentLength(PRInt32 *aContentLength)
+{
+    *aContentLength = mContentLength;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetContentLength(PRInt32 aContentLength)
+{
+    NS_NOTREACHED("nsFingerChannel::SetContentLength");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetTransferOffset(PRUint32 *aTransferOffset)
+{
+    NS_NOTREACHED("nsFingerChannel::GetTransferOffset");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetTransferOffset(PRUint32 aTransferOffset)
+{
+    NS_NOTREACHED("nsFingerChannel::SetTransferOffset");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetTransferCount(PRInt32 *aTransferCount)
+{
+    NS_NOTREACHED("nsFingerChannel::GetTransferCount");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetTransferCount(PRInt32 aTransferCount)
+{
+    NS_NOTREACHED("nsFingerChannel::SetTransferCount");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetBufferSegmentSize(PRUint32 *aBufferSegmentSize)
+{
+    NS_NOTREACHED("nsFingerChannel::GetBufferSegmentSize");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetBufferSegmentSize(PRUint32 aBufferSegmentSize)
+{
+    NS_NOTREACHED("nsFingerChannel::SetBufferSegmentSize");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetBufferMaxSize(PRUint32 *aBufferMaxSize)
+{
+    NS_NOTREACHED("nsFingerChannel::GetBufferMaxSize");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetBufferMaxSize(PRUint32 aBufferMaxSize)
+{
+    NS_NOTREACHED("nsFingerChannel::SetBufferMaxSize");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetLocalFile(nsIFile* *file)
+{
+    *file = nsnull;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetPipeliningAllowed(PRBool *aPipeliningAllowed)
+{
+    *aPipeliningAllowed = PR_FALSE;
+    return NS_OK;
+}
+ 
+NS_IMETHODIMP
+nsFingerChannel::SetPipeliningAllowed(PRBool aPipeliningAllowed)
+{
+    NS_NOTREACHED("SetPipeliningAllowed");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetLoadGroup(nsILoadGroup* *aLoadGroup)
+{
+    *aLoadGroup = mLoadGroup;
+    NS_IF_ADDREF(*aLoadGroup);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetLoadGroup(nsILoadGroup* aLoadGroup)
+{
+    mLoadGroup = aLoadGroup;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetOwner(nsISupports* *aOwner)
+{
+    *aOwner = mOwner.get();
+    NS_IF_ADDREF(*aOwner);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetOwner(nsISupports* aOwner)
+{
+    mOwner = aOwner;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::GetNotificationCallbacks(nsIInterfaceRequestor* *aNotificationCallbacks)
+{
+    *aNotificationCallbacks = mCallbacks.get();
+    NS_IF_ADDREF(*aNotificationCallbacks);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFingerChannel::SetNotificationCallbacks(nsIInterfaceRequestor* aNotificationCallbacks)
+{
+    mCallbacks = aNotificationCallbacks;
+    return NS_OK;
+}
+
+NS_IMETHODIMP 
+nsFingerChannel::GetSecurityInfo(nsISupports * *aSecurityInfo)
+{
+    *aSecurityInfo = nsnull;
+    return NS_OK;
+}
+
+// nsIStreamObserver methods
+NS_IMETHODIMP
+nsFingerChannel::OnStartRequest(nsIChannel *aChannel, nsISupports *aContext) {
+    if (!mActAsObserver) {
+      // acting as a listener
+      return mListener-&gt;OnStartRequest(this, aContext);
+    } else {
+      // we don't want to pass our AsyncWrite's OnStart through
+      // we just ignore this
+      return NS_OK;
+    }
+}
+</pre></td></tr></table><br><br>
+The mActAsObserver flag is here because nsFingerChannel fulfulls two rolls:
+<br><br>
+<ul>
+<li>It acts as an nsIStreamListener, for the call to AsyncRead which is passed 
+through to the socket transport.  More on this in the description for 
+OnStopRequest.
+<li>It acts as an nsIStreamObserver.  This means that it can get a 
+notification when the AsyncWrite (which it uses to send the username to 
+finger) has completed.
+</ul><br><br>
+The OnStartRequest method is called when socket has started to write the data 
+to the socket.  We don't want to let the caller know about starting to write 
+the finger request to the socket (it doesn't even know data is being written), 
+but we do want to pass through a notification when it has started to read data 
+from the socket.<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+NS_IMETHODIMP
+nsFingerChannel::OnStopRequest(nsIChannel* aChannel, nsISupports* aContext,
+                                      nsresult aStatus, const PRUnichar* aMsg) {
+    nsresult rv = NS_OK;
+
+    if (NS_FAILED(aStatus) || !mActAsObserver) {
+        if (mLoadGroup) {
+          rv = mLoadGroup-&gt;RemoveChannel(this, nsnull, aStatus, aMsg);
+          if (NS_FAILED(rv)) return rv;
+        }
+        rv = mListener-&gt;OnStopRequest(this, aContext, aStatus, aMsg);
+        mTransport = 0;
+        return rv;
+    } else {
+        // at this point we know the request has been sent.
+        // we're no longer acting as an observer.
+ 
+        mActAsObserver = PR_FALSE;
+        nsCOMPtr&lt;nsIStreamListener&gt; converterListener;
+
+        NS_WITH_SERVICE(nsIStreamConverterService, StreamConvService,
+                         kStreamConverterServiceCID, &amp;rv);
+        if (NS_FAILED(rv)) return rv;
+
+        nsAutoString fromStr; fromStr.AssignWithConversion("text/plain");
+        nsAutoString toStr; toStr.AssignWithConversion("text/html");
+
+        rv = StreamConvService-&gt;AsyncConvertData(fromStr.GetUnicode(),
+              toStr.GetUnicode(), this, mResponseContext,
+              getter_AddRefs(converterListener));
+        if (NS_FAILED(rv)) return rv;
+
+        nsCOMPtr&lt;nsITXTToHTMLConv&gt; converter(do_QueryInterface(converterListener));
+        if (converter) {
+          nsAutoString title; title.AssignWithConversion("Finger Results");
+          nsXPIDLCString userHost;
+          rv = mUrl-&gt;GetPath(getter_Copies(userHost));
+          title.AppendWithConversion(userHost);
+          converter-&gt;SetTitle(title.GetUnicode());
+          converter-&gt;PreFormatHTML(PR_TRUE);
+        }
+
+        return aChannel-&gt;AsyncRead(converterListener, mResponseContext);
+    }
+
+}
+</pre></td></tr></table><br><br>
+OnStopRequest() is called after an async operation has completed.  If 
+mActAsObserver is set, we know that the operation that completed is the
+AsyncWrite where the finger request was written to the socket.  In this case, 
+we call AsyncRead to read the data that will be coming in on the socket. 
+Another thing to note here, is that we pass the nsFingerChannel object (this) 
+to receive the AsyncRead callback, instead of the consumer who actually wants 
+the data.  Why?  We need to be able to return the content type for the data, 
+and transports do not have a content type.  So, we put ourself into these 
+calls so that the data will appear to be coming from the nsFingerChannel.
+<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+// nsIStreamListener method
+NS_IMETHODIMP
+nsFingerChannel::OnDataAvailable(nsIChannel* aChannel, nsISupports* aContext,
+                               nsIInputStream *aInputStream, PRUint32 aSourceOffset,
+                               PRUint32 aLength) {
+    mContentLength = aLength;
+    return mListener-&gt;OnDataAvailable(this, aContext, aInputStream, aSourceOffset, aLength);
+}
+
+nsresult
+nsFingerChannel::SendRequest(nsIChannel* aChannel) {
+  // The text to send should already be in mUser
+
+  nsresult rv = NS_OK;
+  nsCOMPtr&lt;nsISupports&gt; result;
+  nsCOMPtr&lt;nsIInputStream&gt; charstream;
+  nsCString requestBuffer(mUser);
+
+  if (mLoadGroup) {
+    mLoadGroup-&gt;AddChannel(this, nsnull);
+  }
+
+  requestBuffer.Append(CRLF);
+
+  mRequest = requestBuffer.ToNewCString();
+
+  rv = NS_NewCharInputStream(getter_AddRefs(result), mRequest);
+  if (NS_FAILED(rv)) return rv;
+
+  charstream = do_QueryInterface(result, &amp;rv);
+  if (NS_FAILED(rv)) return rv;
+
+  rv = aChannel-&gt;SetTransferCount(requestBuffer.Length());
+  if (NS_FAILED(rv)) return rv;
+  rv = aChannel-&gt;AsyncWrite(charstream, this, 0);
+  return rv;
+}
+</pre></td></tr></table><br><br>
+<h2><a name="module">Finishing up: the Module</a></h2>
+The last thing that you need to create is the Module for the protocol handler. 
+This is what enables Mozilla's component system to recognize this library as 
+something which can handle URL's beginning with your protocol.  Here is 
+nsFingerModule.cpp:<br><br>
+<table border=0 bgcolor="#E7E7E7" width="100%"><tr><td>
+<pre>
+#include "nsIGenericFactory.h"
+#include "nsFingerHandler.h"
+
+static nsModuleComponentInfo gResComponents[] = {
+    { "The Finger Protocol Handler", 
+      NS_FINGERHANDLER_CID,
+      NS_NETWORK_PROTOCOL_PROGID_PREFIX "finger",
+      nsFingerHandler::Create
+    }
+};
+
+NS_IMPL_NSGETMODULE("finger", gResComponents)
+
+#include "nsIGenericFactory.h"
+#include "nsFingerHandler.h"
+
+static nsModuleComponentInfo gResComponents[] = {
+    { "The Finger Protocol Handler", 
+      NS_FINGERHANDLER_CID,
+      NS_NETWORK_PROTOCOL_PROGID_PREFIX "finger",
+      nsFingerHandler::Create
+    }
+};
+
+NS_IMPL_NSGETMODULE("finger", gResComponents)
+</pre></td></tr></table><br><br>
+As you can see, most of the work here is done with predefined macros.<br><br>
+
+So, now we have a working handler for the finger protocol.  This should 
+extend fairly well to many protocols, but if you need a more complex example, 
+you can look at the HTTP and FTP protocols.
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 10,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/netlib/new-handler.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

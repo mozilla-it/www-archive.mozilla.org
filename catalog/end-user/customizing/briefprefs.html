@@ -1,0 +1,414 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <meta http-equiv="Content-Language" content="en">
+    <meta http-equiv="Content-Style-Type" content="text/css">
+
+    <meta name="keywords" content="Mozilla, preferences, prefs.js, user.js, deployment, profile">
+    <meta name="description" content="This article provides a technical overview of Mozilla preferences, including technical definition, saving and loading sequence of pref files, and editing preferences.">
+
+    <title>A Brief Guide to Mozilla Preferences</title>
+
+    <link rel="Top" href="/">
+    <link rel="Up" href="../">
+    <link rel="Search" href="/search.html">
+
+    <link rel="section" href="#def" title="What is a preference?">
+    <link rel="section" href="#files" title="Preferences files">
+    <link rel="section" href="#loading" title="Preferences loading and resolution">
+    <link rel="section" href="#saving" title="Preferences saving">
+    <link rel="section" href="#modifying" title="Modifying preferences files">
+
+    <meta name="DC.author" content="Benjamin Chuang">
+    <meta name="DC.subject" content="A Brief Guide to Mozilla Preferences">
+    <meta name="DC.title" content="A Brief Guide to Mozilla Preferences">
+    <meta name="DC.description" content="This article provides a technical overview of Mozilla preferences,
+    including  technical definition, saving and loading sequence of pref files, and editing preferences.">
+    <meta name="DC.date.created" content="2003-02-23T23:25:03+11:00" scheme="W3CDTF">
+    <meta name="DC.date.modified" content="2004-02-01T09:54:03+11:00" scheme="W3CDTF">
+
+    <style type="text/css">
+        .indent { margin-left: 5em; }
+        dfn, .term { color: #cc6600;/*#006030;*/ }
+        .table { border-collapse: collapse; }
+        .table td, .table th { border: 1px solid #cccccc; padding: 0.2em; padding-left:0.3em; padding-right:0.3em;}
+        .table th { text-align:left; }
+
+        .cCmt { color: #999999; } /* code comment */
+        pre.codeExample {
+            margin-left:4em;
+            margin-right:4em;
+            border:1px solid #cccccc;
+            background-color:#f6f6f6;
+            padding:1em;
+        }
+
+        .note { border-top:1px solid #cccccc; border-bottom:1px solid #cccccc;width:40em; }
+    </style>
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<h1>A Brief Guide to Mozilla Preferences</h1>
+
+<div class="author">
+<p><b>Benjamin Chuang</b> &lt;<a href="mailto:benc@meer.net">benc@meer.net</a>&gt;</p>
+<p>(June 06, 2003)</p>
+</div>
+
+<div class="indent">
+<p>This article is intended for Mozilla power users and system administrators. It
+provides a general overview of Mozilla preferences, including where preferences
+are stored, a file-by-file analysis of preference loading sequence, and information
+on editing preferences.</p>
+
+<p>Preference sharing via profile sharing is not discussed here (see the
+<a href="/projects/embedding/profileSharing/">profile sharing page</a>).</p>
+
+<p>Feedback and comments to bug <a href="http://bugzilla.mozilla.org/show_bug.cgi?id=158384">158384</a>.</p>
+
+</div>
+
+<h2><a name="def">What is a preference?</a></h2>
+
+<div class="indent">
+<p>A preference is any value or defined behavior that can be set
+(presumably, one setting is <q>preferable</q> to another). Preference
+changes via user interface usually take effect immediately. The values are 
+are saved to the user profile (in <tt><a href="#files">prefs.js</a></tt>). 
+(Firefox confirmed).</p>
+
+    <p>A preference is read from a file, and is a can call up to
+    three methods: <code>pref()</code>, <code>user_pref()</code> and
+    <code>lock_pref()</code> . All preferences files may call <code>pref()</code>
+    and <code>user_pref()</code> , while the <span class="term">config file</span>
+    in addition may call <code>lock_pref()</code> .</p>
+
+
+
+</div>
+
+<h2><a name="file">Preferences files</a></h2>
+<div class="indent">
+
+    <p><a name="files-skipline">To protect privacy by preventing</a>
+     inadvertent loading of a preferences file in
+    the browser, the first line of the file is made un-parseable and skipped on
+    loading. The only exception to this is <tt>user.js</tt> .</p>
+
+    <p>On application launch, several preferences files are loaded. They are:</p>
+
+    <dl>
+        <dt class="term">
+            <a name="files-def">Default <abbr title="preferences">pref.</abbr> files</a>
+             </dt>
+        <dd><p>In the <tt>defaults/pref/</tt> directory of the application install
+            directory are <span class="term">default preferences files</span> with
+            <tt>.js</tt> file extension. On application launch these files initialize
+            preferences with default values.</p>
+
+            <p><a name="files-def-special">The directory contains a platform-specific</a> 
+            <span class="term">default pref files</span>, whose file name depends on the platform:</p>
+            <a name="loading">
+            <table class="table">
+            <thead><tr><th>Platform</th><th>File name</th></tr></thead>
+            <tbody>
+                <tr><td>Windows</td>         <td><tt>winpref.js</tt></td></tr>
+                <tr><td>Mac OS &amp; Mac OS X</td><td><tt>macprefs.js</tt></td></tr>
+                <tr><td>Unix</td>            <td><tt>unix.js</tt></td></tr>
+                <tr><td>Open VMS</td>        <td><tt>openvms.js</tt></td></tr>
+                <tr><td>AIX</td>             <td><tt>aix.js</tt></td></tr>
+                <tr><td>OS/2</td>            <td><tt>os2pref.js</tt></td></tr>
+                <tr><td>BeOS</td>            <td><tt>beos.js</tt></td></tr>
+                <tr><td>Photon toolkit build</td><td><tt>photon.js</tt></td></tr>
+            </tbody>
+            </table>
+
+            </dd>
+
+        <dt class="term">
+            <a name="files-conf"><abbr title="configuration">Config.</abbr></a>
+             file</dt>
+        <dd><p>
+            A configuration file, usually with <tt>.cfg</tt> extension,
+            may be called from a <span class="term">default pref file</span>
+            via the <tt>general.config.filename</tt> preference. This file
+            allows preference locking via the <code>lock_pref()</code>
+            function. Details on the
+            <span class="term">config file</span> is beyond the scope
+            of this document.
+            </p></dd>
+
+        <dt class="term">
+            <a name="files-user">User pref. files</a>
+            </dt>
+        <dd><p>In the profile directory are two <span class="term">user
+            pref files</span>: <tt>prefs.js</tt> and <tt>user.js</tt>.
+            <tt>prefs.js</tt> is automatically generated by the application
+            and should not be edited manually, whereas <tt>user.js</tt> is
+            an optional file the user can create to override preferences
+            initialized by other preferences files.</p>
+
+            <p>Netscape 7 has a third <span class="term">user pref file</span> 
+            -<tt>liprefs.js</tt>, the roaming access preferences file.</p></dd>
+    </dl>
+
+</div>
+
+<h2><a name="loading">Preferences Loading and Resolution</a></h2>
+
+<div class="indent">
+
+<p>On application launch, the application loads preferences in the following
+order:</p>
+
+<ol>
+    <li><p>Load all <span class="term">default pref files</span>. Non-<a
+        href="#files-def-special">platform-specific</a> <tt>.js</tt> files
+        are loaded first, in reverse alphabetical order. Then the
+        platform-specific file is loaded.</p></li>
+
+    <li><p>Optionally load the <span class="term">config file</span>.</p></li>
+
+    <li><p>Load <span class="term">user pref files</span>,
+        first <tt>prefs.js</tt>,
+        then <tt>user.js</tt> .</p></li>
+</ol>
+
+<p>Preference conflicts are resolved in favor of the last
+entry; for example, <tt>user.js</tt> takes precedence over 
+<tt>prefs.js</tt> .</p>
+
+<p>If the application encounters any error during loading of
+a <span class="term">default pref file</span>, the application
+will issue a warning that a configuration file has failed to
+load and then quit. This allows system administrators to know
+quickly if there is a configuration error in the installation.
+If the application encounters an error when loading <span class=
+"term">user pref files</span>, the application will issue a
+warning but will continue running.</p>
+
+</div>
+
+<h2><a name="saving">Preferences Saving</a></h2>
+<div class="indent">
+
+<p>Usually when the user specifically commits a preference change via
+user interface such as the Preferences dialog, the application saves
+the change by overwriting <tt>prefs.js</tt> . On application exit, all
+user-set preferences are saved to <tt>prefs.js</tt> . This also means that
+preferences initially set by <tt>user.js</tt> will also be saved to
+<tt>prefs.js</tt>.</p>
+
+<p class="note">
+<strong>Do NOT</strong> edit <tt>prefs.js</tt> directly, unless you really
+know what you are doing, because the file has a variety of editing restrictions
+and complicated behaviors, which are beyond the scope of this document.</p>
+
+<p>If, for some reason, you ignore this warning and decide to edit
+<tt>prefs.js</tt>, save a copy before you make changes. Because <tt>prefs.js</tt>
+is overwritten at application exit, you must edit the file while the application
+is closed.</p>
+
+<p>Note the application never changes <tt>user.js</tt>, so on launch
+<tt>user.js</tt> overrides conflicting preferences from the previous
+application session.</p>
+
+<a name="compression"></a>
+<p>By default, <tt>prefs.js</tt> is <q>compressed</q>. When saving
+each preference, the application compares its value against the
+default loaded from <span class="term">default pref files</span>
+and drop the preference from <tt>prefs.js</tt> if they match.</p>
+</div>
+
+<h2><a name="modifying">Modifying preferences</a></h2>
+
+<div class="indent">
+
+<p>You can set user preferences via the advanced
+preferences editor, accessible by typing <kbd>about:config</kbd> in the
+Location Bar. This interface modifies the same file as the Preferences UI,<tt>prefs.js</tt>. 
+Normal application users should always use this interface to modify their Preferences.</p>
+
+<p>If you intend to edit preferences files manually, make sure you
+understand preference loading and saving as described in previous
+sections.</p>
+
+<p class="note">
+<strong>Do NOT</strong> edit <tt>prefs.js</tt> directly, unless you really
+know what you are doing, because the file has a variety of editing restrictions
+and complicated behaviors, which are beyond the scope of this document.</p>
+
+<p>If, for some reason, you ignore this warning and decide to edit
+<tt>prefs.js</tt>, save a copy before you make changes. Because <tt>prefs.js</tt>
+is overwritten at application exit, you must edit the file while the application
+is closed.</p>
+
+<p>If you want to manually change preference values 
+for a given profile, you should do so by creating <tt>user.js</tt>
+in your profile directory. As previously noted, all values set in
+<tt>user.js</tt> take effect at program launch irrespective of
+changes from previous session. The file is a simple text
+file that looks like this:</p>
+
+<pre class="codeExample">
+user_pref("mail.server.default.abbreviate",true); <span class="cCmt">// no newsgroup abbreviation</span>
+
+<span class="cCmt">// use Google instead of Netscape for search</span>
+user_pref("browser.search.defaulturl","http://www.google.com/");
+</pre>
+
+<p>For your <tt>user.js</tt> to take effect, you must first restart your
+application.</p>
+
+<p class="note">
+<b>Note</b> preference names are case-sensitive.</p>
+
+<h3>Changing defaults</h3>
+
+<p>A systems administrator can modify the default preferences in two ways:</p>
+
+    <ol>
+        <li><p>The administrator may edit the <tt>all.js</tt><sup>&dagger;</sup>
+            <span class="term">default pref file</span>
+            (<tt>install_directory/defaults/prefs/all.js</tt>).
+            This has the advantage of changing the default value for both new and
+            existing profiles. However, note preferences set in the profile will
+            override the default settings. Also, note due to preferences file
+            <a href="#compression">compression</a>, some preferences are not
+            saved if they match the default values, causing the profile to behave
+            differently if used in a different installation.</p>
+
+            <p>
+            <sup>&dagger;</sup> Because <span class="term">default pref files</span>
+            are loaded in reverse alphabetical order, <tt>all.js</tt> will be loaded
+            near the end, preventing administrator values from being overridden.</p>
+        </li>
+
+        <li><p>The administrator may alternatively put a <tt>user.js</tt> file
+            in <tt><i>app_dir</i>/defaults/profile/</tt> ; this will put
+            a copy of the <tt>user.js</tt> in all new profiles. This method has
+            the advantage of resetting preferences back to administrator
+            defaults at every start-up. Note that, because a user typically has
+            access privilege to his or her profile directory, he or she can
+            change the default values if he or she knows how. Another
+            disadvantage is that existing profiles will not be affected.</p>
+        </li>
+    </ol>
+
+<p>Distributors can add default preference files via .XPI packages. The
+following is sample <tt>install.js</tt> code:</p>
+
+<pre class="codeExample">
+initInstall("CustomPref", "/foo/custompref", "1.0");
+addFile("custompref",           <span class="cCmt">// displayName from contents.rdf</span>
+        "custompref.js",        <span class="cCmt">// source</span>
+        getFolder("Defaults"),  <span class="cCmt">// target folder</span>
+        "pref");                <span class="cCmt">// target subdir</span>
+
+if (0 == getLastError())
+	 performInstall();
+else
+	 cancelInstall();
+</pre>
+
+</div>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified July  7,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/catalog/end-user/customizing/briefprefs.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

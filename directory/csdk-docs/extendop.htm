@@ -1,0 +1,337 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+ <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+ <title>Mozilla LDAP C SDK: Chapter 15 - Working with Extended Operations</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<ul class="snav">
+ <li><a href="controls.htm">Previous</a>
+ <li><a href="./">Contents</a>
+ <li><a href="ix.htm">Index</a>
+ <li><a href="threaded.htm">Next</a>
+</ul>
+
+<h1>Mozilla LDAP C SDK Programmer's Guide</h1>
+<h2>Chapter 15 - Working with Extended Operations</h2>
+
+<p>This chapter explains how LDAPv3 extended
+operations work and how to use the extended operations that are
+supported by your LDAP server.</p>
+
+<h3 id="how_extendop_work">How Extended Operations Work</h3>
+
+<p>Extended operations are part of the LDAPv3
+protocol. Each extended operation is identified by an OID.</p>
+
+<p>LDAP clients can request the operation
+by sending an extended operation request. Within the request, the
+client specifies:</p>
+
+<ul>
+ <li>The OID of the extended operation that should be performed.</li>
+ <li>Data specific to the extended operation.</li>
+</ul>
+
+<p>The server receives the request, and performs the extended operation. 
+The server can send back to the client a response containing:</p>
+
+<ul>
+ <li>An OID</li>
+ <li>Any additional data</li>
+</ul>
+
+<p>In order to use extended operations, both the server and the client 
+must understand the specific extended operation to be performed.</p>
+
+<h3 id="determine_extendop_support">Determining the Extended Operations Supported</h3>
+
+<p>To determine the extended operations supported
+by the server, get the <a href="glossary.htm#root_dse">root DSE</a> of
+the server, and check the <code>supportedExtension</code> attribute.
+The values of this attribute are the object identifiers (OIDs) of
+the extended operations supported by this server.</p>
+
+<p>If the root DSE does not have a <code>supportedExtension</code> 
+attribute, the server does not support any extended operations.</p>
+
+For information on getting the root DSE, see
+<a href="srvrinfo.htm#get_root_dse">"Getting the Root DSE"</a>.</p>
+
+<h3 id="perform_extendop">Performing an Extended Operation</h3>
+
+<p>To perform an extended operation, call one
+of the following functions:</p>
+
+<ul>
+ <li>
+  The synchronous 
+  <code><a href="function.htm#extended-operation-s">ldap_extended_operation_s()</a></code> 
+  function (see <a href="extendop.htm#perform_sync_extendop">"Performing a 
+  Synchronous Extended Operation</a>").
+ </li>
+ <li>
+  The asynchronous 
+  <code><a href="function.htm#extended-operation">ldap_extended_operation()</a></code> 
+  function (see <a href="extendop.htm#perform_async_extendop">"Performing 
+  an Asynchronous Extended Operation</a>").
+ </li>
+</ul>
+
+<p>For more information about the difference between synchronous and 
+asynchronous functions, see <a href="using.htm#call_sync_async_function">"Calling 
+Synchronous and Asynchronous Functions"</a>.</p>
+
+<p>Both of these functions allow you to specify the OID of the 
+extended operation and the data that you want applied to the operation.</p>
+
+<p>Before calling the function to perform a LDAP extended operation, 
+make sure to specify that your client is using version 3 of the LDAP 
+protocol. If you do not, an <code>LDAP_NOT_SUPPORTED</code> result 
+code is returned. For details, see <a href="writing.htm#spec_client_version">"Specifying 
+the LDAP Version of Your Client"</a>.</p>
+
+<h3 id="perform_sync_extendop">Performing a Synchronous Extended Operation</h3>
+
+<p>If you want to wait for the results of an LDAP extended operation 
+to complete before continuing, call the synchronous 
+<code><a href="function.htm#extended-operation-s">ldap_extended_operation_s()</a></code>
+function. This function sends a SASL bind request to the server and
+blocks until the server sends the results of the operation back to
+your client.</p>
+
+<p>The <code>ldap_extended_operation_s()</code> function returns 
+<code>LDAP_SUCCESS</code> if the operation completed successfully or 
+an error code if a problem occurred. See the documentation on the
+<code><a href="function.htm#extended-operation-s">ldap_extended_operation_s()</a></code>
+function for a list of the possible result codes.</p>
+
+<h3 id="perform_async_extendop">Performing an Asynchronous Extended Operation</h3>
+
+<p>If you want to perform other work (in
+parallel) while waiting an LDAP extended operation to complete, do
+the following:</p>
+
+<ol>
+ <li>
+  To send an LDAP extended operation request, call the asynchronous
+  <code><a href="function.htm#extended-operation">ldap_extended_operation()</a></code>
+  function.
+  <p></p>
+  This function returns an <code>LDAP_SUCCESS</code> result code if
+  the request was successfully sent (or an LDAP result code if an
+  error occurred while sending the request). The function also sets
+  the <code>msgidp</code> argument to point to a message ID
+  identifying the extended operation.
+ </li>
+ <li>
+  To determine whether the server sent a response for this operation 
+  to your client, call the <code><a href="function.htm#result">ldap_result()</a></code>
+  function and pass in this message ID.
+  <p></p>
+  The <code>ldap_result()</code> function uses
+  the message ID to determine if the server sent an extended
+  operation response. The function passes back the response in an
+  <code><a href="datatype.htm#LDAPMessage">LDAPMessage</a></code> structure.
+ </li>
+ <li>
+  Call the
+  <code><a href="function.htm#parse-extended-result">ldap_parse_extended_result()</a></code>
+  function to parse the
+  <code><a href="datatype.htm#LDAPMessage">LDAPMessage</a></code>
+  structure and retrieve information from the server's response.
+  <p></p>
+  If the server sent an OID of an extended operation to your client, 
+  the OID is passed back as the <code>retoidp</code> argument.
+  <p></p>
+  If the server sent a data to your client, the
+  data is specified in the <a href="datatype.htm#berval">berval</a>
+  structure passed back as the <code>retdatap</code> argument.
+ </li>
+ <li>
+  Call the
+  <code><a href="function.htm#get-lderrno">ldap_get_lderrno()</a></code>
+  function to get the LDAP result code for the operation. The
+  function returns an <code>LDAP_SUCCESS</code> result code if the
+  extended operation was performed successfully or an LDAP error
+  code if a problem occurred.
+  <p></p>
+  See the documentation on the return values of the function
+  <code><a href="function.htm#extended-operation-s">ldap_extended_operation_s()</a></code>
+  for a list of result codes that the server can return for this
+  operation.
+ </li>
+</ol>
+
+<h3 id="example_extendop">Example: Extended Operation</h3>
+
+<p>The following program is an example of an LDAP client that requests 
+an extended operation with the OID 1.2.3.4 from the server.</p>
+
+<p id="request_extendop">
+ Code Example 15-1 - Requesting an extended operation
+</p>
+
+<pre>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;time.h&gt;
+#include "ldap.h"
+
+/* Name and port of the LDAP server you want to connect to. */
+#define MY_HOST "localhost"
+#define MY_PORT  389
+/* DN of user (and password of user) who you want to authenticate as */
+#define MGR_DN  "cn=Directory Manager"
+#define MGR_PW  "23skidoo"
+int
+main( int argc, char **argv )
+{
+    /* OID of the extended operation that you are requesting */
+    const char     *oidrequest = "1.2.3.4";
+    char           *oidresult;
+    struct berval  valrequest;
+    struct berval  *valresult;
+    LDAP           *ld;
+    int rc, version;
+    /* Set up the value that you want to pass to the server */
+    printf( "Setting up value to pass to server...\n" );
+    valrequest.bv_val = "My Value";
+    valrequest.bv_len = strlen( "My Value" );
+    /* Get a handle to an LDAP connection */
+    printf( "Getting the handle to the LDAP connection...\n" );
+    if ( (ld = ldap_init( MY_HOST, MY_PORT )) == NULL ) {
+  perror( "ldap_init" );
+  ldap_unbind( ld );
+  return( 1 );
+    }
+    /* Set the LDAP protocol version supported by the client
+       to 3. (By default, this is set to 2. Extended operations
+       are part of version 3 of the LDAP protocol.) */
+    ldap_get_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+    printf( "Resetting version %d to 3.0...\n", version );
+    version = LDAP_VERSION3;
+    ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+    /* Authenticate to the directory as the Directory Manager */
+    printf( "Binding to the directory...\n" );
+    if ( ldap_simple_bind_s( ld, MGR_DN, MGR_PW ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_simple_bind_s" );
+  ldap_unbind( ld );
+  return( 1 );
+    }
+    /* Initiate the extended operation */
+    printf( "Initiating the extended operation...\n" );
+    if ( ( rc = ldap_extended_operation_s( ld, oidrequest, &valrequest, NULL, NULL, &oidresult, &valresult ) ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_extended_operation failed: " );
+  ldap_unbind( ld );
+  return( 1 );
+    }
+    /* Get the OID and the value from the result returned by the server. */
+    printf( "Operation successful.\n" );
+    printf( "\tReturned OID: %s\n", oidresult );
+    printf( "\tReturned value: %s\n", valresult->bv_val );
+    /* Disconnect from the server. */
+    ldap_unbind( ld );
+    return 0;
+}</pre>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March 16,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/directory/csdk-docs/extendop.htm&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

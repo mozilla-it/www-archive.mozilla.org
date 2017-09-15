@@ -1,0 +1,221 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Namespaces</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="classes.html">
+<LINK rel=Next href="packages.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=top-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Core Language</DIV>
+    <DIV class=title1>Namespaces</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="classes.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="packages.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Wednesday, September 4, 2002</P>
+
+<H2>Namespace Definition</H2>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamespaceDefinition"></A><SPAN class=nonterminal>NamespaceDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>namespace</CODE>&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+</DIV>
+
+<P>A <CODE>namespace</CODE> definition defines a new <A href="concepts.html#namespace">namespace</A> named <A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A>.</P>
+
+<P>A <CODE>namespace</CODE> definition may only be located at a <A href="classes.html#class-definition-scope">scope that allows
+class definitions</A>. If a namespace is defined as a member of a class, then the namespace must be declared <CODE>static</CODE>.</P>
+
+<H2><A name="use-directive"></A>Use Directive</H2>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-UseDirective"></A><SPAN class=nonterminal>UseDirective</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>use</CODE>&nbsp;<CODE class=terminal-keyword>namespace</CODE>&nbsp;<A href="expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A></DIV>
+</DIV>
+
+<P>A <CODE>use&nbsp;namespace</CODE> directive makes the contents of each namespace in the comma-separated list <A href="expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A>
+accessible without a qualifier.</P>
+
+<P><CODE>use&nbsp;namespace</CODE> directives are lexically scoped and their effect does not extend past the end of the enclosing
+block, <A href="statements.html#directive-group">directive group</A>, or substatement group. A <CODE>use&nbsp;namespace</CODE>
+directive may be preceded by <A href="definitions.html#attribute">attributes</A>; however, all such attributes must evaluate
+to either <CODE>true</CODE> or <CODE>false</CODE>.</P>
+
+<H2><A name="name-lookup"></A>Name Lookup</H2>
+
+<P>The following paragraphs describe what happens when a name is looked up. See also the description of how <A href="definitions.html#namespace-attributes">namespace
+attributes</A> affect name definitions.</P>
+
+<H3><A name="property-lookup"></A>Properties</H3>
+
+<P>Conceptually, an <A href="concepts.html#instance">instance</A> <VAR>x</VAR> is a collection of <A href="concepts.html#property">properties</A>.
+All properties have <A href="concepts.html#property-name">property names</A> <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>C</SUB></VAR>,
+where <VAR>q</VAR> is a namespace, <VAR>n</VAR> is an identifier, and <VAR>C</VAR> is a class. There may be several aliases
+that refer to the same property (due to either multiple <A href="definitions.html#namespace-attributes">namespace attributes</A>
+or aliases introduced with the <CODE>export</CODE> definition), but a property name <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>C</SUB></VAR>
+can refer to at most one property of an instance.</P>
+
+<P>An instance <VAR>x</VAR> can have several properties <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>C</SUB></VAR> with
+the same namespace <VAR>q</VAR> and name <VAR>n</VAR> but different classes <VAR>C</VAR>. In the following descriptions, <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>
+denotes the <I>most derived</I> of these properties, which is the one with the most derived class <VAR>C</VAR>.</P>
+
+<P>A property reference can be either unqualified or qualified and is looked up according to the table below. There are two
+entries in the table for each kind of lookup, depending on whether the left operand of the <CODE>.</CODE> operator is a <A href="expressions.html#N-SuperExpression" class=nonterminal>SuperExpression</A>
+or not. <VAR>x</VAR> is an expression that evaluates to an instance, <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>
+is the set of all <A href="concepts.html#scope">scopes</A> enclosing the property reference, and <VAR>Q</VAR> is the set of
+all namespaces <VAR>q</VAR> that are <CODE>use</CODE>d by the scopes in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>.</P>
+
+<TABLE border=1 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP>Qualified reference <VAR>x</VAR><CODE>.</CODE><VAR>q</VAR><CODE>::</CODE><VAR>n</VAR> where <VAR>q</VAR>
+    is a namespace</TD>
+  <TD valign=TOP>Select <VAR>x</VAR>&#8217;s most derived property <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>. Signal an error if there
+    is no such property.</TD>
+</TR>
+<TR>
+  <TD valign=TOP>Qualified reference <CODE>super&nbsp;</CODE><VAR>x</VAR><CODE>.</CODE><VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>
+    where <VAR>q</VAR> is a namespace</TD>
+  <TD valign=TOP>This form may only be used for references in the scope of a class <VAR>C</VAR> other than <CODE>Object</CODE>.
+    Let <VAR>S</VAR> be <VAR>C</VAR>&#8217;s superclass. Among all of <VAR>x</VAR>&#8217;s properties <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>A</SUB></VAR>
+    select the one whose class <VAR>A</VAR> is most derived but still either <VAR>S</VAR> or an ancestor of <VAR>S</VAR>.
+    Signal an error if there is no such property.</TD>
+</TR>
+<TR>
+  <TD valign=TOP>Unqualified reference <VAR>x</VAR><CODE>.</CODE><VAR>n</VAR></TD>
+  <TD valign=TOP>Let <VAR>A</VAR> be the least derived (closest to <CODE>Object</CODE>) class such that <VAR>x</VAR> contains
+    at least one property named <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>A</SUB></VAR> where <VAR>q</VAR> is any
+    element of <VAR>Q</VAR>; signal an error if <VAR>x</VAR> has no such properties. Let <VAR>Q'</VAR> be the set of all namespaces
+    <VAR>q</VAR> such that <VAR>q</VAR> is in <VAR>Q</VAR> and <VAR>x</VAR> contains the property named <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>A</SUB></VAR>.
+    Let <VAR>P</VAR> be the set of all most derived properties <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR> of <VAR>x</VAR> such
+    that <VAR>q</VAR> is in <VAR>Q'</VAR>. If <VAR>P</VAR> has only one element <VAR>p</VAR> or if all of <VAR>P</VAR>&#8217;s elements
+    are aliases of one property <VAR>p</VAR>, select <VAR>p</VAR>; otherwise signal an error.</TD>
+</TR>
+<TR>
+  <TD valign=TOP>Unqualified reference <CODE>super&nbsp;</CODE><VAR>x</VAR><CODE>.</CODE><VAR>n</VAR></TD>
+  <TD valign=TOP>This form may only be used for references in the scope of a class <VAR>C</VAR> other than <CODE>Object</CODE>.
+    Let <VAR>S</VAR> be <VAR>C</VAR>&#8217;s superclass. Let <VAR>A</VAR> be the least derived (closest to <CODE>Object</CODE>)
+    class such that <VAR>x</VAR> contains at least one property named <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>A</SUB></VAR>
+    where <VAR>q</VAR> is any element of <VAR>Q</VAR>; signal an error if <VAR>x</VAR> has no such properties or if <VAR>A</VAR>
+    is not <VAR>S</VAR> or an ancestor of <VAR>S</VAR>. Let <VAR>Q'</VAR> be the set of all namespaces <VAR>q</VAR> such that
+    <VAR>q</VAR> is in <VAR>Q</VAR> and <VAR>x</VAR> contains the property named <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>A</SUB></VAR>.
+    For each <VAR>q</VAR> in <VAR>Q'</VAR> let <VAR>B<SUB>q</SUB></VAR> be the most derived class such that <VAR>B<SUB>q</SUB></VAR>
+    is <VAR>S</VAR> or an ancestor of <VAR>S</VAR> and <VAR>x</VAR> contains the property <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>Bq</SUB></VAR>;
+    for each <VAR>q</VAR> in <VAR>Q'</VAR> let <VAR>p<SUB>q</SUB></VAR> be the property <VAR>q</VAR><CODE>::</CODE><VAR>n<SUB>Bq</SUB></VAR>.
+    Let <VAR>P</VAR> be the set of all such properties <VAR>p<SUB>q</SUB></VAR>. If <VAR>P</VAR> has only one
+    element <VAR>p</VAR> or if all of <VAR>P</VAR>&#8217;s elements are aliases of one property <VAR>p</VAR>, select <VAR>p</VAR>;
+    otherwise signal an error.</TD>
+</TR>
+<TR>
+  <TD valign=TOP>Dynamic reference <VAR>x</VAR><CODE>[</CODE><VAR>s</VAR><CODE>]</CODE></TD>
+  <TD valign=TOP>Let <VAR>s</VAR> evaluate to a string <VAR>n</VAR>. Get the property <VAR>x</VAR><CODE>.public::</CODE><VAR>n</VAR>.
+    Signal an error if there is no such property.</TD>
+</TR>
+<TR>
+  <TD valign=TOP>Dynamic reference <CODE>super&nbsp;</CODE><VAR>x</VAR><CODE>[</CODE><VAR>s</VAR><CODE>]</CODE></TD>
+  <TD valign=TOP>Let <VAR>s</VAR> evaluate to a string <VAR>n</VAR>. Get the property <CODE>super</CODE>&nbsp;<VAR>x</VAR><CODE>.public::</CODE><VAR>n</VAR>.
+    Signal an error if there is no such property.</TD>
+</TR>
+</TABLE>
+
+<P>Note that the only way to access an overridden method is to use <CODE>super</CODE>.<SPAN class=issue> This is by design
+to prevent security attacks.</SPAN></P>
+
+<H3><A name="variable-lookup"></A>Variables</H3>
+
+<P>Conceptually, all variables (which for the purpose of this section also include constants, functions, classes, and such)
+have <A href="concepts.html#qualified-name">qualified names</A> <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>, where <VAR>q</VAR>
+is a namespace and <VAR>n</VAR> an identifier. There may be several aliases that refer to the same variable (due to either
+multiple <A href="definitions.html#namespace-attributes">namespace attributes</A> or aliases introduced with the <CODE>export</CODE>
+definition), but there cannot be two different variables defined using the same qualified name in the same scope.</P>
+
+<P>A variable reference can be either unqualified or qualified and is looked up as follows:</P>
+
+<TABLE border=1 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP>Qualified reference <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR> where <VAR>q</VAR> is a namespace</TD>
+  <TD valign=TOP>
+
+    <P>Let <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR> be the set of all <A href="concepts.html#scope">scopes</A>
+    enclosing the qualified reference <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>. Search the scopes in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>,
+    starting from the innermost one and continuing outwards until a value is found or all scopes have been examined. If no
+    binding has been found after all scopes have been examined, signal an error. For each scope <VAR>S</VAR> in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>,
+    do the following:</P>
+
+    <OL>
+      <LI>If <VAR>S</VAR>&#8217;s <A href="concepts.html#activation-frame">activation frame</A> currently has a binding for <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>,
+        select the value to which <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR> is bound.</LI>
+      <LI>Otherwise, if <VAR>S</VAR> is the scope of the definition of a <CODE>class</CODE> <VAR>C</VAR> and <VAR>C</VAR>
+        or any of its ancestors contains a <A href="concepts.html#global-member">global member</A> named <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>,
+        then select <VAR>C</VAR>&#8217;s most derived property <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>. Signal an error if
+        there is no such property.</LI>
+      <LI>Otherwise, if <VAR>S</VAR> is the top-level scope of a constructor or instance method defined in class <VAR>C</VAR>
+        and <VAR>C</VAR> or any of its ancestors contains an <A href="concepts.html#instance-member">instance member</A> named
+        <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>, then let <CODE>this</CODE> be the value of <CODE>this</CODE> corresponding
+        to <VAR>S</VAR>&#8217;s activation frame and select <CODE>this</CODE>&#8217;s most derived property <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>.
+        Signal an error if there is no such property.</LI>
+      <LI>Otherwise, if <VAR>S</VAR> is the scope of the definition of a <CODE>class</CODE> <VAR>C</VAR> and <VAR>C</VAR>
+        or any of its ancestors contains an <A href="concepts.html#instance-member">instance member</A> named <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>,
+        then signal an error.</LI>
+    </OL>
+  </TD>
+</TR>
+<TR>
+  <TD valign=TOP>Unqualified reference <VAR>n</VAR></TD>
+  <TD valign=TOP>
+
+    <P>Let <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR> be the set of all <A href="concepts.html#scope">scopes</A>
+    enclosing the unqualified reference <VAR>n</VAR>. Search the scopes in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>,
+    starting from the innermost one and continuing outwards until a value is found or all scopes have been examined. If no
+    binding has been found after all scopes have been examined, signal an error. For each scope <VAR>S</VAR> in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>,
+    do the following:</P>
+
+    <OL>
+      <LI>If <VAR>S</VAR>&#8217;s <A href="concepts.html#activation-frame">activation frame</A> <VAR>A</VAR> currently has a binding
+        for a variable <VAR>V</VAR>, <VAR>V</VAR> has a name <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR> for some namespace <VAR>q</VAR>
+        that is <CODE>use</CODE>d by a scope in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>,
+        and that <CODE>use</CODE> includes <VAR>n</VAR>, then select the value to which <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>
+        is bound in <VAR>A</VAR>. If <VAR>A</VAR> contains more than one such variable <VAR>V</VAR> (not counting aliases
+        of the same variable), signal an error.</LI>
+      <LI>Otherwise, if <VAR>S</VAR> is the scope of the definition of a <CODE>class</CODE> <VAR>C</VAR>, <VAR>C</VAR> or
+        any of its ancestors contains a <A href="concepts.html#global-member">global member</A> named <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>
+        for some namespace <VAR>q</VAR> that is <CODE>use</CODE>d by a scope in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>,
+        then select <VAR>C</VAR>&#8217;s most derived property <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>. Signal an error if
+        there is no such property or if there are multiple such properties (not counting aliases of the same property) for
+        different <VAR>q</VAR>&#8217;s.</LI>
+      <LI>Otherwise, if <VAR>S</VAR> is the top-level scope of a constructor or instance method defined in class <VAR>C</VAR>
+        and <VAR>C</VAR> or any of its ancestors contains an <A href="concepts.html#instance-member">instance member</A> named
+        <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR> for some namespace <VAR>q</VAR> that is <CODE>use</CODE>d by a scope in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>,
+        then select <CODE>this</CODE>&#8217;s most derived property <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR> using the value of <CODE>this</CODE>
+        corresponding to <VAR>S</VAR>&#8217;s activation frame. Signal an error if there is no such property or if there are multiple
+        such properties (not counting aliases of the same property) for different <VAR>q</VAR>&#8217;s.</LI>
+      <LI>Otherwise, if <VAR>S</VAR> is the scope of the definition of a <CODE>class</CODE> <VAR>C</VAR>, <VAR>C</VAR> or
+        any of its ancestors contains an <A href="concepts.html#instance-member">instance member</A> named <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>
+        for some namespace <VAR>q</VAR> that is <CODE>use</CODE>d by a scope in <VAR><SCRIPT type="text/javascript">document.write(U_Sigma)</SCRIPT></VAR>,
+        then signal an error.</LI>
+    </OL>
+  </TD>
+</TR>
+</TABLE>
+
+<P>&nbsp;</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Wednesday, September 4, 2002</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="classes.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="packages.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+</BODY>
+</HTML>

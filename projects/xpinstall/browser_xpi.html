@@ -1,0 +1,561 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+  <title>Learn XPI Installer Scripting By Example</title>
+    
+  <meta name="GENERATOR" content="NoteTab Pro 4.52">
+ 
+  <meta http-equiv="DESCRIPTION" content="">
+ 
+  <meta http-equiv="KEYWORDS"
+ content="XPI, cross-platform installations, XPInstall, API, technote">
+
+  <style>
+   code, tt, pre { color: darkblue; }
+  </style>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+    
+   
+<h1>Learn XPI Installer Scripting By Example</h1>
+   
+<p>This article uses the installer<a href="browser_install.html"></a>
+script from browser.xpi install package as the basis for discussing
+XPI installations in general. This <a
+href="browser_install.html"><code>installer script</code></a> is
+relatively short, but it exercises most of the important features of
+the XPInstall API, and it can easily be used as a template for other
+more general software installations. In this article, we use the unix
+install file, but the installers for all the platforms are quite
+similar, and you can easily take what you learn here and apply it to
+installations on any platform that mozilla supports.</p>
+  
+<blockquote>
+  <table border="0" cellspacing="0" cellpadding="5">
+   <tbody>
+      <tr>
+        <td bgcolor="lightgrey">In this article: 
+        <ul>
+   <li><a href="#browser">About <code>browser.xpi</code></a>   </li>
+          <li><a href="#init">Initializing the Installation</a>   </li>
+          <li><a href="#verify">Verifying the Target</a>   </li>
+          <li><a href="#add">Adding Files and Directories to the Install</a> 
+  </li>
+          <li><a href="#register">Registering the Software</a>   </li>
+          <li><a href="#exec">Executing the Installation</a>   </li>
+          <li><a href="#log">Installation Logging</a> </li>
+          <li><a href="#onward">Extending The Example</a> </li>
+        </ul>
+ </td>
+      </tr>
+ 
+    </tbody>
+  </table>
+ </blockquote>
+  <a name="browser"></a> 
+<h2>About <code>browser.xpi</code> </h2>
+  
+<p> <code>browser.xpi</code> is the XPI archive in which the main components
+of the Mozilla browser are archived for installation. Mozilla cross-platform
+installations use the XPI format as a way to organize, compress, and automate
+software installations and software updates. A XPI is a PKZIP-compressed
+archive (like ZIP and JAR files) with a special script at the highest level
+that manages the installation. That  <a
+ href="browser_install.html"><code>installer
+script</code></a>, usually named <code>install.js</code>, is the subject
+of this article.</p>
+  
+<p>First, a quick scan of the contents of the XPI file (which you can open
+using with any unzip utility) reveals the following high-level directory
+structure:</p>
+  
+<blockquote> 
+  <table cellpadding="10">
+ <tbody>
+      <tr>
+        <td bgcolor="lightgrey"> 
+        <pre>install.js<br>bin\<br>  chrome\<br>  components<br>  defaults\<br>  icons\<br>  plugins\<br>  res\</pre>
+ </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p>Note that this high-level structure parallels the directory structure
+of the installed browser very closely:  </p>
+<blockquote><img src="moz_dir.gif" width="350" height="245" border="0">
+  <br>
+ <small><i><code>mozilla</code> directory on linux</i></small></blockquote>
+  
+<p>As you will see in the installation script, the contents of the archive
+are installed onto the file system in much the same way that they are stored
+in the archive itself, though it's possible to rearrange things arbitrarily
+upon installation--to create new directories, to install files in system
+folders and other areas. </p>
+  <a name="overview"></a> 
+<h2>Overview of the Install Script</h2>
+  
+<p>XPI install scripts are written in JavaScript using XPInstall Engine syntax
+defined in the <a
+ href="http://devedge.netscape.com/library/manuals/2001/xpinstall/1.0/">XPInstall API
+Reference</a>.<br>
+</p>
+<p>Most installation scripts, including the one discussed here, take the
+following basic form (in pseudo-code and with links to the sections in which
+these installation steps are documented):</p>
+ 
+<blockquote> 
+  <table cellpadding="10" bgcolor="lightgrey">
+ <tbody>
+      <tr>
+        <td> 
+        <pre><a href="#init">initInstall</a>();<br>if (<a href="#verify">verify_space</a>()) {<br>   err = <a
+ href="#add">add_dirs_and_files</a>;<br>   <a href="#register">register_files</a>;<br><br>   if (err==SUCCESS) { <a
+ href="#exec">performInstall</a>() };<br>   else { <a href="#exec">cancelInstall</a>() };<br>}<br></pre>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p>As you can see in the <a href="browser_install.html">code listing</a>,
+the verification process at the top is coded in <font color="darkred">red</font>;
+the file addition process, here part of the main installation block, is coded
+in <font color="darkblue">blue</font>; the registration part of the main
+installation block is in black; and the execution at the end of the main
+block is also in <font color="darkblue">blue</font>. If you choose not to
+register the installed software or do the verifications at the front end
+of the installation, then at a minimum, the install scripts must <i>initialize</i>,
+<i>add the files to be installed</i>, and <i>execute</i>.   </p>
+<p>Note also that when you call methods on the <code>Install</code>--as you
+do so often in installation scripts (<code>getFolder</code>, <code>initInstall</code>,
+<code>addFile</code>, and <code>performInstall </code>are all examples of
+common <code>Install </code>object methods)--the <code>Install</code> object
+is implicit; like the <code>window</code> object in regular web page scripts,
+the <code>Install</code> object does not need to be prefixed to the method.
+   <a name="init"></a> </p>
+<h2>Initializing the Installation</h2>
+ 
+<p>All installations must begin with <code>initInstall()</code>. The <code>initInstall()</code>
+method on the Install object creates a new installation for the specified
+software and version. In the browser.xpi installation, this function appears
+at line 20:  </p>
+<blockquote> 
+  <table cellpadding="10" bgcolor="lightgrey">
+ <tbody>
+      <tr>
+        <td> 
+        <pre>var err = initInstall("Netscape Seamonkey", "Browser", "6.0.0.2000110807");</pre>
+ </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p>If you call a method on the <code>Install</code> object before <code>initInstall()</code>,
+you will get an error.  </p>
+<p>The <code>initInstall</code> method takes the following parameters: the
+display name of the package, the name of the package as it appears in the
+client registry, and the version, which can be expressed as a number or as
+an InstallVersion object. In the example above, "Netscape Seamonkey" is the
+display name, "Browser" is the registry name, and the version is "6.0.0.2000110807."
+See <code>initInstall </code>in the XPInstall API Reference for more information
+on the initialization process.</p>
+  <a name="verify"></a> 
+<h2>Verifying the Target</h2>
+  
+<p>The first thing the installation script does when it's executed is to
+check that there is adequate disk space for the software to be installed,
+where the <code>verifyDiskSpace</code> function is called as a condition
+of the main installation block that starts at line 24). In the code listing,
+the verification process is in dark red:</p>
+  
+<blockquote> 
+  <table>
+ <tbody>
+      <tr>
+        <td bgcolor="lightgrey"> 
+        <pre><font color="darkred">
+ <font color="grey">// this function verifies disk space in kilobytes</font>
+ function verifyDiskSpace(dirPath, spaceRequired)
+ {
+   var spaceAvailable;
+   <font
+ color="grey">// Get the available disk space on the given path</font>
+   spaceAvailable = fileGetDiskSpaceAvailable(dirPath);
+
+   <font
+ color="grey">// Convert the available disk space into kilobytes</font>
+   spaceAvailable = parseInt(spaceAvailable / 1024);
+   <font
+ color="grey">// do the verification</font>
+   if(spaceAvailable &lt; spaceRequired)
+   {
+      logComment("Insufficient disk space: " + dirPath);
+      logComment("  required : " + spaceRequired + " K");
+      logComment("  available: " + spaceAvailable + " K");
+      return(false);
+   }
+   return(true);
+ }</font>
+        </pre>
+ </td>
+      </tr>
+    </tbody>
+  </table>
+</blockquote>
+  
+<p>In the <code>verifyDiskSpace</code> block, <code>fileGetDiskSpaceAvailable</code>
+is called with <code>dirPath</code> as its expected input. This input is
+defined in line 22, where <code>getFolder()</code> is used to assign a value
+to the communicatorFolder variable representing the "Program" folder on the
+local system:   </p>
+<blockquote> 
+  <table>
+ <tbody>
+      <tr>
+        <td bgcolor="lightgrey"> 
+        <pre>var communicatorFolder = getFolder("Program");<br>spaceAvailable = fileGetDiskSpaceAvailable(dirPath);<br></pre>
+ </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p><code>spaceRequired</code>, the other expected input to the <code>verifyDiskSpace</code>
+function, is given as 17311 kilobytes on line 19. Inside the function, the
+two sizes are compared and if the available space is larger than the required
+space, the installation proceeds.   <a name="add"></a> </p>
+<h2>Adding Files and Directories (Full of Files) to the Install </h2>
+  
+<p>Once you have <a href="#verify">verified</a> that the target can accomodate
+the software to be installed and <a href="#init">initialized</a> the actual
+installation, you must add files and directories to the installation in order
+to have them installed. In the <code>browser.xpi</code> install script, the
+files are added in lines 26-41:  </p>
+<blockquote> 
+  <table bgcolor="lightgrey">
+ <tbody>
+      <tr>
+        <td> 
+        <pre><font color="darkblue">  err = addDirectory("Program",<br>                     "6.0.0.2000110807",<br>                     "bin",              // jar source folder<br>                     communicatorFolder, // target folder<br>                     "",                 // target subdir <br>                     true );             // force flag <br><br>  logComment("addDirectory() returned: " + err);<br><br>  <font
+ color="green">// create the plugins folder next to mozilla </font>
+  var pluginsFolder = getFolder("Plugins");
+  if (!fileExists(pluginsFolder))
+  {
+      var ignoreErr = dirCreate(pluginsFolder);
+      logComment("dirCreate() returned: " + ignoreErr);
+  }
+  else
+      logComment("Plugins folder already exists");</font>
+
+        </pre>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p>In this case, the files are contained within a single directory, so calling
+the <code>Install</code> object's <code>addDirectory</code> method is sufficient
+to queue all the files in the archive for installation. The <code>addDirectory</code>,
+like <code>addFile</code>, handles both the source file location and the
+target location. In the example above, all of the contents of the "bin" directory
+in the archive are queued for installation, and the target of that installation
+(when the installation is actually begun with a call to <code>performInstall</code>
+at the end), is the <code>communicatorFolder</code> directory defined at
+line 22 as "Program."  </p>
+<p>"Program" is one of a short list of keywords that can be used in place
+of full path names in methods such as <code>addFile</code>. "Program" represents
+the directory where software itself is installed (e.g., <code>C:\Program
+Files\</code> on win32 systems), as opposed to supporting directories like
+"Components", "Chrome", or "Temporary" (see  <code>getFolder</code> in the
+XPInstall API Reference for a list of keywords).  <a name="register"></a> 
+</p>
+<h2>Registering the Software</h2>
+ 
+<p>Registering software is sometimes a requirement of both the operating
+system and of the Netscape 6 platform. When you install new chrome, for example,
+like the <code>browser.xpi</code> install does, you need to alert the chrome
+registry to these changes, so that skins, user preferences, packaging lists,
+and localization bundles will all track the new software.  </p>
+<p>For registering software with the win32 operating system, the XPInstall
+API provides two special Install objects, <code>WinProfile</code> and <code>WinReg</code>.
+These two objects provide programmatic access to the Windows user profile
+and the Windows registry, respectively. The <code>browser.xpi</code> install
+script does not demonstrate the use of these objects, but see the XPInstall
+API Reference for more information about registering software with the win32
+operating systems and other operating systems.  </p>
+<p>To register new Netscape 6-based software (e.g., plug-ins, new components,
+new themes, new packages) with the chrome registry, you must use the registerChrome
+function of the Install object. If successful, this function returns a "0"
+and makes entries into the <i>installed-chrome.txt</i> file in the <code>chrome</code>
+subdirectory, which is then used to regenerate the various RDF files that
+make up the chrome registry.   </p>
+<blockquote> 
+  <table bgcolor="lightgrey">
+ <tbody>
+      <tr>
+        <td> 
+        <pre> var cf = getFolder("Chrome");<br> registerChrome(CONTENT | DELAYED_CHROME, getFolder(cf,"toolkit.xpi"),"content/global/");<br> registerChrome(CONTENT | DELAYED_CHROME, getFolder(cf,"browser.xpi"),"content/communicator/");<br> registerChrome(CONTENT | DELAYED_CHROME, getFolder(cf,"browser.xpi"),"content/editor/");<br> registerChrome(CONTENT | DELAYED_CHROME, getFolder(cf,"browser.xpi"),"content/navigator/");<br> registerChrome(SKIN | DELAYED_CHROME, getFolder(cf,"modern.jar"),"skin/modern/communicator/");<br> registerChrome(SKIN | DELAYED_CHROME, getFolder(cf,"modern.jar"),"skin/modern/editor/");<br> ...<br></pre>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+ In lines 42-58, <code>registerChrome</code> is called as many times as there
+are different directories that contain content that needs to be registered
+with the chrome registry. Note that in the first few lines of this process,
+new content from the XPI is being registered, and in the remainder, it is
+new skin information. In this most common form of the <code>registerChrome</code>
+function (it can also be used to support the now-deprecated <i>manifest.rdf</i>
+style of installation archive), the three parameters represent, in order,
+the chrome <code>SWITCH </code>used to indicate what kind of software is
+being registered, the target destination of the software (e.g., the "Chrome"
+folder in the example above), and the path within the XPI (or JAR theme archive)
+where the contents.rdf file is located.  
+<p>See <code>registerChrome</code> in the XPInstall API Reference for more
+information about registering new packages with the chrome registry.</p>
+  <a name="exec"></a> 
+<h2>Executing the Installation </h2>
+  
+<p>Once you have added all the files to the installation, the final step
+is to actually execute the installation. Note that until this point, the
+<code>install</code> calls you have been making on the <code>Install</code>
+object are preliminary only. Recall that an install process takes the following
+general form:  </p>
+<blockquote> 
+  <table cellpadding="10" bgcolor="lightgrey">
+ <tbody>
+      <tr>
+        <td> 
+        <pre><a href="#init">initInstall</a>();<br>if (<a href="#verify">verify_space</a>()) {<br>   err = <a
+ href="#add">add_dirs_and_files</a>;<br>   <a href="#register">register_files</a>;<br><br>   if (err==SUCCESS) { <b>performInstall</b>() };<br>   else { <b>cancelInstall</b>() };<br>}<br></pre>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p>In this arrangement, the actual execution of the installation is checked
+against the errors returned from the addition of files to the installation,
+which may itself have been conditioned on some verification of version and
+necessary disk space.</p>
+   
+<p>The actual install code used to execute the installation appears in the
+<i>install.js</i> file as follows:</p>
+  
+<blockquote> 
+  <table cellpadding="10" bgcolor="lightgrey">
+ <tbody>
+      <tr>
+        <td> 
+        <pre><font color="darkblue">if (err==SUCCESS)<br>  {<br>     err = performInstall(); <br>        logComment("performInstall() returned: " + err);<br>  }<br><br>  else<br>  {<br>     cancelInstall(err);<br>	 logComment("cancelInstall() due to error: " + err);<br>  }<br>}<br>else<br>   cancelInstall(INSUFFICIENT_DISK_SPACE);<br></font></pre>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p><code>performInstall</code> is the function used to execute the install
+once it has been initialized and loaded, and it is the last step to installing
+the software. Note that in the example above, the installation is cancelled
+if the error code from the file addition process returns success (0), and
+also cancelled outside the main block if the earlier verification process
+is not successful.</p>
+  
+<p>Note also the comments that indicate the success of various steps in the
+process--including the performInstall and cancelInstall steps--are written
+to the install log using the <code>logComment</code>, described in the
+following section.
+
+<a name="log"></a>
+<h2>Installation Logging</h2>
+
+<p>Logging is an important feature of the XPInstall API that can help
+you streamline and debug your installations. In the example in the <a
+href="#exec">Executing the Installation</a> section and in many places
+in the installation script, the <tt>logComment</tt> API is used to
+write data to a log file that can then be reviewed when things don't
+go as planned.
+
+<p>The install log is created in the product directory by default
+(where the browser executable is). If the installation doesn't have
+proper permission, the install log is written to the user's profile
+directory. Respectively, these directories correspond to the "Program"
+and "Current User" keywords for the getFolder method.
+</p>
+
+
+ <a name="onward"></a> 
+
+<h2>Extending The Example</h2>
+ 
+<p>What does all this mean to you? How can this information be adapted for
+your own installations? In this final section, we describe the application
+of the XPInstall technology described here in the creation and deployment
+of a very simple installation script and installation archive (XPI).  </p>
+<p>Say you have a simple executable and a README file that goes with it,
+and you want to make it available for installation from a XPI. After putting
+these two files in a XPI (which, as described above, is simply a ZIP file
+with an install.js script at the top and a suffix of '.xpi'), the next step
+is to add an installation script to the XPI.  </p>
+<p>Minimally, the installation script must: </p>
+<ul>
+ <li>Call <code>initInstall</code> with the name and version of the executable
+(the version is not optional, though you may or may not use the version in
+subsequent installations or updates) </li>
+  <li>Find somewhere to put the installed files. In the example below, <code>getFolder</code>
+is used with the "Program" keyword to specify the browser's program directory
+as the target for installation. Since I am using NS6 right now on a Windows
+machine, that target directory is "C:\Program Files\Netscape\Netscape 6\". 
+ </li>
+  <li>Add files to the initialized installation using <code>addFile</code>. 
+  </li>
+  <li>Call performInstall to execute the installation. </li>
+</ul>
+  
+<p>Here is an example of small but complete installation script.</p>
+  
+<blockquote> 
+  <table cellpadding="10" bgcolor="lightgrey">
+ <tbody>
+      <tr>
+        <td> 
+        <pre><font color="darkblue">var xpiSrc = "cd_ripper.exe";<br>var xpiDoc = "README_cdrip";<br><br>initInstall("My CD Ripper", "cdrip", "1.0.1.7");<br>f = getFolder("Program");<br>setPackageFolder(f);<br>addFile(xpiSrc);<br>addFile(xpiDoc);<br><br>if (0 == getLastError())<br>	performInstall();		<br>else<br>	cancelInstall();<br></font></pre>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p>The example above shows this minimal installation. This install script
+does not include any version or disk space checking, very little error checking,
+only a single executable, no registration, and no commenting. It does, however,
+take the executable and the README file and install them on the user's system.
+Note also that for the installation script in a XPI to be automatically triggered
+from a web page, you must use a "trigger script." The following InstallTrigger
+function, called from an event handler on a regular web page, will point
+to the remotely-hosted XPI (called here 'cdrip.xpi') and trigger its installation: 
+  </p>
+<blockquote> 
+  <table cellpadding="10" bgcolor="lightgrey">
+ <tbody>
+      <tr>
+        <td> 
+        <pre><font color="darkblue">function putIt() <br>{  <br>  xpi={'CD_Ripper':'cdrip.xpi'};<br>  InstallTrigger.install(xpi);<br>}<br>...<br><br>&lt;a href="#" onclick="putIt();"&gt;install the CD Ripper Now!&lt;/a&gt;<br></font></pre>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+ </blockquote>
+  
+<p>See the <a href="http://developer.netscape.com/docs/manuals/xpinstall/Chap3.html">InstallTrigger</a> object in the <a
+href="http://developer.netscape.com/docs/manuals/xpinstall/xpinstal.html">XPInstall
+API Reference</a> for more information on triggering
+installations.</p>
+
+
+<hr> 
+<div align="right"><small><i>Last updated: <script>document.write(document.lastModified);</script></i>  <a
+ href="mailto:oeschger@netscape.com">Ian Oeschger</a></small></div>
+ <br>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified June 27,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/xpinstall/browser_xpi.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

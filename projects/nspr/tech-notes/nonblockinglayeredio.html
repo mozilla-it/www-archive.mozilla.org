@@ -1,0 +1,202 @@
+
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+   <META NAME="Author" CONTENT="Alan O. Freier">
+   <META NAME="GENERATOR" CONTENT="Mozilla/4.04 [en] (WinNT; I) [Netscape]">
+   <TITLE>NSPR 2.0: Non-blocking layered I/O</TITLE>
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<H2>
+NSPR 2.0: Non-blocking layered I/O</H2>
+<I><FONT SIZE=-2>[last edited by AOF 24 March 1998 14:15]</FONT></I>
+
+<P>I've recently been working on a long standing issue regarding NSPR's
+I/O model. For a long time I've believed that the non-blocking I/O prevalent
+in classic operating systems (e.g., UNIX) was the major determent for having
+an reasonable layered protocols. Now that I have some first hand experience,
+albeit just a silly little test program, I am more convinced that ever
+of this truth.
+
+<P>This memo is some of what I think must be done in NSPR's I/O subsystem
+to make layered, non-blocking protocols workable. It is just a proposal.
+There is an API change.
+<H3>
+Layered I/O</H3>
+NSPR 2.0 defines a structure by which one may define I/O layers. Each layer
+looks basically like any other in that it still uses a <B><TT>PRFileDesc</TT></B>
+as a object identifier, complete with the <B><TT>IOMethods</TT></B> table
+of functions. However, each layer may override default behavior of a particular
+operation to implement other services. For instance, the experiment at
+hand is one that implements a little reliable echo protocol; the client
+sends <I>n</I> bytes, and the same bytes get echoed back by the server.
+In the non-layered design of this it is straight forward.
+
+<P>The goal of the experiment&nbsp; was to put a layer between the client
+and the network, and not have the client know about it. This additional
+layer is one that, before sending the client's data, must ask permission
+from the peer layer to send that many bytes. It imposes an additional send
+and response inside of each client visible send operation. The receive
+operations parallel the sends. Before actually receiving real client data,
+the layer receives a notification that the other would like to send some
+bytes. The layer is responsible for granting permission for that data to
+be sent, then actually receiving the data itself, which is delivered to
+the client.
+
+<P>The synchronous form of the layer's operation is straight forward. A
+call to receive (<B><TT>PR_Recv()</TT></B>) first receives the request
+to send, sends (<B><TT>PR_Send()</TT></B>) the grant, then receives the
+actual data (<B><TT>PR_Recv()</TT></B>). All the client of the layer sees
+is the data coming in. Similar behavior is observed on the sending side.
+<H3>
+Non-blocking layered I/O</H3>
+The non-blocking method is not so simple. Any of the I/O operations potentially
+result in an indication that no progress can be made. The intermediate
+layers cannot act directly on this information, but must store the state
+of the I/O operation until it can be resumed. The method for determining
+that a I/O operation can make progress is to call <B><TT>PR_Poll()</TT></B>
+and indicating what type of progress is desired, either input or output
+(or some others). Therein lies the problem.
+
+<P>The intermediate layer is performing operations that the client is unaware.
+So when the client calls send (<B><TT>PR_Send()</TT></B>) and is told that
+the operation would block, it is possible that the layer below is actually
+doing a receive (<B><TT>PR_Recv()</TT></B>). The problem is that the flag
+bits passed to <B><TT>PR_Poll() </TT></B>are only reflective of the client's
+knowledge and desires. This is further complicated by the fact that <B><TT>PR_Poll()</TT></B>
+is not layered. That is each layer does not have the opportunity to override
+the behavior. It operates, not on a single file descriptor (<B><TT>PRFileDesc</TT></B>),
+but on an arbitrary collection of file descriptors.
+
+<P>Into the picture comes another I/O method, <B><TT>poll()</TT></B>. Keep
+in mind that all I/O methods are those that are part of the I/O methods
+table structure (<B><TT>PRIOMethods</TT></B>). These functions are layered,
+and layers may and sometimes must override their behavior by offering unique
+implementations. The <B><TT>poll()</TT></B> method is used to provide two
+modifying aspects to the semantics of <B><TT>PR_Poll()</TT></B>: redefining
+the polling bits (i.e., what to poll for) and to indicate that a layer
+is already able to make progress in the&nbsp; manner suggested by the polling
+bits.
+
+<P>The signature of the <B><TT>poll()</TT></B> method is
+<UL>
+<PRE>PRInt16 poll(PRFileDesc *fd, PRInt16 in_flags, PRInt16 *out_flags);</PRE>
+</UL>
+The <B><TT>poll()</TT></B> method is called by <B><TT>PR_Poll()</TT></B>
+as the latter is building the structure to provide the operating system
+call. The stack's top layer will be called first. Each layer's implementation
+is responsible for performing appropriate operations and possibly calling
+the next lower layer's <B><TT>poll()</TT></B> method.
+
+<P>What the poll method is returning are the appropriate flags to assign
+to the operating system's call. A layer would compute these based on the
+values of the argument <B><TT>in_flags</TT></B> and possibly some state
+maintained by the layer for the particular file descriptor.
+
+<P>Additionally, if the layer has buffered data that will allow the operation
+defined by <B><TT>in_flags</TT></B> to make progress, it will set corresponding
+bits in <B><TT>out_flags</TT></B>. For instance, if <B><TT>in_flags</TT></B>
+indicates that the client (or higher layer) wishes to test for read ready
+and the layer has input data buffered, it would set the read bits in the
+<B><TT>out_flags</TT></B>. If that is the case, then it should also suppress
+the calling of the next lower layer's <B><TT>poll()</TT></B> method and
+return a value equal to that of <B><TT>in_flags</TT></B>.
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified July 15,  2002</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/nspr/tech-notes/nonblockinglayeredio.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

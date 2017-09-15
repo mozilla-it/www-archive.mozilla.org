@@ -1,0 +1,332 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<title>JavaScript Call Stack Dumper</title>
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+<h1>JavaScript Call Stack Dumper</h1>
+<p>Draft 1</p>
+
+<h2>Introduction</h2>
+
+<p>The purpose of this document is to explain how to use the 
+code I've added to <a href="index.html">XPConnect</a> which 
+allows the native and JavaScript programmer to manually or 
+programatically dump the current JavaScript call stack to 
+the native console.</p>
+
+<p>The system I describe
+below will allow programmers to see the current state of the 
+JavaScript call stack (with arguments and locals) and do 
+arbitrary JavaScript evaluations while stopped in the native 
+debugger. I've also added support for dumping the JavaScript 
+call stack via the 'debugger' keyword in JavaScript source 
+code.</p>
+
+<p>This support will work regardless of whether or not the 
+JavaScript code uses XPConnect.</p>
+
+<p>An alternative to the method described here is to iterate 
+over <a href="http://www.mozilla.org/scriptable/components_object.html#_stack">Components.stack</a>.</p>
+
+<h2>From within the native debugger...</h2>
+
+<p>I've exported two global symbols from the xpconnect and jsdom DLLs:</p>
+
+<pre class="code">
+  extern "C" void DumpJSStack(void);
+  extern "C" void DumpJSEval(PRUint32 frameno, const char* text);
+</pre>
+
+<p>These functions can be called manually from within the native 
+debugger <span class="remark">[I've tested only NT. This <b>should</b> work in Linux 
+debuggers. On Mac???]</span>.</p>
+
+<p>In msdev (Microsoft's Win32 debugger) these functions can be 
+called from the "Quick Watch" dialog or by adding the call to 
+the 'Watch" window. <b>Note</b> that this debugger can only 
+resolve and call the functions if the current frame as selected 
+in the "Call Stack" or "Variables" window is a frame from one of 
+the DLLs where these symbols are exported; i.e. the xpconnect or 
+jsdom DLLs. A successful call to one of these functions should 
+send output to the native console and evaluate to 
+<code>&lt;void&gt;</code> in the Watch or Quick Watch window. An 
+attempt to call from a frame where the debugger cannot find the 
+symbol will result in something like <code>CXX0017: Error: symbol 
+"DumpJSStack" not found</code>.</p>
+
+<p><code>DumpJSStack()</code> will attempt to dump the JS call 
+stack for the JSContext on the current thread. It uses the JSContext 
+which is pushed onto the <code>ThreadJSContextStack</code> by the 
+DOM and other code in mozilla before calling into JavaScript. The 
+'top' JSContext will be used regardless of which native frame is
+selected in the debugger.</p>
+
+<p>The format for the dump is explained <a href="#dumpformat">below</a>.</p>
+
+<p><code>DumpJSEval()</code> takes two params: 1) the zero based 
+frame number in which to do the eval, 2) the source text to eval. 
+The text evaled and the result are echo'd to the
+native console:</p>
+
+<p>Calling <code>DumpJSEval(0, "1+1")</code> might print:</p>
+
+<pre class="code">
+js[0]>1+1
+2
+</pre>
+
+<p>Keep in mind that although calling <code>DumpJSStack()</code> 
+should have no effect on the running JS code, calls to 
+<code>DumpJSEval()</code> may have side effects. This
+can be powerful if used creatively.</p>
+
+<h2>Dumping the JavaScript stack from native code...</h2>
+
+<p>You can easily write C++ code that will dump the JavaScript 
+call stack using XPConnect service. Look <a href="http://lxr.mozilla.org/seamonkey/ident?i=DebugDumpJSStack">here</a>
+for the declarations and examples. Here is a simple sample call...</p>
+
+<pre class="code">
+    nsresult rv;
+    NS_WITH_SERVICE(nsIXPConnect, xpc, nsIXPConnect::GetCID(), &amp;rv);
+    if(NS_SUCCEEDED(rv))
+        xpc->DebugDumpJSStack(PR_TRUE, PR_TRUE, PR_FALSE);
+</pre>
+
+<p>We might want to add such a call to the JavaScript error reporter.</p>
+
+<h2>The JavaScript <code>debugger</code> statement</h2>
+
+<p>JavaScript has a <code>debugger</code> keyword which can appear 
+in JavaScript source. Older JavaScript engines will flag its use 
+as a syntax error (use of a reserved word). But newer engines will 
+allow the keyword. Engine embedders can install a callback hook to 
+be called if and when the keyword is reached during script 
+execution. At some future point there may be a JavaScript Debugger 
+which will install such a hook and pop up a fully featured debugging 
+window when this event fires. For now I have created such a hook 
+in xpconnect which is <b>set in DEBUG builds only</b>. If the 
+<code>debugger</code> keyword is reached then the JavaScript stack 
+will be dumped to the native console (same as if 
+<code>DumpJSStack()</code> had been called.</p>
+
+<p>After hitting the <code>debugger</code> keword and dumping 
+the JS call stack, JS execution will continue as if nothing unusual 
+had happened. If you would like this to stop in your native 
+debugger then set a breakpoint in <code>xpc_DebuggerKeywordHandler</code> 
+in your native debugger.</p>
+
+<p>The <code>debugger</code> statement can be very useful as a 
+kind of super <code>dump</code> as you develop your JavaScript 
+code. You can also use it as a kind of assert: 
+<code>if(some_unusual_condition) debugger;</code></p>
+
+<p><b>Note</b> 1) in the example above the test will always happen 
+even though <code>debugger</code> might have no effect in non-DEBUG 
+builds 2) at some future point someone is <b>bound</b> to ship a 
+JavaScript Debugger that will catch these cases (even in non-DEBUG 
+builds). When that happens, users trying to debug their own JS 
+code might trip over your <code>debugger</code> statements. So, 
+while these <code>debugger</code> statements might be very 
+useful as you write code, you may not want to leave them in 
+permanently.</p>
+
+<h2><a name="dumpformat">The Dump Format</a></h2>
+
+<p>The format of the dump output is like:</p>
+
+<pre class="code">
+frame_number function_name(argname = argvalue) ["filename":line_number]
+    local_variable1 = value
+    local_variable2 = value
+    this = value
+</pre>
+
+<p>So an example frame might look like:</p>
+
+<pre class="code">
+0 f(arg1 = [function], arg2 = "bar") ["debug.js":6]
+    local1 = 1
+    local2 = "second local"
+    this = [object global]
+</pre>
+
+<p>Some things to note...</p>
+
+<ul>
+  <li>In the browser the 'filename' will often be a URL.</li>
+  <li>Some places in mozilla that evaluate JavaScript will not 
+supply a filename, so the dump may report something like 
+<code>[&lt;unknown&gt;:0]</code>.</li>
+  <li>If a function is called with more arguments than its 
+declaration names, then the additional trailing argument values will 
+be displayed without the "argname = " part.</li>
+  <li>Functions passed as arguments or stored as variables are 
+displayed as simply "[function]".</li>
+  <li>If the type of an argument or variable is 'string' then it 
+will be displayed quoted.</li>
+  <li>Functions declared without a name are displayed with the 
+name "anonymous".</li>
+  <li>Frames that are not functions are displayed as "&lt;TOP LEVEL&gt;".</li>
+  <li>Native (non-JavaScript) frames in the call stack are displayed 
+as "[native frame]".</li>
+</ul>
+
+<p>So, the following (contrived) code stored in a file called "debug.js"</p>
+
+<pre class="code">
+/* an example... */
+function f(arg1, arg2) {
+    var local1 = 1;
+    var local2 = "second local";
+    debugger;       // &lt;-- stack is dumped here
+}
+
+var o = {foo : "fu", bar : function(a,b){f(a,b)}};
+
+function g(a1, a2, a3, a4) {
+    var alocal = "something";
+    var l4 = a4;
+    var localFromArg = a1;
+    o.bar(a1,a2);
+}
+
+g(f, "bar", {foo : "f", bar : "b"}, [1,2,3], "extra", 123);
+</pre>
+
+<p>...might cause output like...</p>
+
+<pre class="code">
+------------------------------------------------------------------------
+Hit JavaScript "debugger" keyword. JS call stack...
+0 f(arg1 = [function], arg2 = "bar") ["debug.js":5]
+    local1 = 1
+    local2 = "second local"
+    this = [object global]
+1 anonymous(a = [function], b = "bar") ["debug.js":8]
+    this = [object Object]
+2 g(a1 = [function], a2 = "bar", a3 = [object Object], a4 = 1,2,3, "extra", 123) ["debug.js":14]
+    alocal = "something"
+    l4 = 1,2,3
+    localFromArg = [function]
+    this = [object global]
+3 &lt;TOP LEVEL&gt; ["debug.js":17]
+    this = [object global]
+------------------------------------------------------------------------</pre>
+
+<h2>Conclusions</h2>
+
+<p>Please people, use this to help yourselves understand exactly 
+what your JavaScript code is doing.</p>
+
+<p>And <a href="mailto:jband@netscape.com">send</a> feedback.</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 26,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/scriptable/javascript-stack-dumper.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

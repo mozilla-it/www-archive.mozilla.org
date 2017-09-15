@@ -1,0 +1,1028 @@
+[%# Installing Bugzilla on Microsoft Windows %]
+[%
+	PROCESS "inc/header.html.tmpl"
+	title = "Installing Bugzilla on Microsoft Windows"
+%]
+
+<h1>Installing Bugzilla on Microsoft Windows</h1>
+
+<p><b>Original author: <a href="http://bugzilla.glob.com.au/">Byron Jones</a></b></p>
+<p>Bugzilla version 2.18 was the first release that runs unmodified on
+Windows.  This document guides you step by step through the installation process.</p>
+
+<p>Note that there are a few things that don't work on Windows.
+The most important one of these would be the inbound email interface (<a
+href="http://lxr.mozilla.org/mozilla/source/webtools/bugzilla/contrib/README.Mailif">contrib/README.Mailif</a>).
+</p>
+
+<h2>Bugzilla</h2>
+
+<p>
+There's two main methods to getting the Bugzilla source - from CVS or in a tarball.  The best method for fetching Bugzilla is
+to grab it directly from CVS, as this will allow for simple upgrades, even if you have customised Bugzilla.
+<p>
+
+<p>
+Read the <a href="http://bugzilla.org/releases/2.22/release-notes.html">Release Notes</a> before you do anything.
+</p>
+
+<h3>Installing Bugzilla From CVS</h3>
+
+<p>
+Download the CVSNT client from <a href="http://www.cvsnt.org/">http://www.cvsnt.org/</a> (2.15 Meg).
+</p>
+
+<p>
+Run the installation, you'll only need to install the <b>Command line client</b> and the <b>Password Server (:pserver:) Protocol</b>.
+Once the intsall has completed, log out and log in again to pick up the changes to the PATH.
+</p>
+
+<p>
+Note: this document assumes you want to install Bugzilla into <b>C:\Bugzilla</b>.
+</p>
+
+<p>
+Open the command line, and cd to the <b>parent</b> of the directory you want to install Bugzilla into.  As we'll be installing
+Bugzilla into <b>C:\Bugzilla</b>, the current directory must be <b>C:\</b>.
+</p>
+
+<pre class="console">
+C:\&gt;<span class="in">set CVSROOT=:pserver:anonymous@cvs-mirror.mozilla.org:/cvsroot</span>
+
+C:\&gt;<span class="in">cvs login</span>
+
+Logging in to :pserver:anonymous@cvs-mirror.mozilla.org:2401:/cvsroot
+CVS password: <span class="in">anonymous</span>
+
+C:\&gt;<span class="in">cvs checkout -d Bugzilla -rBugzilla_Stable Bugzilla</span>
+cvs checkout: cwd=C:\ ,current=C:\
+cvs checkout: Updating Bugzilla
+U Bugzilla/.cvsignore
+U Bugzilla/1x1.gif
+U Bugzilla/Bugzilla.pm
+U Bugzilla/CGI.pl
+...
+U Bugzilla/template/en/default/whine/multipart-mime.txt.tmpl
+U Bugzilla/template/en/default/whine/schedule.html.tmpl
+cvs checkout: Updating Bugzilla/template/en/extension
+U Bugzilla/template/en/extension/filterexceptions.pl
+cvs checkout: Updating Bugzilla/template/en/extension/hook
+
+C:\&gt;
+</pre>
+
+<h3>Upgrading From CVS</h3>
+
+<p>
+If you've already installed an earlier version of Bugzilla from CVS or from a TarBall, updating is easy.
+Even if you've made customisations, CVS is smart enough to merge.
+If CVS needs help merging, it displays a C in the first column of its report.
+You need to resolve such conflicts manually.
+</p>
+
+<pre class="console">
+C:\Bugzilla&gt;<span class="in">cvs update -R -d -rBugzilla_Stable</span>
+cvs update: Updating .
+P editusers.cgi
+cvs update: Updating Bugzilla
+P Bugzilla/Bug.pm
+P Bugzilla/BugMail.pm
+P Bugzilla/Chart.pm
+P Bugzilla/Flag.pm
+P Bugzilla/User.pm
+P Bugzilla/Util.pm
+cvs update: Updating Bugzilla/Auth
+U Bugzilla/Auth/CGI.pm
+cvs update: Updating Bugzilla/Template
+cvs update: Updating Bugzilla/Template/Plugin
+...
+cvs update: Updating template/en/default/search
+cvs update: Updating template/en/default/whine
+cvs update: Updating template/en/extension
+
+C:\Bugzilla&gt;
+</pre>
+
+<h3>Installing Bugzilla From the TarBall</h3>
+
+<p>
+Download the Bugzilla from:<br>
+<a href="http://bugzilla.org/download.html">http://bugzilla.org/download.html</a> (1.2 Meg).
+</p>
+
+<p>
+Bugzilla ships as a Tarball, which has the extension .tar.gz.  Any decent Windows
+archive tool should be able to extract tarballs.
+</p>
+
+<p>
+Extract the archive to the directory of your choice.
+For the remainder of this document I will assume that you have extracted Bugzilla
+into <b>C:\Bugzilla</b>.
+</p>
+
+<h3>Upgrading From TarBall</h3>
+
+<p>
+If you installed Bugzilla from the TarBall, the simplest way to upgrade is to follow the
+<a href="#bugzilla.upgrade">CVS Upgrading</a> instructions.
+</p>
+
+<h2>MySQL</h2>
+
+<h3>Download MySQL</h3>
+
+<p>
+Download the MySQL "Windows Essentials" installer from:<br>
+<a href="http://dev.mysql.com/downloads/mysql/">http://dev.mysql.com/downloads/mysql/</a> (15.9 Meg).
+</p>
+
+<h3>Install</h3>
+
+<p>
+MySQL has a standard Windows installer.  It's ok to select a Typical
+MySQL install (the default).  For the remainder of this document I will assume you have
+installed MySQL into <b>C:\mysql</b>.
+</p>
+
+<h3>Create Bugs Database and User</h3>
+
+<p>
+Use the <b>mysql</b> command line utility to create the Bugzilla database and a MySQL
+account for Bugzilla.
+</p>
+
+<p>
+Note in the following example 'sockmonkey' is my password for the bugs account:
+</p>
+
+<pre class="console">
+C:\mysql\bin&gt;<span class="in">mysql --user=root -p mysql</span>
+Enter password: <span class="in">********</span>
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 15 to server version: 4.0.20a-debug
+
+Type 'help;' or '\h' for help. Type '\c' to clear the buffer.
+
+mysql&gt; <span class="in">create database bugs;</span>
+
+Query OK, 1 row affected (0.11 sec)
+
+mysql&gt; <span class="in">grant all privileges on bugs.* to 'bugs'@'localhost' identified by 'sockmonkey';</span>
+Query OK, 0 rows affected (0.03 sec)
+
+mysql&gt; <span class="in">flush privileges;</span>
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; <span class="in">quit</span>
+
+Bye
+
+C:\mysql\bin&gt;
+</pre>
+
+<p>
+If you are running MySQL 4.1 or higher, you may encounter the <b>Client does not support
+authentication protocol requested by server</b> error message.  To fix this,
+once the user has been created you will have to reset the password using
+OLD_PASSWORD:
+</p>
+
+<pre class="console">
+C:\mysql\bin&gt;<span class="in">mysql --user=root -p mysql</span>
+Enter password: <span class="in">********</span>
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 15 to server version: 4.1.11-nt
+
+Type 'help;' or '\h' for help. Type '\c' to clear the buffer.
+
+mysql&gt; <span class="in">set password for 'bugs'@'localhost' = OLD_PASSWORD('sockmonkey');</span>
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; <span class="in">quit</span>
+
+Bye
+
+C:\mysql\bin&gt;
+</pre>
+
+<h2>ActiveState Perl</h2>
+
+<h3>Download ActiveState Perl 5.8.1 or Higher</h3>
+
+<p>
+Download the ActiveState Perl 5.8.1 or Higher MSI from:<br>
+
+<a href="http://activestate.com/Products/Download/Download.plex?id=ActivePerl">http://activestate.com/Products/Download/Download.plex?id=ActivePerl</a> (12.5 Meg).
+</p>
+
+<p>
+Note that Bugzilla requires ActiveState Perl 5.8.1 as it needs CGI.pm version 2.93 or higher.  5.8.0 ships with CGI.pm version 2.81, 5.8.1 ships with CGI.pm version 3.00.
+</p>
+
+<p>
+There is <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=281920">a bug in Time::Local 1.10</a>,
+which is shipped with ActiveState Perl 5.8.6, that will cause warnings to be generated at the top of
+every buglist.  It's a good idea to avoid version 5.8.6 (version 5.8.4 works without issue).
+</p>
+
+<h3>Install</h3>
+
+<p>
+ActiveState Perl uses a standard Windows Installer.  Install, sticking with the defaults, which will install
+Perl into <b>C:\Perl</b>.
+</p>
+
+<p>
+Note:  Installing Perl into a directory that contains a space (eg "C:\Program Files") will break the
+Template-Toolkit installer.
+</p>
+
+<p>
+Once the intsall has completed, log out and log in again to pick up the changes to the PATH.
+</p>
+
+<h3>Upgrading Existing Installs</h3>
+
+<p>
+If you already have ActiveState Perl installed, now's a good time to ensure you're running the latest version of ActiveState Perl, along
+with the latest versions of the modules.
+</p>
+
+<p>
+To upgrade ActiveState Perl, follow the directions at:<br>
+<a href="http://aspn.activestate.com/ASPN/docs/ActivePerl/install.html#upgrade_56">http://aspn.activestate.com/ASPN/docs/ActivePerl/install.html</a>
+</p>
+
+<p>
+To upgrade your modules, simply run <b>ppm upgrade</b>
+
+</p>
+
+<h3>Create Temp Directory</h3>
+
+<p>
+On Windows, Perl has a hard time of locating the correct directory to write its temporary files (CGI.pm, File::Spec).  Basically
+it has a list of paths hard coded to use, instead of querying Windows for the correct path.
+</p>
+
+<p>
+To avoid problems, create the <b>C:\Temp</b> directory (it has to be on drive C) and ensure SYSTEM has write and modify access.
+</p>
+
+<h3>Install Modules</h3>
+
+<p>
+Bugzilla requires a number of perl modules to be installed, all of which are available
+at <b>http://landfill.bugzilla.org/ppm/</b>.
+</p>
+
+<p>
+If you use a proxy server or a firewall you may have trouble running PPM.  This is covered in the
+<a href="http://aspn.activestate.com/ASPN/docs/ActivePerl/faq/ActivePerl-faq2.html#ppm_and_proxies">ActivePerl FAQ</a>.
+</p>
+
+<p>
+The <b>Net::LDAP</b> module is only required if you want to <a href="http://www.bugzilla.org/docs/tip/html/extraconfig.html#bzldap">use Active Directory for authentication</a>.
+</p>
+
+<pre class="console">
+C:\&gt;<span class="in">ppm</span>
+
+PPM - Programmer's Package Manager version 3.1.
+Copyright (c) 2001 ActiveState Corp. All Rights Reserved.
+ActiveState is a devision of Sophos.
+
+Entering interactive shell. Using Term::ReadLine::Stub as readline library.
+
+Type 'help' to get started.
+
+ppm&gt; <span class="in">rep add Bugzilla http://landfill.bugzilla.org/ppm</span>
+Repositories:
+[1] ActiveState PPM2 Repository
+[2] ActiveState Package Repository
+[3] Bugzilla
+ppm&gt; <span class="in">install AppConfig</span>
+====================
+Install 'AppConfig' version 1.52 in ActivePerl 5.8.7.813.
+====================
+Downloaded 50508 bytes.
+...
+Successfully installed AppConfig version 1.52 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install TimeDate</span>
+====================
+Install 'TimeDate' version 1.16 in ActivePerl 5.8.7.813.
+====================
+Downloaded 19235 bytes.
+...
+Successfully installed TimeDate version 1.16 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install DBI</span>
+====================
+Install 'DBI' version 1.43 in ActivePerl 5.8.7.813.
+====================
+Downloaded 508164 bytes.
+...
+Successfully installed DBI version 1.43 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install DBD-mysql</span>
+
+====================
+Install 'DBD-mysql' version 2.9002 in ActivePerl 5.8.7.813.
+====================
+Downloaded 178803 bytes.
+...
+Successfully installed DBD-mysql version 2.9002 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install Template-Toolkit</span>
+====================
+Install 'Template-Toolkit' version 2.13 in ActivePerl 5.8.7.813.
+====================
+Downloaded 530770 bytes.
+...
+Successfully installed Template-Toolkit version 2.13 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install MailTools</span>
+====================
+Install 'MailTools' version 1.67 in ActivePerl 5.8.7.813.
+====================
+Downloaded 46881 bytes.
+...
+Successfully installed MailTools version 1.67 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install GD</span>
+====================
+Install 'GD' version 2.07 in ActivePerl 5.8.7.813.
+====================
+Downloaded 363039 bytes.
+...
+Successfully installed GD version 2.07 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install Chart</span>
+====================
+Install 'Chart' version 2.3 in ActivePerl 5.8.7.813.
+====================
+Downloaded 58641 bytes.
+...
+Successfully installed Chart version 2.3 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install GDGraph</span>
+====================
+Install 'GDTextUtil' version 0.86 in ActivePerl 5.8.7.813.
+====================
+Downloaded 19178 bytes.
+...
+Successfully installed GDTextUtil version 0.86 in ActivePerl 5.8.7.813.
+====================
+Install 'GDGraph' version 1.43 in ActivePerl 5.8.7.813.
+====================
+Downloaded 71764 bytes.
+...
+Successfully installed GDGraph version 1.43 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install PatchReader</span>
+
+====================
+Install 'PatchReader' version 0.9.4 in ActivePerl 5.8.7.813.
+====================
+Downloaded 9558 bytes.
+...
+Successfully installed PatchReader version 0.9.4 in ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install Net::LDAP</span>
+
+====================
+Install 'Convert-ASN1' version 0.19 in ActivePerl 5.8.7.813.
+====================
+Downloaded 26326 bytes.
+...
+Successfully installed Convert-ASN1 version 0.19 in ActivePerl 5.8.7.813.
+====================
+Install 'perl-ldap' version 0.33 in ActivePerl 5.8.7.813.
+====================
+Downloaded 188548 bytes.
+...
+Successfully installed perl-ldap version 0.33 in ActivePerl 5.8.7.813.
+====================
+Install 'Net-LDAP-Express' version 0.11 in ActivePerl 5.8.7.813.
+====================
+Downloaded 7693 bytes.
+...
+Successfully installed Net-LDAP-Express version 0.11 in ActivePerl 5.8.7.813.
+ppm&gt;
+</pre>
+
+<h3>PatchReader 0.9.4</h3>
+
+<p>
+Make sure the version of <b>PatchReader</b> that is installed is <b>0.9.4</b> or higher.  If you end up with an older version,
+uninstall the ppm and install the ppm from http://landfill.bugzilla.org/ppm/PatchReader.ppd.
+</p>
+
+<pre class="console">
+ppm&gt; <span class="in">uninstall PatchReader</span>
+====================
+Remove 'PatchReader' version 0.9.2 from ActivePerl 5.8.7.813.
+====================
+...
+Successfully removed PatchReader version 0.9.2 from ActivePerl 5.8.7.813.
+ppm&gt; <span class="in">install http://landfill.bugzilla.org/ppm/PatchReader.ppd</span>
+====================
+Install 'PatchReader' version 0.9.4 in ActivePerl 5.8.7.813.
+====================
+Downloaded 9558 bytes.
+...
+Successfully installed PatchReader version 0.9.4 in ActivePerl 5.8.7.813.
+ppm&gt;
+</pre>
+
+<h2>Apache</h2>
+
+<p>
+It is recommended that you run Bugzilla with the Apache web server.  If you want to use IIS to
+run Bugzilla, there are <a href="http://www.bugzilla.org/docs/html/configuration.html#http-iis">configuration
+instructions</a> in the Bugzilla documentation.
+</p>
+
+<h3>Download Apache 2.x</h3>
+
+<p>
+Download the Apache HTTP Server version 2.x or high from:<br>
+<a href="http://httpd.apache.org/download.cgi">http://httpd.apache.org/download.cgi</a> (5.8 Meg).
+</p>
+
+<h3>Install</h3>
+
+<p>
+Yet another standard Windows Installer.  Just follow the prompts, making sure you Install for All Users.
+Be aware the Apache will always install itself into an <b>Apache2</b> directory under what ever path
+you specify.  The default install path will be displayed as <b>C:\Program Files\Apache Group</b> which
+will result in Apache being installed to <b>C:\Program Files\Apache Group\Apache2</b>.  This gets me
+every time.
+
+</p>
+
+<p>
+For the remainder of this document I will assume you installed Apache into the default location, 
+<b>C:\Program Files\Apache Group\Apache2</b>.
+</p>
+
+<p>
+If you are already running IIS, you must configure apache to run on a port other than 80, however you aren't asked the
+port to listen on at install time.  Choose <b>All Users</b> (which says port 80), and we'll change the port later.
+</p>
+
+<p>
+By default Apache installs itself to run as the SYSTEM account.  For security reasons it's better the reconfigure
+the service to run as an Apache user.  Create a user that is a member of <b>no</b> groups, and reconfigure the Apache2
+service to run as that account.
+
+</p>
+
+<h3>Grant write access for Apache account</h3>
+
+<p>
+By default Apache will run as the SYSTEM account.  This account needs write and modify access to the following directorys,
+and all their subdirectories.  Depending on your version of Windows, this access may already be granted.
+</p>
+
+<ul>
+<li><b>C:\Bugzilla\data</b></li>
+<li><b>C:\Program Files\Apache Group\Apache2\logs</b></li>
+<li><b>C:\Temp</b></li>
+</ul>
+
+<p>
+Note that <b>C:\Bugzilla\data</b> is created the first time you run <b>checksetup.pl</b>.
+</p>
+
+<h3>Configure Port and DocumentRoot</h3>
+
+<p>
+Edit <b>C:\Program Files\Apache Group\Apache2\conf\httpd.conf</b> with your
+
+<a href="http://www.vim.org/" title="my favourite text editor">favourite text editor</a>.
+</p>
+
+<p>
+To change the port that Apache runs on (listens on, or binds to), edit the <b>Listen</b> option.
+</p>
+
+<pre class="file">
+#
+# Listen: Allows you to bind Apache to specific IP addresses and/or
+# ports, instead of the default. See also the &lt;VirtualHost&gt;
+# directive.
+#
+# Change this to Listen on specific IP addresses as shown below to 
+# prevent Apache from glomming onto all bound IP addresses (0.0.0.0)
+#
+#Listen 12.34.56.78:80
+<span class="diff">Listen 80</span>
+
+</pre>
+
+<p>
+Change the <b>DocumentRoot</b> setting to point to <b>C:\Bugzilla</b>.  Note there are two locations in <b>httpd.conf</b>
+that need to be updated.  Note you need to use / instead of \ as a path separator.
+</p>
+
+<pre class="file">
+#
+# DocumentRoot: The directory out of which you will serve your
+# documents. By default, all requests are taken from this directory, but
+# symbolic links and aliases may be used to point to other locations.
+#
+<span class="diff">DocumentRoot "C:/Bugzilla"</span>
+
+#
+# Each directory to which Apache has access can be configured with respect
+# to which services and features are allowed and/or disabled in that
+# directory (and its subdirectories). 
+#
+# First, we configure the "default" to be a very restrictive set of 
+# features.  
+#
+&lt;Directory /&gt;
+    Options FollowSymLinks
+    AllowOverride None
+&lt;/Directory&gt;
+
+#
+# Note that from this point forward you must specifically allow
+# particular features to be enabled - so if something's not working as
+# you might expect, make sure that you have specifically enabled it
+# below.
+#
+
+#
+# This should be changed to whatever you set DocumentRoot to.
+#
+<span class="diff">&lt;Directory "C:/Bugzilla"&gt;</span>
+</pre>
+
+<h3>Configure CGI</h3>
+
+<p>
+To enable CGI support in Apache, you need to enable the CGI handler, by uncommenting the <b>AddHandler cgi-script .cgi</b>
+line.
+</p>
+
+<pre class="file">
+#
+# AddHandler allows you to map certain file extensions to "handlers":
+# actions unrelated to filetype. These can be either built into the server
+# or added with the Action directive (see below)
+#
+# To use CGI scripts outside of ScriptAliased directories:
+# (You will also need to add "ExecCGI" to the "Options" directive.)
+#
+<span class="diff">AddHandler cgi-script .cgi</span>
+</pre>
+
+<p>
+And allow .cgi scripts in the Bugzilla directory by adding the <b>ExecCGI</b> option.
+We also need to allow Bugzilla's .htaccess file to restrict access to sensitive documents by allowing it to override the defaults.  This involves changing <b>AllowOverride None</b> to <b>AllowOverride All</b>.
+
+</p>
+
+<p>
+Apache also needs to know to use Perl to execute .cgi files, via the <b>ScriptInterpreterSource</b> directive.
+</p>
+
+<pre class="file">
+#
+# This should be changed to whatever you set DocumentRoot to.
+#
+&lt;Directory "C:/Bugzilla"&gt;
+
+#
+# Possible values for the Options directive are "None", "All",
+# or any combination of:
+#   Indexes Includes FollowSymLinks SymLinksifOwnerMatch ExecCGI MultiViews
+#
+# Note that "MultiViews" must be named *explicitly* --- "Options All"
+# doesn't give it to you.
+#
+# The Options directive is both complicated and important.  Please see
+# http://httpd.apache.org/docs-2.0/mod/core.html#options
+# for more information.
+#
+<span class="diff">    Options Indexes FollowSymLinks ExecCGI</span>
+
+#
+# AllowOverride controls what directives may be placed in .htaccess files.
+# It can be "All", "None", or any combination of the keywords:
+#   Options FileInfo AuthConfig Limit
+#
+<span class="diff">    AllowOverride All</span>
+
+#
+# Controls who can get stuff from this server.
+#
+    Order allow,deny
+    Allow from all
+
+<span class="diff">#
+# Tell Apache to use Perl to execute .cgi
+#
+    ScriptInterpreterSource Registry-Strict</span>
+
+&lt;/Directory&gt;
+</pre>
+
+<p>
+You also should add <b>index.cgi</b> to the <b>DirectoryIndex</b> list.
+
+</p>
+
+<pre class="file">
+#
+# DirectoryIndex: sets the file that Apache will serve if a directory
+# is requested.
+#
+# The index.html.var file (a type-map) is used to deliver content-
+# negotiated documents.  The MultiViews Option can be used for the 
+# same purpose, but it is much slower.
+#
+<span class="diff">DirectoryIndex index.html index.html.var index.cgi</span>
+</pre>
+
+<p>
+In order for <b>ScriptInterpreterSource Registry-Strict</b> to work, you also need to add an entry to the Registry so Apache
+will use Perl to execute .cgi files.
+</p>
+
+<p>
+Create a key <b>HKEY_CLASSES_ROOT\.cgi\Shell\ExecCGI\Command</b> with the default value of the full path of perl.exe with a -T parameter.
+For example <b>C:\Perl\bin\perl.exe -T</b>
+
+</p>
+
+<p>
+<a href="../img/regedit.png"><img src="../img/t_regedit.png" width="100" height="60" alt="regedit screenshot"></a>
+</p>
+
+<h3>Disable Logging</h3>
+
+<p>
+Unless you want to keep statistics on how many hits your Bugzilla install is getting, it's a good idea to disable
+logging by commenting out the <b>CustomLog</b> directive.
+</p>
+
+<pre class="file">
+
+#
+# The location and format of the access logfile (Common Logfile Format).
+# If you do not define any access logfiles within a &lt;VirtualHost&gt;
+# container, they will be logged here.  Contrariwise, if you *do*
+# define per-&lt;VirtualHost&gt; access logfiles, transactions will be
+# logged therein and *not* in this file.
+#
+<span class="diff">#CustomLog logs/access.log common</span>
+</pre>
+
+<h3>Restart Apache</h3>
+
+<p>
+Finally, restart Apache to get it pick up the changes.
+</p>
+
+<pre class="console">
+C:\&gt;<span class="in">net stop apache2</span>
+The Apache2 service is stopping..
+The Apache2 service was stopped successfully.
+
+C:\&gt;<span class="in">net start apache2</span>
+The Apache2 service is starting.
+The Apache2 service was started successfully.
+
+C:\&gt;
+</pre>
+
+<h2>Extras</h2>
+
+<p>
+While Bugzilla has built in support for SMTP servers, it doesn't (yet) support SMTP authentication or debugging
+of SMTP errors.
+</p>
+
+<p>
+If you require SMTP authentiation (including POP before SMTP), you can use <a href="http://www.glob.com.au/sendmail/">Glob's
+sendmail wrapper</a>.  Download and install as per the instructions on that site.
+</p>
+
+<p>
+If you enable logging in Sendmail, you need to ensure that your Apache account has write access to <b>C:\usr\lib</b>.
+</p>
+
+<h2>Configure Bugzilla</h2>
+
+<h3>checksetup.pl</h3>
+
+<p>
+Run <b>checksetup.pl</b>.  This will check your Perl modules and create <b>localconfig</b>.
+</p>
+
+<pre class="console">
+C:\&gt;<span class="in">cd bugzilla</span>
+
+C:\bugzilla&gt;<span class="in">perl checksetup.pl</span>
+
+Checking perl modules ...
+Checking for       AppConfig (v1.52)   ok: found v1.55
+Checking for             CGI (v2.93)   ok: found v3.10
+Checking for    Data::Dumper (any)     ok: found v2.121_04
+Checking for    Date::Format (v2.21)   ok: found v2.22
+Checking for             DBI (v1.38)   ok: found v1.48
+Checking for      File::Spec (v0.84)   ok: found v3.05
+Checking for      File::Temp (any)     ok: found v0.16
+Checking for        Template (v2.08)   ok: found v2.13
+Checking for      Text::Wrap (v2001.0131) ok: found v2001.09293
+Checking for    Mail::Mailer (v1.65)   ok: found v1.67
+Checking for        Storable (any)     ok: found v2.13
+
+The following Perl modules are optional:
+Checking for              GD (v1.20)   ok: found v2.16
+Checking for     Chart::Base (v1.0)    ok: found v2.3
+Checking for     XML::Parser (any)     ok: found v2.34
+Checking for       GD::Graph (any)     ok: found v1.43
+Checking for GD::Text::Align (any)     ok: found v1.18
+Checking for     PatchReader (v0.9.4)  ok: found v0.9.5
+
+Most ActivePerl modules are available at Apache's ppm repository.
+A list of mirrors is available at
+    http://www.apache.org/dyn/closer.cgi/perl/win32-bin/ppms/
+You can add the repository with the following command:
+    ppm rep add apache http://www.apache.org/dist/perl/win32-bin/ppms/
+
+Checking user setup ...
+
+This version of Bugzilla contains some variables that you may want
+to change and adapt to your local settings. Please edit the file
+'./localconfig' and rerun checksetup.pl
+
+The following variables are new to localconfig since you last ran
+checksetup.pl:   index_html cvsbin interdiffbin diffpath create_htaccess
+webservergroup db_driver db_host db_pass db_sock db_check
+
+C:\bugzilla&gt;
+</pre>
+
+<h3>Edit localconfig</h3>
+
+<p>
+Open <b>C:\Bugzilla\localconfig</b> in your favourite text editor to configure Bugzilla.
+</p>
+
+<p>
+You have to tell Bugzilla how to access your database.  If you used bugs/bugs, you'll
+only have to set <b>db_pass</b>.
+</p>
+
+<pre class="file">
+#
+# How to access the SQL database:
+#
+$db_host = "localhost";         # where is the database?
+$db_port = 3306;                # which port to use
+$db_name = "bugs";              # name of the MySQL database
+$db_user = "bugs";              # user to attach to the MySQL database
+
+#
+# Enter your database password here. It's normally advisable to specify
+# a password for your bugzilla database user.
+# If you use apostrophe (') or a backslash (\) in your password, you'll
+# need to escape it by preceding it with a \ character. (\') or (\\)
+#
+<span class="diff">$db_pass = 'sockmonkey';</span>
+</pre>
+
+<h3>checksetup.pl</h3>
+
+<p>
+Run <b>checksetup.pl</b> again.  This time it will build your database tables and initialise Bugzilla.
+</p>
+
+<pre class="console">
+C:\bugzilla&gt;perl checksetup.pl
+
+Checking perl modules ...
+Checking for       AppConfig (v1.52)   ok: found v1.55
+Checking for             CGI (v2.93)   ok: found v3.10
+Checking for    Data::Dumper (any)     ok: found v2.121_04
+Checking for    Date::Format (v2.21)   ok: found v2.22
+Checking for             DBI (v1.38)   ok: found v1.48
+Checking for      File::Spec (v0.84)   ok: found v3.05
+Checking for      File::Temp (any)     ok: found v0.16
+Checking for        Template (v2.08)   ok: found v2.13
+Checking for      Text::Wrap (v2001.0131) ok: found v2001.09293
+Checking for    Mail::Mailer (v1.65)   ok: found v1.67
+Checking for        Storable (any)     ok: found v2.13
+
+The following Perl modules are optional:
+Checking for              GD (v1.20)   ok: found v2.16
+Checking for     Chart::Base (v1.0)    ok: found v2.3
+Checking for     XML::Parser (any)     ok: found v2.34
+Checking for       GD::Graph (any)     ok: found v1.43
+Checking for GD::Text::Align (any)     ok: found v1.18
+Checking for     PatchReader (v0.9.4)  ok: found v0.9.5
+
+Most ActivePerl modules are available at Apache's ppm repository.
+A list of mirrors is available at
+    http://www.apache.org/dyn/closer.cgi/perl/win32-bin/ppms/
+You can add the repository with the following command:
+    ppm rep add apache http://www.apache.org/dist/perl/win32-bin/ppms/
+
+Checking user setup ...
+Creating data directory (./data) ...
+Creating graphs directory...
+Creating .htaccess...
+Creating Bugzilla/.htaccess...
+Creating ./data/.htaccess...
+Creating ./template/.htaccess...
+Creating ./data/webdot/.htaccess...
+Precompiling templates ...
+Checking for    MySQL Server (v3.23.41) ok: found v4.0.20a-debug
+
+Creating table user_group_map ...
+Creating table series_data ...
+Creating table longdescs ...
+Creating table dependencies ...
+Creating table components ...
+Creating table keywords ...
+Creating table cc ...
+Creating table duplicates ...
+Creating table groups ...
+Creating table flagtypes ...
+Creating table profiles ...
+Creating table products ...
+Creating table bugs_activity ...
+Creating table series_categories ...
+Creating table keyworddefs ...
+Creating table fielddefs ...
+Creating table group_control_map ...
+Creating table profiles_activity ...
+Creating table group_group_map ...
+Creating table user_series_map ...
+Creating table bugs ...
+Creating table series ...
+Creating table versions ...
+Creating table flagexclusions ...
+Creating table logincookies ...
+Creating table watch ...
+Creating table bug_group_map ...
+Creating table votes ...
+Creating table attachments ...
+Creating table flags ...
+Creating table milestones ...
+Creating table tokens ...
+Creating table flaginclusions ...
+Creating table quips ...
+Creating table namedqueries ...
+Creating initial dummy product 'TestProduct' ...
+Populating duplicates table...
+Creating duplicates directory...
+Migrating old chart data into database ...
+Adding group tweakparams ...
+Adding group editusers ...
+Adding group creategroups ...
+Adding group editcomponents ...
+Adding group editkeywords ...
+Adding group admin ...
+Adding group editbugs ...
+Adding group canconfirm ...
+
+Looks like we don't have an administrator set up yet.  Either this is your
+first time using Bugzilla, or your administrator's privileges might have
+accidently been deleted.
+Enter the e-mail address of the administrator: <span class="in">byron@example.com</span>
+You entered 'byron@example.com'.  Is this correct? [Y/n] <span class="in">y</span>
+Enter the real name of the administrator: <span class="in">Byron Jones</span>
+
+Enter a password for the administrator account: <span class="in">beef</span>
+
+Please retype the password to verify: <span class="in">beef</span>
+
+'byron@example.com' is now set up as an administrator account.
+
+C:\bugzilla&gt;
+</pre>
+
+<h3>Parameters</h3>
+
+<p>
+You should now be able to log into to Bugzilla using the account <b>checksetup.pl</b> just created.
+Point your web browser to <a href="http://localhost/">http://localhost/</a>, choose
+
+<b>Log in to an existing account</b>, and login.
+</p>
+
+<p>
+In the page footer, choose <b>Parameters</b>.
+</p>
+
+<p>
+Put in your email address as the <b>maintainer</b>.
+</p>
+
+<div class="webpage">
+<div class="prefsTitle">maintainer:</div>
+<div class="prefsBlurb">The email address of the person who maintains this installation of Bugzilla.</div>
+<div class="prefsInput">byron@example.com</div>
+</div>
+
+<p>
+Put in the URL to Bugzilla in the <b>urlbase</b> field.  This URL will be used in emails, so don't use
+localhost.
+</p>
+
+<div class="webpage">
+<div class="prefsTitle">urlbase:</div>
+<div class="prefsBlurb">The URL that is the common initial leading part of all Bugzilla URLs.</div>
+<div class="prefsInput">http://bugzilla.example.com/</div>
+</div>
+
+<p>
+Download and install WebDot from <a href="http://www.graphviz.org/Download_windows.php">http://www.graphviz.org/Download_windows.php</a>.
+Put the complete path to dot.exe in <b>webdotbase</b>.
+</p>
+
+<div class="webpage">
+<div class="prefsTitle">webdotbase:</div>
+<div class="prefsBlurb">
+It is possible to show graphs of dependent bugs. You may set this parameter to any of the following:<br>
+
+<br>
+&nbsp;&nbsp;* A complete file path to 'dot' (part of GraphViz) will generate the graphs locally.<br>
+&nbsp;&nbsp;* A URL prefix pointing to an installation of the webdot package will generate the graphs remotely.<br>
+&nbsp;&nbsp;* A blank value will disable dependency graphing.<br>
+<br>
+The default value is a publically-accessible webdot server. If you change this value, make certain that the webdot server can read files from your webdot directory. On Apache you do this by editing the .htaccess file, for other systems the needed measures may vary. You can run checksetup.pl to recreate the .htaccess file if it has been lost.
+</div>
+<div class="prefsInput">C:/Program Files/ATT/Graphviz/bin/dot.exe</div>
+</div>
+
+<h2>Scheduled Tasks</h2>
+
+<h3>collectstats.pl</h3>
+
+<p>
+Add a Scheduled Task to run <b>collectstats.pl</b> nightly.
+</p>
+
+<p>
+Step-by-step for Windows XP:
+</p>
+
+<ol>
+<li>Control Panel --&gt; Scheduled Tasks --&gt; Add Scheduled Task</li>
+<li>Next</li>
+<li>Browse</li>
+<li>Find <b>perl.exe</b> (normally <b>C:\Perl\bin\perl.exe</b>)</li>
+<li>Give it a name, such as "Bugzilla Collect Stats"</li>
+<li>Perfom the task daily at your desired time</li>
+<li>If you're running Apache as a user, not as SYSTEM, enter that user here. 
+    Otherwise you're best off creating an account that has write access to
+    the Bugzilla directory and using that</li>
+<li>Tick "Open Advanced Properties.." and click Finish</li>
+<li>Append the script name to the end of the "Run" field.  eg
+    <b>C:\Perl\bin\perl.exe C:\Bugzilla\collectstats.pl</b></li>
+<li>Change "start in" to the Bugzilla directory</li>
+</ol>
+
+<h3>whineatnews.pl</h3>
+
+<p>
+Add a Scheduled Task to run <b>whineatnews.pl</b> nightly.
+</p>
+
+<p>
+The steps for setting up <b>whineatnews.pl</b> are as per <b>collectstats.pl</b>
+</p>
+
+<h3>whine.pl</h3>
+
+<p>
+Add a Scheduled Task to run <b>whine.pl</b> nightly.
+</p>
+
+<p>
+The steps for setting up <b>whine.pl</b> are as per <b>collectstats.pl</b>, except
+whine.pl needs to run in Perl's Taint mode.  The command line needs to include the
+-T option: <b>C:\Perl\bin\perl.exe -T C:\Bugzilla\whine.pl</b>
+</p>
+
+<h3>Backing up Bugzilla</h3>
+
+<p>
+You may want to backup the entire Bugzilla directory.  It's small and you'll get all your settings and customisations
+on your backup media.
+</p>
+
+<p>
+The most important component of Bugzilla to backup is the Bugzilla Database.  It contains all your Bugs, Users, Attachments, pretty
+well everything.  Like most databases, backups with MySql are performed by generating a dump of the database and backing up the dump.
+</p>
+
+<p>
+Schedule the <b>mysqldump</b> utility to create the dump, and add the resulting file to your backup media.  You'll find MySql's <b>mysqldump</b> documentation at <a href="http://dev.mysql.com/doc/mysql/en/mysqldump.html">http://dev.mysql.com/doc/mysql/en/mysqldump.html</a>.
+
+</p>
+
+<h3>
+Congratulations, the Bugzilla installation process is complete!
+</h3>
+
+[% PROCESS "inc/footer.html.tmpl" %]

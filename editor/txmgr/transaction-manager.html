@@ -1,0 +1,679 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<title>Transaction Manager</title>
+
+<link rel="up" href="./" title="Editor project page">
+
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+<p class="crumbs"><em>You are here:</em> <a href="./">Editor project page</a> &gt; <strong>Transaction Manager</strong></p>
+
+<h1 style="text-align: center;">Transaction Manager</h1>
+
+<address class="author" style="text-align: center;">
+<a href="mailto:kin@netscape.com">Kin Blas</a><br>
+Netscape Communications Corporation<br>
+Followup and discussion on <a href="news://news.mozilla.org/netscape.public.mozilla.editor">netscape.public.mozilla.editor</a>
+<br>Date last modified: Wed Feb 10 16:03:33 PST 1999</address>
+
+<h2>Overview</h2>
+<p>
+The <a href="./">next generation Mozilla editor</a>
+uses a transaction system to manage all it's undoable/redoable 
+actions. This system is made up of two parts, the set of editor 
+defined transactions and the transaction manager, which is totally 
+independent of the <a href="./">editor</a>.</p>
+
+<p>Although the transactions themselves are
+<a href="http://www.mozilla.org/editor">editor</a> specific, the
+transaction interface
+(<a href="nsitransaction.html">nsITransaction</a>)
+they are based on isn't. This means that other applications 
+like messenger, bookmarks, etc., can all create transactions for 
+use with the transaction manager.</p>
+
+<p>This document briefly describes how an application can use 
+transactions and the transaction manager to create their own 
+transaction system.</p>
+
+<h2>Transaction Manager Source</h2>
+
+<p>You'll find the source for the transaction manager in:</p>
+
+<pre>
+
+    <a href="http://lxr.mozilla.org/mozilla/source/editor/txmgr/">mozilla/editor/txmgr</a>
+
+</pre>
+
+<p>
+Despite the fact that the transaction manager code lives under the editor
+directory, I'd like to stress once more that it is totally independent of
+the editor.</p>
+
+<h2>Transaction Manager Features</h2>
+
+<ul>
+  <li><a href="#MultiLevelUndo">Multi level undo/redo.</a></li>
+  <li><a href="#Coalescing">Coalescing of transactions.</a></li>
+  <li><a href="#Aggregation">Automatic aggregation of nested transactions.</a></li>
+  <li><a href="#Batching">Supports batching of transactions. (Aggregation)</a></li>
+  <li><a href="#Rollback">Rollback of aggregated transactions for error recovery.</a></li>
+  <li><a href="#Listeners">Listener support.</a></li>
+</ul>
+
+<h2>Creating an instance of the Transaction Manager</h2>
+
+<p>Applications talk to the transaction manager through it's
+<a href="nsitransactionmanager.html">nsITransactionManager interface</a>.
+This <a href="nsitransactionmanager.html">interface</a> contains the
+methods for <a href="nsitransactionmanager.html#TXMGRDO">executing</a>,
+<a href="nsitransactionmanager.html#TXMGRUNDO">undoing</a>, and
+<a href="nsitransactionmanager.html#TXMGRREDO">redoing</a> transactions.</p>
+
+<p>To create an instance of the transaction manager, the application must
+include the proper header files, and make sure that the transaction
+manager dll is registered with the nsRepository:</p>
+
+<pre class="code">
+
+    #include "nsITransactionManager.h"
+    #include "nsTransactionManagerCID.h"
+    #include "nsRepository.h"
+
+
+    static NS_DEFINE_IID(kISupportsIID, NS_ISUPPORTS_IID);
+    static NS_DEFINE_IID(kITransactionManagerIID, NS_ITRANSACTIONMANAGER_IID);
+    static NS_DEFINE_CID(kCTransactionManagerFactoryCID, 
+    NS_TRANSACTION_MANAGER_FACTORY_CID);
+
+
+    #ifdef XP_PC
+    #define TRANSACTION_MANAGER_DLL "txmgr.dll"
+    #else
+    #ifdef XP_MAC
+    #define TRANSACTION_MANAGER_DLL "TRANSACTION_MANAGER_DLL"
+    #else // XP_UNIX
+    #define TRANSACTION_MANAGER_DLL "libtxmgr.so"
+    #endif
+    #endif
+
+    nsresult SomeMethod()
+    {
+      nsresult result;
+
+      ...
+
+      nsRepository::RegisterFactory(kCTransactionManagerFactoryCID,
+                          TRANSACTION_MANAGER_DLL, PR_FALSE, PR_FALSE);
+
+      ...
+
+    }
+</pre>
+
+<p>It can then create an instance of the transaction manager by using the
+nsRepository::CreateInstance() method:</p>
+
+<pre class="code">
+
+    nsresult result;
+    nsITransactionManager *txmgr = 0;
+
+    ...
+
+    result = nsRepository::CreateInstance(kCTransactionManagerFactoryCID, nsnull,
+                                   kITransactionManagerIID, (void **)&amp;txmgr);
+
+    if (NS_FAILED(result) || !txmgr) {
+      return NS_ERROR_FAILURE;
+    }
+
+</pre>
+
+<h2>Executing a Transaction</h2>
+
+<p>To execute a transaction, you call the transaction manager's
+<a href="nsitransactionmanager.html#TXMGRDO">Do()</a> method and
+pass in the transaction to execute:</p>
+
+<pre class="code">
+
+    SomeTransaction *tx;
+
+    /* Create a tx transaction here. */
+
+    ...
+
+    txmgr->Do(tx);
+
+    ...
+
+</pre>
+
+<p class="note">The <a href="nsitransaction.html#TXDO">Do()</a>,
+<a href="nsitransaction.html#TXUNDO">Undo()</a> and
+<a href="nsitransaction.html#TXREDO">Redo()</a> methods of a transaction
+should never be called directly by the application.</p>
+
+<h2>Undoing a Transaction</h2>
+
+<p>To undo the last transaction, you call the transaction manager's
+<a href="nsitransactionmanager.html#TXMGRUNDO">Undo()</a> method:</p>
+
+<pre class="code">
+
+    txmgr->Undo();
+
+</pre>
+
+<h2>Redoing a Transaction</h2>
+
+<p>
+To redo the last transaction that was undone, you call the transaction manager's
+<a href="nsitransactionmanager.html#TXMGRREDO">Redo()</a> method:</p>
+
+<pre class="code">
+
+    txmgr->Redo();
+
+</pre>
+
+
+<h2><a id="MultiLevelUndo" name="MultiLevelUndo">Multi Level Undo/Redo</a></h2>
+<p>
+The application can tell the transaction manager how many levels of
+undo/redo it wants by calling the
+<a href="nsitransactionmanager.html#TXMGRCOUNT">SetMaxTransactionCount()</a>
+method:</p>
+
+<p>To specify 10 levels of undo, the applications would call:</p>
+
+<pre class="code">
+
+    txmgr->SetMaxTransactionCount(10);
+
+</pre>
+<p>
+By default, the transaction manager is set to allow unlimited levels
+of undo/redo. Applications can also explicitly tell the transaction manager
+that this is what they want by passing in a -1:</p>
+
+<pre class="code">
+
+    txmgr->SetMaxTransactionCount(-1);
+
+</pre>
+
+<p>
+Some applications may not want any levels of undo/redo, but still
+want the transaction manager to execute transactions, and not keep track of
+them for undo/redo purposes. This could be the case if the application is
+running under strict memory constraints. This can be set by passing a zero
+value:</p>
+
+<pre class="code">
+
+    txmgr->SetMaxTransactionCount(0);
+
+</pre>
+
+<h2><a name="Coalescing" id="Coalescing">Coalescing of Transactions</a></h2>
+
+<p>One of the <a href="nsitransaction.html">nsITransaction</a> interface
+methods that all application transactions must implement is
+<a href="nsitransaction.html#TXMERGE">Merge()</a>. The transaction manager
+uses the transaction at the top of the undo stack to call this method, to
+give it a chance to merge in a transaction whose
+<a href="nsitransaction.html#TXDO">Do()</a> method was just
+executed. Here's an example to illustrate what happens inside the transaction
+manager.</p>
+
+<p>Suppose the application executed transaction <b>A</b>:</p>
+
+<pre class="code">
+
+    MyTransaction *A;
+    MyTransaction *B;
+
+    ...
+
+    /* A and B get created somewhere here. */
+
+    ...
+
+    txmgr->Do(A);
+
+</pre>
+
+<p>and then executed transaction <b>B</b>:</p>
+
+<pre class="code">
+
+    txmgr->Do(B);
+
+</pre>
+
+<p>Since <b>A</b> was at the top of the undo stack, executing <b>B</b>
+would result in the transaction manager calling <b>A</b>'s
+<a href="nsitransaction.html#TXMERGE">Merge()</a> method with <b>B</b> as
+it's argument:</p>
+
+<pre class="code">
+
+    PRBool didMerge = PR_FALSE;
+
+    A->Merge(B, &amp;didMerge);
+
+    if (didMerge) {
+      /* nothing to do */
+      return
+    }
+    else {
+      /* wasn't merged so push B on the undo stack. */
+    }
+
+</pre>
+
+<p>It's important to note that the transaction manager itself is 
+not responsible for merging the transactions together. It is up to 
+the application to merge <b>B</b> into <b>A</b> if it can! The 
+transaction manager simply supplies the means to automatically 
+call <a href="nsitransaction.html#TXMERGE">Merge()</a>
+whenever a transaction is executed.</p>
+
+<p>An example of how this feature may be used by an application, 
+would be to merge separate transactions that inserted characters 
+next to each other in the document, so that a single call to undo 
+would undo them all at once.</p>
+
+<h2><a name="Aggregation" id="Aggregation">Automatic Aggregation of Nested Transactions</a></h2>
+
+<p>Application transactions are allowed to execute other transactions 
+from within their <a href="nsitransaction.html#TXDO">Do()</a> methods. 
+The transaction manager automatically keeps track of this relationship 
+by aggregating the transactions together, so that one call to undo will
+undo all transactions.</p>
+
+<p>In the following example, transactions <b>A</b> and <b>B</b> 
+execute nested transactions:</p>
+
+<pre class="code">
+
+    class PrintTransaciton : public nsITransaction {
+
+      ...
+
+      virtual void print() = 0;
+
+      virtual nsresult Do()   { print(); }
+      virtual nsresult Undo() { print(); }
+      virtual nsresult Redo() { print(); }
+
+      ...
+
+    };
+
+
+    class D : public PrintTransaction {
+
+        ...
+
+        void print() { printf("D\n");
+
+        ...
+    };
+
+
+
+    class C : public PrintTransaction {
+
+        ...
+
+        void print() { printf("C\n");
+
+        ...
+    };
+
+
+
+    class B : public PrintTransaction {
+
+        ...
+
+        void print() { printf("B\n");
+
+        void Do()
+        {
+          C *c;
+
+          /* Create c transaction here */
+
+          ...
+
+          PrintTransaction::Do();
+
+          txmgr->Do(c);
+
+          ...
+        }
+
+        ...
+    };
+
+
+
+    class A : public PrintTransaction {
+
+        ...
+
+        void print() { printf("A\n");
+
+        void Do()
+        {
+          B *b;
+          D *d;
+
+          /* Create b and d transactions here */
+
+          ...
+
+          PrintTransaction::Do();
+
+          txmgr->Do(b);
+          txmgr->Do(d);
+
+          ...
+        }
+
+        ...
+    };
+
+</pre>
+
+<p>Executing an <b>A</b> transaction:</p>
+
+<pre class="code">
+
+    A *a;
+
+    /* Create an A transaction */
+
+    ...
+
+    txmgr->Do(a);
+
+    ...
+
+</pre>
+
+<p>prints the following:</p>
+
+<pre class="code">
+
+    A
+    B
+    C
+    D
+
+</pre>
+
+<p>Calling <a href="nsitransactionmanager.html#TXMGRUNDO">Undo()</a>:</p>
+
+<pre class="code">
+
+    txmgr->Undo();
+
+</pre>
+
+<p>prints the following:</p>
+
+<pre class="code">
+
+    D
+    C
+    B
+    A
+
+</pre>
+
+<p>Calling <a href="nsitransactionmanager.html#TXMGRREDO">Redo()</a>:</p>
+
+<pre class="code">
+
+    txmgr->Redo();
+
+</pre>
+
+<p>prints the following:</p>
+
+<pre class="code">
+
+    A
+    B
+    C
+    D
+
+</pre>
+
+<p>This feature is useful in applications like the
+<a href="./">editor</a>, where most of the complex transactions that 
+can be performed on a document, can be built from a few basic editing 
+transactions like DeleteElement, InsertElement, and ChangeAttribute. 
+Because these complex transactions are built entirely from basic 
+transactions, they get undo and redo for free, because they are handled 
+entirely by the basic transactions.</p>
+
+<p>As an example, consider the case where the user types a key while some
+text is selected.  The <a href="http://www.mozilla.org/editor">editor</a>
+would execute a single transaction called InsertKey. All the InsertKey
+transaction does is iterate through the current selection, executing
+the DeleteItem transaction for every element it finds. Next, it executes
+an InsertElement transaction which inserts the character corresponding 
+to the key that was typed.</p>
+
+
+<h2><a name="Batching" id="Batching">Batching Transactions</a></h2>
+
+<p>There may be times when it is necessary to batch several independent
+transactions together so that a single call to undo, undoes them all 
+at once. Applications can use the transaction manager methods
+<a href="nsitransactionmanager.html#TXMGRBB">BeginBatch()</a> and
+<a href="nsitransactionmanager.html#TXMGREB">EndBatch()</a> to force
+transactions to be aggregated.</p>
+
+
+<pre class="code">
+
+    SomeTransaction      *A;
+    SomeOtherTransaction *B;
+
+    /* Transactions created here */
+
+    ...
+
+    txmgr->BeginBatch();
+    txmgr->Do(A);
+    txmgr->Do(B);
+    txmgr->EndBatch();
+
+    ...
+
+</pre>
+
+<p>If we were to call txmgr->Undo() after executing this code,
+<b>B</b> would be undone, and then <b>A</b>. Executing a 
+<code>txmgr->Redo()</code> after that would cause <b>A</b> to 
+be redone, and then <b>B</b>.</p>
+
+<h2><a name="Rollback" id="Rollback">Rollback for Error Recovery</a></h2>
+
+<p>The transaction manager assumes that transactions that throw an error
+during the execution of their
+<a href="nsitransaction.html#TXDO">Do()</a>,
+<a href="nsitransaction.html#TXUNDO">Undo()</a> or
+<a href="nsitransaction.html#TXREDO">Redo()</a> methods, leave the
+application in the state it was before execution was attempted.</p>
+
+<p>In the case of a complex (aggregated) transaction, an error might occur
+somewhere after some of it's sub transactions might have already executed
+successfully. If this happens during an undo or redo, the transaction 
+manager will attempt to rollback the transactions that previously 
+succeeded to restore the application to it's previous state.</p>
+
+<p>To illustrate this, suppose <b>A</b> was a complex transaction that 
+executed transactions <b>B</b>, <b>C</b>, and <b>D</b>, like the 
+example in the 
+<a href="#Aggregation">"Automatic Aggregation of Nested Transactions"</a> 
+section above.</p>
+
+<p>
+Execution of txmgr->(A) would result in:</p>
+
+<pre class="code">
+
+    A
+    B
+    C
+    D
+
+</pre>
+
+<p>Now lets suppose that when we call txmgr->Undo(), <b>B</b> throws an
+error, this is what results:</p>
+
+<pre class="code">
+
+    D   /* Undo */
+    C   /* Undo */
+    B   /* Undo error thrown */
+    C   /* Rollback via Redo */
+    D   /* Rollback via Redo */
+
+</pre>
+
+<p>Currently, there is no way to shut off this rollback behavior. It would
+be trivial to add a method to do this.</p>
+
+<h2><a name="Listeners" id="Listeners">Listeners</a></h2>
+
+<p>The transaction manager sends out notifications whenever a transaction
+is done, undone, redone, or merged, and whenever a batch is started or
+closed. Applications or modules wishing to be notified of these events
+must implement the
+<a href="nsitransactionlistener.html">nsITransactionListener</a> interface,
+and register themselves via the
+<a href="nsitransactionmanager.html">nsITransactionManager</a> interface
+method <a href="nsitransactionmanager.html#TXMGRAL">AddListener()</a>.</p>
+
+<p>Listeners can be used to generate transaction logs for debugging or QA
+test scripting. They can also be used to filter or forward transactions
+to some other handler.</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified November  7,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/editor/txmgr/transaction-manager.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

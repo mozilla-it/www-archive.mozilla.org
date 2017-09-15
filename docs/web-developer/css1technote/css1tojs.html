@@ -1,0 +1,2460 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.76 [en]C-AOLNSCP  (Win98; U) [Netscape]">
+   <title>Tool for Generating Cross-Browser JavaScript that Sets CSS1 Properties</title>
+<!-- This external script defines cross-browser functions for
+     generating JavaScript code to acces CSS1 properties. -->
+<script LANGUAGE="JavaScript1.2" SRC=xbcss1.js>
+</script>
+<script LANGUAGE="JavaScript">
+// FormChek.js
+//
+// SUMMARY
+//
+// This is a set of JavaScript functions for validating input on 
+// an HTML form.  Original functions and comments can be found at:
+// http://developer.netscape.com/docs/examples/javascript/formval/overview.html
+
+
+var ieTargetStyleSheetID = "tssxyz";
+
+
+// VARIABLE DECLARATIONS
+
+var digits = "0123456789";
+
+var lowercaseLetters = "abcdefghijklmnopqrstuvwxyz"
+
+var uppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+// whitespace characters
+var whitespace = " \t\n\r";
+
+
+
+// CONSTANT STRING DECLARATIONS
+// (grouped for ease of translation and localization)
+
+// m is an abbreviation for "missing"
+
+var mPrefix = "You did not enter a value into the "
+var mSuffix = " field. This is a required field. Please enter it now."
+
+// s is an abbreviation for "string"
+
+
+var siessname = " STYLE element name (lowercase, first character a letter, rest alphanumeric)."
+
+
+// i is an abbreviation for "invalid"
+
+
+// p is an abbreviation for "prompt"
+
+var pEntryPrompt = "Please enter a "
+
+
+// Global variable defaultEmptyOK defines default return value 
+// for many functions when they are passed the empty string. 
+// By default, they will return defaultEmptyOK.
+//
+// defaultEmptyOK is false, which means that by default, 
+// these functions will do "strict" validation.  Function
+// isInteger, for example, will only return true if it is
+// passed a string containing an integer; if it is passed
+// the empty string, it will return false.
+//
+// You can change this default behavior globally (for all 
+// functions which use defaultEmptyOK) by changing the value
+// of defaultEmptyOK.
+//
+// Most of these functions have an optional argument emptyOK
+// which allows you to override the default behavior for 
+// the duration of a function call.
+//
+// This functionality is useful because it is possible to
+// say "if the user puts anything in this field, it must
+// be an integer (or a phone number, or a string, etc.), 
+// but it's OK to leave the field empty too."
+// This is the case for fields which are optional but which
+// must have a certain kind of content if filled in.
+
+var defaultEmptyOK = false
+
+
+// Attempting to make this library run on Navigator 2.0,
+// so I'm supplying this array creation routine as per
+// JavaScript 1.0 documentation.  If you're using 
+// Navigator 3.0 or later, you don't need to do this;
+// you can use the Array constructor instead.
+
+function makeArray(n) {
+//*** BUG: If I put this line in, I get two error messages:
+//(1) Window.length can't be set by assignment
+//(2) daysInMonth has no property indexed by 4
+//If I leave it out, the code works fine.
+//   this.length = n;
+   for (var i = 1; i <= n; i++) {
+      this[i] = 0
+   } 
+   return this
+}
+
+
+// Check whether string s is empty.
+
+function isEmpty(s)
+{   return ((s == null) || (s.length == 0))
+}
+
+
+// Returns true if string s is empty or 
+// whitespace characters only.
+
+function isWhitespace (s)
+
+{   var i;
+
+    // Is s empty?
+    if (isEmpty(s)) return true;
+
+    // Search through string's characters one by one
+    // until we find a non-whitespace character.
+    // When we do, return false; if we don't, return true.
+
+    for (i = 0; i < s.length; i++)
+    {   
+        // Check that current character isn't whitespace.
+        var c = s.charAt(i);
+
+        if (whitespace.indexOf(c) == -1) return false;
+    }
+
+    // All characters are whitespace.
+    return true;
+}
+
+
+
+// Removes all characters which appear in string bag from string s.
+
+function stripCharsInBag (s, bag)
+
+{   var i;
+    var returnString = "";
+
+    // Search through string's characters one by one.
+    // If character is not in bag, append to returnString.
+
+    for (i = 0; i < s.length; i++)
+    {   
+        // Check that current character isn't whitespace.
+        var c = s.charAt(i);
+        if (bag.indexOf(c) == -1) returnString += c;
+    }
+
+    return returnString;
+}
+
+
+
+// Removes all characters which do NOT appear in string bag 
+// from string s.
+
+function stripCharsNotInBag (s, bag)
+
+{   var i;
+    var returnString = "";
+
+    // Search through string's characters one by one.
+    // If character is in bag, append to returnString.
+
+    for (i = 0; i < s.length; i++)
+    {   
+        // Check that current character isn't whitespace.
+        var c = s.charAt(i);
+        if (bag.indexOf(c) != -1) returnString += c;
+    }
+
+    return returnString;
+}
+
+
+
+// Removes all whitespace characters from s.
+// Global variable whitespace (see above)
+// defines which characters are considered whitespace.
+
+function stripWhitespace (s)
+
+{   return stripCharsInBag (s, whitespace)
+}
+
+
+// WORKAROUND FUNCTION FOR NAVIGATOR 2.0.2 COMPATIBILITY.
+//
+// The below function *should* be unnecessary.  In general,
+// avoid using it.  Use the standard method indexOf instead.
+//
+// However, because of an apparent bug in indexOf on 
+// Navigator 2.0.2, the below loop does not work as the
+// body of stripInitialWhitespace:
+//
+// while ((i < s.length) && (whitespace.indexOf(s.charAt(i)) != -1))
+//   i++;
+//
+// ... so we provide this workaround function charInString
+// instead.
+//
+// charInString (CHARACTER c, STRING s)
+//
+// Returns true if single character c (actually a string)
+// is contained within string s.
+
+function charInString (c, s)
+{   for (i = 0; i < s.length; i++)
+    {   if (s.charAt(i) == c) return true;
+    }
+    return false
+}
+
+
+// Removes initial (leading) whitespace characters from s.
+// Global variable whitespace (see above)
+// defines which characters are considered whitespace.
+
+function stripInitialWhitespace (s)
+
+{   var i = 0;
+
+    while ((i < s.length) && charInString (s.charAt(i), whitespace))
+       i++;
+    
+    return s.substring (i, s.length);
+}
+
+
+// Returns true if character c is an English letter 
+// (A .. Z, a..z).
+//
+// NOTE: Need i18n version to support European characters.
+// This could be tricky due to different character
+// sets and orderings for various languages and platforms.
+
+function isLetter (c)
+{   return ( ((c >= "a") && (c <= "z")) || ((c >= "A") && (c <= "Z")) )
+}
+
+
+
+// Returns true if character c is a digit 
+// (0 .. 9).
+
+function isDigit (c)
+{   return ((c >= "0") && (c <= "9"))
+}
+
+
+
+// Returns true if character c is a letter or digit.
+
+function isLetterOrDigit (c)
+{   return (isLetter(c) || isDigit(c))
+}
+
+
+
+// isInteger (STRING s [, BOOLEAN emptyOK])
+// 
+// Returns true if all characters in string s are numbers.
+//
+// Accepts non-signed integers only. Does not accept floating 
+// point, exponential notation, etc.
+//
+// We don't use parseInt because that would accept a string
+// with trailing non-numeric characters.
+//
+// By default, returns defaultEmptyOK if s is empty.
+// There is an optional second argument called emptyOK.
+// emptyOK is used to override for a single function call
+//      the default behavior which is specified globally by
+//      defaultEmptyOK.
+// If emptyOK is false (or any value other than true), 
+//      the function will return false if s is empty.
+// If emptyOK is true, the function will return true if s is empty.
+//
+// EXAMPLE FUNCTION CALL:     RESULT:
+// isInteger ("5")            true 
+// isInteger ("")             defaultEmptyOK
+// isInteger ("-5")           false
+// isInteger ("", true)       true
+// isInteger ("", false)      false
+// isInteger ("5", false)     true
+
+function isInteger (s)
+
+{   var i;
+
+    if (isEmpty(s)) 
+       if (isInteger.arguments.length == 1) return defaultEmptyOK;
+       else return (isInteger.arguments[1] == true);
+
+    // Search through string's characters one by one
+    // until we find a non-numeric character.
+    // When we do, return false; if we don't, return true.
+
+    for (i = 0; i < s.length; i++)
+    {   
+        // Check that current character is number.
+        var c = s.charAt(i);
+
+        if (!isDigit(c)) return false;
+    }
+
+    // All characters are numbers.
+    return true;
+}
+
+
+
+// isSignedInteger (STRING s [, BOOLEAN emptyOK])
+// 
+// Returns true if all characters are numbers; 
+// first character is allowed to be + or - as well.
+//
+// Does not accept floating point, exponential notation, etc.
+//
+// We don't use parseInt because that would accept a string
+// with trailing non-numeric characters.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+//
+// EXAMPLE FUNCTION CALL:          RESULT:
+// isSignedInteger ("5")           true 
+// isSignedInteger ("")            defaultEmptyOK
+// isSignedInteger ("-5")          true
+// isSignedInteger ("+5")          true
+// isSignedInteger ("", false)     false
+// isSignedInteger ("", true)      true
+
+function isSignedInteger (s)
+
+{   if (isEmpty(s)) 
+       if (isSignedInteger.arguments.length == 1) return defaultEmptyOK;
+       else return (isSignedInteger.arguments[1] == true);
+
+    else {
+        var startPos = 0;
+        var secondArg = defaultEmptyOK;
+
+        if (isSignedInteger.arguments.length > 1)
+            secondArg = isSignedInteger.arguments[1];
+
+        // skip leading + or -
+        if ( (s.charAt(0) == "-") || (s.charAt(0) == "+") )
+           startPos = 1;    
+        return (isInteger(s.substring(startPos, s.length), secondArg))
+    }
+}
+
+
+// isPositiveInteger (STRING s [, BOOLEAN emptyOK])
+// 
+// Returns true if string s is an integer > 0.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+
+function isPositiveInteger (s)
+{   var secondArg = defaultEmptyOK;
+
+    if (isPositiveInteger.arguments.length > 1)
+        secondArg = isPositiveInteger.arguments[1];
+
+    // The next line is a bit byzantine.  What it means is:
+    // a) s must be a signed integer, AND
+    // b) one of the following must be true:
+    //    i)  s is empty and we are supposed to return true for
+    //        empty strings
+    //    ii) this is a positive, not negative, number
+
+    return (isSignedInteger(s, secondArg)
+         && ( (isEmpty(s) && secondArg)  || (parseInt (s) > 0) ) );
+}
+
+
+// isNonnegativeInteger (STRING s [, BOOLEAN emptyOK])
+// 
+// Returns true if string s is an integer >= 0.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+
+function isNonnegativeInteger (s)
+{   var secondArg = defaultEmptyOK;
+
+    if (isNonnegativeInteger.arguments.length > 1)
+        secondArg = isNonnegativeInteger.arguments[1];
+
+    // The next line is a bit byzantine.  What it means is:
+    // a) s must be a signed integer, AND
+    // b) one of the following must be true:
+    //    i)  s is empty and we are supposed to return true for
+    //        empty strings
+    //    ii) this is a number >= 0
+
+    return (isSignedInteger(s, secondArg)
+         && ( (isEmpty(s) && secondArg)  || (parseInt (s) >= 0) ) );
+}
+
+
+// isNegativeInteger (STRING s [, BOOLEAN emptyOK])
+// 
+// Returns true if string s is an integer < 0.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+
+function isNegativeInteger (s)
+{   var secondArg = defaultEmptyOK;
+
+    if (isNegativeInteger.arguments.length > 1)
+        secondArg = isNegativeInteger.arguments[1];
+
+    // The next line is a bit byzantine.  What it means is:
+    // a) s must be a signed integer, AND
+    // b) one of the following must be true:
+    //    i)  s is empty and we are supposed to return true for
+    //        empty strings
+    //    ii) this is a negative, not positive, number
+
+    return (isSignedInteger(s, secondArg)
+         && ( (isEmpty(s) && secondArg)  || (parseInt (s) < 0) ) );
+}
+
+
+
+// isNonpositiveInteger (STRING s [, BOOLEAN emptyOK])
+// 
+// Returns true if string s is an integer <= 0.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+
+function isNonpositiveInteger (s)
+{   var secondArg = defaultEmptyOK;
+
+    if (isNonpositiveInteger.arguments.length > 1)
+        secondArg = isNonpositiveInteger.arguments[1];
+
+    // The next line is a bit byzantine.  What it means is:
+    // a) s must be a signed integer, AND
+    // b) one of the following must be true:
+    //    i)  s is empty and we are supposed to return true for
+    //        empty strings
+    //    ii) this is a number <= 0
+
+    return (isSignedInteger(s, secondArg)
+         && ( (isEmpty(s) && secondArg)  || (parseInt (s) <= 0) ) );
+}
+
+
+
+// isFloat (STRING s [, BOOLEAN emptyOK])
+// 
+// True if string s is an unsigned floating point (real) number. 
+//
+// Also returns true for unsigned integers. If you wish
+// to distinguish between integers and floating point numbers,
+// first call isInteger, then call isFloat.
+//
+// Does not accept exponential notation.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+
+
+function isFloat (s)
+
+{   var i;
+    var seenDecimalPoint = false;
+
+    if (isEmpty(s)) 
+       if (isFloat.arguments.length == 1) return defaultEmptyOK;
+       else return (isFloat.arguments[1] == true);
+
+    if (s == decimalPointDelimiter) return false;
+
+    // Search through string's characters one by one
+    // until we find a non-numeric character.
+    // When we do, return false; if we don't, return true.
+
+    for (i = 0; i < s.length; i++)
+    {   
+        // Check that current character is number.
+        var c = s.charAt(i);
+
+        if ((c == decimalPointDelimiter) && !seenDecimalPoint) seenDecimalPoint = true;
+        else if (!isDigit(c)) return false;
+    }
+
+    // All characters are numbers.
+    return true;
+}
+
+
+
+// isSignedFloat (STRING s [, BOOLEAN emptyOK])
+// 
+// True if string s is a signed or unsigned floating point 
+// (real) number. First character is allowed to be + or -.
+//
+// Also returns true for unsigned integers. If you wish
+// to distinguish between integers and floating point numbers,
+// first call isSignedInteger, then call isSignedFloat.
+//
+// Does not accept exponential notation.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+
+function isSignedFloat (s)
+
+{   if (isEmpty(s)) 
+       if (isSignedFloat.arguments.length == 1) return defaultEmptyOK;
+       else return (isSignedFloat.arguments[1] == true);
+
+    else {
+        var startPos = 0;
+        var secondArg = defaultEmptyOK;
+
+        if (isSignedFloat.arguments.length > 1)
+            secondArg = isSignedFloat.arguments[1];
+
+        // skip leading + or -
+        if ( (s.charAt(0) == "-") || (s.charAt(0) == "+") )
+           startPos = 1;    
+        return (isFloat(s.substring(startPos, s.length), secondArg))
+    }
+}
+
+
+// isAlphabetic (STRING s [, BOOLEAN emptyOK])
+// 
+// Returns true if string s is English letters 
+// (A .. Z, a..z) only.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+//
+// NOTE: Need i18n version to support European characters.
+// This could be tricky due to different character
+// sets and orderings for various languages and platforms.
+
+function isAlphabetic (s)
+
+{   var i;
+
+    if (isEmpty(s)) 
+       if (isAlphabetic.arguments.length == 1) return defaultEmptyOK;
+       else return (isAlphabetic.arguments[1] == true);
+
+    // Search through string's characters one by one
+    // until we find a non-alphabetic character.
+    // When we do, return false; if we don't, return true.
+
+    for (i = 0; i < s.length; i++)
+    {   
+        // Check that current character is letter.
+        var c = s.charAt(i);
+
+        if (!isLetter(c))
+        return false;
+    }
+
+    // All characters are letters.
+    return true;
+}
+
+
+
+
+// isAlphanumeric (STRING s [, BOOLEAN emptyOK])
+// 
+// Returns true if string s is English letters 
+// (A .. Z, a..z) and numbers only.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+//
+// NOTE: Need i18n version to support European characters.
+// This could be tricky due to different character
+// sets and orderings for various languages and platforms.
+
+function isAlphanumeric (s)
+
+{   var i;
+
+    if (isEmpty(s)) 
+       if (isAlphanumeric.arguments.length == 1) return defaultEmptyOK;
+       else return (isAlphanumeric.arguments[1] == true);
+
+    // Search through string's characters one by one
+    // until we find a non-alphanumeric character.
+    // When we do, return false; if we don't, return true.
+
+    for (i = 0; i < s.length; i++)
+    {   
+        // Check that current character is number or letter.
+        var c = s.charAt(i);
+
+        if (! (isLetter(c) || isDigit(c) ) )
+        return false;
+    }
+
+    // All characters are numbers or letters.
+    return true;
+}
+
+
+
+
+// reformat (TARGETSTRING, STRING, INTEGER, STRING, INTEGER ... )       
+//
+// Handy function for arbitrarily inserting formatting characters
+// or delimiters of various kinds within TARGETSTRING.
+//
+// reformat takes one named argument, a string s, and any number
+// of other arguments.  The other arguments must be integers or
+// strings.  These other arguments specify how string s is to be
+// reformatted and how and where other strings are to be inserted
+// into it.
+//
+// reformat processes the other arguments in order one by one.
+// * If the argument is an integer, reformat appends that number 
+//   of sequential characters from s to the resultString.
+// * If the argument is a string, reformat appends the string
+//   to the resultString.
+//
+// NOTE: The first argument after TARGETSTRING must be a string.
+// (It can be empty.)  The second argument must be an integer.
+// Thereafter, integers and strings must alternate.  This is to
+// provide backward compatibility to Navigator 2.0.2 JavaScript
+// by avoiding use of the typeof operator.
+//
+// It is the caller's responsibility to make sure that we do not
+// try to copy more characters from s than s.length.
+//
+// EXAMPLES:
+//
+// * To reformat a 10-digit U.S. phone number from "1234567890"
+//   to "(123) 456-7890" make this function call:
+//   reformat("1234567890", "(", 3, ") ", 3, "-", 4)
+//
+// * To reformat a 9-digit U.S. Social Security number from
+//   "123456789" to "123-45-6789" make this function call:
+//   reformat("123456789", "", 3, "-", 2, "-", 4)
+//
+// HINT:
+//
+// If you have a string which is already delimited in one way
+// (example: a phone number delimited with spaces as "123 456 7890")
+// and you want to delimit it in another way using function reformat,
+// call function stripCharsNotInBag to remove the unwanted 
+// characters, THEN call function reformat to delimit as desired.
+//
+// EXAMPLE:
+//
+// reformat (stripCharsNotInBag ("123 456 7890", digits),
+//           "(", 3, ") ", 3, "-", 4)
+
+
+function reformat (s)
+
+{   var arg;
+    var sPos = 0;
+    var resultString = "";
+
+    for (var i = 1; i < reformat.arguments.length; i++) {
+       arg = reformat.arguments[i];
+       if (i % 2 == 1) resultString += arg;
+       else {
+           resultString += s.substring(sPos, sPos + arg);
+           sPos += arg;
+       }
+    }
+    return resultString;
+}
+
+
+
+
+// isIntegerInRange (STRING s, INTEGER a, INTEGER b [, BOOLEAN emptyOK])
+// 
+// isIntegerInRange returns true if string s is an integer 
+// within the range of integer arguments a and b, inclusive.
+// 
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+
+
+function isIntegerInRange (s, a, b)
+{   if (isEmpty(s)) 
+       if (isIntegerInRange.arguments.length == 1) return defaultEmptyOK;
+       else return (isIntegerInRange.arguments[1] == true);
+
+    // Catch non-integer strings to avoid creating a NaN below,
+    // which isn't available on JavaScript 1.0 for Windows.
+    if (!isInteger(s, false)) return false;
+
+    // Now, explicitly change the type to integer via parseInt
+    // so that the comparison code below will work both on 
+    // JavaScript 1.2 (which typechecks in equality comparisons)
+    // and JavaScript 1.1 and before (which doesn't).
+    var num = parseInt (s);
+    return ((num >= a) && (num <= b));
+}
+
+
+
+/* FUNCTIONS TO NOTIFY USER OF INPUT REQUIREMENTS OR MISTAKES. */
+
+
+// Display prompt string s in status bar.
+
+function prompt (s)
+{   window.status = s
+}
+
+
+
+// Display data entry prompt string s in status bar.
+
+function promptEntry (s)
+{   window.status = pEntryPrompt + s
+}
+
+
+
+// Notify user that required field theField is empty.
+// String s describes expected contents of theField.value.
+// Put focus in theField and return false.
+
+function warnEmpty (theField, s)
+{   theField.focus()
+    alert(mPrefix + s + mSuffix)
+    return false
+}
+
+
+
+// Notify user that contents of field theField are invalid.
+// String s describes expected contents of theField.value.
+// Put select theField, pu focus in it, and return false.
+
+function warnInvalid (theField, s)
+{   theField.focus()
+    theField.select()
+    alert(s)
+    return false
+}
+
+
+
+
+/* FUNCTIONS TO INTERACTIVELY CHECK VARIOUS FIELDS. */
+
+// checkString (TEXTFIELD theField, STRING s, [, BOOLEAN emptyOK==false])
+//
+// Check that string theField.value is not all whitespace.
+//
+// For explanation of optional argument emptyOK,
+// see comments of function isInteger.
+
+
+function checkString (theField, s, emptyOK)
+{   // Next line is needed on NN3 to avoid "undefined is not a number" error
+    // in equality comparison below.
+    if (checkString.arguments.length == 2) emptyOK = defaultEmptyOK;
+    if ((emptyOK == true) && (isEmpty(theField.value))) return true;
+    if (isWhitespace(theField.value)) 
+       return warnEmpty (theField, s);
+    else return true;
+}
+
+
+
+// Get checked value from radio button.
+
+function getRadioButtonValue (radio)
+{   for (var i = 0; i < radio.length; i++)
+    {   if (radio[i].checked) { break }
+    }
+    return radio[i].value
+}
+
+
+
+var rows = 15;
+
+var styleComment = "&lt;!-- DO NOT DELETE: this empty style sheet element becomes the\n     style sheet to which CSS1 rules are added in IE4+. --&gt;\n"
+var styleElement1 = '&lt;STYLE ID=\"'
+var styleElement2 = '" TYPE="text/css"&gt;&lt;/STYLE&gt;\n\n'
+var scriptOpen = '&lt;SCRIPT LANGUAGE="JavaScript1.2"&gt;&lt;!--\n'
+var scriptClose = '//--&gt;&lt;/SCRIPT&gt;\n\n'
+
+var agtSet = "var agt=navigator.userAgent.toLowerCase();\n";
+var navOpen = 
+"if ( (parseInt(navigator.appVersion)==4) && \n" +
+"     (agt.indexOf('mozilla')!=-1) && (agt.indexOf('spoofer')==-1)\n" +
+"               && (agt.indexOf('compatible') == -1) ) {\n"
+var geckoOpen =
+" else if (agt.indexOf('gecko') != -1) { \n"
+var navClose = "}\n";
+
+var ieOpen = 
+"else if ( (parseInt(navigator.appVersion)>=4) && \n" +
+"     (agt.indexOf('msie') != -1) ) {\n"
+
+
+
+
+function generateHeadMarkup(styleForm)
+{   var outputCode = "";
+    var ssName = document.forms[0].elements["iessname"].value;
+    outputCode += styleComment;
+    outputCode += styleElement1 + ssName + styleElement2;
+    var initialjs = document.forms[0].elements["initialjs"].value;
+    outputCode += scriptOpen + initialjs + "\n";
+    outputCode += agtSet;
+    outputCode += navOpen;
+    // build Nav4 code
+    for (var i=0, sel, prop, val, isVar; i<rows; i++)
+    {   sel = eval   ('document.forms[0].elements["sel' + i + '"].value;');
+        prop = eval  ('document.forms[0].elements["prop'+ i + '"].value;');
+        val = eval   ('document.forms[0].elements["val' + i + '"].value;');
+        isVar = eval ('document.forms[0].elements["var' + i + '"].checked;');
+        if ((sel != "") && (prop != "") && (val != "")) 
+        {  outputCode += css1FromJS (true, sel, prop, val, isVar, ssName, false) + "\n";
+        }
+    }
+    outputCode += navClose;
+	outputCode += geckoOpen;
+    // build Gecko code
+    for (var i=0, sel, prop, val, isVar; i<rows; i++)
+    {   sel = eval   ('document.forms[0].elements["sel' + i + '"].value;');
+        prop = eval  ('document.forms[0].elements["prop'+ i + '"].value;');
+        val = eval   ('document.forms[0].elements["val' + i + '"].value;');
+        isVar = eval ('document.forms[0].elements["var' + i + '"].checked;');
+        if ((sel != "") && (prop != "") && (val != "")) 
+        {  outputCode += css1FromJS (false, sel, prop, val, isVar, ssName, true) + "\n";
+        }
+    }
+	outputCode += navClose;
+    outputCode += ieOpen;
+    // build IE4 code
+    for (var i=0, sel, prop, val, isVar; i<rows; i++)
+    {   sel = eval   ('document.forms[0].elements["sel' + i + '"].value;');
+        prop = eval  ('document.forms[0].elements["prop'+ i + '"].value;');
+        val = eval   ('document.forms[0].elements["val' + i + '"].value;');
+        isVar = eval ('document.forms[0].elements["var' + i + '"].checked;');
+        if ((sel != "") && (prop != "") && (val != "")) 
+        {  outputCode += css1FromJS (false, sel, prop, val, isVar, ssName, false) + "\n";
+        }
+    }
+    outputCode += navClose;
+    outputCode += scriptClose;
+    return outputCode;
+}
+
+function generateCSS1Code (styleForm)
+{   var newWin = window.open ("", "codeWin", "menubar=yes,outerHeight=300,outerWidth=600,resizable=yes,scrollbars=yes");
+    var outputCode = "<HTML><HEAD><TITLE>Code to Define CSS1 Rules from JavaScript</TITLE></HEAD><BODY><P>Paste this HTML/JavaScript into your document's HEAD to set CSS1 properties from JavaScript on both Nav4+ and IE4+.</P><FORM NAME='css1forboth'><TEXTAREA NAME='htmljscode' ROWS=40 COLS=80>";
+    outputCode += generateHeadMarkup(styleForm);
+    outputCode += "</TEXTAREA></FORM></BODY></HTML>";
+    newWin.document.writeln(outputCode);
+    newWin.document.close();
+    newWin.focus();
+    return true;
+}
+
+
+
+
+/*
+function genEltOpen (eltName, eltClass, eltID, eltText)
+{   var outputCode = "";
+    outputCode += "<" + eltName;
+    if (eltClass) outputCode += " CLASS='" + eltClass + "'";
+    if (eltID) outputCode += " ID='" + eltID + "'";
+    outputCode += ">" + eltName;
+    outputCode += ( (eltClass)?(" with CLASS set to "+eltClass):"" ) +
+                  (    (eltID)?(" with ID set to "+eltID):"" ) +
+                  (  (eltText)?(" "+eltText):"" )
+    outputCode += "</" + eltName + ">";
+    return outputCode;
+}
+*/
+
+
+
+
+function genEltOpen (eltName, eltClass, eltID)
+{   var outputCode = "<" + eltName;
+    if (eltClass) outputCode += " CLASS='" + eltClass + "'";
+    if (eltID) outputCode += " ID='" + eltID + "'";
+    outputCode += ">";
+    return outputCode;
+}
+
+
+
+
+function genEltText (eltName, eltClass, eltID, eltText)
+{   var outputCode = eltName;
+    outputCode += ( (eltClass)?(" with CLASS set to "+eltClass):"" ) +
+                  (    (eltID)?(" with ID set to "+eltID):"" ) +
+                  (  (eltText)?(" "+eltText):"" )
+    return outputCode;
+}
+
+
+
+
+
+function genEltClose (eltName)
+{   var outputCode = "</" + eltName + ">";
+    return outputCode;
+}
+
+
+
+function genElt (eltName, eltClass, eltID, eltText)
+{   return ( genEltOpen (eltName, eltClass, eltID) +
+             genEltText (eltName, eltClass, eltID, eltText) +
+             genEltClose (eltName) );
+}
+
+
+
+
+/* Takes a string (singleSelector) which is a single CSS1-syntax
+   selector (examples: "P", ".warning", "#foo", "P.warning") and returns 
+   the Nav4 JavaScript selector as a string (examples:
+   "document.tags.P", "document.classes.warning.all", "document.ids.foo",
+   "document.classes.warning.P")
+
+   Note: compound element name/class selectors like "P.foo" are supported,
+   but compound element name/identifier selectors like "P#foo" are NOT supported.
+   Do not use compound element name/identifier selectors like "P#foo".
+   Since the identifier uniquely identifies the element, select the
+   element using the identifier only ("#foo").
+*/
+
+
+function createTestMarkupFromSingleSelector (singleSelector)
+{   // alert(singleSelector)
+    if (singleSelector.substr(0,1) == ".")
+        return genElt("P", singleSelector.substr(1));
+    else if (singleSelector.substr(0,1) == "#")
+        return genElt("P", false, singleSelector.substr(1));
+    else if (singleSelector.indexOf(".") == -1)
+        return genElt(singleSelector);
+    else { 
+        var selectorArray = singleSelector.split(".");
+        return genElt(selectorArray[0], selectorArray[1]);
+    }
+}
+
+
+
+/* isLast is true if this is the final selector in the series. 
+   Determines whether we use "DIV" (if false) or "P" (if true)
+   as default element to fill in.
+*/
+
+function createEltOpenForContextualSelector (singleSelector, isLast)
+{   // alert (singleSelector + " is " + isLast);
+    var defElt = (isLast)?"P":"DIV";
+    if (singleSelector.substr(0,1) == ".")
+        return genEltOpen(defElt, singleSelector.substr(1));
+    else if (singleSelector.substr(0,1) == "#")
+        return genEltOpen(defElt, false, singleSelector.substr(1));
+    else if (singleSelector.indexOf(".") == -1)
+        return genEltOpen(singleSelector);
+    else { 
+        var selectorArray = singleSelector.split(".");
+        return genEltOpen(selectorArray[0], selectorArray[1]);
+    }
+}
+
+
+
+/* isLast is true if this is the final selector in the series. 
+   Determines whether we use "DIV" (if false) or "P" (if true)
+   as default element to fill in.
+*/
+
+function createEltCloseForContextualSelector (singleSelector, isLast)
+{   var defElt = (isLast)?"P":"DIV";
+    if (singleSelector.substr(0,1) == ".")
+        return genEltClose(defElt);
+    else if (singleSelector.substr(0,1) == "#")
+        return genEltClose(defElt);
+    else if (singleSelector.indexOf(".") == -1)
+        return genEltClose(singleSelector);
+    else { 
+        var selectorArray = singleSelector.split(".");
+        return genEltClose(selectorArray[0]);
+    }
+}
+
+
+
+
+function createTestMarkupFromFullSelector (selector)
+{   var result = "";
+    var selectorArray = selector.split(" ");
+    if (selectorArray.length == 1) result = createTestMarkupFromSingleSelector (selectorArray[0]);
+    else   // handle contextual (multiple) selector
+    {  for (var i=0; i<selectorArray.length; i++)
+       {   result += createEltOpenForContextualSelector (selectorArray[i], (i==selectorArray.length-1));
+       }
+       result += "CSS1 selector string here is " + selector;
+       for (var i=selectorArray.length-1; i>=0; i--)
+       {   result += createEltCloseForContextualSelector (selectorArray[i], (i==selectorArray.length-1));
+       }
+    }
+    return result;
+}
+
+
+
+function generateTestElts(styleForm)
+{   var outputCode = "";
+    for (var i=0, sel, prop, val, isVar; i<rows; i++)
+    {   sel = eval   ('document.forms[0].elements["sel' + i + '"].value;');
+        // currently, we don't attempt to generate test markup for tables
+        // also, if rule is for BODY, we don't want to add a another BODY element!
+        if ( (sel != "") && (sel.indexOf("TABLE")==-1) && (sel.indexOf("TH")==-1)
+                         && (sel.indexOf("TD")==-1) && (sel.indexOf("BODY")==-1) )
+        {  outputCode += createTestMarkupFromFullSelector (sel);
+        }
+    }
+    return outputCode;
+}
+
+
+
+
+function generateViewPageMarkup (styleForm)
+{   var outputCode = "";
+    outputCode = "<HTML><HEAD><TITLE>Code to Define CSS1 Rules from JavaScript</TITLE>";
+    outputCode += generateHeadMarkup(styleForm);
+    outputCode += "</HEAD><BODY>"
+    outputCode += genElt("H1") + genElt("H2") + genElt("H3") + 
+       genElt("H4") + genElt("H5") + genElt("H6") + 
+       genElt("P") + genElt("BLOCKQUOTE") + genElt("PRE") + 
+       genEltOpen("OL") + genElt("LI") + genElt("LI") + genEltClose("OL") + 
+       genEltOpen("UL") + genElt("LI") + genElt("LI") + genEltClose("UL") + 
+       genEltOpen("DL") + genElt("DT") + genElt("DD") + genEltClose("DL"); 
+    outputCode += generateTestElts(styleForm);
+    outputCode += "</BODY></HTML>";
+    return outputCode;
+}
+
+
+
+function viewPage (styleForm)
+{   var newWin = window.open ("", "codeWin");
+    newWin.blur();
+    var outputCode = generateViewPageMarkup (styleForm);
+    if (is.nav4) 
+    {    newWin.document.write(outputCode);
+         newWin.document.close();
+         // HACK to work around odd problem which causes SCRIPT and STYLE element
+         // contents to appear as text in window, but go away if you click the 
+         // reload button.
+         newWin.history.go(0);
+         newWin.focus();
+    } 
+    else if (is.gecko) {
+         var relt = /</g
+         var regt = />/g
+         outputCode = outputCode.replace(relt, "&lt;").replace(regt, "&gt;");
+ 		 newWin.document.write("<HTML><HEAD><TITLE>Markup of HTML Page to Test CSS1 Rules Defined from JavaScript</TITLE></HEAD><BODY>");
+         newWin.document.write("<P>The 'View Page' button doesn't currently work on IE4 due to an apparent IE4 bug. For some reason, in the 'View Page' demo, the dynamically generated JavaScript in the HEAD is displayed as content instead of being parsed and evaluated as it should be. As a temporary workaround, the tool writes the HTML markup for the complete 'View Page' test page into the element below. If you copy this HTML markup, paste it into a text editor, save it as an HTML file (.htm or .html), and open it in IE4, it will display correctly. Bottom line: the HTML/JavaScript markup itself is fine and will work in both browsers. Only the dynamic page generation demo fails under IE4 due to this apparent bug. So copy, paste, and save the below markup and open in IE4 to try it out!</P><P>");
+         newWin.document.write(outputCode);
+         newWin.document.write("</P></BODY></HTML>");
+         newWin.document.close();
+         newWin.focus();
+         alert("The 'View Page' button doesn't currently work on IE4 due to an apparent IE4 bug. For some reason, in the 'View Page' demo, the dynamically generated JavaScript in the HEAD is displayed as content instead of being parsed and evaluated as it should be. As a temporary workaround for IE4, if you want to see the test page in IE4 to confirm that the markup works as expected:\n1) open this form in Nav4, \n2) click 'View Page' to create the test page, \n3) select 'View-->Source' to see the page's markup, \n4) copy the markup, \n5) paste the markup into a text editor and save as an HTML file (.htm or .html),\n6) open that file in IE4 to view.")    
+    }    
+    else if (is.ie4up) 
+    {
+         var relt = /</g
+         var regt = />/g
+
+         outputCode = outputCode.replace(relt, "&lt;").replace(regt, "&gt;");
+//         newWin.document.write("<HTML><HEAD><TITLE>Markup of HTML Page to Test CSS1 Rules Defined from JavaScript</TITLE></HEAD><BODY>");
+//         newWin.document.write("<P>The 'View Page' button doesn't currently work on IE4 due to an apparent IE4 bug. For some reason, in the 'View Page' demo, the dynamically generated JavaScript in the HEAD is displayed as content instead of being parsed and evaluated as it should be. As a temporary workaround, the tool writes the HTML markup for the complete 'View Page' test page into the element below. If you copy this HTML markup, paste it into a text editor, save it as an HTML file (.htm or .html), and open it in IE4, it will display correctly. Bottom line: the HTML/JavaScript markup itself is fine and will work in both browsers. Only the dynamic page generation demo fails under IE4 due to this apparent bug. So copy, paste, and save the below markup and open in IE4 to try it out!</P><P>");
+         newWin.document.html.insertAdjacentHTML("beforeEnd",outputCode);
+//         newWin.document.write("</P></BODY></HTML>");
+//         newWin.document.close();
+         newWin.focus();
+//         alert("The 'View Page' button doesn't currently work on IE4 due to an apparent IE4 bug. For some reason, in the 'View Page' demo, the dynamically generated JavaScript in the HEAD is displayed as content instead of being parsed and evaluated as it should be. As a temporary workaround for IE4, if you want to see the test page in IE4 to confirm that the markup works as expected:\n1) open this form in Nav4, \n2) click 'View Page' to create the test page, \n3) select 'View-->Source' to see the page's markup, \n4) copy the markup, \n5) paste the markup into a text editor and save as an HTML file (.htm or .html),\n6) open that file in IE4 to view.")
+    }
+    return true;
+}
+
+
+/*
+function viewPage (styleForm)
+{   
+if (is.ie4up) alert("The 'View Page' button doesn't currently work on IE4 due to an apparent IE4 bug. When you click OK, we'll open the page so you can see the problem. For some reason, in the 'View Page' demo, the dynamically generated JavaScript in the HEAD is displayed as content instead of being parsed and evaluated as it should be. As a temporary workaround for IE4, if you want to see the test page in IE4 to confirm that the markup works as expected when loaded from a static file (and it does, by the way!):\n1) open this form in Nav4, \n2) click 'View Page' to create the test page, \n3) select 'View-->Source' to see the page's markup, \n4) copy the markup, \n5) paste the markup into a text editor and save as an HTML file (.htm or .html),\n6) open that file in IE4 to view.\n\nYou can also click the link at the bottom of this page to see a copy of the sample page which has been saved to disk as a workaround.")
+
+    var newWin = window.open ("", "codeWin");
+    newWin.blur();
+    var outputCode = generateViewPageMarkup (styleForm);
+         newWin.document.write(outputCode);
+         newWin.document.close();
+         // HACK to work around odd problem which causes SCRIPT and STYLE element
+         // contents to appear as text in window, but go away if you click the 
+         // reload button. Unfortunately, although IE4 faithfully implemented 
+         // the same bug behavior, they didn't implement the same workaround behavior!
+         newWin.history.go(0);
+         newWin.focus();
+    return true;
+}
+*/
+
+
+function clearAllFields(form)
+{ var areYouSure = confirm ("WARNING: If you click yes, all fields on this form will be erased. If you click no, this command will be cancelled. Do you really want to clear all fields on this form?");
+  if (areYouSure) {
+    for (var i=0, sel, prop, val, isVar; i<rows; i++)
+    {   sel = eval   ('document.forms[0].elements["sel' + i + '"].value="";');
+        prop = eval  ('document.forms[0].elements["prop'+ i + '"].value="";');
+        val = eval   ('document.forms[0].elements["val' + i + '"].value="";');
+        isVar = eval ('document.forms[0].elements["var' + i + '"].checked=false;');
+    }
+    document.forms[0].elements["initialjs"].value="";
+    document.forms[0].elements["iessname"].value=ieTargetStyleSheetID;
+  }
+  else alert ("Command cancelled. Fields will not be changed.");
+}
+
+
+
+</script>
+<script LANGUAGE="JavaScript">
+
+function check_navigator() { //Last revision 10 July 1997 by Eric Krock
+
+if (navigator.appVersion >= "4") { ; }
+
+else { alert("Sorry, you need Navigator 4.0 or greater to\n"+
+
+"guarantee the interactive examples will work for you.\n\n"+
+
+"But please enjoy reading this TechNote!"); }
+
+} // end function check_navigator
+
+</script>
+</head>
+<body text="#000000" bgcolor="#FFFFFF" onLoad="check_navigator();">
+<noscript>
+<center><b><font face="Arial, Helvetica"><font size=+2>No JavaScript Capability!</font></font></b></center>
+<font face="Arial, Helvetica"><font size=-1><blink>ATTENTION:</blink> This
+TechNote has interactive demonstrations requiring the use of a <a href="http://home.netscape.com/comprod/mirror/client_download.html" TARGET="_top">JavaScript
+1.2 capable browser</a> such as Netscape Communicator. Please turn JavaScript
+on, and reload this page.</font></font></noscript>
+<center><b><font face="Arial, Helvetica"><font size=+2>Cross-Browser DHTML
+TechNote:</font></font></b>
+<br><font face="Arial, Helvetica"><font size=+1>Code Generator for Setting
+CSS1 Properties from JavaScript
+<hr WIDTH=150 SIZE=1 NOSHADE></font><b><font size=-1>Eric Krock, Netscape</font></b></font>
+<br><b><font face="Arial, Helvetica"><font size=-1><a href="mailto:vladimire@netscape.com">Vladimir
+Ermakov</a>, Netscape</font></font></b>
+<br><b><font face="Arial, Helvetica"><font size=-1>and</font></font></b>
+<br><b><font face="Arial, Helvetica"><font size=-1>Marcell Ortutay,</font></font></b>
+<br><b><font face="Arial, Helvetica"><font size=-1><a href="http://www.pluggedin.org/pie">Plugged
+In Enterprises</a></font></font></b></center>
+
+<blockquote><font face="Arial, Helvetica"><font size=-1>Cascading Style
+Sheets, level 1 (CSS1), is a W3C Recommendation supported by Navigator
+4.x, Internet Explorer and Gecko layout engine implemented in Netscape
+6 and Mozilla browsers, which enables you to control the style (the format,
+or look and feel) of HTML elements using CSS1 markup. Because CSS1 rules
+are static and hard-coded, conditional style rules must be defined from
+JavaScript. This TechNote explains how to define CSS1 rules from JavaScript
+in a way that will work on Navigator 4.x, Netscape 6, Mozilla and Internet
+Explorer. It also provides a tool that automatically generates JavaScript
+code that defines CSS1 rules and runs on all three browsers.</font></font></blockquote>
+
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>CONTENTS</font></font></b>
+<ul>
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#know">What You Need
+To Know</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#whycss1fromjs">Why
+Set CSS1 Properties From JavaScript?</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#both">How to Set
+CSS1 Properties From JavaScript Across Browsers</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#nav4">Setting CSS1
+Properties From JavaScript on Navigator 4.x</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#nav6">Setting CSS1
+Properties From Javascript on user agents implementing Gecko layout engine</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#ie4">Setting CSS1
+Properties From JavaScript on Internet Explorer 4.0 and Above</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#backcolor">A Hint
+About Background Color</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#priority">Ensuring
+Equal Rule Priorities Across Browsers</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#automapping">Automating
+the Mapping Across Browsers</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#mapping">Testing
+the Mapping</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#bugs">Known Bugs</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#tool">Cross-Browser
+DHTML Code Generator For Setting CSS1 Properties From JavaScript</a></font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1><a href="#download">Downloading
+this TechNote and Code Generator</a></font></font></li>
+</ul>
+<a NAME="know"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>WHAT
+YOU NEED TO KNOW</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>Before reading this TechNote,
+you need to understand the syntax of CSS1 rules. In particular, you need
+to know how to select elements (with selectors like "P" for element names,
+"#someid" for ID attribute values, ".someclass" for CLASS attribute values,
+and ".someclass P #someid" for contextual selection), what the CSS1 property
+names are (such as "font-size" and "color"), and what the CSS1 property
+values are (such as "14pt" and "red").</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>If you need a basic introduction
+to CSS1, click through Netscape's Visual Tutorial on CSS1 on the <a href="http://developer.netscape.com/docs/presentations/dynhtml.html">Dynamic
+HTML Presentations Page</a>. Tutorials available elsewhere on the web are
+listed on Netscape's <a href="http://developer.netscape.com/tech/dynhtml/resources.html">Dynamic
+HTML Additional Resources Page</a>. For full details, see the CSS1 Recommendation
+on the <a href="http://www.w3.org/pub/WWW/TR/" TARGET="_top">W3C Technical
+Reports Page</a>.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>If you don't know how to
+detect whether the user is using Navigator 4.x, Netscape 6 or Internet
+Explorer, read the <a href="../sniffer/browser_type.html">Ultimate
+JavaScript Client Sniffer</a> to learn how.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>To learn how to access CSS1
+properties from JavaScript in Navigator 4.x, click through Netscape's Visual
+Tutorial on Accessing CSS Properties from JavaScript via the Document Object
+Model on the <a href="http://developer.netscape.com/docs/presentations/dynhtml.html">Dynamic
+HTML Presentations Page</a>.</font></font>
+<p><a NAME="whycss1fromjs"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>WHY SET
+CSS1 PROPERTIES FROM JAVASCRIPT?</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>Netscape enthusiastically
+supports CSS1 and recommends that you use CSS1 markup whenever possible
+to define the style of your web page. It is easy to maintain and works
+across Navigator 4.x, Netscape 6, Mozilla and Internet Explorer. (Note:
+Since Navigator 4.x and Internet Explorer have not implemented every CSS1
+property and since there are some differences in implementation and interpretation
+of the standard, use a third-party reference like <a href="http://www.webreview.com/style/css1/charts/mastergrid.shtml" TARGET="_top">Web
+Review's CSS1 Master Grid</a> to confirm that a given property works on
+both browsers and all your target platforms. Gecko layout engine implemented
+in Netscape 6 and Mozilla supports all of CSS1 properties.)</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>However, CSS1 markup has
+one fundamental limitation. It is completely static and hard-coded. You
+cannot <i>conditionally</i> set element properties using CSS1. For example,
+you can't check the current screen size and then adjust element font sizes
+up or down to match the screen size. To do that, you must define CSS1 rules
+from JavaScript.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>Remember this rule of thumb:
+<b>"What
+you can do with CSS1, do with CSS1. What you can't do with CSS1, do with
+JavaScript."</b> In other words, if the value is static and never need
+change, set it with CSS1 markup. If the value is conditional, set it with
+JavaScript.</font></font>
+<p><a NAME="both"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>HOW TO
+SET CSS1 PROPERTIES FROM JAVASCRIPT ACROSS BROWSERS</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>Navigator 4.x, Netscape
+6, Mozilla and Internet Explorer make CSS1 properties of elements accessible
+from JavaScript through their Document Object Model (DOM). However, the
+Navigator 4.x DOM&nbsp; and Internet Explorer DOM are different. They both
+implement parts of the W3C CSS1 standards but they cover different areas,
+so JavaScript code that defines CSS1 rules on one browser won't work on
+the other browsers. Gecko layout engine covers all of the properties in
+W3C CSS1 standards.</font></font>
+<p><font face="Arial, Helvetica"><font size=-1>To define CSS1 rules from
+JavaScript and have them work compatibly across Navigator 4.x, Netscape
+6, Mozilla and Internet Explorer, you must do four things:</font></font>
+<ol>
+<li>
+<font face="Arial, Helvetica"><font size=-1>Insert into the document's
+HEAD an empty STYLE element with a unique ID; this becomes the target style
+sheet to which the rules are added on Netscape 6, Mozilla and Internet
+Explorer 4.0.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>Place the JavaScript for defining
+CSS1 rules in a SCRIPT element in the document's HEAD so it is evaluated
+before the BODY is parsed; if you define a CSS1 rule from JavaScript after
+the page has been loaded, in Navigator 4.x it won't be reflected until
+you reload the page.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>Determine which browser the
+user has, using JavaScript browser-detect code, like that in <a href="../sniffer/browser_type.html">Ultimate
+JavaScript Client Sniffer</a>.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>Map the CSS1 rule to Navigator
+4.x JavaScript and Internet Explorer JavaScript, include both the Navigator
+4.x code and the Internet Explorer code in your script, and conditionally
+evaluate the correct code for the user's browser.</font></font></li>
+</ol>
+<font face="Arial, Helvetica"><font size=-1>For example, here is a code
+sample that sets the font size of P elements to 25 points on Navigator
+4.x, Netscape 6, Mozilla and Internet Explorer. On Navigator 4.x, the command
+</font></font><tt>document.tags.P.fontSize="25pt";</tt><font face="Arial,
+Helvetica"><font size=-1>
+is evaluated. On Internet Explorer , the command </font></font><tt>document.styleSheets["tssxyz"].addRule
+("P", "fontSize:25pt");</tt><font face="Arial, Helvetica"><font size=-1>
+is evaluated. On user agents implementing Gecko, the command </font></font>document.getElementById('tssxyz').sheet.insertRule('P
+{ fontSize: 25pt }', document.getElementById('tssxyz').sheet.cssRules.length
+) is evaluated.
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;STYLE ID="tssxyz" TYPE="text/css">&lt;/STYLE>
+&lt;SCRIPT LANGUAGE="JavaScript1.2">&lt;!--
+var agt=navigator.userAgent.toLowerCase();
+if ( (parseInt(navigator.appVersion)==4) &amp;&amp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; (agt.indexOf('mozilla')!=-1) &amp;&amp; (agt.indexOf('spoofer')==-1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &amp;&amp; (agt.indexOf('compatible') == -1) ) {
+document.tags.P.fontSize="25pt";
+}
+else if (agt.indexOf('gecko') != -1) {&nbsp;
+document.getElementById('tssxyz').sheet.insertRule('P { fontSize: 25pt }', document.getElementById('tssxyz').sheet.cssRules.length )
+}
+else if ( (parseInt(navigator.appVersion)>=4) &amp;&amp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; (agt.indexOf('msie') != -1) ) {
+document.styleSheets["tssxyz"].addRule ("P", "fontSize:25pt");
+}
+//-->&lt;/SCRIPT></pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial, Helvetica"><font size=-1>To map CSS1 rules to Navigator
+4.x, Netscape 6, Mozilla and&nbsp; Internet Explorer JavaScript, you must
+understand the structure of CSS1 rules. CSS1 rules have three parts: a
+selector which chooses one or more elements on the page based on their
+tag name, ID attribute value, CLASS attribute value, CLASS and name, or
+context; a property name like "font-size"; and a value for the property,
+such as "24pt." Here is the structure of a CSS1 rule with examples of the
+five kinds of selectors and a property name and value:</font></font>
+<br>&nbsp;
+<center><table BORDER >
+<tr>
+<th>Part of Rule</th>
+
+<th>(kind of selector)</th>
+
+<th>Example</th>
+</tr>
+
+<tr>
+<td ROWSPAN="5">selector</td>
+
+<td>tag name:</td>
+
+<td>"P"</td>
+</tr>
+
+<tr>
+<td>class:</td>
+
+<td>".warning"</td>
+</tr>
+
+<tr>
+<td>ID:</td>
+
+<td>"#foo"</td>
+</tr>
+
+<tr>
+<td>class and tag name:</td>
+
+<td>"P.warning"</td>
+</tr>
+
+<tr>
+<td>contextual:</td>
+
+<td>"P B.warning #foo"</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">property name</td>
+
+<td>"font-size"</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">value</td>
+
+<td>"24pt"</td>
+</tr>
+</table></center>
+
+<p><font face="Arial, Helvetica"><font size=-1>To detect which browser
+the user is using, use the JavaScript browser-detect code in <a href="../sniffer/browser_type.html">The
+Ultimate JavaScript Client Sniffer</a>.</font></font>
+<p><a NAME="nav4"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size=-1>SETTING
+CSS1 PROPERTIES FROM JAVASCRIPT ON NAVIGATOR 4.x</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>To define CSS1 rules from
+JavaScript in Navigator 4.x, there are two steps:</font></font>
+<ol>
+<li>
+<font face="Arial, Helvetica"><font size=-1>Map the CSS1 selector to its
+JavaScript equivalent.</font></font></li>
+
+<li>
+<font face="Arial, Helvetica"><font size=-1>Map the CSS1 property name
+to its JavaScript equivalent.</font></font></li>
+</ol>
+<b><font face="Arial, Helvetica"><font size=-1>Mapping CSS1 Selectors to
+Navigator 4.x JavaScript Selectors</font></font></b>
+<p><font face="Arial, Helvetica"><font size=-1>CSS1 selectors are mapped
+to Navigator 4.x JavaScript selectors as follows:</font></font>
+<ol>
+<li>
+<font face="Arial, Helvetica"><font size=-1>Tag name selectors are mapped
+to the
+</font></font><tt><a href="http://developer.netscape.com/docs/manuals/js/client/jsref/document.htm#1221745">document.tags</a></tt><font face="Arial,Helvetica"><font size=-1>
+object, followed by the tag name.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>CLASS attribute selectors are
+mapped to the
+</font></font><tt><a href="http://developer.netscape.com/docs/manuals/js/client/jsref/document.htm#1222722">document.classes</a></tt><font face="Arial,Helvetica"><font size=-1>
+object, followed by the class name and "all."</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>ID attribute selectors are mapped
+to the
+</font></font><tt><a href="http://developer.netscape.com/docs/manuals/js/client/jsref/document.htm#1225120">document.ids</a></tt><font face="Arial,Helvetica"><font size=-1>
+object, followed by the ID attribute value.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>Combined class/name selectors
+are mapped to the
+</font></font><tt>document.classes</tt><font face="Arial,Helvetica"><font size=-1>
+object, followed by the class name and the tag name.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>Contextual selectors are mapped
+to the
+</font></font><tt><a href="http://developer.netscape.com/docs/manuals/js/client/jsref/document.htm#1226818">document.contextual</a></tt><font face="Arial,Helvetica"><font size=-1>
+method, followed in parentheses by a comma-separated list of the individual
+selectors mapped one at a time.</font></font></li>
+</ol>
+<font face="Arial,Helvetica"><font size=-1>This process can be understood
+easily by examining the following table of examples:</font></font>
+<br>&nbsp;
+<center><table BORDER >
+<tr>
+<th COLSPAN="3"><font face="Arial, Helvetica"><font size=-1>Mapping CSS1
+Selectors to Navigator 4.x JavaScript Selectors</font></font></th>
+</tr>
+
+<tr>
+<th><font face="Arial, Helvetica"><font size=-1>Type of selector</font></font></th>
+
+<th CLASS="large"><font face="Arial, Helvetica"><font size=-1>CSS1 example</font></font></th>
+
+<th CLASS="large"><font face="Arial, Helvetica"><font size=-1>JavaScript
+equivalent</font></font></th>
+</tr>
+
+<tr>
+<td>tag name</td>
+
+<td CLASS="large">"P"</td>
+
+<td CLASS="large">document.tags.P</td>
+</tr>
+
+<tr>
+<td>class</td>
+
+<td CLASS="large">".warning"</td>
+
+<td CLASS="large">document.classes.warning.all</td>
+</tr>
+
+<tr>
+<td>identifier</td>
+
+<td CLASS="large">"#foo"</td>
+
+<td CLASS="large">document.ids.foo</td>
+</tr>
+
+<tr>
+<td>tag name and class</td>
+
+<td CLASS="large">"P.warning"</td>
+
+<td CLASS="large">document.classes.warning.P</td>
+</tr>
+
+<tr>
+<td>contextual</td>
+
+<td CLASS="large">"P B.warning #foo"</td>
+
+<td CLASS="large">document.contextual (document.tags.P,document.classes.warning.B,
+document.ids.foo)</td>
+</tr>
+</table></center>
+
+<p><b><font face="Arial,Helvetica"><font size=-1>Mapping CSS1 Property
+Names to JavaScript Property Names</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>Mapping CSS1 property names
+to JavaScript property names is easy. You drop the hyphens and change each
+character after a hyphen to uppercase. For example, the CSS1 property name
+"font-size" becomes the JavaScript property name "fontSize".</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>The only exception is properties
+that take multiple values. These are mapped to methods which have a trailing
+"s" after their names. For example, border-width becomes </font></font><tt>borderWidths()</tt><font face="Arial,Helvetica"><font size=-1>,
+margin becomes
+</font></font><tt>margins()</tt><font face="Arial,Helvetica"><font size=-1>,
+and padding becomes </font></font><tt>paddings()</tt><font face="Arial,Helvetica"><font size=-1>.</font></font>
+<p><b><font face="Arial,Helvetica"><font size=-1>Example of Mapping CSS1
+Rule to Navigator 4.x JavaScript</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>As an example, this CSS1
+rule:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>P { font-size: 25pt }
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>...becomes this JavaScript
+command in Navigator 4.x:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>document.tags.P.fontSize="25pt";
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><a NAME="nav6"></a>
+<hr SIZE=1 NOSHADE>
+<br><b><font face="Arial,Helvetica"><font size=-1>SETTING CSS1 PROPERTIES
+FROM JAVASCRIPT ON USER AGENTS IMPLEMENTING GECKO LAYOUT ENGINE</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>To define CSS1 rules from
+JavaScript in Netscape 6 and Mozilla, there are two steps:</font></font>
+<ol>
+<li>
+<font face="Arial,Helvetica"><font size=-1>In the HEAD, add an empty style
+sheet with a unique ID; this becomes the target style sheet to which we
+add new CSS1 rules with the Gecko </font></font><tt>insertRule()</tt><font face="Arial,Helvetica"><font size=-1>
+method.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>Within the JavaScript script,
+use the Gecko
+</font></font><tt>insertRule()</tt><font face="Arial,Helvetica"><font size=-1>
+method to add CSS1 rules to the target style sheet:</font></font></li>
+</ol>
+<font face="Arial,Helvetica"><font size=-1>By default, the tool below uses
+this markup as the target STYLE element in Netscape 6, Mozilla and Internet
+Explorer:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;STYLE ID="tssxyz" TYPE="text/css">&lt;/STYLE></pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>The ID "tssxyz" stands for
+"Target Style Sheet," with "xyz" added to increase the "uniqueness" of
+the identifier and reduce the likelihood that it would collide with an
+ID anyone else has used already.</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>The Gecko
+</font></font><tt>insertRule</tt><font face="Arial,Helvetica"><font size=-1>
+method has this syntax:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>document.getElementByID(<i>targetSheetID)</i>.sheet.insertRule
+(<i>selector </i>+ "{" <i>propName</i> + ":" + <i>value </i>+ "}"<i>, locationOfRule</i>);</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>In order to add the CSS1
+rule to the end of the target style sheet, set the location of the rule
+in the style sheet to:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre><i>targetSheetID</i>.cssRules.length</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>For example, this CSS1 rule:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>H1 { color: red }</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>...becomes this JavaScript
+command in Netscape 6 and Mozilla:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>document.getElementById("tssxyz").sheet.insertRule("H1 { color: red }", tssxyz.cssRules.length);</pre>
+</td>
+</tr>
+</table></center>
+
+<p><a NAME="ie4"></a>
+<hr SIZE=1 NOSHADE>
+<br><b><font face="Arial,Helvetica"><font size=-1>SETTING CSS1 PROPERTIES
+FROM JAVASCRIPT ON INTERNET EXPLORER 4.0 AND ABOVE</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>To define CSS1 rules from
+JavaScript in Internet Explorer, there are two steps:</font></font>
+<ol>
+<li>
+<font face="Arial,Helvetica"><font size=-1>In the HEAD, add an empty style
+sheet with a unique ID; this becomes the target style sheet to which we
+add new CSS1 rules with the Internet Explorer&nbsp; </font></font><tt>addRule()</tt><font face="Arial,Helvetica"><font size=-1>
+method.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>Within the JavaScript script,
+use the Internet Explorer a</font></font><tt>ddRule()</tt><font face="Arial,Helvetica"><font size=-1>
+method to add CSS1 rules to the target style sheet:</font></font></li>
+</ol>
+<font face="Arial,Helvetica"><font size=-1>The tool below uses this markup
+as the target STYLE element in Internet Explorer, Mozilla and Netscape
+6:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;STYLE ID="tssxyz" TYPE="text/css">&lt;/STYLE>
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>The ID "tssxyz" stands for
+"Target Style Sheet," with "xyz" added to increase the "uniqueness" of
+the identifier and reduce the likelihood that it would collide with an
+ID anyone else has used already.</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>The Internet Explorer
+</font></font><tt>addRule</tt><font face="Arial,Helvetica"><font size=-1>
+method has this syntax:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>document.styleSheets[<i>targetSheetID</i>].addRule (<i>selector</i>, <i>propName</i> + ":" + <i>value</i>);</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>As an example, this CSS1
+rule:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>P { font-size: 25pt }</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>...becomes this JavaScript
+command in Internet Explorer:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>document.styleSheets["tssxyz"].addRule ("P", "fontSize:25pt")</pre>
+</td>
+</tr>
+</table></center>
+
+<p><a NAME="priority"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size=-1>ENSURING
+EQUAL RULE PRIORITIES ACROSS BROWSERS</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>To achieve the same result,
+the rules must be added by JavaScript at the same place in the HTML markup
+in the same order. This will make sure they get the same CSS1 priority
+level in Internet Explorer, Navigator 4.x, Mozilla and Netscape 6. (Later
+rules have higher priority.)</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>Obeying these three rules
+will ensure that rules are added at the same position in the document in
+the same order across both browsers:</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size=-1>Put the Netscape 6, Mozilla
+and Internet Explorer target STYLE element in the document's HEAD.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>Place the SCRIPT element with
+the JavaScript CSS1 rules immediately after the STYLE element.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>Within that script, put the
+matching Navigator 4.x JavaScript commands, the Internet Explorer
+</font></font><tt>addRule</tt><font face="Arial,Helvetica"><font size=-1>
+commands, and Gecko </font></font><tt>insertRule</tt><font face="Arial,Helvetica"><font size=-1>
+in the same order.</font></font></li>
+</ul>
+<font face="Arial,Helvetica"><font size=-1>For example, using the following
+markup in the HEAD will ensure that the sample CSS1 rule, which sets the
+background color of the hint class elements to yellow, is given equal priority
+in Navigator 4.x, Netscape 6, Mozilla and Internet Explorer:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;STYLE ID="tssxyz" TYPE="text/css">&lt;/STYLE>
+&lt;SCRIPT LANGUAGE="JavaScript1.2">
+var agt=navigator.userAgent.toLowerCase();
+if ( (parseInt(navigator.appVersion)==4) &amp;&amp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; (agt.indexOf('mozilla')!=-1) &amp;&amp; (agt.indexOf('spoofer')==-1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &amp;&amp; (agt.indexOf('compatible') == -1) ) {
+document.classes.hint.all.backgroundColor="yellow";
+}
+else if (agt.indexOf('gecko') != -1) {&nbsp;
+document.getElementById('tssxyz').sheet.insertRule('.hint { background-color: yellow }', document.getElementById('tssxyz').sheet.cssRules.length )
+}
+else if ( (parseInt(navigator.appVersion)>=4) &amp;&amp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; (agt.indexOf('msie') != -1) ) {
+document.styleSheets["tssxyz"].addRule (".hint", "background-color:yellow");
+}
+&lt;/SCRIPT></pre>
+</td>
+</tr>
+</table></center>
+
+<p><a NAME="backcolor"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size=-1>A HINT
+ABOUT BACKGROUND COLOR</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>One CSS1 property to pay
+special attention to for cross-browser compatibility is </font><tt>backgroundColor</tt><font size=-1>,
+because Navigator 4.x hasa significant difference in its implementation
+of this property then Internet Explorer, Netscape 6 and Mozilla. Navigator
+4.x displays an element's background color only behind the element's text.
+Internet Explorer, Netscape 6 and Mozilla display the background color
+all the way to the right edge of the screen.</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>For example, this markup:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;P STYLE="background-color: red">red background>&lt;/P></pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>... looks like this in Navigator
+4.x:</font></font>
+<p><span STYLE="background-color:red"><font face="Arial,Helvetica"><font size=-1>red
+background of P looks like this in Navigator 4.x</font></font></span>
+<p><font face="Arial,Helvetica"><font size=-1>...and looks like this in
+Internet Explorer, Netscape 6 and Mozilla:</font></font>
+<br>&nbsp;
+<table WIDTH="100%" >
+<tr>
+<td STYLE="background-color:red"><span STYLE="background-color:red"><font face="Arial,Helvetica"><font size=-1>red
+background of P looks like this inInternet Explorer, Netscape 6 and Mozilla</font></font></span></td>
+</tr>
+</table>
+
+<p><font face="Arial,Helvetica"><font size=-1>&nbsp;To make the background
+color behind <i>only</i> the element's text in all three browsers, set
+background color on a </font><tt>&lt;SPAN></tt><font size=-1> enclosing
+the text. For example, this markup:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;P>&lt;SPAN STYLE="color:white; background-color:black">
+white on black behind text in all three browsers
+&lt;/SPAN>&lt;/P>
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>...will produce this result
+in all browsers:</font></font>
+<p><span STYLE="color:white; background-color:black"><font face="Arial,Helvetica"><font size=-1>white
+on black behind text only in both browsers</font></font></span>
+<p><font face="Arial,Helvetica"><font size=-1>To make the background color
+to the <i>right edge</i> of the page in all three browsers, use 1x1 TABLE
+element with
+</font><tt>WIDTH=100%</tt><font size=-1>. For example, this
+markup:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;TABLE WIDTH=100%>
+&lt;TR>&lt;TD STYLE="color:white; background-color:black">
+&lt;SPAN STYLE="color:white; background-color:black">
+white on black to right edge of page in all three browsers
+&lt;/SPAN>
+&lt;/TD>&lt;/TR>
+&lt;/TABLE></pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>...will produce this result
+in all browsers:</font></font>
+<table WIDTH="100%" >
+<tr>
+<td STYLE="color:white; background-color:black"><span STYLE="color:white; background-color:black"><font face="Arial,Helvetica"><font size=-1>white
+on black to right edge of page in all browsers</font></font></span></td>
+</tr>
+</table>
+<!-- insert empty STYLE element of TYPE text/css to make certain that 
+     communicator interprets following inline STYLE attributes as
+     CSS markup rather than as JavaScript markup -->
+<p><font face="Arial,Helvetica"><font size=-1>For a positioned HTML element
+that covers a rectangular area, to make the background color behind the
+entire element area (regardless of the amount of text), use a 1x1 borderless
+table with WIDTH and HEIGHT and background properties set to match element.
+For example, this markup:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&lt;STYLE TYPE="text/css">
+#samplerect { position: relative }
+&lt;/STYLE>
+
+&lt;DIV ID="samplerect" STYLE="width: 500px; height: 60px; background-color: red">
+&lt;TABLE WIDTH=500 HEIGHT=60 STYLE="background-color: red">
+&lt;TR>&lt;TD>some text that doesn't fill the element&lt;/TD>&lt;/TR>
+&lt;/TABLE>
+&lt;/DIV>
+
+</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial, Helvetica"><font size=-1>...will produce this result
+in all browsers:</font></font>
+<p><style TYPE="text/css">
+#samplerect { position: relative }
+</style>
+
+<div ID="samplerect" STYLE="width: 500px; height: 60px; background-color: red">
+<table WIDTH="500" HEIGHT="60" STYLE="background-color: red" >
+<tr>
+<td><font face="Arial,Helvetica"><font size=-1>some text that doesn't fill
+the element</font></font></td>
+</tr>
+</table>
+</div>
+<a NAME="automapping"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size=-1>AUTOMATING
+THE MAPPING ACROSS BROWSERS</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>The free tool in this TechNote
+automatically generates JavaScript code that defines CSS1 rules and works
+on Navigator 4.x, Netscape 6, Mozilla and Internet Explorer. All you have
+to do is type the CSS1 selector, property name, and value (which together
+define a CSS1 rule) into the form and click "Generate Code." The form will
+automatically convert the CSS1 rule into HTML and JavaScript which works
+on all three browsers. You can then copy and paste the generated STYLE
+and SCRIPT elements into the HEAD of your HTML page, and the elements'
+CSS1 properties will be set from JavaScript on both browsers. (Make sure
+to copy and paste <i>all</i> of the markup, including the empty STYLE element
+which is generated to make the code work on Netscape 6, Mozilla and Internet
+Explorer! )</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>Usually, you will use this
+tool in one of two ways: setting a CSS1 property to the value of a variable,
+or conditionally evaluating JavaScript style code. (These are both things
+which cannot be done using static CSS1 markup.) You can also create JavaScript
+commands which set CSS1 properties to fixed, unchanging, hard-coded values,
+but in that case, you might as well use CSS1 markup instead of JavaScript.</font></font>
+<p><b><font face="Arial,Helvetica"><font size=-1>Setting a CSS1 Property
+to the Value of a Variable</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>The easiest way to use this
+tool is to define a JavaScript variable that holds the value you want to
+use for some CSS1 property. The JavaScript code that determines the value
+can be as sophisticated as you wish. Usually, it will be a series of </font><tt>if</tt><font size=-1>
+statements.</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>For example, to create a
+paragraph P element that uses the same amount of screen space regardless
+of the current display size, you could determine the font size of the P
+element in points (pt) as follows:</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size=-1>On a 640x480 monitor, use font
+size of 22 points.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>On a 800x600 monitor, use font
+size of 28 points.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>Otherwise, use font size of
+36 points.</font></font></li>
+</ul>
+<font face="Arial,Helvetica"><font size=-1>Translated into JavaScript,
+that is:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>if (screen.width &lt; 700) pFontSize="22pt";
+else if (screen.width &lt; 900) pFontSize="28pt";
+else pFontSize="36pt";</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>This "initialization code"
+stores the font size you want to use for the P element in the variable
+</font><tt>pFontSize</tt><font size=-1>.
+You would paste this code into the "Initial JavaScript code" text area
+on this form. (We've done it for you in the sample below.)</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>Now you just need to create
+a rule that sets the font size for P elements to the JavaScript variable
+</font><tt>pFontSize</tt><font size=-1>.
+To do that, you create a rule using the form below. In a single row, you
+define the selector, property name, and value for that rule.</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>To create the rule "Set the
+font size for all P elements to the variable pFontSize," you would enter:</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size=-1>the selector <b><tt>P</tt></b>
+in the Selector column (to select all P elements).</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>the CSS1 property name</font><tt>font-size</tt><font size=-1>
+in the CSS1 Property Name column (to show that you want to set the font-size
+property).</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>the variable name </font><tt>pFontSize</tt><font size=-1>
+in the Value column.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size=-1>since you are using a variable
+(</font><tt>pFontSize</tt><font size=-1>) as the value instead of a hard-coded
+value like "48pt," you must also check the Value is Variable? checkbox
+so that the variable name won't be enclosed in double quotes.</font></font></li>
+</ul>
+<font face="Arial,Helvetica"><font size=-1>We've done those steps for you
+as well in the sample rules below. To create the JavaScript and HTML that
+will implement these rules on both browsers, all you have to do is click
+the "Generate Code" button. To view a sample document with test elements
+that use the rules, you click the "View Sample HTML Page" button.</font></font>
+<p><b><font face="Arial,Helvetica"><font size=-1>Conditionally Evaluating
+JavaScript Style Code</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>Sometimes you will want to
+check the value of a variable in an
+<tt>if</tt> or
+</font><tt>switch</tt><font size=-1>
+statement and then, depending on the value of the variable, evaluate or
+ignore one or more blocks of JavaScript style definitions. This tool won't
+generate the <tt>if</tt> statements for you, but you can generate all the
+rules and then fill in the <tt>if</tt> statements yourself.</font></font>
+<p><font face="Arial,Helvetica"><font size=-1>For example, suppose that
+you were displaying a weekly calendar and wanted today's day name to be
+displayed in red text with all the other days of the week displayed in
+the default color black. You could fill in the form's "Initial JavaScript
+code" field with code to retrieve the current day:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>var theDate = new Date();&nbsp;
+var today=theDate.getDay();</pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>Then you would fill in the
+table with rules to set every day's color to red:</font></font>
+<br>&nbsp;
+<center><table BORDER >
+<tr>
+<th ALIGN=CENTER>CSS1
+<br>Selector:</th>
+
+<th ALIGN=CENTER>CSS1
+<br>Property Name:</th>
+
+<th ALIGN=CENTER>CSS1
+<br>Value:</th>
+</tr>
+
+<tr>
+<td>.sundayColor</td>
+
+<td>color</td>
+
+<td>red</td>
+</tr>
+
+<tr>
+<td>.mondayColor</td>
+
+<td>color</td>
+
+<td>red</td>
+</tr>
+
+<tr>
+<td>.tuesdayColor</td>
+
+<td>color</td>
+
+<td>red</td>
+</tr>
+
+<tr>
+<td>.wednesdayColor</td>
+
+<td>color</td>
+
+<td>red</td>
+</tr>
+
+<tr>
+<td>.thursdayColor</td>
+
+<td>color</td>
+
+<td>red</td>
+</tr>
+
+<tr>
+<td>.fridayColor</td>
+
+<td>color</td>
+
+<td>red</td>
+</tr>
+
+<tr>
+<td>.saturdayColor</td>
+
+<td>color</td>
+
+<td>red</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size=-1>...and click "Generate Code"
+to generate the JavaScript code for all the rules on both browsers automatically.
+Then you would edit the code and add if statements to ensure that only
+the rule for setting the color of <i>today's</i> day name is evaluated.
+The finished code would look like this:</font></font>
+<br>&nbsp;
+<center><table BORDER=0 CELLPADDING=5 BGCOLOR="#FFFFCC" >
+<tr>
+<td>
+<pre>&nbsp;&lt;STYLE ID="tssxyz" TYPE="text/css">&lt;/STYLE>
+&nbsp; &lt;SCRIPT LANGUAGE="JavaScript1.2">
+&lt;!--&nbsp;
+var theDate = new Date();
+var today=theDate.getDay();
+
+&nbsp;var agt=navigator.userAgent.toLowerCase();
+if ( (parseInt(navigator.appVersion)==4) &amp;&amp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; (agt.indexOf('mozilla')!=-1) &amp;&amp; (agt.indexOf('spoofer')==-1)&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &amp;&amp; (agt.indexOf('compatible') == -1) )&nbsp;
+{&nbsp;&nbsp;&nbsp;
+&nbsp;if (today==0)
+&nbsp;document.classes.sundayColor.all.color="red";
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==1) document.classes.mondayColor.all.color="red";
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==2) document.classes.tuesdayColor.all.color="red";&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==3) document.classes.wednesdayColor.all.color="red";&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==4) document.classes.thursdayColor.all.color="red";&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==5) document.classes.fridayColor.all.color="red";&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==6) document.classes.saturdayColor.all.color="red";&nbsp;&nbsp;
+}&nbsp;
+else if (agt.indexOf('gecko') != -1)
+{
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==0) document.getElementById('tssxyz').sheet.insertRule('.sundayColor { color: red }', document.getElementById('tssxyz').sheet.cssRules.length );
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==1) document.getElementById('tssxyz').sheet.insertRule('.mondayColor { color: red }', document.getElementById('tssxyz').sheet.cssRules.length );
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==2) document.getElementById('tssxyz').sheet.insertRule('.tuesdayColor { color: red }', document.getElementById('tssxyz').sheet.cssRules.length );
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==3) document.getElementById('tssxyz').sheet.insertRule('.wednesdayColor { color: red }', document.getElementById('tssxyz').sheet.cssRules.length );
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==4) document.getElementById('tssxyz').sheet.insertRule('.thursdayColor { color: red }', document.getElementById('tssxyz').sheet.cssRules.length );
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==5) document.getElementById('tssxyz').sheet.insertRule('.fridayColor { color: red }', document.getElementById('tssxyz').sheet.cssRules.length );
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==6) document.getElementById('tssxyz').sheet.insertRule('.saturdayColor { color: red }', document.getElementById('tssxyz').sheet.cssRules.length );
+}&nbsp;
+else if ( (parseInt(navigator.appVersion)>=4) &amp;&amp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (agt.indexOf('msie') != -1) )&nbsp;
+{&nbsp;&nbsp;&nbsp; if (today==0) document.styleSheets["tssxyz"].addRule (".sundayColor", "color:red");
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==1) document.styleSheets["tssxyz"].addRule (".mondayColor", "color:red");
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==2) document.styleSheets["tssxyz"].addRule (".tuesdayColor", "color:red");
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==3) document.styleSheets["tssxyz"].addRule (".wednesdayColor", "color:red");
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==4) document.styleSheets["tssxyz"].addRule (".thursdayColor", "color:red");&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==5) document.styleSheets["tssxyz"].addRule (".fridayColor", "color:red");
+&nbsp;&nbsp;&nbsp;&nbsp; if (today==6) document.styleSheets["tssxyz"].addRule (".saturdayColor", "color:red");
+&nbsp;} //--></pre>
+</td>
+</tr>
+</table></center>
+<script>
+if(is.nav4_74)
+{
+ document.write('<p><font face="Arial,Helvetica"><font size=-1>You are using Navigator 4.74. This browser contains a bug,'+ 
+          ' that prevents you from using this code in action. Please upgrade to Navigator 4.76 or Netscape 6. You can find'+ 
+           ' both of these browsers <a href="http://home.netscape.com/download/index.html?cp=djuc1">here</a>.</font></font>');
+}
+else
+{
+ document.write('<p><font face="Arial,Helvetica"><font size=-1><a href="daydemo.html">View the demo</a>'+
+   ' to see the code in action. Only today\'s day name is displayed in red; the other day names are black.</font></font>');
+}
+</script>
+
+<p><a NAME="mapping"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size=-1>TESTING
+THE MAPPING</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>This <a href="css1technote/testcss1.html">test
+page</a> demonstrates that JavaScript generated by this code generator
+works compatibly across both browsers for many CSS1 properties and values.</font></font>
+<br><a NAME="bugs"></a>
+<br>
+<hr SIZE=0 WIDTH="100%"><b><font face="Arial,Helvetica"><font size=-1>KNOWN
+BUGS</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>&nbsp;Netscape 4.74 crashes
+when there is an empty style sheet in the &lt;HEAD>. If you are using this
+browser I would strongly suggest you to upgrade it to 4.76 or Netscape
+6. You can find both of these browsers <a href="http://home.netscape.com/download/index.html?cp=djuc1">here</a>.</font></font>
+<br><a NAME="tool"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size=-1>CROSS-BROWSER
+DHTML CODE GENERATOR FOR SETTING CSS1 PROPERTIES FROM JAVASCRIPT</font></font></b><!-- This just opens a new window and writes its contents, so no ACTION or METHOD for the form. --><form NAME="css1tojs"><!-- onFocus="promptEntry(siessname)" onChange="checkString(this,sUSLastName)" -->
+<p><font face="Arial,Helvetica"><font size=-1>ID of STYLE element to use
+for Internet Explorer, Mozilla and Netscape 6:&nbsp;</font></font><input TYPE="text" NAME="iessname" VALUE="tssxyz">
+<p><font face="Arial,Helvetica"><font size=-1>Initial JavaScript code:
+(variable initialization, etc.)</font></font>
+<br><textarea NAME="initialjs" ROWS=10 COLS=80>pFontSize = 20;</textarea>
+<p><font face="Arial,Helvetica"><font size=-1>Type in the CSS1 Selector/Property
+Name/Value triplets you wish to set from JavaScript. They will automatically
+be converted to JavaScript which sets the CSS1 rules and works on Navigator
+4.x, Mozilla, Netscape 6 and Internet Explorer 4+.</font></font>
+<p><font face="Arial,Helvetica"><font size=-1><i>Usage note: </i><b>Only
+enter a single value into the Value field.</b> Although some CSS1 properties
+like margin, border-width, and padding-width can take 1-4 values, this
+code generator does not support setting one CSS1 property to multiple values.
+For example, setting the border width on each side to a different value
+by typing in the property name <b><tt>border-width</tt></b> and the four
+values </font><b><tt>10px 5px 3px 1px</tt></b><font size=-1> will not work.
+Instead, set the CSS1 property to a single value (for example, by typing
+in the property name
+</font><b><tt>border-width</tt></b><font size=-1>
+and the single value
+</font><b><tt>10px</tt></b><font size=-1>) or use
+other property names to set the values one at a time (for example, by using
+four rows to enter the four property-value pairs of
+</font><b><tt>border-top-width</tt></b><font size=-1>
+and </font><b><tt>10px</tt></b>, <b><tt>border-right-width</tt></b><font size=-1>
+and </font><b><tt>5px</tt></b>,
+<b><tt>border-bottom-width</tt></b><font size=-1>
+and </font><b><tt>3px</tt></b>,
+<b><tt>border-left-width</tt></b><font size=-1>
+and </font><b><tt>1px</tt></b><font size=-1>).</font></font>
+<center><table>
+<tr>
+<th ALIGN=CENTER><font face="Arial, Helvetica"><font size=-1>CSS1</font></font>
+<br><font face="Arial, Helvetica"><font size=-1>Selector:</font></font></th>
+
+<th ALIGN=CENTER><font face="Arial, Helvetica"><font size=-1>CSS1</font></font>
+<br><font face="Arial, Helvetica"><font size=-1>Property Name:</font></font></th>
+
+<th ALIGN=CENTER><font face="Arial, Helvetica"><font size=-1>CSS1</font></font>
+<br><font face="Arial, Helvetica"><font size=-1>Value:</font></font></th>
+
+<th ALIGN=CENTER><font face="Arial, Helvetica"><font size=-1>Value is</font></font>
+<br><font face="Arial, Helvetica"><font size=-1>variable?</font></font></th>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel0" VALUE="H1"></td>
+
+<td><input TYPE="text" NAME="prop0" VALUE="color"></td>
+
+<td><input TYPE="text" NAME="val0" VALUE="red"></td>
+
+<td><input TYPE="checkbox" NAME="var0" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel1" VALUE="P"></td>
+
+<td><input TYPE="text" NAME="prop1" VALUE="font-size"></td>
+
+<td><input TYPE="text" NAME="val1" VALUE="pFontSize"></td>
+
+<td><input TYPE="checkbox" NAME="var1" VALUE="yes" CHECKED></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel2" VALUE="#id1"></td>
+
+<td><input TYPE="text" NAME="prop2" VALUE="color"></td>
+
+<td><input TYPE="text" NAME="val2" VALUE="green"></td>
+
+<td><input TYPE="checkbox" NAME="var2" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel3" VALUE=".classa"></td>
+
+<td><input TYPE="text" NAME="prop3" VALUE="color"></td>
+
+<td><input TYPE="text" NAME="val3" VALUE="blue"></td>
+
+<td><input TYPE="checkbox" NAME="var3" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel4" VALUE="P.classb"></td>
+
+<td><input TYPE="text" NAME="prop4" VALUE="color"></td>
+
+<td><input TYPE="text" NAME="val4" VALUE="fuchsia"></td>
+
+<td><input TYPE="checkbox" NAME="var4" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel5" VALUE="#id2 P.classc B"></td>
+
+<td><input TYPE="text" NAME="prop5" VALUE="color"></td>
+
+<td><input TYPE="text" NAME="val5" VALUE="silver"></td>
+
+<td><input TYPE="checkbox" NAME="var5" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel6"></td>
+
+<td><input TYPE="text" NAME="prop6"></td>
+
+<td><input TYPE="text" NAME="val6"></td>
+
+<td><input TYPE="checkbox" NAME="var6" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel7"></td>
+
+<td><input TYPE="text" NAME="prop7"></td>
+
+<td><input TYPE="text" NAME="val7"></td>
+
+<td><input TYPE="checkbox" NAME="var7" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel8"></td>
+
+<td><input TYPE="text" NAME="prop8"></td>
+
+<td><input TYPE="text" NAME="val8"></td>
+
+<td><input TYPE="checkbox" NAME="var8" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel9"></td>
+
+<td><input TYPE="text" NAME="prop9"></td>
+
+<td><input TYPE="text" NAME="val9"></td>
+
+<td><input TYPE="checkbox" NAME="var9" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel10"></td>
+
+<td><input TYPE="text" NAME="prop10"></td>
+
+<td><input TYPE="text" NAME="val10"></td>
+
+<td><input TYPE="checkbox" NAME="var10"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel11"></td>
+
+<td><input TYPE="text" NAME="prop11"></td>
+
+<td><input TYPE="text" NAME="val11"></td>
+
+<td><input TYPE="checkbox" NAME="var11"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel12"></td>
+
+<td><input TYPE="text" NAME="prop12"></td>
+
+<td><input TYPE="text" NAME="val12"></td>
+
+<td><input TYPE="checkbox" NAME="var12" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel13"></td>
+
+<td><input TYPE="text" NAME="prop13"></td>
+
+<td><input TYPE="text" NAME="val13"></td>
+
+<td><input TYPE="checkbox" NAME="var13" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td><input TYPE="text" NAME="sel14"></td>
+
+<td><input TYPE="text" NAME="prop14"></td>
+
+<td><input TYPE="text" NAME="val14"></td>
+
+<td><input TYPE="checkbox" NAME="var14" VALUE="yes"></td>
+</tr>
+
+<tr>
+<td ALIGN=CENTER COLSPAN="4"><!-- Normally we would have a submit button here, but since this
+     is just a demo, and we don't want to email the data or send
+     it to a server, we replace the usual Submit button with a
+     mockup that just calls some code to display what was typed in.
+<INPUT TYPE="submit" VALUE="Submit"> --><input TYPE="BUTTON" NAME="generateCode" VALUE="Generate Code" 
+            onClick="generateCSS1Code(this.form);"><!-- 
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<input TYPE="BUTTON" NAME="viewSamplePage" VALUE="View Sample HTML Page" 
+            onClick="viewPage(this.form);">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+--><!-- <INPUT TYPE="reset" VALUE="Reset"> --><input TYPE="BUTTON" NAME="eraseAllFields" VALUE="Erase All Fields" 
+        onClick="clearAllFields(this.form);"></td>
+</tr>
+</table></center>
+</form>
+<p><a NAME="download"></a>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size=-1>DOWNLOADING
+THIS TECHNOTE</font></font></b>
+<p><font face="Arial,Helvetica"><font size=-1>If you would like to download
+this TechNote (including the code generator) to your local machine, just
+download this <a href="css1tojs.zip">WinZIP-compatible
+ZIP file</a> with all of the necessary files.</font></font>
+<br><script LANGUAGE="JavaScript">
+<!--
+// Try to be sneaky and prevent spam-bots from seeing this email address.
+// If they're smart enough to include a JavaScript interpreter which
+// parses the page before they scan it, this won't help.
+var atSign="@"
+var mailProtocol="mailto:"
+
+document.write('<B>Comments about this TechNote?</B>')
+document.write('<P>If you would like technical support or other assistance regarding JavaScript, Dynamic HTML, or other Netscape technologies and products, please visit the <A HREF="http://developer.netscape.com/support/index.html" TARGET="_top">support area</A>. ')
+document.write('Email comments and suggestions about this code sample to <A HREF="' + mailProtocol + 'xbrowser' + atSign + 
+'netscape.com?SUBJECT=client sniffer comments (DON&#039;T CHANGE THIS SUBJECT!)">' +
+'xbrowser' + atSign + 'netscape.com</A>. ')
+document.write('Because of the volume of submissions, we usually can&#039;t respond personally, but we will take your comments into consideration when planning future content for the site.')
+
+
+document.write('<P><B>Want Netscape to keep you posted on Cross-Browser DHTML?</B></P>');
+document.write('<P>From time to time, Netscape will release new resources to assist in cross-browser DHTML development. If you would like to be kept posted on new TechNotes, sample code, and information related to cross-browser Dynamic HTML, ');
+document.write('<A HREF="' + mailProtocol + 'xbrowser-list-request' + atSign + 
+'netscape.com?SUBJECT=subscribe ENTER_YOUR_EMAIL_ADDRESS_HERE">' +
+'join the xbrowser-list mailing list</A>. ');
+document.write('If you ever change your mind, ');
+document.write('<A HREF="' + mailProtocol + 'xbrowser-list-request' + atSign + 
+'netscape.com?SUBJECT=unsubscribe ENTER_YOUR_EMAIL_ADDRESS_HERE">' +
+'you can click here to remove yourself from the xbrowser-list mailing list</A>. ');
+document.write('Your email address will not be sold, bartered, or exchanged to any other organization.</P>');
+
+//--></script>
+
+<center>
+<p><font face="Arial, Helvetica"><font size=-1>For the latest technical
+information on Sun-Netscape Alliance products, go to: <a href="http://developer.iplanet.com/index.html" TARGET="_top">http://developer.iplanet.com</a></font></font>
+<p><font face="Arial, Helvetica"><font size=-1>For more Internet development
+resources, try <a href="http://home.netscape.com/computing/techsearch/index.html?cp=dev01bnts" TARGET="_top">Netscape
+TechSearch</a>.</font></font></center>
+
+<hr SIZE=1>
+<center><font face="Arial, Helvetica"><font size=-2><nobr>Copyright &copy;
+1999 <a href="http://home.netscape.com/misc/trademarks.html" TARGET="_top">Netscape
+Communications Corporation</a></nobr>.</font></font>
+<br><font face="Arial, Helvetica"><font size=-2>This site powered by: <a href="http://home.netscape.com/servers/index.html" TARGET="_top">Netscape
+Enterprise Server</a> and <a href="http://home.netscape.com/compass/v3.0/index.html" TARGET="_top">Netscape
+Compass Server</a>.</font></font></center>
+
+</body>
+</html>

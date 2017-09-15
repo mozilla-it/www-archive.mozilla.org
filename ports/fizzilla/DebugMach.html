@@ -1,0 +1,540 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <TITLE>Debugging FizzillaMach</TITLE>
+   <META NAME=GENERATOR CONTENT="Claris Home Page 3.0 30 Day Trial">
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+<!--This file created 1/22/02 1:35 PM by Claris Home Page version 3.0 30 Day Trial-->
+
+
+<P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="100%">
+   <TR>
+      <TD WIDTH=312>
+         <H1>Debugging FizzillaMach</H1>
+         
+         <P>by Mike Pinkerton<BR>
+         last modified on 12/20/2002</P>
+      </TD>
+      <TD>
+         <P ALIGN=right><IMG SRC="fizzilla.gif" WIDTH=136 HEIGHT=110 ALIGN=bottom></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>So you've got it all built, and now you want to fix that bug
+that's been annoying you for so long. Using gdb from the Terminal app
+is fun, but Apple ships a nice UI for gdb with ProjectBuilder. This
+page describes how to set up a project for the mach-o build and use
+ProjectBuilder to debug it.</P>
+
+<P>I'm assuming that you have the Mach-o version built, but if not,
+see the <A HREF="Mach.html">FizzillaMach homepage</A> for more
+information. Be sure you have a debug build (ie, you don't have
+--disable-debug set) otherwise you won't be able to debug.</P>
+
+<H3>Topics:</H3>
+
+<UL>
+   <LI>Creating the project</LI>
+   
+   <LI>Setting breakpoints</LI>
+   
+   <LI>Looking at variables</LI>
+   
+   <LI>Debugging w/out ProjectBuilder</LI>
+   
+</UL>
+
+<P>Special thanks to Zach Lipton for figuring out how to work with
+the legacy makefile project.</P>
+
+<P>
+
+<HR>
+
+</P>
+
+<H2>Creating the Project in ProjectBuilder</H2>
+
+<P>There's really not too much involved in this. Basically, we're
+creating a new project with a single target that's based on a legacy
+makefile.</P>
+
+<P><TABLE BORDER=0 WIDTH="100%">
+   <TR>
+      <TD>
+         <P>1. Create a new, empty project in ProjectBuilder.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>2. Choose <I>New Target</I> from the <I>Project</I> menu.
+         Call your target "Debug", or whatever suits your fancy. The
+         type of target you want is <I>Legacy Makefile</I>.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>3. Select the <I>Targets</I> tab on the left of the
+         project window and click on the newly created target. The
+         window should now be displaying the target customization
+         panel.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>4. With the <I>Custom Build Command</I> tab selected, set
+         the <I>Build Tool</I> to an empty text field. This ensures
+         that ProjectBuilder wont try to do anything every time we
+         tell it to run or debug.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>5. Select the <I>Executables</I> tab. Click the
+         <I>Add</I> button and pick the MozillaDebug.app binary in
+         mozilla/dist.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>6. To debug, click the <I>Run and Debug</I> button on the
+         ProjectBuilder toolbar. ProjectBuilder will launch mozilla
+         and dump all its output to its internal console.</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<H2>Creating the Project in XCode</H2>
+
+<P>XCode is Apple's new set of developer tools and IDE, shipping with MacOS 
+   X 10.3 Panther. The instructions for creating a project to debug Mozilla
+   with XCode are slightly different from those for ProjectBuilder, and also
+   slightly different than those given by Apple itself for debugging 
+   arbitrary executables!</P>
+   
+<ol>
+  <li>Open XCode, and create a new Project with <strong>File, New Project</strong>.
+      Select <strong>Empty Project</strong> as the project type, click Next, 
+      then name the project and choose a location for it, then click Finish. </li>
+  <li>Now you need to add the executable. Select <strong>Project, Add Custom
+      Executable</strong> and type a pretty name, then use the <strong>Choose</strong>
+      to locate the .app file (Mozilla.app, Firefox.app, etc) in 
+      mozilla/dist. Do not click Finish!</li>
+  <li><strong>IMPORTANT</strong> - XCode will dim all UI that lets you run 
+      the program in the debugger if you just specify the .app file. You must 
+      manually locate the Mozilla executable inside the executable package 
+      and edit the path to point to that location. Thus the value of the 
+      Executable Path field might look like this:<br><br>
+      <code>
+        ~/builds/mozilla/dist/Mozilla.app/Contents/MacOS/Mozilla-bin
+      </code>
+      <br><br>
+      (Make sure to select the "-bin" file, the non-"-bin" is just a launch 
+       script.) Now click <strong>Finish</strong>. An entry with the pretty name
+       you entered in the previous dialog will appear under the <strong>Executables</strong>
+       branch of the <strong>Groups &amp; Files</strong> pane in the XCode 
+       Project window.</li>
+  <li>I highly recommend you create a separate profile to debug with, whatever
+      your task, so that you don't lose precious data like Bookmarks, saved 
+      passwords, etc. So that you're not bothered with the profile manager every
+      time you start to debug, expand the <strong>Executables</strong> branch of
+      the <strong>Groups &amp; Files</strong> list and double click on the Executable
+      you added for Mozilla. Click the plus icon under the <strong>Arguments</strong>
+      list and type "-P &lt;profile name&gt;" (e.g. <code>-P MozillaDebug</code>). Close
+      the window when you're done.</li>
+  <li>To start the debugger, you have to use <strong>Debug, Debug Executable</strong>
+      as for some reason the toolbar debug button will remain disabled.</li>
+</ol>   
+
+<p>Happy XCode debugging! (added by <a href="mailto:ben@mozilla.org">Ben Goodger</a>
+on 10/25/2003)</p>
+
+
+<H4>Building From Within ProjectBuilder</H4>
+
+<P>The executable of the project is the MozillaDebug.app bundle. The
+bundle needs to be updated whenever you rebuild a component or change a
+chrome file. This used to be horribly slow because the entire contents
+(over 400 MB!) were copied each time.</P>
+
+<P>Fortunately, that bundling process has been improved to only
+update what's changed - making it convenient to set up the "Build"
+of the project to update the bundle. You can then build components
+or modify chome, return to Project Builder, choose "Build and Debug,"
+and be off and running with your changes. Here's how to set it up:</P>
+
+<P><TABLE BORDER=0 WIDTH="100%">
+   <TR>
+      <TD>
+         <P>1. Select the <I>Targets</I> tab on the left of the
+         project window and click on your target. The window should
+         now be displaying the target customization panel.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>2.With the <I>Custom Build Command</I> tab selected, set
+         the <I>Build Tool</I> to</P>
+         
+         <BLOCKQUOTE><PRE>/usr/bin/gnumake</PRE></BLOCKQUOTE>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>3. Set the Arguments to:</P>
+         
+         <BLOCKQUOTE><PRE>$ACTION</PRE></BLOCKQUOTE>
+         
+         <P>Project Builder will pass an argument in $ACTION
+         so that "Clean" works, in addition to "Build."</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>4. Click <I>Set...</I> to set the <I>Directory</I> field
+         and pick the xpfe/bootstrap directory in your mozilla tree.
+         When you're done, it should read something like:</P>
+         
+         <BLOCKQUOTE><PRE>/usr/pink/src/mozilla/xpfe/bootstrap</PRE></BLOCKQUOTE>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>Now clicking any of the <I>Build</I> or <I>Run</I> or <I>Debug</I>
+buttons on the ProjectBuilder toolbar will update MozillaDebug.app
+and show any messages or errors in the ProjectBuilder window.</P>
+
+<H2>Setting Breakpoints</H2>
+
+<P>gdb is quite good about finding the source files as long as you
+have a debug build. You can set breakpoints from Project Builder's
+console by typing:</P>
+
+<BLOCKQUOTE><PRE>(gdb) fb nsWindow::Scroll</PRE></BLOCKQUOTE>
+
+<P>You can also set a breakpoint visually, with Project Builder's
+UI. This is useful when the place you want to stop is in the
+startup sequence, before you have a chance to set a breakpoint
+from the console. Also, breakpoints set with the UI are persistent.
+Here's how to set the same breakpoint as was set above using the
+UI:</P>
+
+<P><TABLE BORDER=0 WIDTH="100%">
+   <TR>
+      <TD>
+         <P>1. Open mozilla/widget/src/mac/nsWindow.cpp in
+         ProjectBuilder</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>2. Select <I>Add Current File To Project</I> from the
+         <I>Project</I> menu. You can also drag the file into the
+         Files panel from the Finder.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>3. Find nsWindow::Scroll in the file and click just to
+         the left of the first line in the routine.</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>Now when you click the down arrow on a webpage, ProjectBuilder
+will pop to the front and after a delay (5 seconds, maybe) the line
+where execution has halted is drawn in red. Notice that you can walk
+back up the call stack and look at the source even though you didn't
+add any of those files to the project. ProjectBuilder only needs the
+files for which you want to set breakpoints in the project.</P>
+
+<H2>Looking At Variables</H2>
+
+<P>If you've used a gui debugger before (such as CodeWarrior), this
+is pretty simple. There are two things that should be pointed out,
+though.</P>
+
+<P>First, when looking at variables that are C++ classes,
+ProjectBuilder separates the protected/private members into their own
+subhierarchy called <I>protected</I> and <I>private</I>,
+respectively. It will also group inherited member variables into a
+subhierarchy named by the parent class. If you don't see the member
+variable you're looking for, make sure that you drill down all the
+way.</P>
+
+<P>If you want to save yourself the hassle of flipping down many
+little triangles, you can display a variable on the console using
+
+<BLOCKQUOTE><PRE>(gdb) p variable_name</PRE></BLOCKQUOTE>
+
+Pointer types aren't automatically dereferenced so you may need to
+do that in the command. It will write out a fully expanded representation
+to the console. This representation is  extremely customizable
+with various <I>set print feature-name</I> commands. See the gdb doc.
+</P>
+
+<P>The other issue is how to see the data through a COM interface
+pointer. As we all know, CodeWarrior had issues with this, but gdb is
+able with a little coaxing. This reason alone might be enough to make
+a lot of people switch to the mach-o builds!</P>
+
+<P>For example, if you have a variable</P>
+
+<BLOCKQUOTE><PRE>nsIWidget* parent;</PRE></BLOCKQUOTE>
+
+<P>and you want to see what's behind the interface pointer, do the
+following command in the gdb console panel</P>
+
+<BLOCKQUOTE><PRE>(gdb) x/wa *(void**) parent</PRE></BLOCKQUOTE>
+
+<P>and gdb will respond with</P>
+
+<BLOCKQUOTE><PRE>0x31fb06c &lt;__vt_13nsChildWindow&gt;: 0x0</PRE></BLOCKQUOTE>
+
+<P>This tells us that the implementation class for this particular
+interface pointer is nsChildWindow. To display the variable, we have
+to cast it to an nsChildWindow* when we print:</P>
+
+<BLOCKQUOTE><PRE>p *(nsChildWindow*)parent</PRE></BLOCKQUOTE>
+
+<P>The trick to seeing into nsCOMPtrs is the same. The only
+difference is that you have to look at the mRawPtr member of the
+nsCOMPtr. Assuming you have</P>
+
+<BLOCKQUOTE><PRE>nsCOMPtr&lt;nsIWidget&gt; parent;</PRE></BLOCKQUOTE>
+
+<P>The above x command would become:</P>
+
+<BLOCKQUOTE><PRE>(gdb) x/wa *(void**) parent.mRawPtr</PRE></BLOCKQUOTE>
+
+</P>You can do this automatically, by default, using this command
+at the beginning of your debugging session:</P>
+
+<BLOCKQUOTE><PRE>(gdb) set print object on</PRE></BLOCKQUOTE>
+
+</P>Once you've done that, using the 1st example, you can just type:</P>
+
+<BLOCKQUOTE><PRE>(gdb) p *parent</PRE></BLOCKQUOTE>
+
+</P>and get a full expanded view of the actual, derived type of 
+the object.</P>
+
+<H2>Debugging Without ProjectBuilder</H2>
+
+<P>Sure, it's cool, but it's extra overhead that those who love
+command lines and the Terminal app might not care for. In order to
+debug from the command line, you need to do the following.</P>
+
+<P><TABLE BORDER=0 WIDTH="100%">
+   <TR>
+      <TD>
+         <P>1. Cd down into the Mozilla package in dist</P>
+         
+         <BLOCKQUOTE><PRE>% cd dist/MozillaDebug.app/Contents/MacOS</PRE></BLOCKQUOTE>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>2.Set the DYLD_LIBRARY_PATH var to tell the loader that
+         this is where all the shared libraries are</P>
+         
+         <BLOCKQUOTE><PRE>% setenv DYLD_LIBRARY_PATH `pwd`</PRE></BLOCKQUOTE>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P></P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>3. Debug</P>
+         
+         <BLOCKQUOTE><PRE>% cd ../../..
+% gdb ./mozilla-bin</PRE></BLOCKQUOTE>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>
+
+<HR>
+
+</P>
+
+<H2>What If It Doesn't Work?</H2>
+
+<P>There are two places to go for help building Fizzilla:</P>
+
+<UL>
+   <LI>the #mozilla channel at irc.mozilla.org is a good place to
+   find some mac weenies in real time who, if you ask nicely and
+   don't be a pest, will happily get you on your way</LI>
+   
+   <LI>post to the newsgroup netscape.public.mozilla.macosx</LI>
+</UL>
+
+<P>
+
+<HR>
+
+written by Mike Pinkerton (<A HREF="mailto:pinkerton@netscape.com">pinkerton@netscape.com</A>)</P>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February  9,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/ports/fizzilla/DebugMach.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

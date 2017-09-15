@@ -1,0 +1,538 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+   <title>Using X in Mozilla's Multi Threaded Environment</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<hr WIDTH="100%">
+<center>
+<h2>
+Using X in Mozilla's Multi Threaded Environment</h2></center>
+
+<center><a href="mailto:kin@netscape.com">Kin Blas</a>, <a href="mailto:radha@netscape.com">Radha
+Kulkarni</a>, <a href="mailto:srinivas@netscape.com">Srinivas Lingutla</a>,
+and <a href="mailto:erik@netscape.com">Erik van der Poel</a>
+<br>Netscape Communications Corporation
+<br>Followup and discussion on <a href="news://news.mozilla.org/netscape.public.mozilla.unix">netscape.public.mozilla.unix</a>
+<br>November 1998
+</center>
+<hr WIDTH="100%">
+
+<p>The purpose of this writeup is to document the problems we've encountered
+while working with Unix Java AWT, X, Xt and Xm in Mozilla's multi-threaded
+environment.
+<br> 
+<h2>
+Mozilla 2.x - 3.x</h2>
+Prior to Mozilla 2.x, all code ran in the main process thread. State machines
+were used so that jobs, like loading and displaying images over the network,
+could be done incrementally through calls made from the event loop, allowing
+Mozilla to remain responsive to user actions.
+<p>With the introduction of Java in 2.x, it became neccessary for Mozilla
+to support multiple threads. Thread support came in the form of NSPR (Netscape
+Portable Runtime) 1.0, written primarily by <a href="mailto:kipp@netscape.com">Kipp
+Hickman</a>. NSPR 1.0 is still being used today in all 2.x, 3.x and 4.x
+versions of Mozilla.  On Unix, NSPR 1.0 supported a preemptive software
+thread model. The Mozilla 5.x client is based on NSPR 2.0, which
+<br>provides interfaces for creating both software and native threads (when
+supported by the OS).
+<p><i>NOTE: NSPR 1.0 overrides the OS select() function (ns/nspr/src/mdunix.c)
+so that it can queue I/O requests for the Idle thread to process, and do
+thread switching. AIX 4.1 system and tools did not support overriding OS
+functions, that's why we bundle special versions of libsvld.a and libc.a
+with the AIX versions of Mozilla.</i>
+<p>For the most part things stayed the same within Mozilla 2.x, that is
+almost all it's code ran in the main process thread (called the Mozilla
+Thread), all other threads were related to Java.
+<p>The Java AWT 1.0 implementation in Mozilla 2.x opened it's own Display
+connection, created it's own XtAppContext and had it's own event loop.
+<br>For the most part, Java AWT was a separate X application running in
+Mozilla's process space.  Applet widgets were created in a separate
+shell widget and then reparented at the Xlib level so that the Applet appeared 
+inside Mozilla's HTML view.   This introduced several problems:
+<ul>
+<li>
+Japanese input did not work properly in AWT Motif text widgets because
+their parent shell was not Mozilla's shell.</li>
+
+<li>
+The caret in AWT Motif text widgets did not blink properly because AWT
+and Mozilla did not share the same XtAppContext and event loop. The caret
+in AWT text widgets would not blink unless the mouse was moved continuously. 
+It was also possible to have 2 blinking carets in the same frame, one in
+Mozilla and one in an Applet.</li>
+
+<li>
+Color flashing happened on some platforms when moving between Mozilla and
+an Applet.  Mozilla allocated alot of colors in it's colormap, so
+Java was forced to either deal with a small number of colors, or get more
+colors by switching to a different colormap.</li>
+</ul>
+Since Mozilla and AWT ran in the same process space, they both shared the
+same X, Xt, and Xm library globals.  A monitor called _pr_rusty_lock
+was added so that threads could synchronize access to these libraries. 
+The monitor was acquired using a call to PR_XLock() and released with a
+call to PR_XUnlock().  AWT used two macros, AWT_LOCK and AWT_UNLOCK,
+for the same purpose so they were redefined to call PR_XLock() and PR_XUnlock().  
+Calls to PR_XLock() and PR_XUnlock() were also added to Mozilla's event
+loop.  It looked something like this:
+<blockquote>
+<pre>void
+fe_EventLoop()
+{
+    ...
+
+    PR_XUnlock();
+    haveEvent = XtAppPeekEvent(fe_XtAppContext, &amp;fe_last_event);
+    PR_XLock();
+
+    ...
+}</pre>
+</blockquote>
+The function XtAppPeekEvent() blocks in select() if there aren't any XEvents,
+timers, or alternate input file descriptors to process, so the idea here
+was to release the XLock before the Mozilla thread blocked so that the
+Java threads would have a chance to grab it.
+<p>Managing the XLock in this manner had the benifit that the XFE could
+be totally oblivious to the fact that it was running in a multi threaded
+environment, since anytime the Mozilla thread was running, it was guaranteed
+to be holding the XLock.
+<br> 
+<h2>
+Mozilla 4.x</h2>
+For Mozilla 4.0, <a href="mailto:erik@netscape.com">Erik van der Poel</a>
+proposed a <a href="JavaHack.html">solution</a>
+to the problems introduced by AWT. It involved modifying the AWT code so
+that it shared the same Display, XtAppContext, and event loop with Mozilla.
+He started the work and then handed it off to <a href="mailto:radha@netscape.com">Radha
+Kulkarni</a> who eventually checked it all in. Most of this work took place
+in AWT specific code, but some modifications had to be made to fe_EventLoop()
+and NSPR because the old scheme of releasing and acquiring the XLock before
+and after calling XtAppPeekEvent() would no longer work since Mozilla and
+AWT now shared the same Display and XtAppContext.
+<p><b>The XLock select() Hack</b>
+<p><a href="mailto:erik@netscape.com">Erik</a> suggested that the safest
+place for the Mozilla thread to release the XLock was in NSPR's select()
+function, just before it was about to block for I/O.  The idea here
+was that Mozilla would add a known file descriptor (_pr_xt_hack_fd) to
+Xt's fdset:
+<blockquote>
+<pre>XtAppAddInput(fe_XtAppContext, PR_XGetXtHackFD(),
+             (XtPointer) XtInputReadMask, dummyInputProc, NULL);</pre>
+</blockquote>
+This would allow us to tell when select() was being called from a blocking
+Xt call so we could release the XLock so that other threads could grab
+it if they needed it.
+<p>Here's what the associated NSPR code, from ns/nspr/src/mdunix.c, looks
+like as of Mozilla 4.5:
+<blockquote>
+<pre>/* see comments in ns/cmd/xfe/mozilla.c (look for "PR_XGetXtHackFD") */
+#if defined(MOZILLA_CLIENT) &amp;&amp; defined(JAVA)
+static int _pr_xt_hack_fd = -1;
+ 
+int PR_XGetXtHackFD(void)
+{
+    int fds[2];
+ 
+    if (_pr_xt_hack_fd == -1) {
+        if (!pipe(fds)) {
+            _pr_xt_hack_fd = fds[0];
+        }
+    }
+    return _pr_xt_hack_fd;
+}
+
+static int (*_pr_xt_hack_okayToReleaseXLock)(fd_set *fds, int hack_fd) = 0;
+
+void PR_SetXtHackOkayToReleaseXLockFn(int (*fn)(fd_set *fds, int hack_fd))
+{
+   _pr_xt_hack_okayToReleaseXLock = fn; 
+}
+
+#endif /* MOZILLA_CLIENT &amp;&amp; JAVA */
+
+
+int select(int width, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval *tv)
+{
+
+...
+
+     /* see comments in ns/cmd/xfe/mozilla.c (look for "PR_XGetXtHackFD") */
+#if defined(MOZILLA_CLIENT) &amp;&amp; defined(JAVA)
+    {
+        int needToLockXAgain;
+ 
+        needToLockXAgain = 0;
+        if (rd &amp;&amp; (_pr_xt_hack_fd != -1) &amp;&amp;
+           (!_pr_xt_hack_okayToReleaseXLock || _pr_xt_hack_okayToReleaseXLock(&amp;r, _pr_xt_hack_fd))) {
+            PR_XUnlock();
+            needToLockXAgain = 1;
+        }
+#endif /* MOZILLA_CLIENT &amp;&amp; JAVA */  
+
+        /* wait for i/o */
+        _PR_IOWait(&amp;q);
+
+#if defined(MOZILLA_CLIENT) &amp;&amp; defined(JAVA)
+        if (needToLockXAgain) {
+            PR_XLock();
+            needToLockXAgain = 0;
+        }
+    }
+#endif /* MOZILLA_CLIENT &amp;&amp; JAVA */
+
+...
+
+}</pre>
+</blockquote>
+
+<p><br>The initial version of the XLock select() code simply released the
+XLock, everytime select() was called, if the _pr_xt_hack_fd was set in
+the read fdset. This created 2 problems:
+<ul>
+<li>
+select() got called several times through each iteration of the fe_EventLoop()
+via all the XtAppPeekEvent() and XtAppNextEvent() calls.  If a Java
+Applet with an animation was running, it was possible to queue up hundreds
+of NoExpose events before one iteration of fe_EventLoop() was complete,
+leaving Mozilla with no hope of catching up.</li>
+
+<li>
+XtAppPeekEvent() and XtAppNextEvent() sometimes called _XFlush() which
+called a blocking select() with an fdset that did not contain _pr_xt_hack_fd,
+allowing Mozilla to go to sleep while holding the XLock. This resulted
+in problems where Java Applets would not repaint properly or dialogs or
+frames would not show up until some event like a mouse move woke up the
+Mozilla thread. A workaround for this problem was to fire off an Xt timer
+every few milliseconds to keep the Mozilla thread active, but the workaround
+was removed because users complained that their CPU load remained high
+when Mozilla was idling.</li>
+</ul>
+In an effort to get around some of these problems, <a href="mailto:kin@netscape.com">Kin
+Blas</a> added a function called PR_SetXtHackOkayToReleaseXLock() to NSPR
+that allowed Mozilla to register a callback function so that Mozilla could
+decide when to release the XLock.  The callback function Mozilla registered
+looked like this:
+<br> 
+<blockquote>
+<pre>static int
+fe_xt_hack_okayToReleaseXLock(fd_set *fds, int hack_fd)
+{
+  if (!xt_hack_enabled || !fds || hack_fd &lt; 0
+      || PR_CurrentThread() != mozilla_thread || !PR_XIsLocked())
+      return 0;
+
+  /* XtAppPeekEvent() and XtAppNextEvent() both call
+   * XEventsQueued(display, QueuedAfterFlush) which calls select()
+   * via _XFlush() with an fd_set that doesn't contain our hack_fd.
+   * This select() call can block allowing the mozilla thread to go
+   * to sleep while holding the XLock, preventing Java threads from
+   * accessing any X/Xt/Xm calls.
+   *
+   * Symptoms of this problem include Java frames/dialogs that don't show
+   * up until the mouse is moved, repaint problems, etc.
+   *
+   * To get around this problem, we also check to see if the fe_display
+   * fd is in the fd_set.
+   *
+   * On some platforms running X11R6, like Solaris 2.5, releasing the
+   * lock while in the _XFlush() call leaves the display's write queue
+   * locked causing the application to hang in _XFlushInt() when any of
+   * the other threads call some X graphics function like XCreateGC()
+   * or XFillRectangle().
+   *
+   * - kin
+   */
+#if defined(SOLARIS)
+  return(FD_ISSET(hack_fd, fds) &amp;&amp; QLength(fe_display) == 0);
+#else
+  return((FD_ISSET(hack_fd, fds)
+         || FD_ISSET(ConnectionNumber(fe_display), fds))
+         &amp;&amp; QLength(fe_display) == 0);
+#endif
+}</pre>
+</blockquote>
+The function released the XLock if the read fdset contained either the
+_pr_xt_hack_fd or the X display connection fd and the XEventQueue was empty.
+The xt_hack_enabled flag was introduced so we could control which XtAppPeekEvent()
+and XtAppNextEvent() calls could release the XLock.  Two macros: EnableXtHack()
+and DisableXtHack() were used to turn the xt_hack_enabled flag on and off:
+<blockquote>
+<pre>EnableXtHack();
+haveEvent = XtAppPeekEvent(fe_XtAppContext, &amp;fe_last_event);
+DisableXtHack();</pre>
+</blockquote>
+This fixed the 2 problems mentioned above on most platforms, but the check
+for the X display connection fd had to be disabled for Solaris because
+it interfered with the X11R6 locking code. In X11R6, both XtAppPeekEvent()
+and XtAppNextEvent() eventually call _XFlush() which results in a call
+to select().  The problem was that _XFlush() locked the display's
+write queue before it called select() and then released it afterwards.
+If we released the XLock while holding the display write queue lock, any
+other thread calling an X function that called _XFlushInt(), like most
+of the graphics functions (XDrawLine(), XDrawRect(), etc), would lock up.
+<p><b>Problems with XtDispatchEvent() and XtDestroyWidget()</b>
+<p>XEvents generated by AWT Motif widgets, were not dispatched right away
+within the event loop.  The AWT 1.1 event model required that we send
+the XEvent through Java first, so that the user could decide what to do
+with the event.  The underlying event dispatch model used in the JDK
+version of AWT was different from ours.
+<p>The JDK version would push the XEvent into a Java system event queue
+where the system event dispatch thread would process it and then call XtDispatchEvent()
+on the XEvent if the user decided it was okay.  If there was more
+than one Applet on the page, this design had the disadvantage where one
+of the Applets could misbehave and kill the system event dispatch thread,
+causing all the other Applets on the page to stop too.
+<p>Our dispatch model created an AppletEventDispatcher thread for each
+Applet that existed on the page, so if one of the Applets misbehaved, it
+wouldn't affect the others.  This also meant that XtDispatchEvent()
+was called from multiple threads, which created a problem where the Phase2
+destruction of widgets would not happen.  When this problem happened,
+it could be seen in two ways in the browser, form elements would not disappear
+when you visited another page, and Mozilla would hang on exit.
+<p>What was happening was that the dispatch_level field of the XtAppContext
+structure was not maintained properly if multiple threads called XtDispatchEvent()
+at the same time.  The following example illustrates what happens
+to the dispatch_level field when calls to XtDispatchEvent() overlap.
+<br> 
+<blockquote>
+<pre> Mozilla Thread                 AppletEventDispatcher Thread
+ -----------------------------------------------------------
+
+                                XtDispatchEvent(XtAppContext app, XEvent e)
+                                {
+                                  //
+                                  // app->dispatch_level == 0
+                                  //
+
+                                  int dispatch_level = ++app->dispatch_level;
+
+                                  //
+                                  // dispatch_level == 1
+                                  //
+
+
+                                  .
+                                  .
+                                  .
+
+
+ XtDispatchEvent(XtAppContext app, XEvent e)
+ {
+   //
+   // app->dispatch_level == 1
+   //
+
+   int dispatch_level = ++app->dispatch_level;
+
+   //
+   // dispatch_level == 2
+   //
+
+
+   .
+   .
+   .
+
+
+                                  app->dispatch_level = dispatch_level - 1;
+
+                                  //
+                                  // app->dispatch_level == 0
+                                  //
+                                }
+
+
+   app->dispatch_level = dispatch_level - 1;
+
+   //
+   // app->dispatch_level == 1
+   //
+ }</pre>
+</blockquote>
+The app->dispatch_level should always be zero when all XtDispatchEvent()
+calls have been exited. In the example above, after all calls are done,
+app->dispatch_level == 1.
+<p>The dispatch_level field of the XtAppContext structure is used by both
+XtDispatchEvent() and XtDestroyWidget() to decide when a Widget should
+be destroyed. When XtDestroyWidget() is called it checks the current dispatch_level
+to see when it should actually destroy the widget. If the dispatch_level
+is zero, the destruction is done immediately within the XtDestroyWidget()
+call. If it is nonzero, the widget is added to the XtAppContext's destroy_list
+and marked with the current dispatch_level where it will remain until XtDispatchEvent()
+calls XtPhase2Destroy() with a dispatch_level less than the widgets saved
+dispatch_level.
+<p> How is it possible that 2 or more XtDispatchEvent() calls are
+made at the same time if only one thread holds the XLock?
+<p>It turns out that some widget callbacks are called as the result of
+an XtDispatchEvent(). In AWT, some of these callbacks call JAVA_UPCALL()
+which releases the XLock allowing other threads to grab the lock and call
+XtDispatchEvent() before the current thread has finished exiting XtDispatchEvent().
+<p>To solve this problem, <a href="mailto:kin@netscape.com">Kin</a> modified AWT so that it never called XtDispatchEvent()
+and XtDestroyWidget() from a Java thread, instead, they would push 
+requests into a queue processed on the Mozilla thread, where the actual
+dispatch and destruction would happen. This insured that only one thread
+at a time could call XtDispatchEvent() or XtDestroyWidget().
+<p><b>Calling into Java from the Mozilla Thread</b>
+<p>The biggest problem that still exists in the Mozilla 4.x codebase, is
+the fact that we call directly into Java from the Mozilla thread. 
+If Mozilla is blocked in Java code, all event and network processing is
+halted.  Here are just a few known problems that can occur:
+<ul>
+<li>
+Some AWT Motif widget callbacks trigger Java code, that calls into user
+code, which can block.</li>
+
+<li>
+Netlib is not thread-safe so it only runs on the Mozilla thread. All Java
+network activity (class, image, or file loading) happens through Netlib
+so if Mozilla calls into Java code that tries to load something, it will
+hang forever.</li>
+
+<li>
+If Mozilla calls into Java code when the VM needs to garbage collect, it
+will hang.</li>
+</ul>
+The obvious solution for this problem was to rewrite the functions and
+callbacks, that called into Java from the Mozilla thread, so that they
+pushed the neccessary data and requests into some other thread that would
+call into Java.  This never happened because this meant rewriting
+alot of the JavaSoft AWT code so there was some fear that this would cause
+schedule slippage.  We were also trying to ramp down the Java effort
+so there was a push for us to change as little JavaSoft code as possible
+so that future source drops and patches would be easier to integrate.
+<br> 
+<h2>
+Mozilla 5.x</h2>
+For Mozilla 5.x, we are in the unique position of rewriting the entire
+front end using the XPFE architecture. The Unix version of XPFE will be
+based on X and <a href="http://www.gtk.org">GTK</a>, which aren't thread
+safe on every platform yet, so we will still need some sort of mechanism
+that insures only one thread can access X or <a href="http://www.gtk.org">GTK</a>
+at one time.  We want to avoid using the XLock Select Hack mechanism,
+used in 4.x, because it has too many problems and prevents us from using
+native thread packages.
+<p>Here are 3 approaches we can use as starting points for discussion:
+<ul>
+<li>
+Write XPFE so that X and <a href="http://www.gtk.org">GTK</a> run on a
+single GUI thread.  All other threads wanting to draw, update, or
+get info from the UI will have to submit requests that are processed on
+this GUI thread.</li>
+
+<li>
+Use a single lock to synchronize thread access to X and <a href="http://www.gtk.org">GTK</a>. 
+The locking/unlocking should take place at the lowest level in XPFE to
+insure that threads don't hold onto the lock for extended periods of time.</li>
+
+<li>Require that all platforms we support
+use X11R6 and require that GTK add thread-safe support.</li>
+</ul>
+
+The first two approaches are complicated by the fact that both plugins
+and 3rd party Java VMs can call into X too.  Should we require them
+to use XPFE calls or lock/unlock too?
+<br> 
+<br> 
+<br> 
+<br> 
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December  4,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/unix/using-x-with-mozilla-threads.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

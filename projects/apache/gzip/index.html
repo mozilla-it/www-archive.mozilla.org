@@ -1,0 +1,260 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+   <title>performance: http compression</title>
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<center>
+<h1>performance: HTTP Compression</h1>
+</center>
+
+Owners:
+<a href="mailto:jg@netscape.com">John Giannandrea</a> (jg@netscape.com),
+<a href="mailto:ebina@netscape.com">Eric Bina</a> (ebina@netscape.com)<br>
+Last Updated: 15-September-1998
+
+<p>
+<a href="get_src.html">Getting the Apache module source.</a>
+</p>
+
+<p>
+This project aims to improve real and perceived <i>web browsing</i>
+performance by having the server send compressed HTML files to the
+browser, and having the browser uncompress before displaying.
+Assuming fast enough processors on most machines these days, the
+user should end up seeing the document sooner this way than sending
+uncompressed HTML.  Also, since a majority of network traffic these
+days is HTTP traffic, compressing all HTML sent via HTTP should recover
+a significant amount of <i>wasted</i> network bandwidth.
+</p>
+
+<h3>Stage 1 - <tt>Content-Encoding: gzip</tt></h3>
+
+<dl>
+<dt>Status: <i>Complete</i>
+<dd>
+<p>
+The current Mozilla source already sends <tt>Accept-encoding: gzip</tt>
+and can do a streaming decompression of HTML data received with
+<tt>Content-encoding: gzip</tt>.  All that is needed is a server
+set up to serve this data to mozilla, while maintaining backwards
+compatibility with browsers that can't handle the compressed data.
+</p>
+<p>
+To this end a new Apache 1.3 server module has been written.
+It is activated on a per-directory basis with a command in
+the access.conf file of the format:
+<center>
+<br><tt>CompressContent Yes</tt>
+</center></br>
+When activated, and only if an <tt>Accept-encoding: gzip</tt> header
+is received, all requests for files from that directory
+will be redirected to requests for an equivalent compressed file
+from that directory if one exists.  In essence if you ask for
+<tt>foo.html</tt> and both it and <tt>foo.html.gz</tt> exist
+then those requests with an appropriate Accept-encoding will
+get the compressed file, and other requests will get the uncompressed
+file.
+</p>
+<p>
+This neatly solves the backwards compatibility problem for the browser,
+but creates a maintenance problem on the server end.  One would need to run
+some sort of automated script to regularly maintain up to date compressed
+versions of files in the directories that needed them.  For a solution
+to this maintenance problem, see <i>Stage 2</i> below.
+</p>
+</dl>
+
+<dl>
+<dt>Results:
+<dd>
+
+<p>
+<center>
+Here is an optimal case where all images are in the cache.
+<table border>
+<tr><th colspan=2>Local</th><th colspan=2>ISDN 64 kbits/sec</th><th colspan=2>28.8</th></tr>
+<tr><th>No GZIP</th><th>GZIP</th><th>No GZIP</th><th>GZIP</th><th>No GZIP</th><th>GZIP</th></tr>
+<tr><td>56.9 sec</td><td>61.0 sec</td><td>105.1 sec</td><td>83.2 sec</td><td>327.9 sec</td><td>121.8 sec</td></tr>
+<tr align=center><td colspan=2>7% Slower</td><td colspan=2>21% Faster</td><td colspan=2>63% Faster</td></tr>
+</table>
+</center>
+
+Notes:
+<ol>
+<li>For the <b>Local</b> run both the client and server are running
+on the same machine, so we are seeing both the overhead for client unzip,
+and the slight extra overhead for the server to locate and send the
+gzipped content. (an extra call to stat() a file)
+</ol>
+</p>
+
+<p>
+A more realistic workload was then generated simulating a user starting
+with an empty cache, and visiting the CNN site to read in order:
+Main Page, World, U.S., U.S. Local, Weather, Sci-Tech, Entertainment,
+Travel, Health, Style, and In-Depth.
+<center>
+<table border>
+<tr><th colspan=2>Local</th><th colspan=2>ISDN 128 kbits/sec</th><th colspan=2>28.8</th><th colspan=2>14.4</th></tr>
+<tr><th>No GZIP</th><th>GZIP</th><th>No GZIP</th><th>GZIP</th><th>No GZIP</th><th>GZIP</th><th>No GZIP</th><th>GZIP</th></tr>
+<tr><td>53.0 sec</td><td>53.2 sec</td><td>82.1 sec</td><td>77.6 sec</td><td>264.7 sec</td><td>184.4 sec</td><td>474.1 sec</td><td>307.7 sec</td></tr>
+<tr align=center><td colspan=2>0.4% Slower</td><td colspan=2>5.5% Faster</td><td colspan=2>30% Faster</td><td colspan=2>35% Faster</td></tr>
+</table>
+</center>
+
+Notes:
+<ol>
+<li>A much more realistic set of data with a mix of image hits and
+misses after the first CNN page.
+<li>Note that the gzip cost on the local system is basically lost in the
+noise.
+<li>Also all the image loads make the apparent gain at 28.8 much lower.
+<li>It is curious that the 14.4 load doesn't show a greater speedup.
+</ol>
+
+<p>
+These results seem promising enough to warrant moving on to implementation
+of <i>Stage 2</i>.
+</p>
+</dl>
+
+<h3>Stage 2 - <tt>Transfer-Encoding: gzip</tt></h3>
+
+<dl>
+<dt>Status: <i>Begun</i>
+<dd>
+<p>
+Here we hope to use the new HTTP1.1 <tt>TE: gzip</tt> header to request
+compressed versions of HTML files.  Then the server would need to do
+streaming compression to generate the results.  To minimize the overhead
+on the server it should keep a cache of the compressed files
+to quickly fill future requests for the same compressed data.
+</p>
+<p>
+The current Mozilla source can already accept and decode
+<tt>Transfer-encoding: gzip</tt> data, but does not currently
+send the <tt>TE:</tt> header.  Work has begun on implementing
+the streaming compression in the latest Netscape Enterprise
+Server.  (<font color="#FE2604">General call for volunteers to implement
+this as a module for Apache 1.3</font>).
+</p>
+</dl>
+
+<h3>Stage 3 - Other compression types</h3>
+<p>
+The previous two stages all dealt only with <i>gzip</i> as a form of
+compression.  While a great general compression scheme, we probably want to
+negotiate compression type based on the data type requested.  For example
+if the client requested with a <tt>TE: gzip</tt> header data that turned out
+to be a JPEG image, the server probably should know not to try to
+transfer-encode this with gzip.
+</p>
+
+<h3>Comments etc.</h3>
+<p>
+Any comments/questions or any volunteers to do the TE-aware Apache module,
+or other work, contact: <a href="mailto:ebina@netscape.com">Eric Bina</a>.
+</p>
+
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September 18,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/apache/gzip/index.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

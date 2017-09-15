@@ -1,0 +1,68 @@
+#! /bin/ksh
+
+# All the packages will be install under $PF.
+echo Using PF  = ${PF:=$PWD/prefix}
+echo Using CC  = ${CC:=cc}
+echo Using CCC = ${CCC:=cxx}
+echo Using CFLAGS = ${CFLAGS:=-std1}
+echo
+
+# The configure script looks at these variables.
+export PF CC CCC CFLAGS
+
+export PATH=$PF/bin:$PATH
+export LD_LIBRARY_PATH=$PF/lib
+
+testForFile ()
+{
+    if [ ! -f $1 ]; then
+	echo Downloading ftp://$2/$3/$1
+        (
+	    echo "user anonymous anonymous@"
+	    echo "bin"
+	    echo "get $3/$1 $1"
+	    echo "quit"
+	) | ftp -n $2
+    fi
+
+    if [ ! -f $1 ]; then
+        echo "File \"$1\" does not exit."
+	echo "Run the script again after you download:"
+	exit 1
+    fi
+}
+
+pullAndBuild ()
+{
+    tfile=$1; shift
+    bdir=$1;  shift
+
+    rm -rf $bdir
+    gunzip -dc < $tfile | tar xvf - && (
+        cd $bdir || exit 1
+	ksh ./configure --prefix=$PF "$@" && make && make install
+    ) && export PATH=$PATH
+}
+
+set -e
+
+testForFile make-3.79.tar.gz	metalab.unc.edu		/pub/gnu/make
+testForFile flex-2.5.4a.tar.gz	metalab.unc.edu		/pub/Linux/distributions/slackware/source/d/flex
+testForFile glib-1.2.8.tar.gz	ftp.gtk.org		/pub/gtk/v1.2
+testForFile gtk+-1.2.8.tar.gz	ftp.gtk.org		/pub/gtk/v1.2
+testForFile ORBit-0.5.1.tar.gz	ftp.gnome.org		/pub/ORBit
+
+if [ -d $PF ]; then
+    echo "Please remove the following directory before running:"
+    echo "   $PF"
+    exit 1
+else
+    mkdir $PF || exit 1
+fi
+
+GLFL="--with-threads=posix"
+pullAndBuild make-3.79.tar.gz make-3.79        && rm -rf make-3.79
+pullAndBuild flex-2.5.4a.tar.gz flex-2.5.4         && rm -rf flex-2.5.4
+pullAndBuild glib-1.2.8.tar.gz glib-1.2.8 $GLFL    && rm -rf glib-1.2.8
+pullAndBuild ORBit-0.5.1.tar.gz ORBit-0.5.1/libIDL && rm -rf ORBit-0.5.1
+pullAndBuild gtk+-1.2.8.tar.gz gtk+-1.2.8          && rm -rf gtk+-1.2.8

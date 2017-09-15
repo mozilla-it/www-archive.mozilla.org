@@ -1,0 +1,501 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta name="GENERATOR" content="Quadralay WebWorks Publisher Professional Edition 6.0.5">
+<meta name="TEMPLATEBASE" content="Portable HTML Professional Edition">
+<meta name="LASTUPDATED" content="07/02/03 09:55:41">
+<title>CHAPTER 3 Component Internals</title>
+</head>
+
+<body link="#3366CC" vlink="#9999CC" text="#000000" alink="#0000CC" bgcolor="#FFFFFF">
+
+<table width="331" border="0" align="right" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23"
+    border="0" alt="TOC"> </a></td>
+    <td><a href="using_components.html"><img src="images/navprev.gif" width="81" height="23"
+    border="0" alt="PREV"> </a></td>
+    <td><a href="components.html"><img src="images/navnext.gif" width="81" height="23"
+    border="0" alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23"
+    border="0" alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+<p><img src="images/xpcom.gif"></p>
+<hr align="left">
+
+<blockquote>
+<h1>
+  <a name="999039"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">CHAPTER 3	 Component Internals</font>
+</h1><hr>
+
+
+<p>
+  <a name="999041"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Where the previous chapter described components from the perspective of a client of XPCOM components, this chapter discusses components from the perspective of the software developer. Read on to see how components are generally implemented in XPCOM, or you can skip to the next chapter, where the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component tutorial takes you step by step through the component creation process. </font>
+</p>
+
+
+<h2>
+  <a name="999042"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Creating Components in C++</font>
+</h2>
+
+
+<p>
+  <a name="999043"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Let's start by examining how XPCOM components are written in C++.  The most common type of component is one that is written in C++ and compiled into a shared library (a DLL on a Windows system or a DSO on Unix).</font>
+</p>
+
+
+<p>
+  <a name="999044"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The illustration below shows the basic relationship between the shared library containing the component implementation code you write and the XPCOM framework itself. In this diagram, the outer boundary is that of the module, the shared library in which a component is defined. </font>
+</p>
+
+
+<a name="999045"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/component_internals2a.gif" height="274" width="444">
+</div><br></font>
+
+<a name="999050"> </a><font face="Times New Roman">Figure 1.  A Component in the XPCOM Framework</font>
+<p>
+  <a name="1002461"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When you build a component or module and compile it into a library, it must export a single method named <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font>. This <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font> function is the entry point for accessing the library. It gets called during registration and unregistration of the component, and when XPCOM wants to discover what interfaces or classes the module/library implements. In this chapter we will outline this entire process.</font>
+</p>
+
+
+<p>
+  <a name="999051"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">As <a href="component_internals2.html#999050"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 1</i></font></a> illustrates, in addition to the <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font> entry point, there are <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> interfaces that control the actual creation of the component, and also the string and XPCOM glue parts, which we'll discuss in some detail in the next section (see <a href="component_internals2.html#1002252">"XPCOM Glue" on page 48</a>"). These latter supply ease-of-development utilites like smart pointers, generic modules support, and simple string implementations. The largest and possibly most complex part of a component is the code specific to the component itself. </font>
+</p>
+
+
+<a name="999054"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="999355"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">But Where Are the Components?</font>
+</h4>
+
+<a name="999362"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Components reside in modules, and those modules are defined in shared library files that typically sit in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>components</i></font> directory of an XPCOM application.</font><a name="999356"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">A set of default libraries stored in this components directory makes up a typical Gecko installation, providing functionality that consists of networking, layout, composition, a cross-platform user interface, and others. </font><a name="999357"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Another, even more basic view of this relationship of components to the files and interfaces that define them is shown in <a href="components.html#1009872">Figure 2 on page 57</a>. The component is an abstraction sitting between the actual module in which it is implemented and the objects that its factory code creates for use by clients.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h2>
+  <a name="999090"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XPCOM Initialization</font>
+</h2>
+
+
+<p>
+  <a name="999091"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To understand why and when your component library gets called, it is important to understand the XPCOM initalization process. When an application starts up, that application may <font  face="Verdana, Arial, Helvetica, sans-serif"><i>initialize</i></font> XPCOM. The sequence of events that kicks off this XPCOM initialization may be triggered by user action or by the application startup itself. A web browser that embeds Gecko, for example, may initialize XPCOM at startup through the embedding APIs. Another application may delay this startup until XPCOM is needed for the first time. In either case, the initialization sequence within XPCOM is the same. </font>
+</p>
+
+
+<p>
+  <a name="999092"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM starts when the application makes a call to initialize it. Parameters passed to this startup call allow you to configure some aspects of XPCOM, including the customization of location of specific directories. The main purpose of the API at this point is to change which <font  face="Verdana, Arial, Helvetica, sans-serif"><i>components</i></font> directory XPCOM searches when it looks for XPCOM components. This is how the API is used, for example, in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Gecko Run-time Environment</i></font> (GRE).</font>
+</p>
+
+
+<a name="999093"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="999677"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XPCOM Startup</font>
+</h4>
+
+<a name="999678"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The six basic steps to XPCOM startup are as follows:</font><ol type="1">
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="1"><a name="999679"> </a>Application starts XPCOM.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="2"><a name="999680"> </a>XPCOM sends a notification that it's beginning startup.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="3"><a name="999681"> </a>XPCOM finds and processes the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>component manifest</i></font> (see <a href="component_internals2.html#999126"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>"Component Manifests"</i></font></a> below)<font  face="Verdana, Arial, Helvetica, sans-serif"><i>.</i></font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="4"><a name="999682"> </a>XPCOM finds and processes the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>type library manifest</i></font> (see <a href="component_internals2.html#999149"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>"Type Library Manifests"</i></font></a> below)<font  face="Verdana, Arial, Helvetica, sans-serif"><i>.</i></font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="5"><a name="999683"> </a>If there are new components, XPCOM registers them:</font>
+</ol>
+<dl>
+  <dt> <a name="999684"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">a. XPCOM calls autoregistration start.</font>
+  <dt> <a name="999685"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">b. XPCOM registers new components.</font>
+  <dt> <a name="999686"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">c. XPCOM calls autoregistration end.</font>
+</dl>
+<ol type="1">
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="6"><a name="999687"> </a>Complete XPCOM startup: XPCOM notifies that it's begun.</font>
+</ol>
+<a name="1001918"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Component manifests and type library manifests are described in the following section, " <a href="component_internals2.html#999115">XPCOM Registry Manifests</a>".</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="999115"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XPCOM Registry Manifests</font>
+</h3>
+
+
+<p>
+  <a name="999116"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM uses special files called <font  face="Verdana, Arial, Helvetica, sans-serif"><i>manifests</i></font> to track and persist information about the components to the local system. There are two types of manifests that XPCOM uses to track components: </font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999119"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">" </font><a href="component_internals2.html#999126"><font  face="Verdana, Arial, Helvetica, sans-serif">Component Manifests</font></a><font  face="Verdana, Arial, Helvetica, sans-serif">"  </font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999123"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">" </font><a href="component_internals2.html#999149"><font  face="Verdana, Arial, Helvetica, sans-serif">Type Library Manifests</font></a><font  face="Verdana, Arial, Helvetica, sans-serif">"  </font></font>
+</ul>
+
+<h5>
+  <a name="999126"> </a><i><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Component Manifests</font></i>
+</h5>
+
+
+<p>
+  <a name="999127"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When XPCOM first starts up, it looks for the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>component manifest</i></font>, which is a file that lists all registered components, and stores details on exactly what each component can do. XPCOM uses the component manifest to determine which components have been overridden. Starting with Mozilla 1.2, this file is named <font  face="Verdana, Arial, Helvetica, sans-serif"><i>compreg.dat</i></font> and exists in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>components</i></font> directory, but there are efforts to move it out of this location to a less application-centric (and thus more user-centric) location. Any Gecko-based application may choose to locate it elsewhere.</font>
+</p>
+
+
+<p>
+  <a name="999129"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM reads this file into an in-memory database. </font>
+</p>
+
+
+<a name="1002325"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1002338"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Component Manifests</font>
+</h4>
+
+<a name="1002344"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The component manifest is a mapping of files to components and components to classes. It specifies the following information:</font><ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1002366"> </a>Location on disk of registered components with file size.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1002371"> </a>Class ID to Location Mapping</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1002381"> </a>Contract ID to Class ID Mapping</font>
+</ul>
+<a name="1002405"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The component manifest maps component files to unique identifiers for the specific implementations (class IDs), which in turn are mapped to more general component identifiers (contract IDs).</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h5>
+  <a name="999149"> </a><i><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Type Library Manifests</font></i>
+</h5>
+
+
+<p>
+  <a name="999150"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Another important file that XPCOM reads in is the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>type library manifest </i></font>file. This file is also located in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>components</i></font> directory and is named <font  face="Verdana, Arial, Helvetica, sans-serif"><i>xpti.dat</i></font>. It includes the location and search paths of all type library files on the system. This file also lists all known interfaces and links to the type library files that define these interface structures. These type library files are at the core of XPCOM scriptablity and the binary component architecture of XPCOM. </font>
+</p>
+
+
+<a name="1002416"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1002423"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Type Library Manifests</font>
+</h4>
+
+<a name="1002427"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Type library manifests contain the following information:</font><ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1002431"> </a>location of all type library files</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1002439"> </a>mapping of all known interfaces to type libraries where these structures are defined</font>
+</ul>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999161"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Using the data in these two manifests, XPCOM knows exactly which component libraries have been installed and what implementations go with which interfaces. Additionally, it relates the components to the type libraries in which the binary representations of the interfaces they support are defined. </font>
+</p>
+
+
+<p>
+  <a name="999162"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next section describes how to hook into the XPCOM startup and registration process and make the data about your component available in these manifests, so that your component will be found and registered at startup.</font>
+</p>
+
+
+<h3>
+  <a name="999165"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Registration Methods in XPCOM</font>
+</h3>
+
+
+<a name="999921"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="999928"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">What Is XPCOM Registration?</font>
+</h4>
+
+<a name="999929"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In a nutshell, registration is the process that makes XPCOM aware of your component(s). As this section and the next describe, you can register your component explicitly during installation, or with the <font  face="Verdana, Arial, Helvetica, sans-serif">regxpcom</font> program, or you can use the autoregistration methods in the Service Manager to find and register components in a specified components directory:</font><ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999930"> </a>XPInstall APIs</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999931"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">regxpcom</font> command-line tool</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999932"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar</font> APIs from Service Manager</font>
+</ul>
+<a name="999933"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The registration process is fairly involved. This section introduces it in terms of XPCOM initialization, and the next chapter describes what you have to do in your component code to register your component with XPCOM.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999177"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once the manifest files are read in, XPCOM checks to see if there are any components that need to be registered.  There are two supported ways to go about registering your XPCOM component. The first is to use <font  face="Verdana, Arial, Helvetica, sans-serif"><i>XPInstall</i></font>, which is an installation technology that may or may not come with a Gecko application and provides interfaces for registering your component during installation. Another, more explicit way to register your component is to run the application <font  face="Verdana, Arial, Helvetica, sans-serif"><i>regxpcom</i></font>, which is built as part of Mozilla and also available in the Gecko SDK. <font  face="Verdana, Arial, Helvetica, sans-serif"><i>regxpcom</i></font> registers your component in the default component registry. </font>
+</p>
+
+
+<p>
+  <a name="1002208"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">A Gecko embedding application may also provide its own way of registering XPCOM components using the interface that is in fact used by both XPInstall and regxpcom, <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar</font>. An application, for example, could provide a "registration-less" component directory whose components are automatically registered at startup and unregistered at shutdown. Component discovery does not currently happen automatically in non-debug builds of Gecko, however.</font>
+</p>
+
+
+<p>
+  <a name="999181"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When the registration process begins, XPCOM broadcasts to all registered observers a notification that says XPCOM has begun the registration of new components. After all components are registered, another notification is fired saying that XPCOM is done with the registration step. The <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> interface that handles this notification is discussed in the chapter <a href="weblock.html#998205">"Tutorial: Starting WebLock"</a>.</font>
+</p>
+
+
+<p>
+  <a name="999183"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once registration is complete and the notifications have fired, XPCOM is ready to be used by the application. If XPCOM registered your component, then it will be available to other parts of the XPCOM system. The <a href="component_internals2.html#999090">"XPCOM Initialization"</a> section in this chapter describes registration in more detail.</font>
+</p>
+
+
+<h3>
+  <a name="999190"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Autoregistration</font>
+</h3>
+
+
+<p>
+  <a name="999191"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The term <font  face="Verdana, Arial, Helvetica, sans-serif"><i>autoregistration</i></font> is sometimes used synonymously with registration in XPCOM. In the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>What is Registration?</i></font> box on the previous page, we describe the three ways you can register components with XPCOM. Sometimes, applications use the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar</font> interface and create their own code for watching a particular directory and registering new components that are added there, which is what's often referred to as <font  face="Verdana, Arial, Helvetica, sans-serif"><i>autoregistration</i></font>. You should always know what the installation and registration requirements are for the applications that will be using your component.</font>
+</p>
+
+
+<h3>
+  <a name="999193"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Shutdown Process</font>
+</h3>
+
+
+<p>
+  <a name="999194"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When the application is ready to shutdown XPCOM, it calls <font  face="Verdana, Arial, Helvetica, sans-serif">NS_ShutdownXPCOM</font>.  When that method is called, the following sequence of events occurs:</font>
+</p>
+
+<ol type="1">
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="1"><a name="999195"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM fires a shutdown notification to all registered observers.</font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="2"><a name="999196"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM closes down the Component Manager, the Service Manager and associated services.</font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="3"><a name="999197"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM frees all global services.</font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="4"><a name="1001984"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_ShutdownXPCOM</font> returns and the application may exit normally.</font>
+</ol>
+
+<a name="999199"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1001997"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Unstoppable Shutdown</font>
+</h4>
+
+<a name="1002300"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that shutdown observation is unstoppable. In other words, the event you observe cannot be used to implement something like a "Are you sure you want to Quit?" dialog. Rather, the shutdown event gives the component or embedding application a last chance to clean up any leftovers before they are released. In order to support something like an "Are you sure you want to quit" dialog, the application needs to provide a higher-level event (e.g., <font  face="Verdana, Arial, Helvetica, sans-serif">startShutdown()</font>) which allows for cancellation.</font><a name="1001998"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note also that XPCOM services may deny you access once you have received the shutdown notification. It is possible that XPCOM will return an error if you access the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font> at that point, for example, so you may have to keep a reference-counted pointer to the service you are interested in using during this notification. </font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h4>
+  <a name="999206"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Component Loaders</font>
+</h4>
+
+
+<p>
+  <a name="999208"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Components can be written in many languages. So far this book has been focusing on "native components," shared libraries exporting a <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font> symbol. But if there is a <font  face="Verdana, Arial, Helvetica, sans-serif"><i>component loader</i></font> for Javascript installed, then you can also write a JavaScript component.  </font>
+</p>
+
+
+<p>
+  <a name="1001748"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To register, unregister, load and manage various component types, XPCOM abstracts the interface between the XPCOM component and XPCOM with the Component Loader. This loader is responsible for initialization, loading, unloading, and supporting the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> interface on behalf of each component. It is the Component Loader's responsibility to provide scriptable component support. </font>
+</p>
+
+
+<p>
+  <a name="1001793"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When building a "native" component, the component loader looks for an exported symbol from the components shared library.  "Native" here includes any language that can generate a platform native dynamically loaded library. Scripting languages and other "non-native" languages usually have no way to build native libraries. In order to have "non native" XPCOM components work, XPCOM must have a special component loader which knows how to deal with these type of components.</font>
+</p>
+
+
+<p>
+  <a name="1001789"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPConnect, for example, provides a component loader that makes the various types, including the interfaces and their parameters, available to JavaScript. Each language supported by XPCOM must have a component loader.</font>
+</p>
+
+
+<a name="1000269"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/component_internals24.gif" height="257" width="444">
+</div><br></font>
+
+
+<h3>
+  <a name="999214"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Three parts of a XPCOM Component Library</font>
+</h3>
+
+
+<p>
+  <a name="1000306"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM is like  an onion. XPCOM components have at least three layers. From the innermost and moving outward these layers include:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000307"> </a>The core XPCOM object</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999227"> </a>The factory code</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999228"> </a>The module code</font>
+</ul>
+
+<p>
+  <a name="999230"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The core XPCOM object is the object that will implement the functionality you need. For example, this is the object that may start a network download and implement interfaces that will listen to the progress. Or the object may provide a new content type handler. Whatever it does, this object is at the core of the XPCOM component, and the other layers are supporting it, plugging it into the XPCOM system. A single library may have many of these core objects.</font>
+</p>
+
+
+<p>
+  <a name="999232"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">One layer above the core object is the factory code. The factory object provides a basic abstraction of the core XPCOM object. Chapter 1 discussed the factory design pattern that's used in a factory object. At this layer of the XPCOM Component Library, the factory objects are factories for the core XPCOM objects of the layer below. </font>
+</p>
+
+
+<p>
+  <a name="999234"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">One more layer outward is the module code. The module interface provides yet another abstraction-this time of the factories-and allows for multiple factory objects. From the outside of the component library, there is only the single entry point, <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule()</font>.  This point of entry may fan out to any number of factories, and from there, any number of XPCOM objects.</font>
+</p>
+
+
+<p>
+  <a name="999236"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The following chapter details these layers in terms of the XPCOM interfaces that represent them. Here we will just introduce them. The factory design pattern in XPCOM is represented by the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> interface. The module layer is represented by the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> interface. Most component libraries only need these two interfaces, along with the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupport</font> interface, to have XPCOM load, recognize, and use their core object code.</font>
+</p>
+
+
+<p>
+  <a name="999244"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In the next section, we'll be writing the code that actually compiles into a component library, and you will see how each layer is implemented and how each interface is used. Following this initial, verbose demonstration of the API's, we will introduce a faster more generic way of implementing the module and factory code using macros, which can make components much easier to create.</font>
+</p>
+
+
+<h2>
+  <a name="1002252"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XPCOM Glue</font>
+</h2>
+
+
+<p>
+  <a name="1002253"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM contains a lot of stuff. Most of the XPCOM interfaces are not frozen and are meant to be used only by the Gecko internals, not by clients. XPCOM provides many data structures from linked lists to AVL trees. Instead of writing your own linked list, it's tempting to reuse <font  face="Verdana, Arial, Helvetica, sans-serif">nsVoidArray</font> or another publicly available class, but this might be a fatal mistake. At any time the class can change and give you unexpected behavior.</font>
+</p>
+
+
+<p>
+  <a name="1002254"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM makes for a very open environment. At runtime you can acquire any service or component merely by knowing a CID, or Contract ID, and an IID.  At last count there were over 1300 interfaces defined in XPIDL. Of those 1300 interfaces, less than 100 were frozen, which means that a developer has a good chance of stumbling upon useful interfaces that aren't frozen. If an interface isn't explicitly marked "FROZEN" in the IDL comments, however-and most of them aren't-it will cause your component to possibly break or crash when the version changes.</font>
+</p>
+
+
+<h3>
+  <a name="1002255"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Glue Library</font>
+</h3>
+
+
+<p>
+  <a name="1002256"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In general you should avoid any unfrozen interfaces, any symbols in XPCOM, or any other  part of Gecko libraries that aren't frozen. However, there are some unfrozen tools in XPCOM that are used so often they are practically required parts of component programming. </font>
+</p>
+
+
+<p>
+  <a name="1002257"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The smart pointer class, <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font>, for example, which can make reference counting a lot less tedious and error-prone, is not actually frozen, and neither are <font  face="Verdana, Arial, Helvetica, sans-serif">nsDebug</font>, a class for aiding in tracking down bugs, or <font  face="Verdana, Arial, Helvetica, sans-serif">nsMemory</font>, a class to ensure that everyone uses the same heap, generic factory, and module. Instead of asking every developer to find and copy these various files into their own application, XPCOM provides a single library of "not-ready-to-freeze-but-really-helpful" classes that you can link into your application, as the following figure demonstrates.</font>
+</p>
+
+
+<a name="1002261"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/component_internals22.gif" height="232" width="444">
+</div><br></font>
+
+<a name="1002262"> </a><font face="Times New Roman">Figure 5.  XPCOM Glue and Tools</font>
+<p>
+  <a name="1002263"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This is the glue library. It provides a bridge, or "glue" layer, between your component and XPCOM. </font>
+</p>
+
+
+<p>
+  <a name="1002264"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">A version of the glue library is built into XPCOM, and when your component uses it, it links a snapshot of this library: it includes a copy of these unfrozen classes directly, which allows the XPCOM library version to change without affecting the software. There is a slight footprint penalty to linking directly, but this gives your component freedom to work in any post Mozilla 1.2 environment. If footprint is a big issue in your component or application, you can trim out the pieces you don't  need.</font>
+</p>
+
+
+<h3>
+  <a name="1002265"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XPCOM String Classes</font>
+</h3>
+
+
+<p>
+  <a name="1002266"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The base string types that XPCOM uses are <font  face="Verdana, Arial, Helvetica, sans-serif">nsAString</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">nsACString</font>. These classes are described in the Mozilla String guide (see the "Resources" section in Appendix C).</font>
+</p>
+
+
+<p>
+  <a name="1002284"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The string classes that implement these abstract classes are another set of helpful, unfrozen classes in XPCOM. Most components and embedding applications need to link to some kind of string classes in order to utilize certain Gecko APIs, but the string code that Mozilla uses is highly complex and even more expensive than the glue code in terms of footprint (~100k). <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedString</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedCString</font> are available as very light string class implementations for component development, especially in small embedded applications. This string implementation does the bare minimum to support<font  face="Verdana, Arial, Helvetica, sans-serif"> nsAString/nsACString</font> string classes </font>
+</p>
+
+
+<p>
+  <a name="1002267"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In your own component, you can go "slim" and restrict yourself to the <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedString</font> or go "hog wild" and use all of the functionality of the other strings. <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> restricts itself to using the simple <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedString</font> family of classes.</font>
+</p>
+
+
+<a name="1002271"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/component_internals23.gif" height="162" width="444">
+</div><br></font>
+
+<a name="1002272"> </a><font face="Times New Roman">Figure 6.  String Classes and XPCOM</font>
+<p>
+  <a name="1002273"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The glue library provides stub functions for the public functions that XPCOM provides (see <font  face="Verdana, Arial, Helvetica, sans-serif"><i>xpcom/build/nsXPCOM.h</i></font>). When the glue library is initialized, it dynamically loads these symbols from the XPCOM library, which allows the component to avoid linking directly with the XPCOM library. You shouldn't have to link to the XPCOM library to create a XPCOM component-in fact, if your component has to, then something is wrong. .</font>
+</p>
+</blockquote>
+
+<hr>
+
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+  <td><font size="1"><font face="courier"> Copyright (c)
+  2003 by Doug Turner and Ian Oeschger. This material may be
+  distributed only subject to the terms and conditions set forth in
+  the <a href="http://www.opencontent.org/openpub/">Open Publication
+  License</a>, v1.02 or later. Distribution of substantively modified
+  versions of this document is prohibited without the explicit
+  permission of the copyright holder. Distribution of the work or
+  derivative of the work in any standard (paper) book form is
+  prohibited unless prior permission is obtained from the copyright
+  holder.</td>
+  </tr>
+</table>
+
+<table width="331" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23" border="0"
+    alt="TOC"> </a></td>
+    <td><a href="using_components.html"><img src="images/navprev.gif" width="81" height="23" border="0"
+    alt="PREV"> </a></td>
+    <td><a href="components.html"><img src="images/navnext.gif" width="81" height="23" border="0"
+    alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23" border="0"
+    alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+</body>
+</html>

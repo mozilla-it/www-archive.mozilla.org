@@ -1,0 +1,214 @@
+<HTML>
+<HEAD>
+   <TITLE>NETLIB II URL Connection Interface</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+NETLIB II</H1>
+
+<H2>
+<TT>UC</TT>: the URL Connection</H2>
+This is the interface to the objects which embody web operations.
+
+<P>The model is based on the java <TT>URLConnection</TT> class: there is
+a sequence of operations you must do:
+<OL>
+<LI>
+create an object supporting this interface (either directly with the appropriate
+protocol's URL Connection Factory object, or indirectly via the URL Connection
+Factory Registry),</LI>
+
+<LI>
+call <TT>connect</TT> to do or start the operation,</LI>
+
+<LI>
+If there is an output stream associated with this operatinon (e.g., an
+http or ftp PUT; an nntp POST), call <TT>getOS</TT> to get an output stream
+to which you can <TT>write</TT>, and then write,</LI>
+
+<LI>
+If there is an expected response,(for most things there will be), call
+<TT>getIS</TT> to get an input stream from which the response may be read,
+and <TT>read</TT> that response.</LI>
+
+<LI>
+<TT>release</TT> all of your handles.</LI>
+</OL>
+
+<H3>
+Definition</H3>
+This interface is defined in java, and is compiled with JMC. The C syntax
+is included in each method description, and is summarised below.
+<BR>
+<CENTER><TABLE BORDER CELLSPACING=0 CELLPADDING=0 >
+<TR>
+<TD>
+<PRE><TT>package netscape.net;
+
+import netscape.url.URL;
+import netscape.types.Interval;
+
+public abstract interface UC {
+  public abstract void <A HREF="#connect">connect</A>(Interval timeout) throws Exception;
+  public abstract <A HREF="IS.html">IS</A> <A HREF="#getIS">getIS</A>() throws Exception;
+  public abstract <A HREF="OS.html">OS</A> <A HREF="#getOS">getOS</A>() throws Exception;
+  public abstract <A HREF="URL.html">URL</A> <A HREF="#getURL">getURL</A>();
+  public abstract boolean <A HREF="#is_secure">is_secure</A>();
+  public abstract boolean <A HREF="#is_proxyable">is_proxyable</A>();
+  public abstract boolean <A HREF="#is_network">is_network</A>();
+}</TT></PRE>
+</TD>
+</TR>
+
+<CAPTION ALIGN=BOTTOM><I><TT><A HREF="UC.java"></A></TT></I> </CAPTION>
+</TABLE></CENTER>
+
+<H3>
+Interface Methods</H3>
+
+<UL>
+<LI>
+There is no creation method. This is an interface. The per-protocol objects
+that implement the URL Connection Factory interface <TT><A HREF="UCF.html">UCF</A></TT>
+create objects that support this interface.</LI>
+
+<LI>
+<A NAME="connect"></A><TT>connect</TT></LI>
+
+<BR>For connection-oriented operations (e.g., the typical http GET), this
+method initiates the connection: looks up the host name, opens the socket,
+sends the request, and parses the response headers. For atomic operations
+(e.g., the file protocol's MKDIR), that operation is done in this method.
+
+<P>The C signature of this method is:
+<CENTER><TT>void UC_connect(UC *self, PRIntervalTime timeout, JMCException
+**e);</TT></CENTER>
+
+<LI>
+<A NAME="getIS"></A><TT>getIS</TT></LI>
+
+<BR>Get an input stream. After <TT>connect</TT> has established a connection,
+(and for operations involving an output stream, after all output data has
+been written), this method may be called to obtain an input stream from
+which the reply may be read. An exception will be thrown if <TT>connect</TT>
+has not yet been called, if an input stream has already been obtained and
+closed, or if an input stream is inappropriate for the operation.
+
+<P>The C signature of this method is:
+<CENTER><TT><A HREF="IS.html">IS</A> *UC_getIS(UC *self, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="getOS"></A><TT>getOS</TT></LI>
+
+<BR>Get an output stream. After <TT>connect</TT> has established a connection
+for an operation involving output data (e.g., an ftp PUT or nntp POST),
+this method may be called to obtain an output stream to which the output
+data may be written. An exception will be thrown if <TT>connect</TT>has
+not yet been called, if an output stream has already been obtained and
+closed, or if an output stream is inappropriate for the operation or protocol.
+
+<P>The C signature of this method is:
+<CENTER><TT><A HREF="OS.html">OS</A> *UC_getOS(UC *self, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="getURL"></A><TT>getURL</TT></LI>
+
+<BR>This method simply returns another reference to the URL with which
+the underlying object was created.
+
+<P>The C signature of this method is:
+<CENTER><TT><A HREF="URL.html">URL</A> *UC_getURL(UC *self, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="is_secure"></A><TT>is_secure</TT></LI>
+
+<BR>This method indicates whether or not the connection associated with
+this object is secure.
+
+<P>The C signature of this method is:
+<CENTER><TT>jbool UC_is__secure(UC *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+
+<P>Note that JMC transformed the single underscore into a double underscore.
+<LI>
+<A NAME="is_proxyable"></A><TT>is_proxyable</TT></LI>
+
+<BR>This method indicates whether or not the not-yet-connected operation
+may go through a proxy server. (Typically, this is constant for a given
+protocol.)
+
+<P>The C signature of this method is:
+<CENTER><TT>jbool UC_is__proxyable(UC *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+
+<P>Note that JMC transformed the single underscore into a double underscore.
+<LI>
+<A NAME="is_network"></A><TT>is_network</TT></LI>
+
+<BR>This method indicates whether or not the protocol goes over a network
+connection. For example, <TT>file://</TT> URL operations don't; <TT>http://</TT>
+URL operations do.
+
+<P>The C signature of this method is:
+<CENTER><TT>jbool UC_is__network(UC *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+
+<P>Note that JMC transformed the single underscore into a double underscore.</UL>
+
+<H3>
+Inherited Methods</H3>
+Although this interface does not inherit anything, note that all objects
+implementing this interface will inherit the usual <A HREF="JMCObject.html">JMC
+base methods</A>.
+<H3>
+C interface</H3>
+
+<CENTER><TABLE BORDER CELLSPACING=0 CELLPADDING=0 >
+<TR>
+<TD>
+<PRE><TT>#include "UC.h"
+
+void <A HREF="#connect">UC_connect</A>(UC *self, PRIntervalTime timeout, JMCException **e);
+IS *<A HREF="#getIS">UC_getIS</A>(UC *self, JMCException **e);
+OS *<A HREF="#getOS">UC_getOS</A>(UC *self, JMCException **e);
+URL *<A HREF="#getURL">UC_getURL</A>(UC *self, JMCException **e);
+jbool <A HREF="#is_secure">UC_is__secure</A>(UC *self, JMCException **e);
+jbool <A HREF="#is_proxyable">UC_is__proxyable</A>(UC *self, JMCException **e);
+jbool <A HREF="#is_network">UC_is__network</A>(UC *self, JMCException **e);
+
+/* methods inherited from base JMC object interface */
+void *<A HREF="JMCObject.html#getInterface">UC_getInterface</A>(UC *self, JMCInterfaceID id, JMCException **e);
+void <A HREF="JMCObject.html#addRef">UC_addRef</A>(UC *self, JMCException **e);
+void <A HREF="JMCObject.html#release">UC_release</A>(UC *self, JMCException **e);
+jint <A HREF="JMCObject.html#hashCode">UC_hashCode</A>(UC *self, JMCException **e);
+void *<A HREF="JMCObject.html#clone">UC_clone</A>(UC *self, JMCException **e);
+const char *<A HREF="JMCObject.html#toString">UC_toString</A>(UC *self, JMCException **e);
+void <A HREF="JMCObject.html#finalize">UC_finalize</A>(UC *self, JMCException **e);</TT></PRE>
+</TD>
+</TR>
+</TABLE></CENTER>
+
+<HR WIDTH="100%">
+<ADDRESS>
+Written by <A HREF="about:roeber">Frederick</A> at 14:43 03.04.1997.</ADDRESS>
+
+</BODY>
+</HTML>

@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+
+<bindings id="testcases"
+   xmlns="http://www.mozilla.org/xbl"
+   xmlns:xbl="http://www.mozilla.org/xbl"
+   xmlns:html="http://www.w3.org/1999/xhtml"
+   xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <binding id="board">
+    <resources>
+	  <stylesheet src="test.css"/>
+    </resources>
+    <implementation>
+      <property name="dragging">null</property>
+      <property name="currX">0</property>
+      <property name="currY">0</property>
+      <constructor>
+        this.addNote = function()
+        {
+          var caption = prompt('Sticky Note Caption:');
+          if (caption)
+          {
+            this.createNote(caption);
+          }
+        }
+        
+        this.createNote = function(caption)
+        {
+          var board = document.getElementById("board");
+          //
+          var note = document.createElement("div");
+          note.setAttribute("class", "note");
+          note.setAttribute("flex", "1");
+          note.setAttribute("style", "position: absolute; left: 20; top: 20");
+          note.setAttribute("caption", caption);
+          
+          var noteContents = document.createElement("iframe");
+          note.appendChild(noteContents);
+          //
+          board.appendChild(note);
+
+          noteContents.contentWindow.document.designMode = "on";
+        }
+        
+        this.removeNote = function(div)
+        {
+          (div.parentNode).removeChild(div);
+        }
+      </constructor>
+    </implementation>
+    <handlers>
+      <handler event="mousedown">
+	if (event.originalTarget.className == 'noteCaption') {
+          switch (event.originalTarget.nodeName) {
+            case 'html:div':
+              this.dragging = event.originalTarget.parentNode.parentNode;
+              break;
+            case 'xul:text':
+              this.dragging = event.originalTarget.parentNode.parentNode.parentNode;
+              break;
+          }
+          var divs = this.dragging.parentNode.getElementsByTagName("div");
+          this.currX = event.clientX;
+          this.currY = event.clientY;
+          var max = 0;
+          for (i = 0; i != divs.length; i++)
+          {
+            if (max &lt; divs[i].style.zIndex)
+            {
+              max = divs[i].style.zIndex;
+            }
+          }
+          this.dragging.style.zIndex = parseInt(max) + 1;
+        }
+      </handler>
+      <handler event="mouseup">
+        switch (event.originalTarget.className) {
+          case 'addNote':
+            this.addNote();
+            break;
+          case 'deleteNote':
+            removeNote(event.originalTarget.parentNode.parentNode.parentNode);
+            break;
+          default:
+            break;
+        }
+        this.dragging = null;
+      </handler>
+      <handler event="mousemove">
+        if (!this.dragging) return;
+		//
+        var deltaX = event.clientX - this.currX;
+        var deltaY = event.clientY - this.currY;
+        var left = parseInt(this.dragging.style.left);
+        var topp = parseInt(this.dragging.style.top);
+        left += deltaX; topp += deltaY; if (left &lt; 0) left = 0; 
+        if (topp &lt; 0) topp = 0;
+        if (left > 390) left = 390;
+        if (topp > 390) topp = 390;
+        this.dragging.style.left = left;
+        this.dragging.style.top = topp;
+        this.currX = event.clientX;
+        this.currY = event.clientY;
+      </handler> 
+    </handlers>
+    <content>
+      <children/>
+      <html:div align="right">
+        <html:button class="addNote">Add Note</html:button>
+      </html:div>
+    </content>
+  </binding>
+
+  <binding id="note">
+    <resources>
+	  <stylesheet src="test.css"/>
+    </resources>
+    <content>
+      <html:div style="width: 100%; margin-bottom: 5px; border: thin solid #ccccaa;">
+        <html:div class="noteCaption">
+          <html:button class="deleteNote" title="Delete note"> X </html:button>
+          <xul:text class="noteCaption" xbl:inherits="value=caption"/>
+        </html:div>
+      </html:div>
+      <html:div>
+        <children/>
+      </html:div>
+    </content>
+  </binding>
+</bindings>

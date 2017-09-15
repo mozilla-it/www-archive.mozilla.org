@@ -1,0 +1,327 @@
+<HTML>
+<HEAD>
+   <TITLE>Netlib Gemini</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<CENTER>
+<H1>
+<IMG SRC="moz_chain2.gif" BORDER=0 HEIGHT=112 WIDTH=164></H1></CENTER>
+
+<CENTER>
+<H1>
+BAM</H1></CENTER>
+
+<CENTER>
+<H1>
+Modularizing the Network Layer</H1></CENTER>
+
+<CENTER><I><FONT SIZE=-1>Last updated by Rick Potts on 3/8/98</FONT></I></CENTER>
+
+<H3>
+Overview:</H3>
+In my previous document, <A HREF="Netlib_Gemini.html">Gemini Networking
+Layer</A>, I attempted to describe the current state of  the Netlib
+and to propose a direction for its future.  In this document I will
+elaborate upon the proposed threading model and examine some of the structural
+changes necessary for both the modularization and multithreading of Netlib.
+<H3>
+Goals:</H3>
+
+<OL>
+<LI>
+Modularize...  Break out the NetLib into a stand-alone component.</LI>
+
+<LI>
+Create simple, clean well defined APIs for interacting with the NetLib
+functionality.</LI>
+
+<LI>
+Make NetLib thread-safe (and/or multi-threaded as necessary).  This
+will allow protocol handling to be performed threads other than the main
+UI thread.</LI>
+
+<LI>
+Support both the current asynchronous <I>push</I> model and a blocking
+i/o <I>pull</I> model.</LI>
+
+<LI>
+Support pluggable protocols and mime-type converters.</LI>
+</OL>
+
+<H3>
+Where we are now: <SUP><FONT SIZE=-1><A HREF="#1">1</A></FONT></SUP></H3>
+Currently, one presents an object by calling NET_GetURL with a URL structure
+specifying the object, the desired presentation type, the front-end window
+context, and an exit callback routine pointer. NET_GetURL eventually calls
+the protocol-specific load routine (e.g., NET_HTTPLoad) to initiate the
+object retrieval. This load routine starts the connection to the appropriate
+server, and sets up the protocol state machine. When the load routine finds
+itself doing a potentially blocking operation -- e.g. connect(2) -- it
+performs the operation in a non-blocking manner, registers the socket with
+the front end, and returns.
+
+<P>When the front end detects that the registered socket is ready, it calls
+NET_ProcessNet. This then calls the protocol-specific process routine.
+The protocol-specific routine looks at the current state of the protocol
+FSM, uses this to complete the current operation and continue through to
+the initiation of the next potentially blocking operation before setting
+the state and returning. When the blocking operation is complete, the front
+end again calls NET_ProcessNet and the FSM continues.
+
+<P>When enough information is obtained to determine the object type, the
+protocol process routine calls NET_StreamBuilder to create a chain of modules
+ending with the front-end presentation code. Then, as the FSM reads in
+data, it pushes the data through this stream.
+
+<P>The protocol-specific modules call several front-end calls for a number
+of reasons: to update the progress display, to prompt for passwords, to
+alert the luser, etc.
+
+<P>When all data has been fetched, everything is cleaned up nicely. If
+one of the NETLIB interrupt routines is called to interrupt one or more
+operations, the appropriate protocol-specific interrupt routines are called
+to jump the FSM into a shutdown state.
+<BR>
+<H4>
+Here is a diagram of the current model:</H4>
+
+<CENTER><IMG SRC="netlib-now.gif" BORDER=0 HEIGHT=374 WIDTH=626></CENTER>
+Below is (a subset of) the current API:
+<TABLE BORDER COLS=1 WIDTH="100%" >
+<TR>
+<TD>
+<UL><TT>int NET_GetURL(URL_Struct *, FO_Present_type, MWContext *, (*pfnExitFunc)())</TT>
+<BR><TT>int NET_ProcessNet(PRFileDesc *, int)</TT>
+<BR><TT>int NET_InterruptWindow(MWContext *)</TT>
+<BR><TT>int NET_InterruptStream(URL_Struct *)</TT></UL>
+</TD>
+</TR>
+</TABLE>
+
+<BR>The <TT>FO_Present_type</TT> (represented as an integer) is used to
+indicate which front-end presentation code should receive the data.
+This flag is also used to indicate whether the data should be cached (FO_CACHE_ONLY)
+or if it should be loaded only from the cache (FO_ONLY_FROM_CACHE).
+The <TT>MWContext</TT> is used for two purposes.  It provides a set
+of function pointers that Netlib uses to make upcalls into the client code.
+It also serves as the <I>owner</I> of a network connection.
+<H3>
+Where we need to go:</H3>
+Currently, Netlib is responsible for creating the destination stream from
+the <TT>FO_Present</TT> type supplied to NET_GetURL(...) by the caller.
+This strategy has several drawbacks:
+<UL>
+<LI>
+In its current implementation, the <TT>FO_Present</TT> namespace is not
+dynamically extensible.  This means that new front-end presentation
+code (in the form of NET_Streams) cannot be dynamically added.</LI>
+
+<LI>
+Since Netlib is responsible for mapping between a given <TT>FO_Present</TT>
+type and a stream factory it must maintain a registry of stream handlers.
+In a multithreaded implementation, this registry must be thread-safe.</LI>
+
+<LI>
+This mechanism does not lend itself to a blocking i/o model.</LI>
+</UL>
+I believe that the current FO_Present namespace and the NET_Stream infrastructure
+should be replaced with an abstract data consumer object.  This object
+will receive the notifications and data from Netlib for a particular connection.
+In this model, Netlib pushes the data into a generic <TT>nsIStream</TT>
+(owned by Netlib) as it arrives from the network and notifies the data
+consumer that stream data is available.  It is the responsibility
+of the data consumer read the data from the stream.
+
+<P>There will be a protocol between Netlib and the <TT>nsIStream</TT> to
+limit the amount of data that is buffered for each connection.
+Interrupting a connection is accomplished by closing the <TT>nsIStream</TT>
+<SUP><A HREF="#2">2</A></SUP>. There is no built-in infrastructure to allow
+<I>closing all connections associated with an MWContext</I>.  This
+is left up to particular clients to implement...
+<BR>
+<H4>
+Here is a diagram of the new model:</H4>
+
+<CENTER><IMG SRC="netlib-3.gif" HEIGHT=368 WIDTH=653></CENTER>
+
+
+<P>Below is the new API:
+<TABLE BORDER COLS=1 WIDTH="100%" >
+<TR>
+<TD>
+<UL><TT>nsResult NET_OpenStream(URL *, nsIStreamNotification *);</TT>
+<BR><TT>nsResult NET_OpenBlockingStream(URL *, nsIStreanNotification *,
+nsIStream **);</TT></UL>
+</TD>
+</TR>
+</TABLE>
+
+<BR>Introducing a data consumer object has the following advantages:
+<UL>
+<LI>
+Netlib becomes simpler and more flexible.  A stream handler infrastructure
+is not dictated by Netlib.</LI>
+
+<LI>
+The <TT>nsIStream</TT> provided by Netlib is a natural rendezvous point
+for multiple threads.</LI>
+
+<LI>
+Supporting blocking I/O becomes trivial for any protocol.  By providing
+a blocking implementation of the nsIStream, the consumer will see a blocking
+I/O model.</LI>
+
+<LI>
+The data consumer can supply interfaces for additional client services
+which Netlib may require.  This mechanism replaces the <TT>MWContext</TT>
+which is currently used for upcalls into the client.</LI>
+
+<LI>
+The data consumer model can easily emulate the old stream handler infrastructure.
+By providing a data consumer which bridges the new Netlib notifications
+with the old stream handler APIs it is possible to incrementally migrate
+the codebase to the new model without reworking all of the stream handlers
+at once.</LI>
+</UL>
+The data consumer implements an interface called <TT>nsIStreamNotification</TT>
+<SUP><A HREF="#3">3</A></SUP>.
+<BR>
+<TABLE BORDER COLS=1 WIDTH="100%" >
+<TR>
+<TD><PRE>interface nsIStreamNotification  
+{ 
+    virtual nsResult GetBindInfo(...)     = 0; 
+    virtual nsResult OnProgress(...)      = 0; 
+    virtual nsResult OnStartBinding(...)  = 0; 
+    virtual nsResult OnDataAvailable(...) = 0; 
+    virtual nsResult OnStopBinding(...)   = 0; 
+}</PRE></TT></TD>
+</TR>
+</TABLE>
+
+<BR> The data consumer will, optionally, implement an interface called
+<TT>nsINetContext </TT><SUP><A HREF="#4">4</A></SUP> .
+<BR>
+<TABLE BORDER COLS=1 WIDTH="100%" >
+<TR>
+<TD><PRE>interface nsINetContext 
+{ 
+    virtual nsResult Prompt(...)      = 0; 
+    virtual nsResult Confirm(...)     = 0; 
+    virtual nsResult GetPassword(...) = 0; 
+    virtual nsResult RemoteHost(...)  = 0;
+}
+</PRE></TD>
+</TR>
+</TABLE>
+
+<BR>This interface provides the callback functions used by Netlib to interact
+with the user.  If a particular protocol requires this interface and
+it is not provided by the data consumer, the connection will fail..
+<BR>
+<H3>
+ Task List:</H3>
+
+<UL>
+<H4>
+Modularity:</H4>
+
+<UL>
+<LI>
+Replace all XP_xxx(...) calls with NSPR equivalents.</LI>
+
+<LI>
+Break out the core Netlib functionality into a standalone DLL.  Deal
+with the APIs that are required between Netlib and the outside world.</LI>
+
+<LI>
+Break out stream converters and registration code into separate <I>obsolete</I>
+files.</LI>
+
+<LI>
+Implement new stream APIs.</LI>
+
+<LI>
+Implement a data converter bridge between the new stream notifications
+and the old stream converter code.</LI>
+
+<LI>
+Investigate <TT>URLStruct</TT> issues...  This structure must be abstracted
+as part of the API cleanup.</LI>
+
+<LI>
+Replace <TT>MWContext</TT> with interface(s) negotiated via the data consumer
+object.</LI>
+
+<LI>
+Investigate pluggable protocol and mime-type converter APIs.</LI>
+</UL>
+
+<H4>
+Thread safety:</H4>
+
+<UL>
+<LI>
+Thread-safe cache.</LI>
+
+<LI>
+Make Netlib thread-safe (as needed).</LI>
+
+<LI>
+Thread-safe protocol implementations.</LI>
+
+<LI>
+Thread-safe preferences APIs (as needed).</LI>
+
+<LI>
+Investigate thread safety of security library.</LI>
+</UL>
+</UL>
+
+<H3>
+See Also:</H3>
+
+<UL>
+<LI>
+Netlib public APIs and data structures...</LI>
+
+<LI>
+For the morbidly curious, here is some information from the previous attempt
+to modularize Netlib</LI>
+
+<UL>
+<LI>
+<A HREF="netmeeting.html">Netlib rearchitecture meeting...</A></LI>
+
+<LI>
+<A HREF="netmods.html">Functional components of Netlib...</A></LI>
+</UL>
+
+<LI>
+<A HREF="thread_netlib.html">Multithreading the NETLIB protocols</A> from
+the NETLIB II documents.</LI>
+
+<LI>
+<A HREF="netlib2.html">NETLIB II documentation</A> for another perspective.</LI>
+</UL>
+
+<HR WIDTH="100%">
+<H3>
+Notes:</H3>
+<A NAME="1"></A><SUP>1</SUP>. This description was taken verbatim from
+<A HREF="thread_netlib.html">Multithreading the NETLIB protocols</A> by
+Frederick G.M. Roeber.
+<BR>
+<BR><A NAME="2"></A><SUP>2</SUP>.  This mechanism seems both simple
+and sufficient.  However, if it proves inadequate a dedicated API
+can be provided...
+
+<P><A NAME="3"></A><SUP>3</SUP>.  This interface is modeled after
+the <A HREF="http://www.microsoft.com/msdn/sdk/inetsdk/help/itt/monikers/IFaces/IBindStatusCallback/IBindStatusCallback.htm#IBindStatusCallback">IBindStatusCallback</A>
+interface provided in the Microsoft Internet Client SDK.
+
+<P><A NAME="4"></A><SUP>4</SUP>.  This interface is modeled after
+the <A HREF="NC.html">NC</A> interface provided by NETLIB II.
+</BODY>
+</HTML>

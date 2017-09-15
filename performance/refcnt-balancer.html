@@ -1,0 +1,392 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Language" content="en">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+
+  <title>refcount balancer</title>
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+  <h1>refcount balancer</h1>
+
+  <address class="author">
+    Contact: <a href="mailto:waterson@netscape.com">Chris Waterson</a>
+    (waterson@netscape.com)
+  </address>
+
+  <h2>overview</h2>
+
+  <p>One of the things that sucks about XPCOM is that you have to deal with
+  reference counting. It's hard and prone to errors, and Mozilla leaks like a
+  sieve because of it. Unlike the good old fashioned <code>malloc()</code> and
+  <code>free()</code> model where memory gets allocated in exactly one place
+  and freed in exactly one other place, reference counting is distributed all
+  over. There may be twenty different spots in the code where a single object
+  is <code>AddRef()</code>-ed. And if just one of those
+  <code>AddRef()</code>-ers forgets to <code>Release()</code>, well, you're
+  screwed.</p>
+
+  <p>Traditional leak tracking tools like <a href=
+  "http://www.rational.com/products/purify_unix/index.jtmpl?borschtid=30142038831761639304">
+  Purify</a> don't help much either. They'll tell you that you leaked an
+  object, but they won't help you track down the twenty different clients that
+  <code>AddRef()</code>-ed it, let alone the joker that forgot to
+  <code>Release()</code> it.</p>
+
+  <p>This crude set of tools attempts to address that problem. It's not a
+  panacea, but it at least gives some insight into who is
+  <code>AddRef()</code>-ing whom.</p>
+
+  <p>From 50,000 feet, here's what happens.</p>
+
+  <ul>
+    <li>You discover that your <code>FooImpl</code> object is leaking, maybe
+    Bruce Mitchener tells you, maybe you notice on your own because your
+    destructor is never called. You cringe and moan and later the bug for 3 or
+    4 milestones. But since you know about this tool, you eventually roll up
+    your sleeves and start working on it.</li>
+
+    <li>You set a couple of environment variables in a debug build.</li>
+
+    <li>As you run, you notice piles and piles of information will start to
+    spew out to the console. Specifically, as your object is
+    <code>AddRef()</code>-ed and <code>Release()</code>-ed, a <em>stack
+    trace</em> is generated, along with the operation (<strong>AddRef</strong>
+    or <strong>Release</strong>), <code>this</code> (i.e., the object that just
+    got operated on), and the current reference count of your object. This
+    mountain of information, although impressive, is useless in its current
+    form.</li>
+
+    <li>You next run Perl script #1 over the resulting log file. This Perl
+    script will pick out the instances of objects that leaked. You choose one
+    of the objects that's particularly interesting to you.</li>
+
+    <li>You now run Perl script #2 over the log file. This script is the Fancy
+    Magic. It takes each stack trace and strings it together into a call graph.
+    Each node in the graph represents a call site, and has a "balance factor"
+    which is the total number of <code>AddRef()</code> operations that it has
+    been included in <em>minus</em> the total number of <code>Release()</code>
+    operations that it has been included in. (I told you it was Fancy
+    Magic.)</li>
+  </ul>
+
+  <p>So what does all that mean? The cool part -- you were waiting for the cool
+  part -- is that you can look at this graph and see what subtrees are
+  "balanced"; i.e., total number of <code>AddRef()</code>s equals total number
+  of <code>Release()</code>-es. You <em>know</em> you don't need to worry about
+  those trees because no evil leakage happened there.</p>
+
+  <p>For trees that are <em>out of balance</em>, you need to dig a little bit
+  deeper. Subtrees get out of balance when one code path <code>AddRef()</code>s
+  the object, and a code path somewhere else does the corresponding
+  <code>Release()</code>.</p>
+
+  <p>Like I said, it's not a panacea, but you can start to play Mah Jongg with
+  the out-of-balance trees, proving to yourself in each case that the
+  <code>AddRef()</code> from one tree matches with the <code>Release()</code>
+  in another. In short, it does a decent job of directing you to the places you
+  need to verify in your code.</p>
+
+  <h2>Details</h2>
+
+  <p><strong>Enabling Runtime Logging</strong>. You need to set a couple of
+  runtime environment variable to produce output.</p>
+
+  <h3>for Unix</h3>
+  <pre class="code">
+setenv XPCOM_MEM_REFCNT_LOG <em>log-file.dat</em>
+setenv XPCOM_MEM_LOG_CLASSES <em>MyLeakyObjectImpl</em>
+setenv XPCOM_MEM_LOG_OBJECTS <em>MyLeakyObjectSerialNumber</em> (optional)
+</pre>
+
+  <h3>for Windows</h3>
+  <pre class="code">
+set XPCOM_MEM_REFCNT_LOG=<em>log-file.dat</em>
+set XPCOM_MEM_LOG_CLASSES=<em>MyLeakyObjectImpl</em>
+set XPCOM_MEM_LOG_OBJECTS=<em>MyLeakyObjectSerialNumber</em> (optional)
+</pre>
+
+  <h3>for Mac</h3>
+
+  <p>Create a file called <code>environment</code> in the directory where the
+  <code>MozillaDebug</code> binary sits containing the lines</p>
+  <pre class="code">
+XPCOM_MEM_REFCNT_LOG=<em>log-file.dat</em>
+XPCOM_MEM_LOG_CLASSES=<em>MyLeakyObjectImpl</em>
+XPCOM_MEM_LOG_OBJECTS=<em>MyLeakyObjectSerialNumber</em> (optional)
+</pre>
+
+  <p>(Note that case <em>is</em> important.) These variables are described in
+  more detail in the <a href="../projects/xpcom/MemoryTools.html">Memory
+  Tools</a> documentation.</p>
+
+  <p>Now when you run, you should see lots of information dumped to your
+  <code>log-file.dat</code> (which defaults to the console, if not set).
+  Specifically, each time an object is <code>AddRef()</code>-ed and
+  <code>Release()</code>-ed, several lines will get added to the file. So make
+  sure you have plenty of disk space.</p>
+
+  <p><strong>Postprocessing Step 1: Finding the Leakers</strong>. First you
+  have to figure out which objects leaked. There's a Perl script that does
+  this. It grovels through the log file, and figures out which objects got
+  allocated (it knows because they were just allocated because they got
+  <code>AddRef()</code>-ed and their refcount became <strong>1</strong>). It
+  adds them to a list. When it finds an object that got freed (it knows because
+  its refcount goes to <strong>0</strong>), it removes it from the list.
+  Anything left over is leaked.</p>
+
+  <p>The script is called <a href=
+  "http://lxr.mozilla.org/mozilla/source/tools/rb/find-leakers.pl"><code>find-leakers.pl</code></a>.
+  So, depending on your platform, do something like:</p>
+  <pre class="code">
+% perl -w find-leakers.pl my-leaks.log
+</pre>
+
+  <p>(Replace <code>my-leaks.log</code> with your logfile.) This will print out
+  a list of pointers:</p>
+  <pre class="code">
+0x00253ab0 (1)
+0x00253ae0 (2)
+0x00253bd0 (4)
+</pre>
+
+  <p>The number in parenthesis is the order in which it was allocated, if you
+  care. Pick one for use with Step 2.</p>
+
+  <p><strong>Postprocessing Step 2: Building the Balance Tree</strong>. Now
+  that you've picked an object that leaked, you can build a "balance tree"
+  (anyone who can think of a better name feel free to let me know). This
+  process takes all the stack <code>AddRef()</code> and <code>Release()</code>
+  stack traces and munges them into a call graph. Each node in the graph
+  represents a call site. Each call site has a "balance factor", which is
+  positive if more <code>AddRef()</code>s than <code>Release()</code>-es have
+  happened at the site, zero if the number of <code>AddRef()</code>s and
+  <code>Release()</code>-es are equal, and negative if more
+  <code>Release()</code>-es than <code>AddRef()</code>s have happened at the
+  site.</p>
+
+  <p>To build the balance tree, run <a href=
+  "http://lxr.mozilla.org/mozilla/source/tools/rb/make-tree.pl"><code>make-tree.pl</code></a>;
+  e.g.,</p>
+  <pre class="code">
+% perl -w make-tree.pl --object 0x00253ab0 &lt; my-leak.log
+</pre>
+
+  <p>Note that you specify the object that you want <code>make-tree.pl</code>
+  to examine. This will build an indented tree that looks something like this
+  (except probably a lot larger and leafier):</p>
+  <pre class="code">
+.root: bal=1
+  main: bal=1
+    DoSomethingWithFooAndReturnItToo: bal=2
+      NS_NewFoo: bal=1
+</pre>
+
+  <p>Let's pretend in our toy example that <code>NS_NewFoo()</code> is a
+  factory method that makes a new foo and returns it.
+  <code>DoSomethingWithFooAndReturnItToo()</code> is a method that munges the
+  foo before returning it to <code>main()</code>, the main program.</p>
+
+  <p>What this little tree is telling you is that you leak <em>one
+  refcount</em> overall on object <code>0x00253ab0</code>. But, more
+  specifically, it shows you that:</p>
+
+  <ul>
+    <li><code>NS_NewFoo()</code> "leaks" a refcount. This is probably "okay"
+    because it's a factory method that creates an <code>AddRef()</code>-ed
+    object.</li>
+
+    <li><code>DoSomethingWithFooAndReturnItToo()</code> leaks <em>two</em>
+    refcounts. Hmm...this probably isn't okay, especially because...</li>
+
+    <li><code>main()</code> is back down to leaking <em>one</em> refcount.</li>
+  </ul>
+
+  <p>So from this, we can deduce that <code>main()</code> is correctly
+  releasing the refcount that it got on the object returned from
+  DoSomethingWithFooAndReturnItToo(), so the leak <em>must</em> be somewhere in
+  that function.</p>
+
+  <p>So now say we go fix the leak in
+  <code>DoSomethingWithFooAndReturnItToo()</code>, re-run our trace, grovel
+  through the log "by hand" to find the object that corresponds to
+  <code>0x00253ab0</code> in the new run, and run <code>make-tree.pl</code>.
+  What we'd hope to see is a tree that looks like:</p>
+  <pre class="code">
+.root: bal=0
+  main: bal=0
+    DoSomethingWithFooAndReturnItToo: bal=1
+      NS_NewFoo: bal=1
+</pre>
+
+  <p>That is, <code>NS_NewFoo()</code> "leaks" a single reference count; this
+  leak is "inherited" by <code>DoSomethingWithFooAndReturnItToo()</code>; but
+  is finally balanced by a <code>Release()</code> in <code>main()</code>.</p>
+
+  <h2>Hints</h2>
+
+  <p>Clearly, this is an iterative and analytical process. Maybe somebody
+  smarter than me can figure out ways to automate parts of it. To date, I've
+  figured out some tricks.</p>
+
+  <p><strong>Ignoring balanced trees</strong>. The <code>make-tree.pl</code>
+  script accepts an option <code>--ignore-balanced</code>, which tells it
+  <em>not</em> to bother printing out the children of a node whose balance
+  factor is zero. This can help remove some of the clutter from an otherwise
+  noisy tree.</p>
+
+  <p><strong>Playing Mah Jongg</strong>. An unbalanced tree is not necessarily
+  an evil thing. More likely, it indicates that one <code>AddRef()</code> is
+  cancelled by another <code>Release()</code> somewhere else in the code. So
+  the game is to try to match them with one another.</p>
+
+  <p><strong>Excluding Functions</strong> To aid in this process, you can
+  create an "excludes file", that lists the name of functions that you want to
+  exclude from the tree building process (presumably because you've matched
+  them). <code>make-tree.pl</code> accepts the option <code>--exlude
+  [file]</code>, where <code>[file]</code> is a newline-separated list of
+  function names that will be <em>excluded</em> from consideration while
+  building the tree. Specifically, any call stack that contains that call site
+  will not contribute to the computation of balance factors in the tree.</p>
+
+  <h2>pricing &amp; availability</h2>
+
+  <p>As of this writing, the stack tracing code is implemented for Win32 and
+  i386 Linux (compiled with <code>egcs</code> and glibc 2.0 and 2.1).
+  Dontations gladly accepted; Bourbon preferred over other currencies.</p>
+
+  <p>The <a href="http://lxr.mozilla.org/mozilla/source/tools/rb/">Perl
+  scripts</a>, available by checking out tools/rb, require only Larry Wall's
+  finest (5.00504 seems to work for me).</p>
+
+  <h2>credits</h2>
+
+  <p>I stole the stack walking code from <a href=
+  "mailto:kipp@netscape.com">Kipp Hickman</a> and Matt Pietrek (see <a href=
+  "http://www.microsoft.com/msj/0597/hood0597.aspx">this article</a>). For
+  Linux, <a href="mailto:shaver@netscape.com">Mike Shaver</a>, <a href=
+  "mailto:bruce@cybersight.com">Bruce Mitchener</a>, and <a href=
+  "mailto:ramiro@netscape.com">Ramiro Estrugo</a>. all helped me get things
+  right. Mucho gusto. <a href="mailto:waldemar@netscape.com">Waldemar
+  Horwat</a> and <a href="mailto:jar@netscape.com">Jim Roskind</a> helped to
+  improve the post-processing scripts.</p>
+
+  <h2>further reading</h2>
+
+  <ul>
+    <li><a href="leak-brownbag.html">Finding leaks in Mozilla</a></li>
+
+    <li><a href="leak-tutorial.html">How to find leaks of XPCOM objects</a>,
+    which also describes how to use the refcount balancer</li>
+
+    <li><a href="../projects/xpcom/MemoryTools.html">How to debug memory leaks
+    / refcount leaks</a></li>
+  </ul>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 22,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/performance/refcnt-balancer.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

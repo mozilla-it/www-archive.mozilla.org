@@ -1,0 +1,94 @@
+diff -rc2 2.95.2/gcc/cp/decl.c 2.95.2-netscape/gcc/cp/decl.c
+*** 2.95.2/gcc/cp/decl.c        Sun Aug  8 17:28:33 1999
+--- 2.95.2-netscape/gcc/cp/decl.c       Tue Feb  6 11:16:55 2001
+***************
+*** 8104,8107 ****
+--- 8104,8108 ----
+          && TREE_PUBLIC (current_function_decl))
+        {
++ #if 0
+          /* Rather than try to get this right with inlining, we suppress
+             inlining of such functions.  */
+***************
+*** 8138,8141 ****
+--- 8139,8145 ----
+                }
+            }
++ #else
++         comdat_linkage (decl);
++ #endif
+        }
+  
+***************
+*** 9069,9072 ****
+--- 9073,9082 ----
+        if (declarator && context && current_lang_name != lang_name_c)
+        DECL_ASSEMBLER_NAME (decl) = build_static_name (context, declarator);
++       else if (declarator
++              && current_function_decl
++              && ! RIDBIT_SETP (RID_EXTERN, specbits)
++              && current_lang_name != lang_name_c)
++       DECL_ASSEMBLER_NAME (decl) =
++         build_static_name (current_function_decl, declarator);
+      }
+  
+diff -rc2 2.95.2/gcc/cp/decl2.c 2.95.2-netscape/gcc/cp/decl2.c
+*** 2.95.2/gcc/cp/decl2.c       Thu Aug 19 16:29:45 1999
+--- 2.95.2-netscape/gcc/cp/decl2.c      Tue Feb 13 23:08:34 2001
+***************
+*** 2658,2661 ****
+--- 2658,2702 ----
+  }
+  
++ static void
++ maybe_chop_pure_virtuals (vtbl_object)
++     tree vtbl_object;
++ {
++   tree vtbl_object_size = DECL_SIZE (vtbl_object);
++   tree vtbl_type = TREE_TYPE (vtbl_object);
++   tree vtbl_type_size = TYPE_SIZE (vtbl_type);
++   tree vtbl_initial = DECL_INITIAL (vtbl_object);
++   tree vtbl_constructor_elts = CONSTRUCTOR_ELTS (vtbl_initial);
++   /* vtbl_constructor_elts now points to a tree_list node.  The first
++      element of that list is a nop_expr whose value is zero.  The next
++      element is an addr_expr whose first operand is the function_decl
++      node of the constructor for the class.  After than, we have more
++      addr_expr nodes whose first operands are the function_decl nodes
++      for the various function members of the class.  */
++   tree class_constructor_func_elt = TREE_CHAIN (vtbl_constructor_elts);
++   tree behind;
++   tree ahead;
++ 
++   for (behind = class_constructor_func_elt; behind; behind = ahead)
++     {
++       tree addr_expr;
++       tree addr_expr_operand;
++ 
++       ahead = TREE_CHAIN (behind);
++       if (ahead == NULL)
++       break;
++       addr_expr = TREE_VALUE (ahead);
++       addr_expr_operand = TREE_OPERAND (addr_expr, 0);
++ 
++       if (!DECL_LANG_SPECIFIC (addr_expr_operand))
++       return;
++       if (!DECL_ABSTRACT_VIRTUAL_P (addr_expr_operand))
++       return;
++     }
++   /* Congrats!  All non-constructor functions are pure virtual.  */
++   TREE_CHAIN (class_constructor_func_elt) = NULL;
++   TREE_INT_CST_LOW (vtbl_object_size) =
++     TREE_INT_CST_LOW (vtbl_type_size) = POINTER_SIZE * 2;
++ }
++ 
+  static int
+  finish_vtable_vardecl (t, data)
+***************
+*** 2708,2711 ****
+--- 2749,2754 ----
+        if (flag_weak)
+        comdat_linkage (vars);
++ 
++       maybe_chop_pure_virtuals (vars);
+  
+        rest_of_decl_compilation (vars, NULL_PTR, 1, 1);

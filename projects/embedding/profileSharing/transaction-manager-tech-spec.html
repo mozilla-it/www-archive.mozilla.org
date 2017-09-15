@@ -1,0 +1,761 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+  <title>Transaction Manager Technical Specification</title>
+                                  
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+  
+         
+<h1 align="center">Transaction Manager Tech Spec</h1>
+         
+<div align="center"><small><i>author: <a
+ href="mailto:jgaunt@netscape.com">jgaunt</a> date:  Sept 25, 2002</i></small><br>
+     </div>
+         
+<h4>Summary</h4>
+         
+<blockquote>The transaction manager is the core piece of the entire profile 
+  sharing architecture described in the <a
+ href="./shared-profile-tech-spec.html">Shared Profile Tech Spec</a>. (<a
+ href="./index.html">profile sharing tech doc homepage</a>) It will be in
+  charge of communication between gecko processes. This document describes
+ the architecture to be used for the manager itself.<br>
+     </blockquote>
+         
+<h4>Requirements</h4>
+         
+<ul>
+       <li>enable multiple processes to notify each other</li>
+       <li>serve as a messaging system between gecko processes</li>
+       <li>allow processes to specify the particular types of messages they 
+ are  interested in</li>
+       <li>allow processes to register to get messages</li>
+      <li>provide a way for 2 processes to communicate directly with each 
+other  (match-maker service) ?<br>
+      </li>
+         
+</ul>
+         
+<h4>Design</h4>
+       
+<ul>
+      <li>The transaction manager will be run out of process and communicate
+   via an IPC mechanism. It will coordinate the messaging aspect of profile
+    sharing, namely it will receive from a process a message describing a
+change     to the profile data. That message will then be relayed to all
+processes   who  have registered as a listener for the profile subsystem
+that is being   modified.  Only a system interested in the specific change
+will be notified   of that change. Processes registered to listen for preference
+changes will   not get messages about  cookie changes.</li>
+               
+  <ul>
+        <li>It makes sense to separate the different levels of support into 
+   base classes to allow for reuse. In particular, a system that only wants 
+   to set up a pipe to a single system shouldn't incur the costs inherent 
+in   a broadcast model. A top level base class may only be able to mediate 
+the   exchange between 2 processes by setting up a channel between the two 
+processes    and then stepping out of the way and letting them talk directly 
+to each  other.  A second level might hold handles to processes that have 
+registered  as a certain type of app ( i.e. mail, IM... ) and processes that 
+need to talk to a specific type of app can get a connection made through this
+type of service. A third could implement the broadcast model described in
+this document. Yet another could be more specific to profile data and include
+some knowledge about the type of data being transferred. Perhaps by further
+granulating the type of changes &nbsp;in which a process is interested (if
+that makes  sense) or controlling access to files and handing out file handles
+etc...</li>
+               
+  </ul>
+      <li>Transaction Service Public Interface: - The important thing   to
+  remember  is that this is a messaging service, like the post office (except 
+ without the losing or mangling of mail or long lines at lunchtime). It should
+   have  little  (if any)  knowledge of what it is passing back and forth.
+Now that I think about it  more, the public API is really the format of the
+messages and the types of  things you can register for. Things messages must
+be able to indicate:</li>
+           
+  <ul>
+       <li>post a message to a particular queue</li>
+       <li>see if a queue is in use (people are registered)</li>
+       <li>get all messages for a queue</li>
+       <li>indicate a process is starting up and it needs messages from a 
+certain  queue (needs to deny any posts to that queue until all current messages 
+are  delivered to new process</li>
+       <li>indicate a proscess is shuting down and needs to update before 
+writing  to disk (same problem as above)</li>
+       <li>send a message to a particular type of listener (in the case of
+ wanting to communicate with the mail program etc)</li>
+       <li>register as a particular type of listener (as in above, register 
+ as a mail program)<br>
+       </li>
+           
+  </ul>
+     <li>TM internal (private) methods:<br>
+     </li>
+           
+  <ul>
+       <li>Init()</li>
+       <li>AddTransactionListener(QueueID, PID(?), nsISupports*) - the queue 
+ to add the process to and a pointer back to the object that cares. (this 
+is who will get called with the notification that a message is available)</li>
+       <li>RemoveTransactionListener(QueueID, PID(?), nsISupports*)</li>
+       <li>PostTransaction(TransType, Message)</li>
+       <li>RecieveTransaction(TransType, Message)<br>
+       </li>
+       <li>Shutdown()</li>
+       <li>IsQueueEmpty()</li>
+           
+  </ul>
+     <li>The TM will have to be able to monitor several different IPC connections 
+ at the same time and must be able to synchronize the messages received from 
+ different sources. An alternative could be to have all incoming traffic arrive
+ on the same IPC connection, that way requests for info, or posts for changes
+ will just be streamed in one at a time (effectively making the receive()
+method synchronized). Depending on the IPC mechanism used this may or may
+not be possilbe. We are looking into using a new IPC mechanism written by
+Netscapers for use with a new PSM module. We are not sure when that will
+land in Mozilla, or if it will meet our needs. jgaunt is going to look at
+the IPC code and rpotts is checking into the landing plans for the PSM module.</li>
+     <li>Internal data structure - the TM will need to keep track of:</li>
+       
+  <ul>
+      <li>what processes have started up and attached to the TM as possible
+ listeners to things</li>
+      <li>what processes are actually registered listeners</li>
+      <li>what queue(s) each process is listeneing to</li>
+      <li>what queues are in existence and how many processes attached to 
+each</li>
+      <li>particular process types ( mail, browser, aim, addressbook etc
+)</li>
+      <li>IPC connections to each process</li>
+      <li>messages in each queue</li>
+      <li>For each process, a top of queue index for each queue it is registered
+ for</li>
+      <li>name? version? type (pref/cookie/etc)?<br>
+      </li>
+       
+  </ul>
+    <li>Each message will need to keep track of ( or the queue will need
+to  for each message )</li>
+       
+  <ul>
+      <li>owning process</li>
+      <li>message type (a pref queue can have addpref, removed pref, resetpref
+ ... )<br>
+      </li>
+      <li>message data</li>
+      <li>ref count<br>
+      </li>
+       
+  </ul>
+       
+</ul>
+       
+<h4>Use Cases</h4>
+     
+<blockquote>These use cases are going to take into account a slightly wider 
+ range of topics than covered in the Shared Profile Tech Doc. They deal with 
+ the specific cases of the programmatic use of the TM. These use cases should 
+ flush out any issues or expose dangerous areas touched by the TM. Specifically 
+ we are paying attention to the interaction between processes, with startup 
+ and shutdown being the most dangerous times for data corruption.</blockquote>
+       
+<ul>
+      <li>Startup - From the TM point of view, this step is very simple.
+When  a process that is set up to use shared profile data begins, it will
+launch  the TM. The TM will merely initialize itself and listen for a request
+from  a process wanting to add itself to a transaction list.</li>
+      <li>Shutdown - During the process of removing a process from the listener
+ list, a check will be made to see if the process is going away and then
+a  check needs to be made to see if there are any processes "attached" to
+the  TM without being on a list. If there are no processes even "attached"
+then  the TM will shutdown, cleaning up after itself, of course.</li>
+      <li>Initialization of TM - Basically just setup of any data structures
+ to be prepared to receive messages and then blocking (or something) on a
+socket or waiting for whatever IPC mechanism we go with.</li>
+      <li>Adding message listeners - This will be initiated by a message
+via  IPC. Enough info will need to be in the message to be able to return
+a message  to the process interested, either a handle to the pipe/socket
+or perhaps a PID.&nbsp;</li>
+      <li>Removing message listeners - Again, initiated by a message via
+IPC.  The listener specified will be removed from the list of interested
+processes  for a specified queue.&nbsp;</li>
+      <li>receiving messages - if we can have all processes attach to a single
+ pipe in to the TM, that would be ideal. This may be the final step of initialization,
+ or the next step following initialization (it probably doesn't matter).
+When  a message comes in, the type of message needs to be deteremined (add/rem
+listener, post message to queue, startup, shutdown, get messages from queueu...
+). The type will be stripped from the message and the rest of the information
+ will be passed along, intact (not parsed yet) to the corresponding helper
+ function.</li>
+       
+  <ul>
+      <li>if a message is posted to a list with only the owner subscribed,
+ a refcount of -1 will be set, to indicate that the message has been posted
+ and not flushed to disk yet, but no other processes were around when it
+was  posted. Any processes that start up, or attach to the queue before the
+change  has been written out to disk will pick up this message, but not delete
+it.  Messages with refcount of -1 will be removed only once written to disk.</li>
+     <li>If there is more than just the owner  watching     the   queue 
+   the   ref  count will be set to the number of  processes  -  1 ( for 
+ the owner).    When  the  ref count reaches 0 the  process that   set the
+  ref   count to 0 will   be responsible  for removing  the transaction 
+ from  the queue  and adjusting    any remaining transactions.</li>
+       
+  </ul>
+    <li>broadcasting messages - when a message is posted to a queue all the
+ listeners for that queue need to be notified. Using the IPC we will either
+ send the message itself to each process, or send a notification that new
+messages are available and allow the process to fetch them at their leisure.</li>
+    <li>clean queue - after a process has written its state to the disk,
+any  lingering -1 processes need to be removed from the queue. The trigger
+from  this may be a special "I'm going to write out" retrieve messages message,
+ or it may be a seperate message itself.</li>
+   <li>There needs to be a way for a process to get he notification of messages 
+and it will depend on the IPC mechanism. We may have to have a thread block 
+on the socket, or we may have to poll, or we may have to have a platform specific
+way of doing it to avoid all of the above. Something that automagically just
+posts events to the main gui thread is, I think, preferable. Again, this
+all depends on the IPC system.<br>
+   </li>
+        
+</ul>
+    <br>
+    THIS DESIGN IS COPIED FROM THE OLD PREFERENCES TECH SPEC AND IS IN THE
+ PROCESS  OF BEING UPDATE -jgaunt 9/26<br>
+       
+<ul>
+      <li>A transaction queue will be used to notify   other    processes 
+     of  changes   in shared prefs.</li>
+               
+  <ul>
+                         
+    <ul>
+                       
+    </ul>
+               
+  </ul>
+               
+  <ul>
+             
+    <ul>
+                       
+    </ul>
+                       
+    <ul>
+                       
+    </ul>
+        <li>The new system will not use shared memory at all.</li>
+     <li>the new system might use semaphores, but it remains to be seen if 
+they will be needed. The hope is that they will NOT be needed, but reality 
+may smack us down on that one.<br>
+     </li>
+     <li>There are several patterns of access for   the   shared    memory:</li>
+                       
+    <ul>
+          <li>Program startup sequence - for all processes      starting
+    up  regardless   of any existing processes</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+      
+        <pre>Launch the Transaction Service(TS) {<br>	Open and attach to the Global Header Semaphore(GHS)<br>	Enter the GHS<br>		Open and attach to the Global Header(GH)<br>		Check for the address of the Master Queue List(MQL) in the GH<br>		Open and attach to the MQL Semaphore(MQLS)<br>		If the MQL address is not there {<br>			Enter the MQLS<br>			Create the MQL<br>		}<br>		Else{<br>			Enter the MQLS<br>		}<br>		Open and attach to the MQL<br>		Increment the count of attached processes in the MQL<br>		Exit the MQLS<br>	Exit the GHS<br>}<br><br>General instructions for components interested in shared data -- call the TS {<br>	Enter the MQLS<br>		Check the MQL for the name of the Transaction Queue(*TQ) desired.<br>		Open and Attach to the proper *TQ Semaphore (*TQS)<br>		If there is no entry for the *TQ<br>			Enter the *TQS<br>			Create the *TQ<br>			Set up the *TQ with the proper header data<br>		Else<br>			Enter the *TQS<br>			Open and attach to the *TQ<br>		Add our PID to the list of listening processes<br>		Adjust the MTOQI&nbsp;<br>		If there are outstanding transactions<br>			push them down modify any Top of Queue Indexes(TOQI) of existing PID blocks<br>		Set our TOQI<br>		Increment the count of processes attached<br>		Increment the ref count of any outstanding transactions<br>		Exit the *TQS<br>	Exit the MQLS<br><br>During pref loading{<br>	Acquire File Lock (prefs.js, user.js etc... )<br>		Read the data from the file (the prefs)<br>		Notify the TS that we are interested in shared prefs (executing the code above)<br>		Enter the MQLS (shortcut this if queue is brand new)<br>			Enter the *TQS for prefs (PTQS)<br>				Retrieve all the outstanding Transactions<br>				Decrement the ref count for each transaction<br>				If the ref count on any transaction drops to 0<br>					Remove the transaction <br>					Shuffle any remaining transactions upward<br>					modify and TOQIs that pointed below the old transaction<br>			Exit the PTQS<br>		Exit the MQLS<br>	Release File Lock<br>}	<br></pre>
+                                    </blockquote>
+          <li>Set[Int|Bool|Char|Complex]Pref</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+           
+        <pre>Change local copy of the pref<br>Create a transaction<br>Enter PTQS<br>	Place Transaction in the preference queue<br>Exit PTQS<br>continue<br></pre>
+                                      </blockquote>
+          <li>Notification of Transaction in PTQ &nbsp;-     &nbsp;when 
+    another    process changes the shared memory</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+      
+        <pre>Enter PTQS<br>	Get any transactions below our TOQI<br>	Decrement the ref count for each<br>	If the ref count drops to 0<br>		Remove the transaction<br>		Shuffle any remaining transactions upward<br>		Modify any TOQIs that pointed below the old transaction<br>Exit PTQS<br></pre>
+                                    </blockquote>
+          <li>Preference flushing - very similar to startup,   key   diffs
+    are   the   transactions with -1 ref count and moving the  write  to
+below     the transaction     processing. We need to make sure our  copy
+is up to   date   with all the transactions before we write it to the disk.</li>
+                               
+      <blockquote>                                                      
+                                                                        
+                                                                        
+                                                                        
+    
+        <pre>Acquire File Lock (prefs.js, user.js etc...)<br>	Enter the PTQS<br>		Retrieve all the outstanding Transactions<br>		Decrement the ref count for each transaction<br>		If the ref count on any transaction drops to 0 OR equals -1<br>			Remove the transaction <br>			Shuffle any remaining transactions upward<br>			modify and TOQIs that pointed below the old transaction<br>	Exit the PTQS<br>	Write the data to the file (the prefs)<br>Release File Lock<br></pre>
+                                    </blockquote>
+          <li>Program shutdown - Update our state, write out   our   state. 
+   Need to make sure if we are deleting the shm/sem that there   aren't  
+any other   processes coming up and holding on to them while we  are going 
+  away.</li>
+                               
+      <blockquote>                                                      
+                                                                        
+                                                                        
+                                                                        
+    
+        <pre>Acquire File Lock (prefs.js, user.js etc...)<br>	Enter the MQLS<br>		Enter the PTQS<br>			Retrieve all the outstanding Transactions<br>			Decrement the ref count for each transaction<br>			If the ref count on any transaction drops to 0 OR equals -1 {<br>				Remove the transaction <br>				Shuffle any remaining transactions upward<br>				modify and TOQIs that pointed below the old transaction<br>			}<br>			Decrement (and capture) the process count<br>			Remove our PID from the PTQ<br>			Adjust the MTOQI<br>			Detach and close the PTQ for our process<br>			If the process count dropped to 0<br>				Delete/Destroy the PTQ from the system<br>		Exit the PTQS<br>		Drop the PTQS<br>		If we destroyed the PTQ<br>			Destroy the PTQS<br>		Write the data to the file (prefs.js, user.js...)<br>	Exit the MQLS<br>Release File Lock<br></pre>
+                                    </blockquote>
+          <li>Runtime addition of shared data listener - for   instance 
+   some   piece  of a program doesn't get created until a user  needs it, 
+but     it uses   a shared  resource - WARNING, the *TQ may not be up and 
+running   already!!</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+      
+        <pre>If TS has not been started already<br>	Start TS<br>Enter the MQLS<br>	Check the MQL for the name of the Transaction Queue(*TQ) desired.<br>	Open and Attach to the proper *TQ Semaphore (*TQS)<br>	If there is no entry for the *TQ {<br>		Enter the *TQS<br>		Create and attach to the *TQ<br>		Set up the *TQ with the proper header data<br>	}<br>	Else {<br>		Enter the *TQS<br>		Open and attach to the *TQ<br>	}	<br>	Add ourself to the *TQ {<br>		Add our PID to the list of listening processes<br>		increment the count<br>		Adjust the MTOQI<br>		If there are outstanding transactions {<br>			push them down <br>			Increment their ref count<br>			modify any Top of Queue Indexes(TOQI) of existing PID blocks<br>		}<br>		Set our TOQI<br>	}<br>	Retrieve all the outstanding Transactions<br>	Decrement the ref count for each transaction<br>	If the ref count on any transaction drops to 0 ( should not be any right? )<br>		Remove the transaction <br>		Shuffle any remaining transactions upward<br>		modify any TOQIs that pointed below the old transaction<br>	Exit the *TQS<br>Exit the MQLS<br></pre>
+                      </blockquote>
+          <li>Runtime removal of shared data listener - a  component    
+of  a program shuts down and no longer needs the transaction  notifications. 
+    Does not bring it's current state up to date with what  is in the transaction
+      queue. Writes it's state out to disk JUST LIKE SHUTDOWN, a question
+remains      in my mind about us writing to disk if we are &nbsp;just closing
+down  a  portion  of the program that was interested in transactions. XXX
+discuss   this</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+      
+        <pre>Acquire File Lock<br>	Enter the MQLS<br>		Enter the PTQS<br>			Retrieve all the outstanding Transactions<br>			Decrement the ref count for each transaction<br>			If the ref count on any transaction drops to 0 OR equals -1 {<br>				Remove the transaction <br>				Shuffle any remaining transactions upward<br>				modify and TOQIs that pointed below the old transaction<br>			}<br>			Decrement (and capture) the process count<br>			Remove our PID from the PTQ<br>			Adjust the MTOQI<br>			Detach and close the PTQ for our process<br>			If the process count dropped to 0<br>				Delete/Destroy the PTQ from the system<br>		Exit the PTQS<br>		Drop the PTQS<br>		If we destroyed the PTQ<br>			Destroy the PTQS<br>		Write the data to the file (prefs.js, user.js...)<br>	Exit the MQLS<br>Release File Lock<br></pre>
+                      </blockquote>
+          <li>Lock pref</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+           
+        <pre>Change local copy of the pref<br>Create a transaction<br>Enter the PTQS<br>	Place Transaction in the preference queue<br>Exit the PTQS<br></pre>
+                                      </blockquote>
+          <li>Unlock pref</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+           
+        <pre>Change local copy of the pref<br>Create a transaction<br>Enter the PTQS<br>	Place Transaction in the preference queue<br>Exit the PTQS<br></pre>
+                                      </blockquote>
+          <li>Clear User Pref</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+           
+        <pre>Change local copy of the pref<br>Create a transaction<br>Enter the PTQS<br>	Place Transaction in the preference queue<br>Exit the PTQS<br></pre>
+                                      </blockquote>
+          <li>Reset Branch</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+           
+        <pre>Change local copy of the pref<br>Create a transaction<br>Enter the PTQS<br>	Place Transaction in the preference queue<br>Exit the PTQS<br></pre>
+                                      </blockquote>
+          <li>Delete branch</li>
+                               
+      <blockquote>                                                       
+                                                                        
+                                                                        
+                                                                        
+           
+        <pre>Change local copy of the pref<br>Create a transaction<br>Enter the PTQS<br>	Place Transaction in the preference queue<br>Exit the PTQS<br>continue<br></pre>
+                                      </blockquote>
+          <li>Summary chart X means we definitely do it, x  means    we might
+  if conditions are right.                                              
+                                                                        
+                                 
+        <table cellpadding="2" cellspacing="2" border="1" width="75%">
+                           <tbody>
+                             <tr>
+                               <td valign="top">Action<br>
+                               </td>
+                               <td valign="top">Lock File<br>
+                               </td>
+                               <td valign="top">GHS<br>
+                               </td>
+                               <td valign="top">MQLS<br>
+                               </td>
+                               <td valign="top">*TQS<br>
+                               </td>
+                               <td valign="top">Write Trans<br>
+                             </td>
+                             <td valign="top">Write SHM<br>
+                               </td>
+                               <td valign="top">Write File<br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Startup - init<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Startup - pref loading<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Shutdown<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Set*Pref<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Notifcation of Pref Change<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Flush Preferences<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Add Listener at Runtime<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">x<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                             <td valign="top">Remove Listener at Runtime<br>
+                             </td>
+                             <td valign="top">X<br>
+                             </td>
+                             <td valign="top"><br>
+                             </td>
+                             <td valign="top">X<br>
+                             </td>
+                             <td valign="top">X<br>
+                             </td>
+                             <td valign="top"><br>
+                             </td>
+                             <td valign="top">X<br>
+                             </td>
+                             <td valign="top">X<br>
+                             </td>
+                           </tr>
+                           <tr>
+                               <td valign="top">Lock Pref<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Unlock Pref<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Reset Branch<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Delete Branch<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                             <tr>
+                               <td valign="top">Reset User Pref<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                               <td valign="top">X<br>
+                               </td>
+                               <td valign="top">X<br>
+                             </td>
+                             <td valign="top">X<br>
+                               </td>
+                               <td valign="top"><br>
+                               </td>
+                                            </tr>
+                                                                        
+                                                                        
+                                                         
+          </tbody>                                                       
+                                                                        
+                        
+        </table>
+                         <br>
+                       </li>
+                       
+    </ul>
+                         
+  </ul>
+         
+</ul>
+   <br>
+     <br>
+     <br>
+    <br>
+   <br>
+  <br>
+ <br>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February 21,  2003</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/embedding/profileSharing/transaction-manager-tech-spec.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

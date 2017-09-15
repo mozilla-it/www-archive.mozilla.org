@@ -1,0 +1,1164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+  <title>Applying Machine Learning to Improve Autocomplete Url Ordering</title>
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<p align="center" style="text-align: center;">
+<b><span style="font-size: 16pt;">Using Supervised Learning to
+Improve Url Ordering in Autocomplete</span></b>
+<br>
+<br>
+<b><span style="font-size: 11pt;">Nisheeth Ranjan (nisheeth at cs
+dot stanford dot
+edu)</span></b>
+<br>
+<b><span style="font-size: 11pt;">Andrew Ng (ang at cs
+dot stanford dot
+edu)</span></b>
+<br>
+<span style="font-size: 11pt;">Computer Science
+Department, Stanford University</span>
+<br>
+<span style="font-size: 11pt;">Stanford, CA
+94305 USA</span>
+<br>
+</p>
+<p><span style="font-size: 14pt;"><b>Abstract</b></span></p>
+<p class="Abstracttext"><span style="font-size: 10pt;">The
+autocomplete
+feature
+in web browsers uses what the user has typed in the url bar as a prefix
+string
+to query the user's web traversal history and presents the
+matching urls in an
+autocomplete list. If one of the urls in the autocomplete list is where
+the
+user wants to go, then he/she can directly select it from the list
+instead of
+having to type out the entire url. Mozilla, the leading open source web
+browser, sorts its autocomplete list using a hardcoded algorithm that
+uses
+features of the url like frequency, whether it is a url with a trailing
+slash,
+etc. We try to improve on Mozilla's ordering by using a simple
+softmax like
+probabilistic model that computes the probability of selection of a url
+in an
+autocomplete list. We order the urls in the autocomplete list in
+descending
+order of their probability of selection. We design some scoring metrics
+to
+compare the performance of the Mozilla and Softmax orderings on a data
+set
+that we collected from the Mozilla community for this research.
+We try
+both offline and online learning approaches to fit the parameters of
+our model
+and find that online learning does marginally better. Our final result
+is that
+the Softmax ordering saves the user an average of approximately one
+keystroke
+per autocomplete event.</span></p>
+<h1><span style="font-size: 14pt;"><b>Introduction</b></span></h1>
+<span style="font-size: 12pt;">
+We
+model the autocomplete problem as follows. Say an autocomplete list is
+composed of N urls. We assume that the probability that the i'th
+url gets
+selected by the user in that autocomplete list is given by the formula
+below:
+<br>
+<br>
+<img style="width: 176px; height: 70px;" id="_x0000_i1028"
+ src="image001.gif" title="" alt=""> &nbsp; &nbsp; &nbsp; (1)
+<br>
+<br>
+In
+the equation above, <b>x</b>
+is
+the
+n-dimensional input vector, and &#952; is the
+n-dimensional parameter vector. Assuming that there are m separate
+autocomplete events, the log likelihood of our parameters is given by:
+<br>
+<br>
+<img style="width: 165px; height: 45px;" id="_x0000_i1030"
+ src="image002.gif" title="" alt=""> &nbsp; &nbsp; &nbsp; (2)
+<br>
+<br>
+In
+the above equation, y<sup>(i)</sup> is the index of the selected url in
+the
+i'th autocomplete event. l(&#952;) turns out to be a
+concave function in &#952; and Newton's method can be used to
+find the value of &#952; that maximizes l(&#952;).
+<br>
+<br>
+Once
+we've found the maximum likelihood estimate of &#952; on
+a training set, we
+can use
+(1) to
+find the probability of user selection for each url in the autocomplete
+list
+and order the urls in descending order of that probability.
+<br>
+<h1><span style="font-size: 14pt;"><b>Offline learning</b></span></h1>
+In
+order to learn &#952;, the parameters in our model, we needed
+data
+on how
+urls in autocomplete lists are chosen by current browser users. To this
+end,
+we recruited approximately 250 Mozilla users to run an instrumented
+version of
+Mozilla that captured their url traversal and autocomplete usage
+information to
+a local data file. After a period of two weeks to a month, we asked
+them to
+submit their data files back to us.
+<br>
+<br>
+We
+then wrote a perl script that took each data file as input and
+generated an
+output file containing an N<sub>i</sub>x1 matrix of feature vectors for
+the
+i'th autocomplete event in the data file, i ranging from 1 to m.
+For example,
+here's a snippet from the output file for a single autocomplete
+event:
+<br>
+<br>
+<span style="font-family: Courier;">slashdot.org/,
+1045072282056876, 1, 1, 3.00, 3.00, 3.01, 3.03, 3.10, 3.26, 3.68, 4.94,
+8.99,
+22.00, 1.00, 1.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00,
+1.00, 0.00,
+0.00, 0.00, 0.00, 3.00, 0.00, 0.00, 0.00, 0.00, 0.00, 2.00, 0.00,
+18.00, 1.00,
+2.00, 0.00, 14.00, 0.00, 1.00, 2.00, 1.00, 16.00, 12.00, 24.00, 8.00,
+0.00,
+0.00, 0.00, 0.00
+<br>
+slashdot.org/pollBooth.pl?qid=926&amp;aid=2,
+1045161387935626, 0, 0, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.01, 0.06,
+0.26,
+1.00, 1.00, 1.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 1.00,
+0.00,
+0.00, 0.00, 0.00, 3.00, 1.00, 1.00, 2.00, 0.00, 0.00, 2.00, 4.00,
+32.00, 1.00,
+1.00, 0.00, 11.00, 0.00, 1.00, 1.00, 1.00, 12.00, 12.00, 46.00, 34.00,
+0.00,
+0.00, 0.00, 0.00
+<br>
+slashdot.org/pollBooth.pl?qid=927&amp;aid=2,
+1045251640566251, 0, 0, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.01, 0.07,
+0.29,
+1.00, 1.00, 1.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 1.00,
+0.00,
+0.00, 0.00, 0.00, 3.00, 1.00, 1.00, 2.00, 0.00, 0.00, 2.00, 4.00,
+32.00, 1.00,
+1.00, 0.00, 11.00, 0.00, 1.00, 1.00, 1.00, 12.00, 12.00, 46.00, 34.00,
+0.00,
+0.00, 0.00, 0.00
+<br>
+No_url,
+0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+0.00,
+0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+0.00,
+0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+0.00,
+0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+0.00,
+0.00
+</span><br>
+<br>
+The
+above
+output
+file describes an autocomplete event where the autcomplete list
+contained three
+urls and the first url was selected by the user (the third comma
+separated
+field denotes whether the url was selected by the user). There are 54
+comma
+separated fields per url line and the following table describes what
+those
+fields are:
+<br>
+<br>
+<table border="1" cellspacing="0" cellpadding="0" width="414"
+ style="border: medium none ; width: 5.75in; margin-left: 55.3pt; border-collapse: collapse;">
+  <tbody>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="center" style="text-align: center;"><span
+ style="font-size: 12pt;"><b>Field number</b></span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: solid solid solid none; border-width: 0.75pt 0.75pt 0.75pt medium; border-top: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="center" style="text-align: center;"><span
+ style="font-size: 12pt;"><b>Description of Field</b></span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">1</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">2</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url ID</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">3</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">User selected the url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">4</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">The url contains a trailing slash</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">5</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.1)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">6</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.2)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">7</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.3)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">8</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.4)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">9</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.5)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">10</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.6)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">11</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.7)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">12</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.8)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">13</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (0.9)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">14</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Generated frequency-recency metric (1.0)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">15</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Mozilla captured frequency-recency metric
+(0.2)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">16</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Mozilla captured frequency-recency metric
+(0.8)</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">17</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url typed by user</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">18</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url ends in .htm or .html</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">19</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Is it a .com url?</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">20</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Is it a .edu url?</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">21</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Is it a .org url?</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">22</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Is it a .net url?</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">23</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Is it a .gov url?</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">24</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url contains a ~</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">25</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url starts with http://</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">26</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url starts with ftp://</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">27</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url starts with file://</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">28</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url starts with https://</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">29</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Url ends in two letter country code?</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">30</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of /s in the url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">31</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of ?s in the url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">32</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of &amp;s in the url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">33</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of =s in the url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">34</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of #s in the url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">35</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of +s in the url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">36</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of .s in the url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">37</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of numerical [0-9] chars in url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">38</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of alphabetical [a-zA-Z] chars in url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">39</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of non-alphanumeric, non-[/?&amp;=#+.]
+chars in url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">40</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of .s in the hostname</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">41</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of numerical [0-9] chars in hostname</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">42</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of alphabetical [a-zA-Z] chars in
+hostname</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">43</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of non-alphanumeric, non-[/?&amp;=#+.]
+chars in hostname</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">44</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of .s in hostname if we omit initial
+"www." or "ftp."</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">45</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of .s in hostname if we omit ending
+".XX" country code</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">46</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of .s in hostname if we omit initial
+"www." and ending ".XX" country code</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">47</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of characters in url</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">48</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of characters in hostname</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">49</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of characters in hostname excluding
+initial "www." or "ftp."</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">50</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of characters in URL excluding hostname</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">51</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Number of characters in web page title</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">52</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Is this a google search url?</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">53</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Is this a netscape search url?</span></p>
+      </td>
+    </tr>
+    <tr style="height: 1pt;">
+      <td width="48" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid; border-width: medium 0.75pt 0.75pt; border-left: 0.75pt solid black; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 48pt; height: 1pt;">
+      <p class="MsoNormal" align="right" style="text-align: right;"><span
+ style="font-size: 12pt;">54</span></p>
+      </td>
+      <td width="366" nowrap="nowrap" valign="top"
+ style="border-style: none solid solid none; border-width: medium 0.75pt 0.75pt medium; border-right: 0.75pt solid black; border-bottom: 0.75pt solid black; padding: 0in 5.4pt; width: 366pt; height: 1pt;">
+      <p class="MsoNormal" align="left" style="text-align: left;"><span
+ style="font-size: 12pt;">Is this a yahoo search url?</span></p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
+To
+relate these fields back to (1), <b>x<sup>(i)</sup></b>
+is the 51 dimensional vector containing the numeric values from field 4
+through
+field 54 for the i'th url in the autocomplete event and &#952; is the 51
+dimensional parameter vector
+that
+we want
+to learn.
+<br>
+<br>
+We
+used Newton's method to find the parameter vector, &#952;, that maximized
+the log likelihood
+function,
+(2). We
+devised a simple scoring metric to compare the Mozilla ordering with
+the
+Softmax ordering. An ordering got a score of 1/i on an autocomplete
+event
+where i was the position (counting from the top of the list) of the
+user
+selected url.
+<br>
+<h1><span style="font-size: 14pt;"><b>Initial Results for Offline
+Learning</b></span></h1>
+The
+Mozilla ordering
+scored 3609.23 out of 4343 (83.1%) and beat the Softmax ordering which
+scored
+3460.85 out of 4343 (79.69%) using the autocomplete lists we got back
+in the
+data files.
+<br>
+<h1><span style="font-size: 14pt;"><b>Simulating Browser History</b></span></h1>
+We
+reasoned that the autocomplete lists we had used for our training were
+captured
+after the user had typed enough characters in the url bar to make the
+url they
+wanted to select bubble up to the top in each list. We wondered whether
+we
+could show that the Softmax ordering does better than the Mozilla
+ordering
+while the first few characters are being typed. To find out, we
+extended our
+perl script to take the number of characters typed in the url bar, C,
+as an
+input parameter and generate output files where each autocomplete list
+was
+built by matching urls from the set of all urls visited before.
+Essentially,
+we simulated browser history by storing visited urls in a hash and
+generating
+the autocomplete list that the browser would have generated when C
+prefix characters
+of the user selected url were typed in the url bar.
+<br>
+<br>
+We
+created four data sets for the 1 character typed, 2 characters typed, 3
+characters typed, and 4 characters typed scenarios. We trained on
+approximately 70% of that data and tested on the remaining 30%. Figure
+1 shows
+our results. The Softmax ordering consistently did better than the
+Mozilla ordering.
+<br>
+<br>
+<p align="center" style="text-align: center;">
+<img style="width: 529px; height: 420px;" id="_x0000_i1031"
+ src="image003.gif" title="" alt=""><br>
+<br>
+Figure 1
+<br>
+</p>
+<h1><span style="font-size: 14pt;"><b>A Better Scoring Metric</b></span></h1>
+It was
+hard for us
+to see the relationship between score percentage numbers and actual
+utility to
+the user. So, we decided on measuring user utility more directly. From
+a
+user's perspective, the important metric is the number of keys
+typed to get to
+the next url. We extended our perl script to
+<ol>
+  <li>
+simulate typing a url
+character
+by character, </li>
+  <li>create a Mozilla and Softmax ordering of the autocomplete
+list
+after each character is typed, and </li>
+  <li>keep track of the minimum number of
+keystrokes needed to access the user's url.
+  </li>
+</ol>
+The number of
+keystrokes were
+calculated as follows: if the user's url ended up in position 5
+(from the top) in
+the ordering after 2 characters are typed in the url bar, the number of
+keys
+needed to get to it are 7 (2 characters typed and 5 presses of the down
+arrow
+key).
+<br>
+<h1><span style="font-size: 14pt;"><b>Final Results for Offline Learning</b></span></h1>
+On running our minimum keys needed
+simulation on
+the entire data set, we found that the Softmax ordering saved the user
+13171
+keystrokes over 14647 autocomplete events, an average savings of 0.90
+keystrokes per event.
+<br>
+<h1><span style="font-size: 14pt;"><b>Online Learning</b></span></h1>
+Till
+now, we'd kept our parameter vector, &#952;, fixed while
+scoring the Softmax orderings on the test set. We now decided to
+explore
+whether an online learning paradigm where the parameters are updated to
+adapt
+to an individual user's preferences would improve the ordering
+further. We
+changed our perl script yet again to update &#952; after each
+autocomplete event such that we take a stochastic gradient ascent step
+towards
+maximizing log(P(y = i; &#952;)), where P is given by (1).
+<br>
+<br>
+We
+created a subset of the data set to test different learning rates and
+saw that
+a learning rate of 0.0001 yielded the lowest number of keys needed by
+the
+Softmax ordering to select the user's url in all the
+autocomplete events
+contained in the data subset. Figure 2 shows how the different learning
+rates
+performed on the data subset. We also computed a heuristic that would
+use a
+higher learning rate at autocomplete events where the user selected url
+was
+high on the Softmax ordered list. To implement this heuristic, we
+computed a
+multiplier as follows:
+<br>
+<br>
+<span style="font-size: 10pt;">
+If the minimum chars needed by
+softmax (M) &nbsp; &lt; 10
+<br>
+&nbsp; &nbsp; &nbsp; multiplier = 10 - M
+<br>
+else
+<br>
+&nbsp; &nbsp; &nbsp; multiplier = 1/M
+</span><br>
+<br>
+We then used this multiplier
+in the stochastic gradient ascent step. For autocomplete events where
+the
+user's url could be accessed in less than 10 keystrokes, the
+multiplier was a
+positive integer and magnified the update of the parameter vector. For
+events
+where the user's url was accessed in 10 or more keystrokes, the
+multiplier was
+a positive number between 0 and 1 and reduced the update of the
+parameter
+vector.
+<br>
+<p align="center" style="text-align: center;">
+<img style="width: 620px; height: 391px;" id="_x0000_i1032"
+ src="image004.gif" title="" alt=""><br>
+<br>
+Figure 2
+<br>
+</p>
+<h1><span style="font-size: 14pt;"><b>Final Results for Online Learning</b></span></h1>
+On running the online learning
+simulation
+on the
+entire data set, we found that the Softmax ordering saved the user
+13882
+keystrokes over 14647 autocomplete events, an average savings of 0.95
+keystrokes per event.
+<br>
+<h1><span style="font-size: 14pt;"><b>Conclusion</b></span></h1>
+We were able to show that
+url ordering using an offline learning paradigm saves the user an
+average of
+0.90 keystrokes per autocomplete event while an online learning
+paradigm does
+marginally better and saves the user an average of 0.95 keystrokes per
+autocomplete event as compared to the current Mozilla algorithm for url
+ordering.
+</span>
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December 27,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/ml/autocomplete/ac-report.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,666 @@
+<HTML>
+<HEAD>
+   <TITLE>NETLIB II URL Class</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+NETLIB II</H1>
+
+<H2>
+<TT>URL</TT></H2>
+This class contains more than just the ascii string that the W3C calls
+a URL, as it contains all the data associated with a URL operation: the
+address, the host's IP addresses, the method, the content-type, etc. Basically,
+it's the old URL_Struct, cleaned up and rewritten.
+<H3>
+Definition</H3>
+This class is defined in java, and is compiled with JMC. The C syntax is
+included in each method description, and is summarised below.
+<BR>
+<CENTER><TABLE BORDER CELLSPACING=0 CELLPADDING=0 >
+<TR>
+<TD>
+<PRE>package netscape.url;
+import netscape.jmc.*;
+import netscape.types.*;
+
+public abstract class URL {
+    public <A HREF="#URL">URL</A>(String address) throws Exception {};
+
+    public abstract String <A HREF="#GetAddress">GetAddress</A>();
+    public abstract void <A HREF="#SetAddress">SetAddress</A>(String add) throws Exception;
+
+    public abstract String <A HREF="#GetDestinationAddress">GetDestinationAddress</A>();
+    public abstract void <A HREF="#SetDestinationAddress">SetDestinationAddress</A>(String dest) throws Exception;
+
+    public abstract String <A HREF="#GetIPAddressString">GetIPAddressString</A>();
+    public abstract void <A HREF="#SetIPAddressString">SetIPAddressString</A>(String string) throws Exception;
+
+    // HTTPMethod is an enumeration that contains the following:
+    // Get, Post, Head, Put, Delete, Mkdir, Move, Index, and Other.
+    // "Other" is for random HTTP methods, set with SetMethodName.
+    // Caling SetMethodName automatically sets the method enum to Other;
+    // Don't set the enumeration to Other directly.
+
+    public abstract HTTPMethod <A HREF="#GetMethod">GetMethod</A>();
+    public abstract void <A HREF="#SetMethod">SetMethod</A>(HTTPMethod method) throws Exception;
+
+    public abstract String <A HREF="#GetMethodName">GetMethodName</A>();
+    public abstract void <A HREF="#SetMethodName">SetMethodName</A>(String string) throws Exception;
+
+    // ServerID: this is the introductory string sent by the server.
+    // For HTTP it's the "Server:" header (or NULL if there wasn't one).
+    // For things like FTP, NNTP, SMPT, etc. it's the introductory header
+    // sent by the server upon connection.  GetIsNetsite returns true
+    // if the server id indicates a Netscape (or "Netsite") server.
+
+    public abstract String <A HREF="#GetServerID">GetServerID</A>();
+    public abstract void <A HREF="#SetServerID">SetServerID</A>(String string) throws Exception;
+    public abstract boolean <A HREF="#GetIsNetsite">GetIsNetsite</A>();
+
+    // This "server status" code is always an HTTP status code, even for
+    // other protocols: so if an FTP server says "file not found," this will
+    // still be HTTP's "404" code.
+
+    public abstract int <A HREF="#GetServerStatus">GetServerStatus</A>();
+    public abstract void <A HREF="#SetServerStatus">SetServerStatus</A>(int status);
+
+    // Some booleans about the resource
+
+    public abstract boolean <A HREF="#GetIsDirectory">GetIsDirectory</A>();
+    public abstract void <A HREF="#SetIsDirectory">SetIsDirectory</A>(boolean isdir);
+
+    public abstract boolean <A HREF="#GetIsBinaryStream">GetIsBinaryStream</A>();
+    public abstract void <A HREF="#SetIsBinaryStream">SetIsBinaryStream</A>(boolean is_binary);
+
+    // Headers: HeaderDirection is an enumeration with two values:
+    // Incoming and Outgoing.  The sets of headers are distinct.
+
+    // SetHeader with two arguments adds the entire string as a line.
+    public abstract void <A HREF="#SetHeader">SetHeader</A>(HeaderDirection which, String line) throws Exception;
+
+    // SetHeader with three arguments adds a line in the form "name: value"
+    public abstract void <A HREF="#SetHeader_1">SetHeader</A>(HeaderDirection which, String name, String value) throws Exception;
+
+    // GetHeader with a string argument gets that name's value, or NULL if it doesn't exist.
+    public abstract String <A HREF="#GetHeader">GetHeader</A>(HeaderDirection which, String name);
+
+    // GetHeader with a numeric argument gets the n'th header, in the order returned.
+    // If n is out of range, this returns NULL.
+    public abstract String <A HREF="#GetHeader_1">GetHeader</A>(HeaderDirection which, int n);
+
+    // The header count.
+    public abstract int <A HREF="#GetHeaderCount">GetHeaderCount</A>(HeaderDirection which);
+
+    // Some headers are complex (or hard to parse), and some values are rather common,
+    // so they get special-case routines.
+
+    public abstract String <A HREF="#GetIncomingContentType">GetIncomingContentType</A>();
+    public abstract String <A HREF="#GetIncomingContentEncoding">GetIncomingContentEncoding</A>();
+    public abstract String <A HREF="#GetIncomingContentName">GetIncomingContentName</A>();
+    public abstract String <A HREF="#GetIncomingCharset">GetIncomingCharset</A>();
+    public abstract Time <A HREF="#GetIncomingExpiration">GetIncomingExpiration</A>() throws Exception;
+    public abstract Time <A HREF="#GetIncomingLastModified">GetIncomingLastModified</A>() throws Exception;
+    public abstract Time <A HREF="#GetIncomingServerDate">GetIncomingServerDate</A>() throws Exception;
+
+    public abstract int <A HREF="#GetIncomingContentLength">GetIncomingContentLength</A>();
+    public abstract void <A HREF="#SetOutgoingContentLength">SetOutgoingContentLength</A>(int length) throws Exception;
+
+    // Deferred until later: attaching outgoing data directly (instead of streaming
+    // it out), this includes multiple file posting; caching, which includes forced
+    // reload, can-do-byteranges, and other stuff; direct authentication header
+    // support (but you can use the general header routiens); security; history.
+}</PRE>
+</TD>
+</TR>
+
+<CAPTION ALIGN=BOTTOM><I><TT><A HREF="URL.java"></A></TT></I> </CAPTION>
+</TABLE></CENTER>
+
+<H3>
+Interface Methods</H3>
+
+<UL>
+<LI>
+<A NAME="URL"></A><TT>URL</TT></LI>
+
+<BR>This creation method instantiates a new URL class object, with the
+argument being used for the address, and everything else being null or
+zero. The argument is duplicated internally.
+
+<P>The C signature of this method is:
+<CENTER><TT>URL *URLFactory_Create(JMCException **e, const char *address);</TT></CENTER>
+
+
+<P>Note that, as this is a creation method, the exception comes first.
+<LI>
+<A NAME="GetAddress"></A><TT>GetAddress</TT></LI>
+
+<BR>This method returns a pointer to the URL address string. This pointer
+points to internal data, so if you want to hang onto it, duplicate it.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetAddress(URL *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetAddress"></A><TT>SetAddress</TT></LI>
+
+<BR>This method sets the address of a URL. The argument is duplicated internally,
+and any space previously allocated internally is automatically freed. Passing
+a null pointer is not legal, and will raise an exception.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetAddress(URL *self, const char *address, JMCException
+**e);</TT></CENTER>
+
+<LI>
+<A NAME="GetDestinationAddress"></A><TT>GetDestinationAddress</TT></LI>
+
+<BR>Some URL operations, e.g., RENAME, have a destination address as well.
+This method gets that address; it returns null if there isn't one. This
+pointer points to internal data, so if you want to hang onto it, duplicate
+it.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetDestinationAddress(URL *self, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetDestinationAddress"></A><TT>SetDestinationAddress</TT></LI>
+
+<BR>This method sets the destination address. The argument is duplicated
+internally, and any space previously allocated internally is automatically
+freed. Passing a null pointer is legal, and will clear the address.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetDestinationAddress(URL *self, const char *destination,
+JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="GetIPAddressString"></A><TT>GetIPAddressString</TT></LI>
+
+<BR>The IP Address String is an ascii string containing the network address(es)
+of the host to which the address points. This data is required for some
+security checking. This method gets that string, or a null if there isn't
+one. This pointer points to internal data, so if you want to hang onto
+it, duplicate it.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetIPAddressString(URL *self, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetIPAddressString"></A><TT>SetIPAddressString</TT></LI>
+
+<BR>This method sets the IP Address String. The argument is duplicated
+internally, and any space previously allocated internally is automatically
+freed. Passing a null pointer is legal, and will clear the string.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetIPAddressString(URL *self, const char *addresses,
+JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="GetMethod"></A><TT>GetMethod</TT></LI>
+
+<BR>This method gets the ``HTTP method'' to be performed, i.e., GET, PUT,
+etc. The return value is defined in <TT>URL.h</TT>.
+
+<P>The C signature of this method is:
+<CENTER><TT>URL_HTTPMethod URL_GetMethod(URL *self, JMCException **e);</TT></CENTER>
+
+
+<P>If the return value indicates an "Other" method, the name of the method
+may be obtained with <TT>URL_GetMethodName</TT> below.
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetMethod"></A><TT>SetMethod</TT></LI>
+
+<BR>This method sets the ``HTTP method'' to be performed, i.e., GET, PUT,
+etc. The argument value is defined in <TT>URL.h</TT>.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetMethod(URL *self, URL_HTTPMethod method, JMCException
+**e);</TT></CENTER>
+
+
+<P>The method may not indicate an "Other" method; attempting that will
+return an exception. Set an other method with <TT>URL_SetMethodName</TT>,
+below.
+<LI>
+<A NAME="GetMethodName"></A><TT>GetMethodName</TT></LI>
+
+<BR>This method returns the text name of a method, i.e, "GET," "PUT," etc.
+If an "Other" method has been specified with <TT>URL_SetMethodName</TT>
+below, that name is returned. The return value points to internal storage;
+if you want to hang onto the value, duplicate the string.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetMethodName(URL *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetMethodName"></A><TT>SetMethodName</TT></LI>
+
+<BR>This method sets the text name of the method to be used in the URL
+connection. For example, an HTTP proxy that can pass arbitrary new HTTP
+actions might use this to blindly replicate an action that it doesn't really
+understand. This method has a side effect of setting the method, as returned
+by <TT>URL_GetMethod</TT> above, to "other." If the string passed in is
+a known method, e.g., "GET," <I>the method will still be set to "other"!</I>
+The value passed in will be duplicated internally.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetMethodName(URL *self, const char *name, JMCException
+**e);</TT></CENTER>
+
+<LI>
+<A NAME="GetServerID"></A><TT>GetServerID</TT></LI>
+
+<BR>This method returns the identification string sent by the server. HTTP
+servers send this data in a <TT>Server:</TT> header; FTP, NNTP, SMTP, and
+many other servers send it as the introductory message send upon connection.
+The return value points to internal storage; if you want to hang onto the
+value, duplicate the string.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetServerID(URL *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetServerID"></A><TT>SetServerID</TT></LI>
+
+<BR>This method sets the server ID. The strings passed in will be duplicated
+internally.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetServerID(URL *self, const char *id, JMCException
+**e);</TT></CENTER>
+
+<LI>
+<A NAME="GetIsNetsite"></A><TT>GetIsNetsite</TT></LI>
+
+<BR>This method examines the server id string as returned by <TT>URL_GetServerID</TT>
+above, and returns true if the server is a Netscape product.
+
+<P>The C signature of this method is:
+<CENTER><TT>jbool URL_GetIsNetsite(URL *self, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="GetServerStatus"></A><TT>GetServerStatus</TT></LI>
+
+<BR>This method returns a number indicating the server status, in response
+to a connection. The number is always in the HTTP server-response space:
+the HTTP protocol module assigns the actual HTTP server's response code
+here, the other protocol modules translate their servers' responses into
+HTTP-like numbers.
+
+<P>The C signature of this method is:
+<CENTER><TT>jint URL_GetServerStatus(URL *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetServerStatus"></A><TT>SetServerStatus</TT></LI>
+
+<BR>This method sets the server status code.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetFileAsPostData(URL *self, jint status, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetIsDirectory"></A><TT>GetIsDirectory</TT></LI>
+
+<BR>This method returns a boolean value, which will be true if the object
+is identifiably a directory or index of some kind.
+
+<P>The C signature of this method is:
+<CENTER><TT>jbool URL_GetIsDirectory(URL *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetIsDirectory"></A><TT>SetIsDirectory</TT></LI>
+
+<BR>This method sets the "is directory" flag for the object.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetIsDirectory(URL *self, jbool isdir, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetIsBinaryStream"></A><TT>GetIsBinaryStream</TT></LI>
+
+<BR>This method returns a boolean value, which will be true if the object
+is identifiably a "binary" object which should not be directly presented
+to the user.
+
+<P>The C signature of this methods is:
+<CENTER><TT>jbool URL_GetIsBinaryStream(URL *self, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetIsBinaryStream"></A><TT>SetIsBinaryStream</TT></LI>
+
+<BR>This method sets the "is binary steram" flag for the object.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_AddPostHeaders(URL *self, const char *string, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="SetHeader"></A><TT>SetHeader</TT></LI>
+
+<BR>This method adds the provided string to the specified set of headers.
+The <TT>which</TT> argument is of type <TT>URL_HeaderDirection</TT>, defined
+in <TT>URL.h</TT>, and may take the values <TT>URL_IncomingHeader </TT>or
+<TT>URL_OutgoingHeader</TT>. Incoming headers are the headers sent by the
+server for client consumption; outgoing headers are set by the client for
+use by the server. The string is added as is, and must conform to the form
+expected by the server (usually, "Keyword: value"). The string is duplicated
+internally.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetHeader(URL *self, URL_HeaderDirection which, const
+char *header, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="SetHeader_1"></A><TT>SetHeader_1</TT></LI>
+
+<BR>This method adds a header, of the form "keyword: value," to the specified
+header set. The <TT>which</TT> argument is of type <TT>URL_HeaderDirection</TT>,
+defined in <TT>URL.h</TT>, and may take the values <TT>URL_IncomingHeader
+</TT>or <TT>URL_OutgoingHeader</TT>. Incoming headers are the headers sent
+by the server for client consumption; outgoing headers are set by the client
+for use by the server. The strings are combined into a header, which is
+duplicated internally.
+
+<P>The C signature of this method is:
+<CENTER><TT>void URL_SetHeader_1(URL *self, URL_HeaderDirection which,
+const char *keyword, const char *value, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="GetHeader"></A><TT>GetHeader</TT></LI>
+
+<BR>This method gets the value of a named header from the specified header
+set. The <TT>which</TT> argument is of type <TT>URL_HeaderDirection</TT>,
+defined in <TT>URL.h</TT>, and may take the values <TT>URL_IncomingHeader
+</TT>or <TT>URL_OutgoingHeader</TT>. Incoming headers are the headers sent
+by the server for client consumption; outgoing headers are set by the client
+for use by the server. The return value points to internal storage; if
+you want to hang onto the string, duplicate it. Note that this method returns
+a pointer to the <I>value</I> of a typical colon-separated header, i.e.,
+calling <TT>URL_GetHeader(url, "Content-Type", &amp;e) </TT>might return
+"<TT>text/html</TT>." The header keyword parameter is case-insensitive,
+and should not have a trailing colon. The return value will be NULL if
+there is no matching header.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetHeader(URL *self, URL_HeaderDirection which,
+const char *keyword, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetHeader_1"></A><TT>GetHeader_1</TT></LI>
+
+<BR>This method returns the nth header from the specified header set, in
+the order in which the headers were set. The <TT>which</TT> argument is
+of type <TT>URL_HeaderDirection</TT>, defined in <TT>URL.h</TT>, and may
+take the values <TT>URL_IncomingHeader </TT>or <TT>URL_OutgoingHeader</TT>.
+Incoming headers are the headers sent by the server for client consumption;
+outgoing headers are set by the client for use by the server. The return
+value points to internal storage; if you want to hang onto the string,
+duplicate it. Note that this method returns a pointer to the entire header,
+keyword and value, exactly as it was set. The return value will be NULL
+if the index number is out of range. The index starts with 1.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetHeader_1(URL *self, URL_HeaderDirection
+which, jint n, JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetHeaderCount"></A><TT>GetHeaderCount</TT></LI>
+
+<BR>This method returns the number of headers in the specified set. he
+<TT>which</TT> argument is of type <TT>URL_HeaderDirection</TT>, defined
+in <TT>URL.h</TT>, and may take the values <TT>URL_IncomingHeader </TT>or
+<TT>URL_OutgoingHeader</TT>. Incoming headers are the headers sent by the
+server for client consumption; outgoing headers are set by the client for
+use by the server.
+
+<P>The C signature of this method is:
+<CENTER><TT>jint URL_GetHeaderCount(URL *self, URL_HeaderDirection which,
+JMCException **e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetIncomingContentType"></A><TT>GetIncomingContentType</TT></LI>
+
+<BR>This convenience method returns the content type as specified in the
+incoming <TT>Content-Type</TT> header. The return value points to internal
+storage; if you want to hang onto the string, duplicate it. The return
+value will be NULL if no content type has been specified in the incoming
+headers.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetIncomingContentType(URL *self, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetIncomingContentEncoding"></A><TT>GetIncomingContentEncoding</TT></LI>
+
+<BR>This convenience method returns the content encoding as specified in
+the incoming headers. The return value points to internal storage; if you
+want to hang onto the string, duplicate it. The return value will be NULL
+if no content encoding has been specified in the incoming headers.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetIncomingContentEncoding(URL *self, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetIncomingContentName"></A><TT>GetIncomingContentName</TT></LI>
+
+<BR>This convenience method returns the content name as specified in the
+incoming headers, or (if it's not specified there), as guessed from the
+URL address. The return value will be NULL if a content name cannot be
+obtained.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetIncomingContentName(URL *self, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetIncomingCharset"></A><TT>GetIncomingCharset</TT></LI>
+
+<BR>This convenience method returns the character set as specified in the
+incoming headers. The return value will be NULL if a character set was
+not specified in the incoming headers.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *URL_GetIncomingCharset(URL *self, JMCException
+**e);</TT></CENTER>
+
+
+<P>Note that although the java method signature does not specify that an
+exception may be thrown, due to the existance of java errors, an error
+may be reflected in this method's final argument.
+<LI>
+<A NAME="GetIncomingExpiration"></A><TT>GetIncomingExpiration</TT></LI>
+
+<BR>This convenience method returns the expiration date as specified by
+the incoming <TT>Expires</TT> header. If no appropriate header has been
+set, an exception will be "thrown," <I>and the return value will be indeterminate.</I>
+
+<P>The C signature of this method is:
+<CENTER><TT>PRTime URL_GetIncomingExpiration(URL *self, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="GetIncomingLastModified"></A><TT>GetIncomingLastModified</TT></LI>
+
+<BR>This convenience method returns the last-modified date as specified
+by the incoming headers. If no appropriate header has been set, an exception
+will be "thrown," <I>and the return value will be indeterminate.</I>
+
+<P>The C signature of this method is:
+<CENTER><TT>PRTime URL_GetIncomingLastModified(URL *self, JMCException
+**e);</TT></CENTER>
+
+<LI>
+<A NAME="GetIncomingServerDate"></A><TT>GetIncomingServerDate</TT></LI>
+
+<BR>This convenience method returns the server's current date, as specifeid
+by the incoming headers. If no appropriate header has been set, an exception
+will be "thrown," <I>and the return value will be indeterminate.</I>
+
+<P>The C signature of this method is:
+<CENTER><TT>PRTime URL_GetIncomingServerDate(URL *self, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="GetIncomingContentLength"></A><TT>GetIncomingContentLength</TT></LI>
+
+<BR>This convenience method returns the object's content length, as specified
+by the incoming headers. If no appropriate header has been set, an exception
+will be "thrown," <I>and the return value will be indeterminate.</I>
+
+<P>The C signature of this method is:
+<CENTER><TT>jint URL_GetIncomingContentLength(URL *self, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="SetOutgoingContentLength"></A><TT>SetOutgoingContentLength</TT></LI>
+
+<BR>This convenience method sets the outgoing "<TT>Content-Length</TT>"
+header to the specified value.
+
+<P>The C signature of this method is:
+<CENTER><TT>void *URL_GetContentType(URL *self, jint length, JMCException
+**e);</TT></CENTER>
+</UL>
+
+<H3>
+Inherited Methods</H3>
+This class inherits the usual <A HREF="JMCObject.html">JMC base methods</A>.
+<H3>
+C interface</H3>
+
+<CENTER><TABLE BORDER CELLSPACING=0 CELLPADDING=0 >
+<TR>
+<TD>
+<PRE><TT>#include "URL.h"
+
+URL *<A HREF="#URL">URLFactory_Create</A>(JMCException **e, const char *address);
+const char *<A HREF="#GetAddress">URL_GetAddress</A>(URL *self, JMCException **e);
+void <A HREF="#SetAddress">URL_SetAddress</A>(URL *self, const char *address, JMCException **e);
+const char *<A HREF="#GetDestinationAddress">URL_GetDestinationAddress</A>(URL *self, JMCException **e);
+void <A HREF="#SetDestinationAddress">URL_SetDestinationAddress</A>(URL *self, const char *destination, JMCException **e);
+const char *<A HREF="#GetIPAddressString">URL_GetIPAddressString</A>(URL *self, JMCException **e);
+void <A HREF="#SetIPAddressString">URL_SetIPAddressString</A>(URL *self, const char *addresses, JMCException **e);
+URL_HTTPMethod <A HREF="#GetMethod">URL_GetMethod</A>(URL *self, JMCException **e);
+void <A HREF="#SetMethod">URL_SetMethod</A>(URL *self, URL_HTTPMethod method, JMCException **e);
+const char *<A HREF="#GetMethodName">URL_GetMethodName</A>(URL *self, JMCException **e);
+void <A HREF="#SetMethodName">URL_SetMethodName</A>(URL *self, const char *name, JMCException **e);
+const char *<A HREF="#GetServerID">URL_GetServerID</A>(URL *self, JMCException **e);
+void <A HREF="#SetServerID">URL_SetServerID</A>(URL *self, const char *id, JMCException **e);
+jbool <A HREF="#GetIsNetsite">URL_GetIsNetsite</A>(URL *self, JMCException **e);
+jint <A HREF="#GetServerStatus">URL_GetServerStatus</A>(URL *self, JMCException **e);
+void <A HREF="#SetServerStatus">URL_SetServerStatus</A>(URL *self, jint status, JMCException **e);
+jbool <A HREF="#GetIsDirectory">URL_GetIsDirectory</A>(URL *self, JMCException **e);
+void <A HREF="#SetIsDirectory">URL_SetIsDirectory</A>(URL *self, jbool isdir, JMCException **e);
+jbool <A HREF="#GetIsBinaryStream">URL_GetIsBinaryStream</A>(URL *self, JMCException **e);
+void <A HREF="#SetIsBinaryStream">URL_SetIsBinaryStream</A>(URL *self, jbool isbinary, JMCException **e);
+void <A HREF="#SetHeader">URL_SetHeader</A>(URL *self, URL_HeaderDirection which, const char *header, JMCException **e);
+void <A HREF="#SetHeader_1">URL_SetHeader_1</A>(URL *self, URL_HeaderDirection which, const char *keyword, const char *value, JMCException **e);
+const char *<A HREF="#GetHeader">URL_GetHeader</A>(URL *self, URL_HeaderDirection which, const char *keyword, JMCException **e);
+const char *<A HREF="#GetHeader_1">URL_GetHeader_1</A>(URL *self, URL_HeaderDirection which, jint n, JMCException **e);
+jint <A HREF="#GetHeaderCount">URL_GetHeaderCount</A>(URL *self, URL_HeaderDirection which, JMCException **e);
+const char *<A HREF="#GetIncomingContentType">URL_GetIncomingContentType</A>(URL *self, JMCException **e);
+const char *<A HREF="#GetIncomingContentEncoding">URL_GetIncomingContentEncoding</A>(URL *self, JMCException **e);
+const char *<A HREF="#GetIncomingContentName">URL_GetIncomingContentName</A>(URL *self, JMCException **e);
+const char *<A HREF="#GetIncomingCharset">URL_GetIncomingCharset</A>(URL *self, JMCException **e);
+PRTime <A HREF="#GetIncomingExpiration">URL_GetIncomingExpiration</A>(URL *self, JMCException **e);
+PRTime <A HREF="#GetIncomingLastModified">URL_GetIncomingLastModified</A>(URL *self, JMCException **e);
+PRTime <A HREF="#GetIncomingServerDate">URL_GetIncomingServerDate</A>(URL *self, JMCException **e);
+jint <A HREF="#GetIncomingContentLength">URL_GetIncomingContentLength</A>(URL *self, JMCException **e);
+void <A HREF="#SetOutgoingContentLength">URL_SetOutgoingContentLength</A>(URL *self, jint length, JMCException **e);
+
+/* methods inherited from base JMC object interface */
+void *<A HREF="JMCObject.html#getInterface">URL_getInterface</A>(URL *self, JMCInterfaceID id, JMCException **e);
+void <A HREF="JMCObject.html#addRef">URL_addRef</A>(URL *self, JMCException **e);
+void <A HREF="JMCObject.html#release">URL_release</A>(URL *self, JMCException **e);
+jint <A HREF="JMCObject.html#hashCode">URL_hashCode</A>(URL *self, JMCException **e);
+void *<A HREF="JMCObject.html#clone">URL_clone</A>(URL *self, JMCException **e);
+const char *<A HREF="JMCObject.html#toString">URL_toString</A>(URL *self, JMCException **e);
+void <A HREF="JMCObject.html#finalize">URL_finalize</A>(URL *self, JMCException **e);</TT></PRE>
+</TD>
+</TR>
+</TABLE></CENTER>
+
+<HR WIDTH="100%">
+<BR><I>This document was written by <A HREF="about:roeber">Frederick</A>
+at 17:33 17.03.1997.</I>
+</BODY>
+</HTML>

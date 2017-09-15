@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+
+<HEAD>
+<STYLE TYPE="text/css">
+<!--
+
+BODY {
+  color: #000;
+  background: #FFF;  margin-left: 5%;
+  font-family: arial,helvetica,sans-serif, arial, helvetica, sans-serif; 
+  }
+
+P {  font-size: small}
+
+ADDRESS {  font-size: small} -->
+</STYLE>
+
+<TITLE>Building Mac NGLayout</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H2>Building Mac NGLayout</H2>
+<ADDRESS>Author: <A HREF="mailto:atotic@netscape.com">Aleks Totic</A></ADDRESS>
+<H4>Current status</H4>
+<P>Build system is fully automated. You can checkout, build dist, and build all the projects with a perl script.
+It is still rapidly evolving, and is not idiot-proof, but should be usable.</P>
+<H4>Tools</H4>
+<P>The tools you need are equivalent to the tools required for building Navigator The instructions are at <A HREF="../build/mac.html">http://www.mozilla.org/build/mac.html</A>.To
+test your setup, you might want to build Mozilla. Note: if you are thinking of integrating NGLayout into another
+product, you will not need all the 3rd party libraries Mozilla requires</P>
+<H4>Building</H4>
+<P>A) Using the MacCVS client, create a new CVS session file</P>
+
+<P>B) Check out mozilla/build/mac.</P>
+
+<P>C) Run PullNGlayout.pl from MacPerl. First time you run this script, it will prompt you for the location
+of your CVS session file. This file will be used to check out the rest of the tree. You can also run the script
+from MPW, but I've found that MPW perl tool often crashes.</P>
+
+<P>D) Run BuildNGLayoutDebug.pl from MacPerl. The script will build dist and all the projects.</P> 
+
+<P>Mac build scripts have an annoying problem in that there is no way to specify command-line options to perl.
+This means that you can't specify different make options to the build script BuildNGLayoutDebug.pl without editing
+the script. To customize your builds (build_all, pull_layout etc), edit the %pull and %build variables inside the
+script. To build optimized binary, set $DEBUG to 0. You can also edit it to turn on the UI.</P>
+<H4>Build system architecture</H4>
+<P>It is modelled after the latest and greatest Mozilla build system. It uses perl that drives various Mac applications
+through AppleScript. It consists of 3 perl scripts<B>:</B></P>
+<P><B><TT>NGLayoutBuildList.pm</TT></B>: Contains the list of directories to check out, manifest files to be processed
+for dist generation, and projects to built. It builds both debug and optimized versions. Has 3 main functions,
+Checkout, BuildDist, and BuildProjects. When run for the first time, will prompt user for the location of the CVS
+session file, and store the location in nglayout.cvsloc above your source tree.</P>
+
+<P><B>PullNGLayout.pl</B>: Pulls the source tree required to build NGLayout. To use the script, 
+double-click on it and it will start executing. An open-file dialog box will come up. Direct
+it to the MacCVS Session file that you used to check out the script. Open the session, and the
+perl script will then send a series of checkout commands to MacCVS and pull the required sources.
+</P>
+
+<P><B>BuildNGLayoutDebug.pl</B>: configures various build options and starts a build of NGLayout.</P>
+
+<P><BLINK>Hack alert</BLINK>: To create NGLayout-specific #defines that span all the projects, I used a hack. All
+Mac projects we care about include mozilla/config/mac/MacConfigInclude.h. By default, an alias to this file is
+exported to dist. NGLayout makefile replaces this alias with a new one, pointing to NGLayoutConfigInclude.h, but
+the alias is still named MacConfigInclude.h.</P>
+<H4>XP Programmer's guide</H4>
+<P>- Adding #defines to the Mac build: Edit mozilla/config/mac/NGLayoutConfigInclude.h. This file is included in
+all NGLayout-related projects.</P>
+<P>- Exporting headers to dist: Mac uses MANIFEST files, combined with perl. To export headers out of a directory,
+create a file called 'MANIFEST' that lists all the exported headers (see other MANIFEST files for examples). To
+add a new MANIFEST file to the build system, edit <TT>mozilla/build/mac/NGLayoutBuildList.pm</TT>.</P>
+<H4>Misc notes:</H4>
+<P>I use BBEdit and BBEdit perl extensions as my build environment. I edit BuildNGLayoutDebug.pl inside BBEdit,
+and use the extensions to run it inside MacPerl. 
+
+</BODY>
+
+</HTML>

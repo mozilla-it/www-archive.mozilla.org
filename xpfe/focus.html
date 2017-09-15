@@ -1,0 +1,147 @@
+<HTML>
+<!--This file created 2/25/99 2:41 PM by Claris Home Page version 3.0 30 Day Trial-->
+<HEAD>
+   <TITLE>Context Nodes and Focus</TITLE>
+   <META NAME=GENERATOR CONTENT="Claris Home Page 3.0 30 Day Trial">
+   <X-CLARIS-WINDOW TOP=46 BOTTOM=724 LEFT=362 RIGHT=939>
+   <X-CLARIS-TAGVIEW MODE=minimal>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF">
+<H1>Context Nodes and Focus</H1>
+
+<P><I>Draft 0<BR>
+Last modified on 2/16/99 by Mike Pinkerton</I></P>
+
+<P><I>This is a concatenation of some relevant emails and newsgroup
+postings about command parameter. Hyatt and Rod are behind most of
+this, blame them. This document was penned by hyatt after midnight,
+so all bets are off :-).</I></P>
+
+<H2>Overview</H2>
+
+<P>If you have not yet read the <A HREF="broadcasters.html">Broadcaster/Observer
+document</A>, which describes the replacement for observing changes
+in appCore state, please do so now and understand the example. The
+rest of this discussion builds upon that example. To summarize, we
+are passing parameters to the appCore at the event-handling level. We
+hook up to a broadcaster to pick up the enabled state, and we call
+into the appCore by invoking methods through JavaScript.</P>
+
+<P>This document adds the concept of a <I>Context</I> node which
+works in conjuction with <I>Broadcaster</I> and <I>Observer</I> nodes
+to track focus and allow the same UI element to perform different
+actions based on which component (say a bookmarks tree or a mail
+tree) is currently in focus in a given window.</P>
+
+<H2>Handling Focus With Context Nodes</H2>
+
+<P>To do focus, we need to have a new kind of node: a <I>Context</I>
+node (suggested by Rod). We need to know how to do two things with
+it. We have to (a) change observation relationships based on what has
+the focus, and (b) do something different based on what has the
+focus.</P>
+
+<H4><A NAME=Syntax></A><B>XUL Syntax</B></H4>
+
+<PRE>&lt;incontext element="nodeIdentifier" oncommand="some JavaScript"/&gt;</PRE>
+
+<H4>Example</H4>
+
+<P>So how does this work? Like this... pardon any DOM calls that
+aren't exactly right. Remember that the UI logic seems backwards
+because the DOM attribute for enabled/disable state is called
+"disabled."</P>
+
+<PRE>&lt;window&gt;
+
+...
+
+&lt;broadcasterset&gt;
+   &lt;broadcaster id="cantDeleteInMailTree"/&gt;   // Surfaced by the mail AppCore
+   &lt;broadcaster id="cantDeleteInBookmarksTree"/&gt; // Surfaced by the bookmarks AppCore
+&lt;/broadcasterset&gt;
+
+...
+
+&lt;button id="myDeleteButton" onClick="getChildWithAttribute("infocus").doCommand()"&gt;
+   &lt;incontext element="mailTree" onCommand="mailAppCore.delete()"&gt;
+      &lt;observes element="cantDeleteInMailTree" attribute="disabled"/&gt;
+   &lt;/incontext&gt;
+   &lt;incontext element="bookmarksTree" onCommand="bookmarksAppCore.deleteBookmarks()"&gt;
+      &lt;observes element="cantDeleteInBookmarksTree" attribute="disabled"/&gt;
+   &lt;/incontext&gt;
+&lt;/button&gt;
+
+...
+
+&lt;tree id="mailTree" onselectionchanged="mailCore.selectionChanged(...)"&gt;
+   &lt;broadcaster id="cantDeleteInMailTree"/&gt;...&lt;/tree&gt;
+
+&lt;tree id="bookmarksTree" onSelectionChanged="bookmarksCore.selectionChanged(...)"&gt;
+   &lt;broadcaster id="cantDeleteInBookmarksTree"/&gt;...&lt;/tree&gt;
+
+...
+
+&lt;/window&gt;</PRE>
+
+<P>So here's how this example works:</P>
+
+<P>First, there are two broadcasters for the enabled state of
+deletion...one for a mail tree and one for a bookmarks tree. We now
+have a button on our toolbar that simply says "DELETE", and it wants
+to do the right thing depending on which tree widget has the
+focus.</P>
+
+<P>To do this, we need to make it so that the OBSERVES relationship
+on the button is dynamic based on context. When the focus switches,
+what the button observes has to change. We do this with context
+nodes.</P>
+
+<P>Context nodes are children of the actual widget . The observes
+relationships they contain as children are what should be applied to
+the actual widget when this context is in focus.</P>
+
+<P>So how does a Context node get notified when the focus changes? We
+hook up the Context node up as an observer of an "inFocus" attribute
+on a widget. When a widget in XUL grabs the focus, it will set this
+inFocus attribute to TRUE on its node, which will result in any and
+all context nodes that are listening for this attribute getting
+notified.</P>
+
+<P>A Context node will then know (again, more smarts in our content
+nodes) to flip a switch and change the broadcasters that its parent
+widget is observing. Because a context node is listening to the
+inFocus attribute, it will also set/unset this inFocus attribute on
+itself when it gets notified.</P>
+
+<P>When a mailTree's selection changes, it calls into the AppCore,
+and since we have parameters, the tree can pass in the originating
+widget, the widget's selection (as a range) and its broadcaster
+node(or nodes). The AppCore then just has to implement a completely
+generic function that decides, based on the selected items, whether
+or not the broadcaster node that's passed in should be enabled or
+disabled.</P>
+
+<P>When a command needs to be executed from the button, you can use
+the standard DOM APIs to grab the correct context node (by looking
+for the one that has its inFocus attribute set). You can then call
+doCommand to make the JavaScript contained inside the onCommand
+attribute fire.</P>
+
+<P>The one non-obvious part about the syntax in the example above
+is</P>
+
+<PRE>&lt;context obsid="mailWidget"&gt;</PRE>
+
+<P>This is shorthand for saying that the context node will observe a
+broadcaster with id mailWidget and that it will observe the inFocus
+attribute on that broadcaster.</P>
+
+<P>
+
+<HR>
+
+<I>Last modified by Mike Pinkerton</I><BR>
+Send comments to the news group netscape.public.mozilla.xpfe</P>
+</BODY>
+</HTML>

@@ -1,0 +1,1174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <title>Determining Browser Type and Version with JavaScript</title>
+ <link rel="stylesheet" type="text/css" href="../../../css/default.css" media="screen">
+ <link rel="stylesheet" type="text/css" href="../../../css/print.css" media="print">
+ <link rel="stylesheet" type="text/css" href="../../../css/base/content.css" media="all">
+ <link rel="stylesheet" type="text/css" href="../../../css/mezzotan/content.css" title="MezzoTan" media="all">
+ <link rel="stylesheet" type="text/css" href="../../../css/base/template.css" media="screen">
+ <link rel="stylesheet" type="text/css" href="../../../css/mezzotan/template.css" title="MezzoTan" media="screen">
+ <link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+ <link rel="alternate" type="application/xml" title="RSS" href="http://www.mozilla.org/news.rdf">
+ <link rel="home" title="Home" href="http://www.mozilla.org/">
+
+<script language="JavaScript" type="text/javascript">
+//<!--
+// Ultimate client-side JavaScript client sniff. Version 3.03
+// (C) Netscape Communications 1999.  Permission granted to reuse and distribute.
+// Revised 17 May 99 to add is_nav5up and is_ie5up (see below).
+// Revised 20 Dec 00 to add is_gecko and change is_nav5up to is_nav6up
+//                      also added support for IE5.5 Opera4&5 HotJava3 AOLTV
+// Revised 22 Feb 01 to correct Javascript Detection for IE 5.x, Opera 4, 
+//                      correct Opera 5 detection
+//                      add support for winME and win2k
+//                      synch with browser-type-oo.js
+// Revised 26 Mar 01 to correct Opera detection
+// Revised 02 Oct 01 to add IE6 detection
+
+// Everything you always wanted to know about your JavaScript client
+// but were afraid to ask. Creates "is_" variables indicating:
+// (1) browser vendor:
+//     is_nav, is_ie, is_opera, is_hotjava, is_webtv, is_TVNavigator, is_AOLTV
+// (2) browser version number:
+//     is_major (integer indicating major version number: 2, 3, 4 ...)
+//     is_minor (float   indicating full  version number: 2.02, 3.01, 4.04 ...)
+// (3) browser vendor AND major version number
+//     is_nav2, is_nav3, is_nav4, is_nav4up, is_nav6, is_nav6up, is_gecko, is_ie3,
+//     is_ie4, is_ie4up, is_ie5, is_ie5up, is_ie5_5, is_ie5_5up, is_ie6, is_ie6up, is_hotjava3, is_hotjava3up,
+//     is_opera2, is_opera3, is_opera4, is_opera5, is_opera5up, is_aol3, is_aol4, is_aol5, is_aol6
+// (4) JavaScript version number:
+//     is_js (float indicating full JavaScript version number: 1, 1.1, 1.2 ...)
+// (5) OS platform and version:
+//     is_win, is_win16, is_win32, is_win31, is_win95, is_winnt, is_win98, is_winme, is_win2k
+//     is_os2
+//     is_mac, is_mac68k, is_macppc
+//     is_unix
+//     is_sun, is_sun4, is_sun5, is_suni86
+//     is_irix, is_irix5, is_irix6
+//     is_hpux, is_hpux9, is_hpux10
+//     is_aix, is_aix1, is_aix2, is_aix3, is_aix4
+//     is_linux, is_sco, is_unixware, is_mpras, is_reliant
+//     is_dec, is_sinix, is_freebsd, is_bsd
+//     is_vms
+//
+// See http://www.it97.de/JavaScript/JS_tutorial/bstat/navobj.html and
+// http://www.it97.de/JavaScript/JS_tutorial/bstat/Browseraol.html
+// for detailed lists of userAgent strings.
+//
+// Note: you don't want your Nav4 or IE4 code to "turn off" or
+// stop working when new versions of browsers are released, so
+// in conditional code forks, use is_ie5up ("IE 5.0 or greater") 
+// is_opera5up ("Opera 5.0 or greater") instead of is_ie5 or is_opera5
+// to check version in code which you want to work on future
+// versions.
+
+    // convert all characters to lowercase to simplify testing
+    var agt=navigator.userAgent.toLowerCase();
+
+    // *** BROWSER VERSION ***
+    // Note: On IE5, these return 4, so use is_ie5up to detect IE5.
+    var is_major = parseInt(navigator.appVersion);
+    var is_minor = parseFloat(navigator.appVersion);
+
+    // Note: Opera and WebTV spoof Navigator.  We do strict client detection.
+    // If you want to allow spoofing, take out the tests for opera and webtv.
+    var is_nav  = ((agt.indexOf('mozilla')!=-1) && (agt.indexOf('spoofer')==-1)
+                && (agt.indexOf('compatible') == -1) && (agt.indexOf('opera')==-1)
+                && (agt.indexOf('webtv')==-1) && (agt.indexOf('hotjava')==-1));
+    var is_nav2 = (is_nav && (is_major == 2));
+    var is_nav3 = (is_nav && (is_major == 3));
+    var is_nav4 = (is_nav && (is_major == 4));
+    var is_nav4up = (is_nav && (is_major >= 4));
+    var is_navonly      = (is_nav && ((agt.indexOf(";nav") != -1) ||
+                          (agt.indexOf("; nav") != -1)) );
+    var is_nav6 = (is_nav && (is_major == 5));
+    var is_nav6up = (is_nav && (is_major >= 5));
+    var is_gecko = (agt.indexOf('gecko') != -1);
+
+
+    var is_ie     = ((agt.indexOf("msie") != -1) && (agt.indexOf("opera") == -1));
+    var is_ie3    = (is_ie && (is_major < 4));
+    var is_ie4    = (is_ie && (is_major == 4) && (agt.indexOf("msie 4")!=-1) );
+    var is_ie4up  = (is_ie && (is_major >= 4));
+    var is_ie5    = (is_ie && (is_major == 4) && (agt.indexOf("msie 5.0")!=-1) );
+    var is_ie5_5  = (is_ie && (is_major == 4) && (agt.indexOf("msie 5.5") !=-1));
+    var is_ie5up  = (is_ie && !is_ie3 && !is_ie4);
+    var is_ie5_5up =(is_ie && !is_ie3 && !is_ie4 && !is_ie5);
+    var is_ie6    = (is_ie && (is_major == 4) && (agt.indexOf("msie 6.")!=-1) );
+    var is_ie6up  = (is_ie && !is_ie3 && !is_ie4 && !is_ie5 && !is_ie5_5);
+
+    // KNOWN BUG: On AOL4, returns false if IE3 is embedded browser
+    // or if this is the first browser window opened.  Thus the
+    // variables is_aol, is_aol3, and is_aol4 aren't 100% reliable.
+    var is_aol   = (agt.indexOf("aol") != -1);
+    var is_aol3  = (is_aol && is_ie3);
+    var is_aol4  = (is_aol && is_ie4);
+    var is_aol5  = (agt.indexOf("aol 5") != -1);
+    var is_aol6  = (agt.indexOf("aol 6") != -1);
+
+    var is_opera = (agt.indexOf("opera") != -1);
+    var is_opera2 = (agt.indexOf("opera 2") != -1 || agt.indexOf("opera/2") != -1);
+    var is_opera3 = (agt.indexOf("opera 3") != -1 || agt.indexOf("opera/3") != -1);
+    var is_opera4 = (agt.indexOf("opera 4") != -1 || agt.indexOf("opera/4") != -1);
+    var is_opera5 = (agt.indexOf("opera 5") != -1 || agt.indexOf("opera/5") != -1);
+    var is_opera5up = (is_opera && !is_opera2 && !is_opera3 && !is_opera4);
+
+    var is_webtv = (agt.indexOf("webtv") != -1); 
+
+    var is_TVNavigator = ((agt.indexOf("navio") != -1) || (agt.indexOf("navio_aoltv") != -1)); 
+    var is_AOLTV = is_TVNavigator;
+
+    var is_hotjava = (agt.indexOf("hotjava") != -1);
+    var is_hotjava3 = (is_hotjava && (is_major == 3));
+    var is_hotjava3up = (is_hotjava && (is_major >= 3));
+
+    // *** JAVASCRIPT VERSION CHECK ***
+    var is_js;
+    if (is_nav2 || is_ie3) is_js = 1.0;
+    else if (is_nav3) is_js = 1.1;
+    else if (is_opera5up) is_js = 1.3;
+    else if (is_opera) is_js = 1.1;
+    else if ((is_nav4 && (is_minor <= 4.05)) || is_ie4) is_js = 1.2;
+    else if ((is_nav4 && (is_minor > 4.05)) || is_ie5) is_js = 1.3;
+    else if (is_hotjava3up) is_js = 1.4;
+    else if (is_nav6 || is_gecko) is_js = 1.5;
+    // NOTE: In the future, update this code when newer versions of JS
+    // are released. For now, we try to provide some upward compatibility
+    // so that future versions of Nav and IE will show they are at
+    // *least* JS 1.x capable. Always check for JS version compatibility
+    // with > or >=.
+    else if (is_nav6up) is_js = 1.5;
+    // NOTE: ie5up on mac is 1.4
+    else if (is_ie5up) is_js = 1.3
+
+    // HACK: no idea for other browsers; always check for JS version with > or >=
+    else is_js = 0.0;
+
+    // *** PLATFORM ***
+    var is_win   = ( (agt.indexOf("win")!=-1) || (agt.indexOf("16bit")!=-1) );
+    // NOTE: On Opera 3.0, the userAgent string includes "Windows 95/NT4" on all
+    //        Win32, so you can't distinguish between Win95 and WinNT.
+    var is_win95 = ((agt.indexOf("win95")!=-1) || (agt.indexOf("windows 95")!=-1));
+
+    // is this a 16 bit compiled version?
+    var is_win16 = ((agt.indexOf("win16")!=-1) || 
+               (agt.indexOf("16bit")!=-1) || (agt.indexOf("windows 3.1")!=-1) || 
+               (agt.indexOf("windows 16-bit")!=-1) );  
+
+    var is_win31 = ((agt.indexOf("windows 3.1")!=-1) || (agt.indexOf("win16")!=-1) ||
+                    (agt.indexOf("windows 16-bit")!=-1));
+
+    var is_winme = ((agt.indexOf("win 9x 4.90")!=-1));
+    var is_win2k = ((agt.indexOf("windows nt 5.0")!=-1));
+
+    // NOTE: Reliable detection of Win98 may not be possible. It appears that:
+    //       - On Nav 4.x and before you'll get plain "Windows" in userAgent.
+    //       - On Mercury client, the 32-bit version will return "Win98", but
+    //         the 16-bit version running on Win98 will still return "Win95".
+    var is_win98 = ((agt.indexOf("win98")!=-1) || (agt.indexOf("windows 98")!=-1));
+    var is_winnt = ((agt.indexOf("winnt")!=-1) || (agt.indexOf("windows nt")!=-1));
+    var is_win32 = (is_win95 || is_winnt || is_win98 || 
+                    ((is_major >= 4) && (navigator.platform == "Win32")) ||
+                    (agt.indexOf("win32")!=-1) || (agt.indexOf("32bit")!=-1));
+
+    var is_os2   = ((agt.indexOf("os/2")!=-1) || 
+                    (navigator.appVersion.indexOf("OS/2")!=-1) ||   
+                    (agt.indexOf("ibm-webexplorer")!=-1));
+
+    var is_mac    = (agt.indexOf("mac")!=-1);
+    // hack ie5 js version for mac
+    if (is_mac && is_ie5up) is_js = 1.4;
+    var is_mac68k = (is_mac && ((agt.indexOf("68k")!=-1) || 
+                               (agt.indexOf("68000")!=-1)));
+    var is_macppc = (is_mac && ((agt.indexOf("ppc")!=-1) || 
+                                (agt.indexOf("powerpc")!=-1)));
+
+    var is_sun   = (agt.indexOf("sunos")!=-1);
+    var is_sun4  = (agt.indexOf("sunos 4")!=-1);
+    var is_sun5  = (agt.indexOf("sunos 5")!=-1);
+    var is_suni86= (is_sun && (agt.indexOf("i86")!=-1));
+    var is_irix  = (agt.indexOf("irix") !=-1);    // SGI
+    var is_irix5 = (agt.indexOf("irix 5") !=-1);
+    var is_irix6 = ((agt.indexOf("irix 6") !=-1) || (agt.indexOf("irix6") !=-1));
+    var is_hpux  = (agt.indexOf("hp-ux")!=-1);
+    var is_hpux9 = (is_hpux && (agt.indexOf("09.")!=-1));
+    var is_hpux10= (is_hpux && (agt.indexOf("10.")!=-1));
+    var is_aix   = (agt.indexOf("aix") !=-1);      // IBM
+    var is_aix1  = (agt.indexOf("aix 1") !=-1);    
+    var is_aix2  = (agt.indexOf("aix 2") !=-1);    
+    var is_aix3  = (agt.indexOf("aix 3") !=-1);    
+    var is_aix4  = (agt.indexOf("aix 4") !=-1);    
+    var is_linux = (agt.indexOf("inux")!=-1);
+    var is_sco   = (agt.indexOf("sco")!=-1) || (agt.indexOf("unix_sv")!=-1);
+    var is_unixware = (agt.indexOf("unix_system_v")!=-1); 
+    var is_mpras    = (agt.indexOf("ncr")!=-1); 
+    var is_reliant  = (agt.indexOf("reliantunix")!=-1);
+    var is_dec   = ((agt.indexOf("dec")!=-1) || (agt.indexOf("osf1")!=-1) || 
+           (agt.indexOf("dec_alpha")!=-1) || (agt.indexOf("alphaserver")!=-1) || 
+           (agt.indexOf("ultrix")!=-1) || (agt.indexOf("alphastation")!=-1)); 
+    var is_sinix = (agt.indexOf("sinix")!=-1);
+    var is_freebsd = (agt.indexOf("freebsd")!=-1);
+    var is_bsd = (agt.indexOf("bsd")!=-1);
+    var is_unix  = ((agt.indexOf("x11")!=-1) || is_sun || is_irix || is_hpux || 
+                 is_sco ||is_unixware || is_mpras || is_reliant || 
+                 is_dec || is_sinix || is_aix || is_linux || is_bsd || is_freebsd);
+
+    var is_vms   = ((agt.indexOf("vax")!=-1) || (agt.indexOf("openvms")!=-1));
+
+//--> end hide JavaScript
+</script>
+</head>
+
+<body>
+
+<h1>The Ultimate JavaScript Client Sniffer, Version 3.03:<br>
+<span style="font-size:smaller">Determining Browser Vendor,
+Version, and Operating System With JavaScript</span></h1>
+
+<p class="important">
+This document is obsolete and the information in it should not be relied
+upon. The practices described here are <strong>not recommended</strong>
+and this document is provided only for historical reference. Please see the
+<a href="/catalog/web-developer">web-developer documentation index page</a> 
+for more up-to-date documentation.</p>
+
+<p>When creating a web page,
+you may need to account for the possibility that viewers will be using
+browsers of various versions from various vendors. You may also need to
+account for the possibility that certain page elements such as native plug-ins
+may not be available on all operating systems.</p>
+
+<p>This sample code enables
+you to detect the browser's vendor, version number, and operating system.
+It has been tested on Navigator 2, 3, 4, Netscape 6, Internet Explorer
+3, 4, 5, 5.5 and 6,&nbsp; Opera3, Opera 4 and Opera 5, and HotJava 3.0 on
+Windows 98, Windows NT, the Macintosh, RedHat Linux and SunOS5. It is believed
+to be compatible with all JavaScript-capable browser versions on all platforms.
+It creates an group of variables whose names all begin with "is_".&nbsp;
+These variables indicate the browser's vendor, version number, JavaScript
+version, and operating system.
+</p>
+
+<p>After you have checked the
+browser vendor and version, you can dynamically generate optimized HTML
+markup and your JavaScript code can conditionally branch to execute JavaScript
+code optimized for the dynamically generated page or the current browser's
+vendor or version number.</p>
+
+<p>This tip is useful when
+developing a page with features not supported by all browsers. For example,
+users who are using Navigator 4 can view content that includes the LAYER
+tag. Other users can view a "non-layers" version of the same file.</p>
+
+<p>As another example, Navigator
+4 and Internet Explorer often implement the same Dynamic HTML functionality
+with different objects and methods. After checking the browser vendor,
+you can conditionally execute the correct JavaScript code fork for the
+current browser. And with the Gecko layout engine in Netscape 6, you can
+for the first time write code using the W3C standard DOM Level 1 and Level
+2. In the future you will not need to check for browser or platform, since
+all of the user agents will be standards compliant, like Netscape 6 and
+Mozilla, but for now while Navigator 4 and IE5 are still popular you should
+always include code forks in your scripts.</p>
+
+<hr>
+
+<h2>Dynamically Generating HTML Markup</h2>
+
+<p>When optimizing a page for
+multiple browsers, it is sometimes convenient to check the browser vendor
+and/or version and then use document.write() statements in &lt;SCRIPT>
+elements in the page's BODY to dynamically generate HTML markup which is
+optimized for the current browser. Here is an example of the code necessary
+to dynamically generate vendor- or version-specific HTML markup. This code
+uses the "is_" variables defined by the sample JavaScript code below to
+check browser vendor and version.</p>
+
+<p>Note: To make sure that
+our code works on future versions of Internet Explorer, we use the variable
+is_ie5up instead of is_ie5. Netscape 6 and Mozilla though are not copatible
+with Navigator 4 so you should check for Navigator 4 and use is_gecko for
+Netscape 6, Mozilla and other user agents implementing Gecko layout engine.
+When writing conditional code forks, always keep forward compatibility
+with future browser versions in mind!</p>
+
+<pre>&lt;SCRIPT&gt;
+&lt;!--
+  if (is_gecko)&nbsp;
+  {
+   // document.write() statements to create markup for user agents using Gecko layout engine
+  }
+  else if (is_nav4)
+  {
+  // document.write() statements to create markup for Navigator 4
+  }
+  else if (is_ie5up)
+  {
+  // document.write() statements to create markup for IE 4 and later versions
+  }
+  else
+  {
+   // document.write() statements to create static HTML markup for earlier versions
+  }
+// -->
+&lt;/SCRIPT&gt;</pre>
+
+<hr>
+
+<h2>Browser-Specific JavaScript Code Forks</h2>
+
+<p>In your page's core JavaScript
+functions, you can then have vendor- and version-specific code forks where
+necessary. These code forks reference objects, properties, methods, and
+functions which are only available in specific browser versions. The code
+forks may also reference HTML page elements whose HTML markup is dynamically
+generated only for certain browser versions.</p>
+
+<p>This code fragment uses
+the "is_" variables defined by the sample JavaScript code below to check
+browser vendor and version and then conditionally evaluate different code
+forks.</p>
+
+<p>Note: To make sure that
+our code works on future versions of Internet Explorer, we use the variable
+is_ie4up instead of is_ie4. Netscape 6 and Mozilla though are not copatible
+with Navigator 4 so you should check for Navigator 4 and use is_gecko for
+Netscape 6, Mozilla and other user agents implementing Gecko layout engine.
+When writing conditional code forks, always keep forward compatibility
+with future browser versions in mind!</p>
+<pre>if (is_gecko)
+{
+   // JavaScript here for user agents implementing Gecko layout engine
+}
+else if (is_nav4)
+{
+   // JavaScript here for Navigator 4&nbsp;
+}
+else if (is_ie5up)
+{
+   // JavaScript here for IE 4 and later
+}
+else if (is_nav3 || is_opera)
+{
+   // JavaScript here for Nav3 and Opera&nbsp;
+}
+
+{
+   // JavaScript here for Nav2 and IE 3&nbsp;
+}</pre>
+
+<hr>
+<h2>Classic Mistake #1 in Client Detection: Forgetting About Future Browser Versions</h2>
+
+<p>No doubt you've heard of
+the Y2K bug, in which computer software not designed to handle years later
+than 1999 fails with errors in the year 2000. But have you heard of the
+V5.0 bug?</p>
+
+<p>In the V5.0 bug, JavaScript
+code not designed for browsers versions later than 4.x fails with errors.
+Just as you should review your software before the year 2000 to ensure
+it won't fail when the year changes, you should review your software before
+using Internet Explorer 5 and Navigator 6 to make sure it won't fail on
+newer browsers.</p>
+
+<p>The V5.0 bug can be caused
+by a number of common mistakes. Review your code now to make sure you don't
+fall victim to these problems:</p>
+
+<p><i>1. If your code works
+in browser version N and later, make certain to check browser version with
+>= instead of ==.</font></font></i>
+<p><font face="Arial, Helvetica"><font size="-1">For example, suppose that
+you have code which works in Navigator 4 and later and Internet Explorer
+4 and later. Compare these two approaches to client sniffing:</p>
+
+<br>&nbsp;
+<center><table BORDER >
+<tr>
+<td><b>WRONG WAY</b></td>
+
+<td><b>RIGHT WAY</b></td>
+</tr>
+
+<tr>
+<td><tt>if (is_nav4 || is_ie4) {</tt>
+<p><tt>/* Code which works on Nav4+, IE4+. Because the if clause only returns
+true for Nav4 and IE4, the code will never be executed on Netscape 6 and
+IE5 and later versions. Oops! Should have used is_major >= 4. */</tt>
+<p><tt>}</tt></td>
+
+<td><tt>if (is_nav4up || is_ie4up) {</tt>
+<p><tt>/* Code which works on Nav4+, IE4+. Because the if clause returns
+true for Nav4 and later and IE4 and later, the code will be executed on
+all the browsers which support it. */</tt>
+<p><tt>}</tt></td>
+</tr>
+</table></center>
+
+<p><font face="Arial, Helvetica"><font size="-1">Here's another example which
+uses the variable is_major from the below sample code:</font></font>
+<br>&nbsp;
+<center><table BORDER>
+<tr>
+<td><b>WRONG WAY</b></td>
+
+<td><b>RIGHT WAY</b></td>
+</tr>
+
+<tr>
+<td><tt>if (is_major == 4) {</tt>
+<p><tt>/* Code which works on Nav4+, IE4+. Because the if clause only returns
+true for Nav4 and IE4, the code will never be executed on Netscape 6 and
+IE5 and later versions. Oops! Should have used is_major >= 4. */</tt>
+<p><tt>}</tt></td>
+
+<td><tt>if (is_major >= 4) {</tt>
+<p><tt>/* Code which works on Nav4+, IE4+. Because the if clause returns
+true for Nav4 and later and IE4 and later, the code will be executed on
+all the browsers which support it. */</tt>
+<p><tt>}</tt></td>
+</tr>
+</table></center>
+
+<p><i><font face="Arial, Helvetica"><font size="-1">2. If your code needs
+to be updated for newer browser versions or the W3C DOM, build in support
+and a version check now.</font></font></i>
+<p><font face="Arial, Helvetica"><font size="-1">The Gecko layout engine
+will make Netscape 6 and Mozilla the first browsers to support key standards
+such as the W3C Document Object Model Level 1 (DOM1) and level 2 (DOM2).
+Up until now, web developers who wished to write sophisticated JavaScript
+applications or use Dynamic HTML had to use the Navigator 4 DOM and the
+Internet Explorer 4 DOM.&nbsp; Both of these DOMs were proprietary, non
+W3C DOM-compliant, and incompatible with each other. The difficulty, frustration,
+and expense of developing and debugging the same functionality twice for
+different DOMs has led web developers to call on all browser vendors to
+fully support the W3C DOM so that web developers can write once and run
+anywhere.</font></font>
+<p><font face="Arial, Helvetica"><font size="-1">Netscape 6 and Mozilla will
+at last offer the W3C standards support which developers have been demanding.
+To take full advantage of the power and cross-platform compatibility of
+the W3C DOM, you will need to upgrade your application to support it. While
+it will take some time to learn the W3C DOM, keep in mind that you will
+at last be studying a vendor-independent, platform-independent, application-independent
+Document Object Model. The W3C DOM is the DOM for the 21<sup>st</sup> century.
+Learning to use it will put you on the cutting edge of modern web site
+design and develop skills you can use for the rest of your career.</font></font>
+<p><font face="Arial, Helvetica"><font size="-1">To detect a user agent implementing
+Gecko layout engine you should check if the userAgent string contains "Gecko".
+You can read about current Mozilla user agent string convension in this
+<a href="http://www.mozilla.org/build/revised-user-agent-strings.html">technote</a>.</font></font>
+<br>
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size="-1">CLASSIC
+MISTAKE #2 IN CLIENT DETECTION: CONFUSING OBJECT DETECTION WITH CLIENT
+DETECTION</font></font></b>
+<p><font face="Arial, Helvetica"><font size="-1">One popular variation on
+client detection is object detection. Fans of object detection argue that
+since new clients appear all the time, rather than explicitly detecting
+the client and then using the particular client's objects and methods,
+you should simply check to see whether the object you want exists, and
+if so, use it.</font></font>
+<p><font face="Arial, Helvetica"><font size="-1">This approach is fine so
+long as you take it to its logical extreme and explicitly test for the
+existence of every single object and method before you use it.</font></font>
+<p><font face="Arial, Helvetica"><font size="-1">The problem with this approach
+is that many people do the following:</font></font>
+<ul>
+<li>
+<font face="Arial, Helvetica"><font size="-1">They test for the existence
+of </font></font><tt>document.all</tt><font face="Arial,Helvetica"><font size="-1">,
+and if it exists, they assume that they are running on IE4 and can use
+all of Internet Explorer's DOM, not just document.all itself.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size="-1">They test for the existence
+of </font></font><tt>document.layers</tt><font face="Arial,Helvetica"><font size="-1">,
+and if it exists, they assume that they are running on Nav4 and can use
+all of Navigator 4's DOM, not just document.layers itself.</font></font></li>
+</ul>
+<font face="Arial,Helvetica"><font size="-1">For example, the code is unsafe:</font></font>
+<br>&nbsp;
+<center><table BORDER>
+<tr>
+<td><b>WRONG WAY</b></td>
+
+<td><b>RIGHT WAY</b></td>
+</tr>
+
+<tr>
+<td>
+<pre><tt>if (document.getElementById) {&nbsp;
+/* Code which uses lots of other Netscape 6 or W3C&nbsp;
+DOM1 features besides document.getElementById,&nbsp;
+without testing for those objects and methods as&nbsp;
+well. Oops! Should have detected each object and&nbsp;
+method one at a time before using. */&nbsp;
+}&nbsp;
+else if (document.layers) {&nbsp;
+/* Code which uses lots of other Nav4 features&nbsp;
+besides document.layers, without testing for&nbsp;
+those objects and methods as well. Oops! Should&nbsp;
+have detected each object and method one at a&nbsp;
+time before using. */&nbsp;
+}&nbsp;
+else if (document.all) {&nbsp;
+/* Code which uses lots of other IE4 features&nbsp;
+besides document.all, without testing for those&nbsp;
+objects and methods as well. Oops! Should have&nbsp;
+detected each object and method one at a time&nbsp;
+before using. */&nbsp;
+}&nbsp;</tt></pre>
+</td>
+
+<td>
+<pre><tt>if (document.getElementById) {&nbsp;
+/* Code which uses only document.getElementById,&nbsp;
+because that's all we're sure exists after&nbsp;
+testing for it. Good object detection code&nbsp;
+detects each other object and method one at a&nbsp;
+time before using it. */&nbsp;
+}&nbsp;
+else if (document.layers) {&nbsp;
+/* Code which uses only document.layers, because&nbsp;
+that's all we're sure exists after testing for&nbsp;
+it. Good object detection code detects each&nbsp;
+other object and method one at a time before&nbsp;
+using it. */&nbsp;
+}&nbsp;
+else if (document.all) {&nbsp;
+/* Code which uses only document.all, because&nbsp;
+that's all we're sure exists after testing for&nbsp;
+it. Good object detection code detects each&nbsp;
+other object and method one at a time before&nbsp;
+using it. */&nbsp;
+}&nbsp;</tt></pre>
+</td>
+</tr>
+</table></center>
+
+<p><font face="Arial,Helvetica"><font size="-1">The reason the code in the
+left column is a mistake is that there is no guarantee that you are running
+on Internet Explorer 4 or later if document.all is defined, there is no
+guarantee that you are running on Netscape Navigator 4 if document.layers
+is defined, and there is no guarantee that you are running on Netscape
+6, Mozilla or another&nbsp; DOM1-compliant browser if document.getElementById
+is defined.</font></font>
+<p><font face="Arial,Helvetica"><font size="-1">New browsers (such as Opera
+and iCAT) appear all the time. Browsers not made by Netscape or Microsoft
+may feature a hybrid DOM that is a mix of Navigator's and Internet Explorer's
+two DOMs. For example, a non-Netscape, non-Microsoft browser DOM might
+support <i>both</i>&nbsp; document.layers and document.all, yet not support
+all of the other features of either browser. If you wrote code that tested
+for the existence of document.all and then (if document.all was defined)&nbsp;
+used many IE features <i>besides</i> document.all, that code would fail
+with errors on any browser which supported document.all but not other IE
+features. Similarly, if you wrote code that tested for the existence of
+document.layers and then (if document.layers was defined)&nbsp; used many
+Navigator 4 features <i>besides</i> document.layers, that code would fail
+with errors on any browser which supported document.layers but not other
+Navigator 4 features.</font></font>
+<p><font face="Arial,Helvetica"><font size="-1">New versions of existing
+browsers also appear all the time. Although Netscape 6 and Mozilla has
+full support of DOM1 features such as document.getElementById its not the
+only browser that has support of this feature. IE 5 has also implemented
+document.getElementById, yet it lacks support of many other W3C DOM features.
+By detecting this particular method you know that the browser supports
+getElementById of the document object, but you dont know if you are running
+Netscape 6, Mozilla or IE5.</font></font>
+<p><font face="Arial,Helvetica"><font size="-1">The moral of the story: If
+you detect a particular object, all you've done is detect that particular
+object. You don't know for sure which browser you're running on. All you
+know after detecting a particular object is that the particular object
+exists on the current client.</font></font>
+<p>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size="-1">navigator.appVersion
+QUIRKS OF INTERNET EXPLORER</font></font></b>
+<p><font face="Arial,Helvetica"><font size="-1">Here are two Internet Explorer
+quirks of the navigator.appVersion property to be aware of:</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size="-1">When you check the "navigator.appVersion"
+property on Internet Explorer 3.0, you'll notice on the Windows side that
+Internet Explorer 3.0 says it's Navigator 2.0, and thus the "navigator.appVersion"
+property returns a "2." On the Macintosh, Internet Explorer 3.0 says it's
+Navigator 3.0, and "navigator.appVersion" will return a "3".</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size="-1">When you check the "navigator.appVersion"
+property on Internet Explorer 5.0, it returns 4.</font></font></li>
+</ul>
+<font face="Arial,Helvetica"><font size="-1">As a result, when using the
+below sample code, you should not take the values of the variables </font></font><tt>is_major</tt><font face="Arial,Helvetica"><font size="-1">
+and </font></font><tt>is_minor</tt><font face="Arial,Helvetica"><font size="-1">
+at face value. They are simply the appVersion numbers reported by the client,
+which may or may not be accurate. For reliable client version detection,
+use the boolean variables such as </font></font><tt>is_nav6up</tt><font face="Arial,Helvetica"><font size="-1">,
+</font></font><tt>is_nav4</tt><font face="Arial,Helvetica"><font size="-1">,
+</font></font><tt>is_ie5up</tt><font face="Arial,Helvetica"><font size="-1">,
+</font></font><tt>is_ie4</tt><font face="Arial,Helvetica"><font size="-1">,
+etc.</font></font>
+<p>
+<hr SIZE=1 NOSHADE><b><font face="Arial,Helvetica"><font size="-1">navigator.userAgent
+QUIRKS OF THE AMERICA ONLINE 4.0 CLIENT</font></font></b>
+<p><font face="Arial,Helvetica"><font size="-1">AOL userAgent strings are
+supposed to always include the string "AOL #.#", where the pound signs
+stand for the version number such as 3.0 or 4.0. This is in fact true for
+the user agent string reported in the HTTP header; it will always contain
+"AOL #.#".</font></font>
+<p><font face="Arial,Helvetica"><font size="-1">However, the navigator.userAgent
+string that is reported by JavaScript has a bug in AOL 4.0 where "AOL #.#"
+will not be inserted into the reported user agent string when:</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size="-1">It is the first browser window
+opened during the AOL session.</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size="-1">The embedded browser is MSIE
+3.x.</font></font></li>
+</ul>
+<font face="Arial,Helvetica"><font size="-1">Thus, client-side JavaScript
+code which attempts to detect the AOL client by looking for the string
+"AOL #.#" in the navigator.userAgent string is not 100% reliable. There
+is currently no known workaround to detect the AOL client with 100% reliability
+in client-side JavaScript, so the recommended workaround when AOL client
+detection is necessary is to use server-side detection of the HTTP user
+agent string.</font></font>
+<p>
+<hr SIZE=0 WIDTH="100%">
+<br><b><font face="Arial,Helvetica"><font size="-1">navigator.userAgent QUIRKS
+OF NETSCAPE 6</font></font></b>
+<p><font face="Arial,Helvetica"><font size="-1">You should be aware that
+Netscape 6, even though its called six, in the userAgent string has version
+number 5. So when you are detecting this browser you should check for (is_major
+== 5) and NOT (is_major == 6)</font></font>
+<p>
+<hr SIZE=0 NOSHADE WIDTH="100%"><b><font face="Arial,Helvetica"><font size="-1">JAVASCRIPT
+CODE TO DETECT BROWSER VENDOR, VERSION, AND OPERATING SYSTEM</font></font></b>
+<p><font face="Arial,Helvetica"><font size="-1">Here is the JavaScript code
+necessary to detect browser vendor, version number, and operating system.
+This code creates a group of variables which indicate the browser's vendor,
+version number, JavaScript version, and operating system.</font></font>
+<p><font face="Arial,Helvetica"><font size="-1">This code is believed to
+be compatible with all versions of all JavaScript-capable browsers on all
+platforms. It has been tested on the following operating systems and browser
+versions:</font></font>
+<ul>
+<li>
+<font face="Arial,Helvetica"><font size="-1">Windows NT:&nbsp; Navigator
+4, Navigator 3, and Navigator 2; Internet Explorer 5; Internet Explorer
+3; Opera 3</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size="-1">Windows 98: Netscape 6;Navigator
+4.76; Internet Explorer 4; Internet Explorer 5; Internet Explorer 5.5;
+Opera 5; HotJava 3</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size="-1">Macintosh: Navigator 4, Internet
+Explorer 3.01, Internet Explorer 4.02</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size="-1">RedHat Linux 6.2: Navigator
+4.6; Netscape 6</font></font></li>
+
+<li>
+<font face="Arial,Helvetica"><font size="-1">SunOS5: Navigator 3</font></font></li>
+</ul>
+
+<pre><tt>
+//&lt;!--
+// Ultimate client-side JavaScript client sniff. Version 3.03
+// (C) Netscape Communications 1999-2001.  Permission granted to reuse and distribute.
+// Revised 17 May 99 to add is_nav5up and is_ie5up (see below).
+// Revised 20 Dec 00 to add is_gecko and change is_nav5up to is_nav6up
+//                      also added support for IE5.5 Opera4&amp;5 HotJava3 AOLTV
+// Revised 22 Feb 01 to correct Javascript Detection for IE 5.x, Opera 4, 
+//                      correct Opera 5 detection
+//                      add support for winME and win2k
+//                      synch with browser-type-oo.js
+// Revised 26 Mar 01 to correct Opera detection
+// Revised 02 Oct 01 to add IE6 detection
+
+// Everything you always wanted to know about your JavaScript client
+// but were afraid to ask. Creates "is_" variables indicating:
+// (1) browser vendor:
+//     is_nav, is_ie, is_opera, is_hotjava, is_webtv, is_TVNavigator, is_AOLTV
+// (2) browser version number:
+//     is_major (integer indicating major version number: 2, 3, 4 ...)
+//     is_minor (float   indicating full  version number: 2.02, 3.01, 4.04 ...)
+// (3) browser vendor AND major version number
+//     is_nav2, is_nav3, is_nav4, is_nav4up, is_nav6, is_nav6up, is_gecko, is_ie3,
+//     is_ie4, is_ie4up, is_ie5, is_ie5up, is_ie5_5, is_ie5_5up, is_ie6, is_ie6up, is_hotjava3, is_hotjava3up,
+//     is_opera2, is_opera3, is_opera4, is_opera5, is_opera5up
+// (4) JavaScript version number:
+//     is_js (float indicating full JavaScript version number: 1, 1.1, 1.2 ...)
+// (5) OS platform and version:
+//     is_win, is_win16, is_win32, is_win31, is_win95, is_winnt, is_win98, is_winme, is_win2k
+//     is_os2
+//     is_mac, is_mac68k, is_macppc
+//     is_unix
+//     is_sun, is_sun4, is_sun5, is_suni86
+//     is_irix, is_irix5, is_irix6
+//     is_hpux, is_hpux9, is_hpux10
+//     is_aix, is_aix1, is_aix2, is_aix3, is_aix4
+//     is_linux, is_sco, is_unixware, is_mpras, is_reliant
+//     is_dec, is_sinix, is_freebsd, is_bsd
+//     is_vms
+//
+// See http://www.it97.de/JavaScript/JS_tutorial/bstat/navobj.html and
+// http://www.it97.de/JavaScript/JS_tutorial/bstat/Browseraol.html
+// for detailed lists of userAgent strings.
+//
+// Note: you don't want your Nav4 or IE4 code to "turn off" or
+// stop working when new versions of browsers are released, so
+// in conditional code forks, use is_ie5up ("IE 5.0 or greater") 
+// is_opera5up ("Opera 5.0 or greater") instead of is_ie5 or is_opera5
+// to check version in code which you want to work on future
+// versions.
+
+    // convert all characters to lowercase to simplify testing
+    var agt=navigator.userAgent.toLowerCase();
+
+    // *** BROWSER VERSION ***
+    // Note: On IE5, these return 4, so use is_ie5up to detect IE5.
+    var is_major = parseInt(navigator.appVersion);
+    var is_minor = parseFloat(navigator.appVersion);
+
+    // Note: Opera and WebTV spoof Navigator.  We do strict client detection.
+    // If you want to allow spoofing, take out the tests for opera and webtv.
+    var is_nav  = ((agt.indexOf('mozilla')!=-1) &amp;&amp; (agt.indexOf('spoofer')==-1)
+                &amp;&amp; (agt.indexOf('compatible') == -1) &amp;&amp; (agt.indexOf('opera')==-1)
+                &amp;&amp; (agt.indexOf('webtv')==-1) &amp;&amp; (agt.indexOf('hotjava')==-1));
+    var is_nav2 = (is_nav &amp;&amp; (is_major == 2));
+    var is_nav3 = (is_nav &amp;&amp; (is_major == 3));
+    var is_nav4 = (is_nav &amp;&amp; (is_major == 4));
+    var is_nav4up = (is_nav &amp;&amp; (is_major &gt;= 4));
+    var is_navonly      = (is_nav &amp;&amp; ((agt.indexOf(";nav") != -1) ||
+                          (agt.indexOf("; nav") != -1)) );
+    var is_nav6 = (is_nav &amp;&amp; (is_major == 5));
+    var is_nav6up = (is_nav &amp;&amp; (is_major &gt;= 5));
+    var is_gecko = (agt.indexOf('gecko') != -1);
+
+
+    var is_ie     = ((agt.indexOf("msie") != -1) &amp;&amp; (agt.indexOf("opera") == -1));
+    var is_ie3    = (is_ie &amp;&amp; (is_major &lt; 4));
+    var is_ie4    = (is_ie &amp;&amp; (is_major == 4) &amp;&amp; (agt.indexOf("msie 4")!=-1) );
+    var is_ie4up  = (is_ie &amp;&amp; (is_major &gt;= 4));
+    var is_ie5    = (is_ie &amp;&amp; (is_major == 4) &amp;&amp; (agt.indexOf("msie 5.0")!=-1) );
+    var is_ie5_5  = (is_ie &amp;&amp; (is_major == 4) &amp;&amp; (agt.indexOf("msie 5.5") !=-1));
+    var is_ie5up  = (is_ie &amp;&amp; !is_ie3 &amp;&amp; !is_ie4);
+    var is_ie5_5up =(is_ie &amp;&amp; !is_ie3 &amp;&amp; !is_ie4 &amp;&amp; !is_ie5);
+    var is_ie6    = (is_ie &amp;&amp; (is_major == 4) &amp;&amp; (agt.indexOf("msie 6.")!=-1) );
+    var is_ie6up  = (is_ie &amp;&amp; !is_ie3 &amp;&amp; !is_ie4 &amp;&amp; !is_ie5 &amp;&amp; !is_ie5_5);
+
+    // KNOWN BUG: On AOL4, returns false if IE3 is embedded browser
+    // or if this is the first browser window opened.  Thus the
+    // variables is_aol, is_aol3, and is_aol4 aren't 100% reliable.
+    var is_aol   = (agt.indexOf("aol") != -1);
+    var is_aol3  = (is_aol &amp;&amp; is_ie3);
+    var is_aol4  = (is_aol &amp;&amp; is_ie4);
+    var is_aol5  = (agt.indexOf("aol 5") != -1);
+    var is_aol6  = (agt.indexOf("aol 6") != -1);
+
+    var is_opera = (agt.indexOf("opera") != -1);
+    var is_opera2 = (agt.indexOf("opera 2") != -1 || agt.indexOf("opera/2") != -1);
+    var is_opera3 = (agt.indexOf("opera 3") != -1 || agt.indexOf("opera/3") != -1);
+    var is_opera4 = (agt.indexOf("opera 4") != -1 || agt.indexOf("opera/4") != -1);
+    var is_opera5 = (agt.indexOf("opera 5") != -1 || agt.indexOf("opera/5") != -1);
+    var is_opera5up = (is_opera &amp;&amp; !is_opera2 &amp;&amp; !is_opera3 &amp;&amp; !is_opera4);
+
+    var is_webtv = (agt.indexOf("webtv") != -1); 
+
+    var is_TVNavigator = ((agt.indexOf("navio") != -1) || (agt.indexOf("navio_aoltv") != -1)); 
+    var is_AOLTV = is_TVNavigator;
+
+    var is_hotjava = (agt.indexOf("hotjava") != -1);
+    var is_hotjava3 = (is_hotjava &amp;&amp; (is_major == 3));
+    var is_hotjava3up = (is_hotjava &amp;&amp; (is_major &gt;= 3));
+
+    // *** JAVASCRIPT VERSION CHECK ***
+    var is_js;
+    if (is_nav2 || is_ie3) is_js = 1.0;
+    else if (is_nav3) is_js = 1.1;
+    else if (is_opera5up) is_js = 1.3;
+    else if (is_opera) is_js = 1.1;
+    else if ((is_nav4 &amp;&amp; (is_minor &lt;= 4.05)) || is_ie4) is_js = 1.2;
+    else if ((is_nav4 &amp;&amp; (is_minor &gt; 4.05)) || is_ie5) is_js = 1.3;
+    else if (is_hotjava3up) is_js = 1.4;
+    else if (is_nav6 || is_gecko) is_js = 1.5;
+    // NOTE: In the future, update this code when newer versions of JS
+    // are released. For now, we try to provide some upward compatibility
+    // so that future versions of Nav and IE will show they are at
+    // *least* JS 1.x capable. Always check for JS version compatibility
+    // with &gt; or &gt;=.
+    else if (is_nav6up) is_js = 1.5;
+    // NOTE: ie5up on mac is 1.4
+    else if (is_ie5up) is_js = 1.3
+
+    // HACK: no idea for other browsers; always check for JS version with &gt; or &gt;=
+    else is_js = 0.0;
+
+    // *** PLATFORM ***
+    var is_win   = ( (agt.indexOf("win")!=-1) || (agt.indexOf("16bit")!=-1) );
+    // NOTE: On Opera 3.0, the userAgent string includes "Windows 95/NT4" on all
+    //        Win32, so you can't distinguish between Win95 and WinNT.
+    var is_win95 = ((agt.indexOf("win95")!=-1) || (agt.indexOf("windows 95")!=-1));
+
+    // is this a 16 bit compiled version?
+    var is_win16 = ((agt.indexOf("win16")!=-1) || 
+               (agt.indexOf("16bit")!=-1) || (agt.indexOf("windows 3.1")!=-1) || 
+               (agt.indexOf("windows 16-bit")!=-1) );  
+
+    var is_win31 = ((agt.indexOf("windows 3.1")!=-1) || (agt.indexOf("win16")!=-1) ||
+                    (agt.indexOf("windows 16-bit")!=-1));
+
+    var is_winme = ((agt.indexOf("win 9x 4.90")!=-1));
+    var is_win2k = ((agt.indexOf("windows nt 5.0")!=-1));
+
+    // NOTE: Reliable detection of Win98 may not be possible. It appears that:
+    //       - On Nav 4.x and before you'll get plain "Windows" in userAgent.
+    //       - On Mercury client, the 32-bit version will return "Win98", but
+    //         the 16-bit version running on Win98 will still return "Win95".
+    var is_win98 = ((agt.indexOf("win98")!=-1) || (agt.indexOf("windows 98")!=-1));
+    var is_winnt = ((agt.indexOf("winnt")!=-1) || (agt.indexOf("windows nt")!=-1));
+    var is_win32 = (is_win95 || is_winnt || is_win98 || 
+                    ((is_major &gt;= 4) &amp;&amp; (navigator.platform == "Win32")) ||
+                    (agt.indexOf("win32")!=-1) || (agt.indexOf("32bit")!=-1));
+
+    var is_os2   = ((agt.indexOf("os/2")!=-1) || 
+                    (navigator.appVersion.indexOf("OS/2")!=-1) ||   
+                    (agt.indexOf("ibm-webexplorer")!=-1));
+
+    var is_mac    = (agt.indexOf("mac")!=-1);
+    // hack ie5 js version for mac
+    if (is_mac &amp;&amp; is_ie5up) is_js = 1.4;
+    var is_mac68k = (is_mac &amp;&amp; ((agt.indexOf("68k")!=-1) || 
+                               (agt.indexOf("68000")!=-1)));
+    var is_macppc = (is_mac &amp;&amp; ((agt.indexOf("ppc")!=-1) || 
+                                (agt.indexOf("powerpc")!=-1)));
+
+    var is_sun   = (agt.indexOf("sunos")!=-1);
+    var is_sun4  = (agt.indexOf("sunos 4")!=-1);
+    var is_sun5  = (agt.indexOf("sunos 5")!=-1);
+    var is_suni86= (is_sun &amp;&amp; (agt.indexOf("i86")!=-1));
+    var is_irix  = (agt.indexOf("irix") !=-1);    // SGI
+    var is_irix5 = (agt.indexOf("irix 5") !=-1);
+    var is_irix6 = ((agt.indexOf("irix 6") !=-1) || (agt.indexOf("irix6") !=-1));
+    var is_hpux  = (agt.indexOf("hp-ux")!=-1);
+    var is_hpux9 = (is_hpux &amp;&amp; (agt.indexOf("09.")!=-1));
+    var is_hpux10= (is_hpux &amp;&amp; (agt.indexOf("10.")!=-1));
+    var is_aix   = (agt.indexOf("aix") !=-1);      // IBM
+    var is_aix1  = (agt.indexOf("aix 1") !=-1);    
+    var is_aix2  = (agt.indexOf("aix 2") !=-1);    
+    var is_aix3  = (agt.indexOf("aix 3") !=-1);    
+    var is_aix4  = (agt.indexOf("aix 4") !=-1);    
+    var is_linux = (agt.indexOf("inux")!=-1);
+    var is_sco   = (agt.indexOf("sco")!=-1) || (agt.indexOf("unix_sv")!=-1);
+    var is_unixware = (agt.indexOf("unix_system_v")!=-1); 
+    var is_mpras    = (agt.indexOf("ncr")!=-1); 
+    var is_reliant  = (agt.indexOf("reliantunix")!=-1);
+    var is_dec   = ((agt.indexOf("dec")!=-1) || (agt.indexOf("osf1")!=-1) || 
+           (agt.indexOf("dec_alpha")!=-1) || (agt.indexOf("alphaserver")!=-1) || 
+           (agt.indexOf("ultrix")!=-1) || (agt.indexOf("alphastation")!=-1)); 
+    var is_sinix = (agt.indexOf("sinix")!=-1);
+    var is_freebsd = (agt.indexOf("freebsd")!=-1);
+    var is_bsd = (agt.indexOf("bsd")!=-1);
+    var is_unix  = ((agt.indexOf("x11")!=-1) || is_sun || is_irix || is_hpux || 
+                 is_sco ||is_unixware || is_mpras || is_reliant || 
+                 is_dec || is_sinix || is_aix || is_linux || is_bsd || is_freebsd);
+
+    var is_vms   = ((agt.indexOf("vax")!=-1) || (agt.indexOf("openvms")!=-1));
+
+//--&gt; end hide JavaScript
+</tt></pre>
+
+<hr SIZE=1 NOSHADE><b><font face="Arial, Helvetica"><font size="-1">PROFILE
+OF YOUR BROWSER</font></font></b>
+<p><font face="Arial, Helvetica"><font size="-1">Here are the results of
+running that JavaScript code on the browser you are using. The below text
+has been dynamically generated after checking your browser vendor, version,
+and operating system from JavaScript.</font></font>
+<p><b><font face="Arial, Helvetica"><font size="-1">Basic Data</font></font></b>
+<br><script language="JavaScript" type="text/javascript">
+<!--
+
+document.write("navigator.appName " + navigator.appName + "<BR>");
+document.write("navigator.userAgent " + navigator.userAgent + "<BR>");
+document.write("navigator.appVersion " + navigator.appVersion + "<BR>");
+//-->
+</script>
+
+<p><b><font face="Arial,Helvetica"><font size="-1">Version Number</font></font></b>
+<br><script language="JavaScript" type="text/javascript">
+<!--
+	document.write("major:" + is_major + "<BR>");
+	document.write("minor:" + is_minor + "<BR>");
+
+//--></script>
+
+<p><b><font face="Arial,Helvetica"><font size="-1">Browser Version</font></font></b>
+<br><script language="JavaScript" type="text/javascript">
+<!--
+
+	document.write("nav:" + is_nav + "<BR>");
+	document.write("nav2:" + is_nav2 + "<BR>");
+	document.write("nav3:" + is_nav3 + "<BR>");
+	document.write("nav4:" + is_nav4 + "<BR>");
+	document.write("nav4up:" + is_nav4up + "<BR>");
+	document.write("nav6:" + is_nav6 + "<BR>");
+	document.write("nav6up:" + is_nav6up + "<BR>");
+    	document.write("gecko:" + is_gecko + "<BR>");
+	document.write("navonly:" + is_navonly + "<BR>");
+	document.write("<P>" + "ie:" + is_ie + "<BR>");
+	document.write("ie3:" + is_ie3 + "<BR>");
+	document.write("ie4:" + is_ie4 + "<BR>");
+	document.write("ie4up:" + is_ie4up + "<BR>");
+	document.write("ie5:" + is_ie5 + "<BR>");
+	document.write("ie5up:" + is_ie5up + "<BR>");
+    	document.write("ie5_5:" + is_ie5_5 + "<BR>");
+    	document.write("ie5_5up:" + is_ie5_5up + "<BR>");
+    	document.write("ie6:" + is_ie6 + "<BR>");
+    	document.write("ie6up:" + is_ie6up + "<BR>");
+	document.write("<P>" + "aol:" + is_aol + "<BR>");
+	document.write("aol3:" + is_aol3 + "<BR>");
+	document.write("aol4:" + is_aol4 + "<BR>");
+	document.write("aol5:" + is_aol5 + "<BR>");
+	document.write("aol6:" + is_aol6 + "<BR>");
+	document.write("<P>" + "opera:" + is_opera + "<BR>");
+	document.write("opera2:" + is_opera2 + "<BR>");
+	document.write("opera3:" + is_opera3 + "<BR>");
+	document.write("opera4:" + is_opera4 + "<BR>");
+	document.write("opera5:" + is_opera5 + "<BR>");
+	document.write("opera5up:" + is_opera5up + "<BR>");
+	document.write("<P>" + "webtv:" + is_webtv + "<BR>");
+	document.write("<P>" + "hotjava:" + is_hotjava + "<BR>");
+	document.write("hotjava3:" + is_hotjava3 + "<BR>");
+	document.write("hotjava3up:" + is_hotjava3up + "<BR>");
+	document.write("<P>" + "AOL TV(TVNavigator):" + is_TVNavigator + "<BR>");
+//-->
+</script>
+
+<p><b><font face="Arial,Helvetica"><font size="-1">JavaScript Version</font></font></b>
+<br><script language="JavaScript" type="text/javascript">
+<!--
+	document.write("js:" + is_js + "<BR>");
+//-->
+</script>
+
+<p><b><font face="Arial,Helvetica"><font size="-1">OS</font></font></b>
+<br><script language="JavaScript" type="text/javascript">
+<!--
+	document.write("win:" + is_win + "<BR>");
+	document.write("win16:" + is_win16 + "<BR>");
+	document.write("win31:" + is_win31 + "<BR>");
+	document.write("win32:" + is_win32 + "<BR>");
+	document.write("win95:" + is_win95 + "<BR>");
+	document.write("win98:" + is_win98 + "<BR>");
+	document.write("winme:" + is_winme + "<BR>");
+	document.write("winnt:" + is_winnt + "<BR>");
+	document.write("win2k:" + is_win2k + "<BR>");
+
+	document.write("<P>" + "os2:" + is_os2 + "<BR>");
+
+	document.write("<P>" + "mac:" + is_mac + "<BR>");
+	document.write("mac68k:" + is_mac68k + "<BR>");
+	document.write("macppc:" + is_macppc + "<BR>");
+
+	document.write("<P>" + "unix:" + is_unix + "<BR>");
+	document.write("sun:" + is_sun + "<BR>");
+	document.write("sun4:" + is_sun4 + "<BR>");
+	document.write("sun5:" + is_sun5 + "<BR>");
+	document.write("suni86:" + is_suni86 + "<BR>");
+	document.write("irix:" + is_irix + "<BR>");
+	document.write("irix5:" + is_irix5 + "<BR>");
+	document.write("irix6:" + is_irix6 + "<BR>");
+	document.write("hpux:" + is_hpux + "<BR>");
+	document.write("hpux9:" + is_hpux9 + "<BR>");
+	document.write("hpux10:" + is_hpux10 + "<BR>");
+	document.write("aix:" + is_aix + "<BR>");
+	document.write("aix1:" + is_aix1 + "<BR>");
+	document.write("aix2:" + is_aix2 + "<BR>");
+	document.write("aix3:" + is_aix3 + "<BR>");
+	document.write("aix4:" + is_aix4 + "<BR>");
+	document.write("linux:" + is_linux + "<BR>");
+	document.write("sco:" + is_sco + "<BR>");
+	document.write("unixware:" + is_unixware + "<BR>");
+	document.write("mpras:" + is_mpras + "<BR>");
+	document.write("reliant:" + is_reliant + "<BR>");
+	document.write("dec:" + is_dec + "<BR>");
+	document.write("sinix:" + is_sinix + "<BR>");
+	document.write("bsd:" + is_bsd + "<BR>");
+	document.write("freebsd:" + is_freebsd + "<BR>");
+
+	document.write("<P>" + "vms:" + is_vms + "<BR>");
+//-->
+</script>
+
+<p>
+<hr SIZE=1 NOSHADE>
+<dl>
+<dt>
+<b><font face="Arial,Helvetica"><font size="-1">SO WHY DIDN'T WE MAKE
+THIS CODE OBJECT ORIENTED?</font></font></b>
+</dt>
+<dd>
+<p><font face="Arial,Helvetica"><font size="-1">You're probably wondering
+why we created a bunch of variables with similar names instead of doing
+something more elegant like this:</font></font>
+<br>&nbsp;
+<pre><tt>function Is ()
+{&nbsp;&nbsp; var agt=navigator.userAgent.toLowerCase();
+
+&nbsp;&nbsp;&nbsp; this.major = parseInt(navigator.appVersion);
+&nbsp;&nbsp;&nbsp; this.minor = parseFloat(navigator.appVersion);
+
+&nbsp;&nbsp;&nbsp; this.nav&nbsp; = ((agt.indexOf('mozilla')!=-1) &amp;&amp; ((agt.indexOf('spoofer')==-1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &amp;&amp; (agt.indexOf('compatible') == -1)));
+&nbsp;&nbsp;&nbsp; this.nav2 = (this.nav &amp;&amp; (this.major == 2));
+&nbsp;&nbsp;&nbsp; this.nav3 = (this.nav &amp;&amp; (this.major == 3));
+
+&nbsp;&nbsp;&nbsp; <i>... and so on ...
+
+</i>&nbsp;&nbsp;&nbsp; this.vms&nbsp;&nbsp; = (agt.indexOf("vax")!=-1) || (agt.indexOf("openvms")!=-1);
+}
+
+var is = new Is();&nbsp;
+
+if (is.nav) {&nbsp; ... <i>navigator code here ...</i> }
+else if (is.ie) {&nbsp; ... <i>explorer code here ...</i> }</tt></pre>
+<font face="Arial, Helvetica"><font size="-1">The answer is simple: this
+code is far more elegant, providing encapsulation of the variables with
+an enclosing "is" object, but it breaks on Internet Explorer 3 for the
+Macintosh. If you create an "is" object on IE3 for the Mac, the first time
+the page is loaded, the code will work fine, however any reloads of the
+page will cause the browser to crash. To get around this on IE3 for the
+Mac, we don't create an "is" object; instead, we create bunch of boolean
+variables which have similar names. This is ugly, but it's the price we
+pay for working around this bug of JScript for the Macintosh in IE3.</font></font>
+<p><font face="Arial, Helvetica"><font size="-1">Another possible workaround
+is to use the object oriented code on all other browsers but wrap it in
+a check which avoids executing the object oriented code on IE3 for the
+Mac. This preserves the object oriented design of the code but requires
+an extra boolean check like </font></font><tt>if (!isIE3Mac &amp;&amp;
+is_nav4up)</tt><font face="Arial,Helvetica"><font size="-1"> each time you
+reference the </font></font><tt>is</tt><font face="Arial, Helvetica"><font size="-1">
+object. As this extra boolean check is inconvenient, we've resigned ourselves
+to the simple non-object oriented version above. However, if you prefer
+the object oriented approach, we provide a <a href="browser_type_oo.html">object
+oriented client sniffer with a safety check for the Mac</a>. Finally, if
+you <i>don't</i> need to support IE3 for the Mac, you can use that object
+oriented code and omit the Mac safety check.</font></font>
+<br>&nbsp;
+</dd>
+<dt>
+</dl>
+<hr SIZE=1 NOSHADE>
+<dl>
+<dt>
+<b><font face="Arial, Helvetica"><font size="-1">OTHER CLIENT SNIFFING RESOURCES</font></font></b></dt>
+
+<dd>
+<font face="Arial, Helvetica"><font size="-1">&nbsp;<a href="http://www.gemal.dk/browserspy/" TARGET="_top">BrowserSpy</a></font></font></dd>
+
+<dd>
+<font face="Arial, Helvetica"><font size="-1">&nbsp;<a href="http://www.mozilla.org/build/revised-user-agent-strings.html" TARGET="_top">userAgent
+Strings on Browsers Based on Mozilla and Applications That Embed Gecko
+Layout Engine</a></font></font></dd>
+
+</dl>
+<hr SIZE=1 NOSHADE>
+<dl>
+
+<dt>
+<b><font face="Arial, Helvetica"><font size="-1">ADDITIONAL READING</font></font></b></dt>
+
+<dd>
+<font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/support/bugs/index.html?content=known/javascript.html" TARGET="_top">JavaScript
+Known Bug List</a></font></font>
+
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/docs/examples/javascript.html">Sample
+Code Area</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/docs/articles/index.html?content=javascript.html" TARGET="_top">Articles</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/support/courses/index.html?content=courses.html" TARGET="_top">JavaScript
+Course</a></font></font><!--
+<BR><A HREF="http://developer.netscape.com/docs/manuals/communicator/stylesheets/jssindex.htm" TARGET=content>Dynamic Style Sheets</A>
+-->
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/docs/manuals/jsresource.html">Other
+JavaScript Resources</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/tech/javascript/index.html?content=/docs/manuals/javascript.html" TARGET="_top">JavaScript
+Documentation</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/docs/manuals/communicator/jsguide/js1_2.htm" TARGET="_top">What's
+New in JavaScript for Navigator 4.0</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/software/tools/index.html?content=listing/application/javascript/javascript.html" TARGET="_top">JavaScript
+Scripting Tools</a></font></font>
+</dd></dl>
+
+<hr SIZE=1 NOSHADE>
+<dl>
+<dt>
+<b><font face="Arial, Helvetica"><font size="-1">VIEW SOURCE ARTICLES</font></font></b></dt>
+
+<dd>
+<font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/viewsource/index_frame.html?content=kuslich_javascript.html" TARGET="_top">Beyond
+Data Basics: Writing JavaScript Database Applications, Part 1</a></font></font>
+
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/viewsource/index_frame.html?content=jjfinal.html" TARGET="_top">Beyond
+Data Basics: Writing JavaScript Database Applications, Part 2</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/viewsource/index_frame.html?content=goodman_dateobject.html" TARGET="_top">JavaScript
+Date Object Techniques</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/viewsource/index_frame.html?content=angus_layers/angus_layers.html" TARGET="_top">Scripting
+Layer Effects and Transitions</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/viewsource/index_frame.html?content=goodman_javascript.html" TARGET="_top">Detecting
+a JavaScript Client</a></font></font>
+<br><font face="Arial, Helvetica"><font size="-1"><a href="http://developer.netscape.com/viewsource/index_frame.html?content=angus.html" TARGET="_top">Bringing
+Images to Life with JavaScript</a></font></font></dd></dl>
+
+<hr>
+
+<h4>Members Resources</h4>
+<ul>
+  <li><a href="http://developer.netscape.com/support/newsgroups/index.html?content=newsgrp.html#javascript"
+>JavaScript
+Newsgroups</a></li>
+  <li><a href="http://developer.netscape.com/support/faqs/index.html?content=champions/javascript.html" >JavaScript FAQ</a></li>
+</ul>
+
+<script language="JavaScript" type="text/javascript"><!--
+// Try to be sneaky and prevent spam-bots from seeing this email address.
+// If they're smart enough to include a JavaScript interpreter which
+// parses the page before they scan it, this won't help.
+var atSign="@";
+var mailProtocol="mailto:";
+
+document.write('<P><HR SIZE=1 NOSHADE><B>COMMENTS ABOUT THIS CODE SAMPLE? </B>');
+document.write('<P>If you would like technical support or other assistance regarding JavaScript, Dynamic HTML, or other Netscape technologies and products, please visit the <A HREF="http://developer.netscape.com/support/index.html" TARGET="_top">support area</A>. ');
+document.write('Email comments and suggestions about this code sample to <A HREF="' + mailProtocol + 'xbrowser' + atSign + 'netscape.com?SUBJECT=client sniffer comments (DON&#039;T CHANGE THIS SUBJECT!)">' + 'xbrowser' + atSign + 'netscape.com</A>. If you report a problem or ask a question, be sure to include the following information: ');
+document.write('<UL><LI>hardware platform and OS version (e.g. iMac with MacOS 8.5)</LI>');
+document.write('<LI>browser vendor and version number (e.g. Navigator 4.08)</LI>');
+document.write('<LI>a detailed description of the problem</LI>');
+document.write('<LI>the entire "Profile of Your Browser" section above, displayed in the browser you&#039;re having a problem with and copied and pasted into the email message</LI></UL>');
+
+document.write('<P>Because of the volume of submissions, we usually can&#039;t respond personally, but we will take your comments into consideration when planning future content for the site.');
+//--></script>
+
+<p style="text-align:center">
+For the latest technical
+information on Sun-Netscape Alliance products, go to:
+<a href="http://developer.iplanet.com/">http://developer.iplanet.com</a></p>
+
+<p>For more Internet development resources, try
+<a href="http://home.netscape.com/computing/techsearch/index.html?cp=dev01bnts">
+Netscape TechSearch</a>.</p>
+
+<hr>
+
+<p style="text-align:center">
+Copyright &copy; 1999-2001
+<a href="http://home.netscape.com/misc/trademarks.html">Netscape Communications Corporation</a>.
+</p>
+
+</body>
+</html>

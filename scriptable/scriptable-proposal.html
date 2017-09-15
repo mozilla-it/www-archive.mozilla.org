@@ -1,0 +1,305 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+<title>XPConnect Scriptable proposal</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<center><h2>XPConnect Scriptable proposal</h2></center>
+<center><a href="mailto:jband@netscape.com">John Bandhauer &lt;jband@netscape.com&gt;</a></center>
+<p>
+
+<h3>Introduction</h3>
+
+XPConnect supports reflection into JavaScript of the methods, attributes, and
+constants as statically declared in each given xpcom interface's xpidl
+declaration. This is very useful, but it does not yet support the style of
+dynamically aggregated properties that make JavaScript so powerful and which are
+required to fully support such modules as the DOM and SmartUpdate. This
+proposal suggests a system to remedy this problem.
+
+<p>
+
+<h3>Definitions</h3>
+
+I speak here about three sorts of properties (where 'property' means both
+methods and attributes):
+
+<ul> 
+
+<li><b>static</b> - Static properties are those defined in xpidl. Static methods
+are immutable. The set of static attributes can not change, though the values of
+static attributes might.
+
+<li><b>dynamic</b> - Dynamic properties are the set of reflected properties of
+the XPCOM object that might be added or removed at runtime. They are not
+declared in xpidl. The XPCOM object should exert control over what properties
+can be dynamically added, removed, or changed.
+
+<li><b>arbitrary</b> - Arbitrary properties are the set of properties that are
+neither static nor dynamic (as defined above). These are properties that can be
+aggregated to the wrapper object (which reflects the XPCOM object into
+JavaScript) but do not otherwise have any meaning to the reflected xpcom
+object. For instance...
+
+<pre>document.form.element = new Button("push me");</pre>
+
+...is an example of manipulating a <b>dynamic</b> property because it has
+semantic meaning to the wrapped xpcom object. While...
+
+<pre>document.foo = "Hi there";</pre>
+
+... is an example of manipulating an <b>arbitrary</b> property because it just
+adds a plain named object to the wrapped xpcom object. <i>It is really up to the
+xpcom object being wrapped to distinguish between dynamic and arbitrary
+properties.</i>
+
+</ul>
+
+<h3>Proposal</h3>
+
+I propose to declare an interface called <code>nsIXPCScriptable</code>. Any
+xpcom object can implement that interface and expose it via
+<code>QueryInterface</code> if it so chooses. When XPConnect wraps any xpcom
+object it will query for <code>nsIXPCScriptable</code> and act accordingly if
+that interface is supported by the object.
+
+<p>
+
+<code>nsIXPCScriptable</code> will include methods that mirror the
+<i>jsObjectOps</i> methods used by XPConnect to reflect the xpcom object into
+JavaScript. XPConnect will support forwarding these method calls from the JS
+engine to the <code>nsIXPCScriptable</code> interface of the wrapped xpcom
+object when appropriate. This will allow the xpcom object to customize how it
+is reflected into JavaScript.
+
+<p>
+
+These methods will include:
+
+<pre> 
+    lookupProperty
+    defineProperty
+    getPropertyById
+    setPropertyById
+    getAttributes
+    setAttributes
+    deleteProperty
+    defaultValue
+    newEnumerate
+    checkAccess
+    construct
+    call
+    convert
+</pre>
+
+In addition to the normal params of these JS methods we'll also pass a reference
+to the wrapper itself. These methods will return a value indicating one of:
+
+<ul>
+
+<li>'I handled it without error'
+
+<li>'I didn't handle it, pass the request along'
+
+<li>'Return an error'
+
+</ul>
+
+<p>
+
+Some addtional methods will be added to this interface. For instance, the xpcom
+object implementing <code>nsIXPCScriptable</code> should be able to indicate the
+call order between the three sets of handlers: The 'static' XPCOM reflection,
+the 'dynamic' reflection using <code>nsIXPCScriptable</code>, and the
+'arbitrary' property handling implemented by treating the wrapper like a plain
+JSObject. A method on <code>nsIXPCScriptable</code> will be called when the
+wrapper is constructed to find out which order of these three handlers should be
+used for all calls. The order controls which sets properties can shadow and hide
+which other sets of properties.
+
+<p>
+
+An example...
+
+<p>
+
+Suppose that the call order is set to: "static, dynamic, arbitrary" and a
+<code>setPropertyById</code> call comes in from the JS engine. XPConnect will
+check to see if the property in question is one of the static properties. If it
+is then it will be handled. If not, then the call is forwarded to
+<code>nsIXPCScriptable::setPropertyById</code>. This gives the xpcom object an
+opportunity to do whatever it wants to do. Likely it will look to see if this is
+a property to which it ascribes any special semantic meaning. If it is not such
+a property, then the object likely returns 'not handled' and then XPConnect
+calls the 'plain' JSObject methods to set the property on the wrapper. Else, if
+the xpcom object <b>does</b> care about this property than it might examine the
+value being set into the property. That value might be a wrapped xpcom object
+itself. It can use the XPConnect api methods to unwrap the object and do as it
+chooses. It might return 'I handled it' or it might update its own internal
+representation and <b>still</b> want that value to be aggregated to the wrapper
+object by the plain JSObject code. There is a lot of flexibility here.
+
+<p>
+
+The <code>nsIXPCScriptable</code> will also allow the reflected object to do
+things that would not necessarily be supported (or at least not as flexibly) in
+the static reflection using XPConnect. Such as... using the object as a
+constructor or synthesizing a function object so that the object could be used
+with the 'new' operator or with the function call '()' operator. It could also
+support custom type conversions and 'toString' handling.
+
+<h3>Issues</h3>
+
+My prefered scheme for doing all this is to implement the WrappedNative JS class
+such that it supports both the low level jsObjectOps and also forwards to the
+'standard' handlers via the js_ObjectOps 'vtbl'; i.e.
+<code>js_ObjectOps.xxx();</code>. I've played with this and it works, but there
+may be cases where it will blow up. There is a discussion on 
+<a
+href="news://news.mozilla.org/netscape.public.mozilla.jseng">news://news.mozilla.org/netscape.public.mozilla.jseng</a>
+regarding whether or not this approach is viable.
+
+<p>
+
+One alternative is to not use the jsObjectOps at all and instead do everything
+through the classic jsclass interface. This would likely be a real performance
+limitation on the static reflection of xpcom objects (the main thing that
+XPConnect lives to do).
+
+<p>
+
+Another alternative I considered is to use the jsObjectOps and the
+<code>nsIXPCScriptable</code> interface as suggested above but make it the
+<code>nsIXPCScriptable</code> interface's problem to handle arbitrary
+properties. We could write some shared code to which it could forward calls that
+would handle managing properties and rooting them, etc. This totally fails to
+leverage the powerful code for just this function in the JS engine and has gc
+drawbacks. But it would work. I like the main proposal a <b>lot</b> better if it
+will work.
+
+<h3>Conclusions</h3>
+
+I'm not sure how clear this all is. The goal is to allow XPCOM objects to
+customize their reflection into JavaScript <i>where necessary</i> while still
+doing most of the grunt work in XPConnect. Much of the commonly used code (like
+converting a jsval param to the xpcom object it may wrap) can be made into
+XPConnect library funcions. Most objects reflected into JS will not need support
+for dynamic and arbitrary properties and will be able to ignore all of this.
+Those object that do need such support need only implement one interface to get
+the functionality.
+
+<p>
+
+I would <b>very</b> much like to hear feedback, ideas, and requirements. Please
+respond to: <a
+href="news://news.mozilla.org/netscape.public.mozilla.xpcom">news://news.mozilla.org/netscape.public.mozilla.xpcom</a>
+
+
+<hr>
+<b>document history...</b>
+<font size="-1">
+<ul>
+<li><code>01 Feb 1999 - jband - </code>initial creation of document
+</ul>
+</font>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February  1,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/scriptable/scriptable-proposal.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

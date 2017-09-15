@@ -1,0 +1,1808 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta name="GENERATOR" content="Quadralay WebWorks Publisher Professional Edition 6.0.5">
+<meta name="TEMPLATEBASE" content="Portable HTML Professional Edition">
+<meta name="LASTUPDATED" content="07/02/03 09:55:41">
+<title>CHAPTER 4 Tutorial :  Creating the Component Code</title>
+</head>
+
+<body link="#3366CC" vlink="#9999CC" text="#000000" alink="#0000CC" bgcolor="#FFFFFF">
+
+<table width="331" border="0" align="right" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23"
+    border="0" alt="TOC"> </a></td>
+    <td><a href="component_internals2.html"><img src="images/navprev.gif" width="81" height="23"
+    border="0" alt="PREV"> </a></td>
+    <td><a href="tools.html"><img src="images/navnext.gif" width="81" height="23"
+    border="0" alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23"
+    border="0" alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+<p><img src="images/xpcom.gif"></p>
+<hr align="left">
+
+<blockquote>
+<h1>
+  <a name="998197"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">CHAPTER 4	 Tutorial : <br>Creating the Component Code</font>
+</h1><hr>
+
+
+<p>
+  <a name="998202"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif"><b>Topics covered in this chapter</b></font>:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1008448"> </a><a href="components.html#1008546">"What We'll Be Working On"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="998891"> </a><a href="components.html#1001424">"Overview of the WebLock Module Source"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1001642"> </a><a href="components.html#1009895">"Digging In: Required Includes and Constants"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1010538"> </a><a href="components.html#1007774">"webLock1.cpp"</a></font>
+</ul>
+
+<p>
+  <a name="1008501"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This chapter goes over the basic code required to handle the relationship between your component and XPCOM. Having the component found and registered properly is the goal of this first chapter of the tutorial. In the subsequent chapters, we can begin to work on the example <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component functionality itself.<font  face="Verdana, Arial, Helvetica, sans-serif"><b> </b></font></font>
+</p>
+
+
+<a name="1009833"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">`
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1009841"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Use the Calculator (After Learning Long Division)</font>
+</h4>
+
+<a name="1009852"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">You have to write a fair amount of code to create a component library that gets loaded into XPCOM. An XPCOM component needs to implement at least three interfaces that XPCOM requires, and often others as well. There is more code in this chapter than you'll eventually need, however. Chapter 5 shows some simpler and more elegant ways to create an XPCOM component using generic macros, and this chapter is more about learning the basics. As in grade school when you learned long division, better tools like calculators come <font  face="Verdana, Arial, Helvetica, sans-serif"><i>after</i></font> you figure out what's actually happening. In this case, the long-hand implementation gives us an opportunity to talk about various features of XPCOM.</font></font></td>
+  </tr>
+</table>
+
+
+
+ <br></font>
+
+
+<h2>
+  <a name="1008546"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">What We'll Be Working On</font>
+</h2>
+
+
+<p>
+  <a name="1008547"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The component we'll be working on in this book controls a special mode in your browser that prevents users from leaving the current domain or a set of safe domains. Once enabled, this weblock mode is password protected and persists until it is turned off by the password holder. It can be used to make the browser into a safe viewer for children, or for targeted "kiosk browsing," where the content is restricted to a particular server. <a href="components.html#1009025"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 1</i></font></a> shows the icon that is used to activate the web lock mode (leftmost in the status bar) once you have installed the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component and the extra user interface.</font>
+</p>
+
+
+<a name="1008426"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/components2.gif" height="83" width="444">
+</div><br></font>
+
+<dl>  <dl>
+    <dt><a name="1009025"> </a><font size="-1"  face="Verdana, Arial, Helvetica, sans-serif">Figure 1.  Web Lock User Interface</font>
+  </dl>
+</dl>
+<p>
+  <a name="1009026"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Most of the actual work in the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component is preparing the component itself, finding the XPCOM interfaces the component needs to use, and hooking into existing functionality within the Gecko Browser.</font>
+</p>
+
+
+<p>
+  <a name="1008601"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"></font>
+</p>
+
+
+<h2>
+  <a name="1008602"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Component Registration</font>
+</h2>
+
+
+<p>
+  <a name="1010098"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">All XPCOM components-whether they're stored in shared libraries (DLLs or DSOs), JavaScript files, or some other file-need to be <font  face="Verdana, Arial, Helvetica, sans-serif"><i>registered</i></font> before they can be used. Registration is a process that happens in all XPCOM applications, whether they're embedded Gecko clients, Mozilla, Netscape 7, Compuserve, or any other software that uses XPCOM. Registration provides the information that applications need in order to use components properly.</font>
+</p>
+
+
+<p>
+  <a name="1008645"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component must do a number of things to register itself.  Specifically, the component library has to contain implementations for the component-related interfaces described in this chapter: <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font>, which are entry points for your implementation code.</font>
+</p>
+
+
+<p>
+  <a name="1008811"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once your component implements these interfaces, the rest of the registration process itself is simple. Applications typically use <font  face="Verdana, Arial, Helvetica, sans-serif"><i>regxpcom</i></font>, described in the next section.</font>
+</p>
+
+
+<h3>
+  <a name="1010663"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The regxpcom Program</font>
+</h3>
+
+
+<p>
+  <a name="1010664"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">An explicit way to register a component is to run the application <font  face="Verdana, Arial, Helvetica, sans-serif"><i>regxpcom</i></font>. Without any arguments passed to <font  face="Verdana, Arial, Helvetica, sans-serif"><i>regxpcom</i></font>, the program registers the component in the default component registry.  We suggest that when you are testing your component in the Mozilla or Netscape client, you copy your component into the "components" directory in the client's installation folder. When it is copied there, run <font  face="Verdana, Arial, Helvetica, sans-serif"><i>regxpcom</i></font> from the command line to register that component and all the others in that directory. </font>
+</p>
+
+
+<p>
+  <a name="1010920"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note: Several new options have been added to <font  face="Verdana, Arial, Helvetica, sans-serif"><i>regxpcom</i></font> in versions 1.4 and later. You can run <font  face="Verdana, Arial, Helvetica, sans-serif"><i>regxpcom</i></font> with the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>-h</i></font> option to see full usage options. </font>
+</p>
+
+
+<h3>
+  <a name="1010771"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Registration Alternatives</font>
+</h3>
+
+<a name="1010693"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">A Gecko embedding application may provide other ways to register XPCOM components. XPInstall, the cross-platform installation technology that Mozilla uses to install the browser and other components, is one such alternative. It is described further in the chapter <a href="weblock_package.html#998197">"Tutorial: Packaging WebLock" on page 157</a>.  You should consult with the authors of the application you wish to extend to see if there are other supported ways.  </font>
+<h2>
+  <a name="1001424"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Overview of the WebLock Module Source</font>
+</h2>
+
+
+<p>
+  <a name="1009039"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">As we mentioned in the previous section, components have layers. There are three main parts to every XPCOM Component.  From the innermost and moving outward, the first object is the XPCOM object. This is the object that contains the business logic, that implements functionality such as starting a network download, implementing interfaces that listen to the download progress, or providing a new content type handler. In <font  face="Verdana, Arial, Helvetica, sans-serif"><b>Weblock</b></font>, this is the part that brings together various Gecko services and prevents users from leaving the list of acceptable domains. In a way, he  factory and module layers are glue to plug the XPCOM object into the larger XPCOM system.</font>
+</p>
+
+
+<p>
+  <a name="1009040"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">One layer above the object itself is the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> object. This object provides basic abstraction of the XPCOM object itself. As you can see in the diagram in <a href="components.html#1009872"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 2</i></font></a>, the main accessor for the XPCOM object is <font  face="Verdana, Arial, Helvetica, sans-serif">CreateInstance</font>, which is expected to return the object that matches a given CID and IID pair.  </font>
+</p>
+
+
+<p>
+  <a name="1009033"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Moving another layer outward is the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font>. This interface provides yet another abstraction of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> object, and may allow for multiple <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> objects. The key to this interface is that the return type of <font  face="Verdana, Arial, Helvetica, sans-serif">getClassObject</font> does not have to be an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font>.  Instead, the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> can ask for implementation details about the XPCOM object. This is very useful if the caller is required to know information about the component like its threading module, whether it's singleton or not, its implementation language, and so forth.  The interface used in this case is <font  face="Verdana, Arial, Helvetica, sans-serif">nsIClassInfo</font>. Starting from the outside in, <a href="components.html#1009872"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 2</i></font></a> represents the sequence for constructing an XPCOM object.</font>
+</p>
+
+
+<a name="1009863"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/components3.gif" height="259" width="444">
+</div><br></font>
+
+<dl>  <dl>
+    <dt><a name="1009872"> </a><font size="-1"  face="Verdana, Arial, Helvetica, sans-serif">Figure 2.  Onion Peel View of XPCOM Component Creation</font>
+  </dl>
+</dl>
+<p>
+  <a name="1009036"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Before we begin looking at the various parts of the component and how they'll be implemented in the source, let's look at the module in <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.cpp</i></font> as a whole to see where we're going. The source we're referring to is listed in its entirety at the end of this chapter (see <a href="components.html#1007774">"webLock1.cpp" on page 68</a>). </font>
+</p>
+
+
+<p>
+  <a name="1008827"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The source file for the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component contains three classes. In order to make the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component work in Mozilla, you have to implement a new interface to the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component, <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font>, where the actual work specific to the the web locking features happens. You also have to create <font  face="Verdana, Arial, Helvetica, sans-serif">WebLockModule</font> to implement the necessary <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> interface, and you have to create <font  face="Verdana, Arial, Helvetica, sans-serif">WebLockFactory</font> to implement <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> and create a factory that hands instances of your component to clients. These three interface implementations-of the component functionality, of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> interface, and of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> interface that creates and manages instances for clients-are the basic sets of code you need to write to create an XPCOM component. </font>
+</p>
+
+
+<a name="1001435"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1006985"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Basic Structure of the WebLock Component Source</font>
+</h4>
+
+<a name="1006992"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock1.cpp </i></font>source file that defines these classes and the code you need to create a basic component has the following structure:</font><ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006986"> </a>required includes and constants</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006987"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font>: public <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006988"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLockFactory</b></font>: public <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006989"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLockModule</b></font>: public <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font></font>
+</ul>
+<a name="1007857"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In XPCOM, all of these classes also derive from the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> base interface.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h2>
+  <a name="1009895"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Digging In: Required Includes and Constants</font>
+</h2>
+
+
+<p>
+  <a name="1001116"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Let's take a look at the first several lines of code in the component and discuss what they mean in XPCOM. The includes and definitions at the top of an XPCOM source file can give you an idea about some of the data types and techniques we'll be discussing more in the upcoming chapters.</font>
+</p>
+
+
+<p>
+  <a name="1001146"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">For example, <font  face="Verdana, Arial, Helvetica, sans-serif">MOZILLA_STRICT_API</font> is a variable that shields you from certain private, non-XPCOM headers. For example, including <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsIComponentManager.idl</i></font> without <font  face="Verdana, Arial, Helvetica, sans-serif">MOZILLA_STRICT_API</font> defined will include the following headers, which are not supported across versions (unfrozen):</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1003756"> </a>nsComponentManagerUtils.h</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1003757"> </a>nsComponentManagerObsolete.h</font>
+</ul>
+
+<p>
+  <a name="1003758"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">These variables are picked up by files that do not specify themselves as <font  face="Verdana, Arial, Helvetica, sans-serif">MOZILLA_STRICT_API</font>.</font>
+</p>
+
+
+<a name="999740"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">#include &lt;stdio.h&gt;</font><a name="1001072"> </a>
+<font face="Courier New"></font><a name="1001073"> </a>
+<font face="Courier New">// may be defined at the project level</font><a name="1001078"> </a>
+<font face="Courier New">// in the makefile</font><a name="1010993"> </a>
+<font face="Courier New">#define MOZILLA_STRICT_API</font><a name="1010992"> </a>
+<font face="Courier New"></font><a name="1010990"> </a>
+<font face="Courier New">#include "nsIModule.h"</font><a name="1010991"> </a>
+<font face="Courier New">#include "nsIFactory.h"</font><a name="1001079"> </a>
+<font face="Courier New"></font><a name="1001080"> </a>
+<font face="Courier New">#include "nsIComponentManager.h"</font><a name="1001081"> </a>
+<font face="Courier New">#include "nsIComponentRegistrar.h"</font><a name="1001082"> </a>
+<font face="Courier New"></font><a name="1001083"> </a>
+<font face="Courier New">// use classes to handle IIDs</font><a name="1001084"> </a>
+<font face="Courier New">// classes provide methods for comparison: Equals, etc.</font><a name="1001085"> </a>
+<font face="Courier New">static const nsIID kIModuleIID   = NS_IMODULE_IID;</font><a name="1001086"> </a>
+<font face="Courier New">static const nsIID kIFactoryIID   = NS_IFACTORY_IID;</font><a name="1001087"> </a>
+<font face="Courier New">static const nsIID kISupportsIID = NS_ISUPPORTS_IID;</font><a name="1001088"> </a>
+<font face="Courier New">static const nsIID 
+    kIComponentRegistrarIID = NS_ICOMPONENTREGISTRAR_IID;</font><a name="1001089"> </a>
+<font face="Courier New"></font><a name="1001090"> </a>
+<font face="Courier New"></font><a name="1001091"> </a>
+<font face="Courier New">// generate unique ID here with uuidgen</font><a name="1001092"> </a>
+<font face="Courier New">#define SAMPLE_CID \</font><a name="1001093"> </a>
+<font face="Courier New">{ 0x777f7150, 0x4a2b, 0x4301, \</font><a name="1001094"> </a>
+<font face="Courier New">{ 0xad, 0x10, 0x5e, 0xab, 0x25, 0xb3, 0x22, 0xaa}}</font><a name="1001095"> </a>
+<font face="Courier New"></font><a name="1001096"> </a>
+<font face="Courier New">static const nsCID kSampleCID = SAMPLE_CID;</font><a name="1001097"> </a>
+<font face="Courier New"></font><a name="1001070"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+<dl>  <dl>
+    <dt><a name="999742"> </a><font size="-1"  face="Verdana, Arial, Helvetica, sans-serif">Figure 3.  Listing 1: Includes and Constants in weblock1.cpp</font>
+  </dl>
+</dl>
+<p>
+  <a name="1001745"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsIModule.h</i></font> and <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsIFactory.h</i></font> are required to build your module successfully. They define the module and factory interfaces, and they contain a couple of important macros as well (see the following chapter for information about using these macros). The two other includes, <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsIComponentManager.h</i></font> and <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsIComponentRegistrar.h</i></font>, provide functions such as <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterFactoryLocation</font> that are required to implement the module and factory classes in your code.</font>
+</p>
+
+
+<h3>
+  <a name="1001190"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Identifiers in XPCOM</font>
+</h3>
+
+
+<p>
+  <a name="1010526"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The series of  <font  face="Verdana, Arial, Helvetica, sans-serif">nsIID</font> variables initialized here are actually classes created for handing the 128 bit identifiers that XPCOM uses to support contractual relationships between the client and component interfaces. The variable <font  face="Verdana, Arial, Helvetica, sans-serif">kIFactoryIID</font>, for example, provides methods like <font  face="Verdana, Arial, Helvetica, sans-serif">Equals()</font> that can be used to facilitate comparisons in the code, as in the following example from the Mozilla source in <a href="components.html#1001197"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 4</i></font></a>.</font>
+</p>
+
+
+<a name="1001201"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">if (aIID.Equals(NS_GET_IID(nsISupports))) {</font><a name="1001207"> </a>
+<font face="Courier New">  *aInstancePtr = (void*)(nsISupports*)this;</font><a name="1001208"> </a>
+<font face="Courier New">  NS_ADDREF_THIS();</font><a name="1001209"> </a>
+<font face="Courier New">  return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1001210"> </a>
+<font face="Courier New">}</font><a name="1001211"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+ <br></font>
+
+<dl>  <dl>
+    <dt><a name="1001197"> </a><font size="-1"  face="Verdana, Arial, Helvetica, sans-serif">Figure 4.  Listing 2: Using Class Methods to Handle Identifiers</font>
+  </dl>
+</dl>
+<p>
+  <a name="1001758"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Finally, <font  face="Verdana, Arial, Helvetica, sans-serif">SAMPLE_CID</font> is an example of the CID that uniquely identifies each component. All of the 128 bit numbers used in XPCOM-the class and the interface IDs-are examples of UUIDs, or <font  face="Verdana, Arial, Helvetica, sans-serif"><i>universal unique identifiers</i></font>, which were discussed in the <a href="quicktour2.html#1003546">"Object Interface Discovery"</a> section of the chapter "What Is XPCOM?"  </font>
+</p>
+
+
+<a name="1001225"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1007897"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Generating CIDs</font>
+</h4>
+
+<a name="1009914"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To generate a CID for your component, you can use the uuidgen tool that comes with most Unix distributions and with Microsoft Visual C++. uuidgen is a command-line tool that returns a unique 128 bit number when you call it with no arguments:</font><pre>
+<font face="Courier New">$ uuidgen</font><a name="1007906"> </a>
+<font face="Courier New">ce32e3ff-36f8-425f-94be-d85b26e634ee</font><a name="1007912"> </a>
+</pre>
+<a name="1007914"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">On Windows, a program called guidgen.exe does the same thing and also provides a graphical user interface if you'd rather point and click. Or you can use one of the special "bots" on IRC at the irc.mozilla.org server (irc://irc.mozilla.org/#mozilla), where you can also get help from human beings.</font><pre>
+<font face="Courier New">irc irc.mozilla.org</font><a name="1007918"> </a>
+<font face="Courier New">/join #mozilla</font><a name="1007919"> </a>
+<font face="Courier New">/msg mozbot uuid</font><a name="1007920"> </a>
+</pre>
+<a name="1007910"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This command makes the bot generate and return a UUID, which you can then copy into your component source code. </font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1008841"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Now that we've looked at the preliminaries, it's time to discuss the classes that this module provides and the way that they define the relationships of the component in XPCOM. </font>
+</p>
+
+
+<h3>
+  <a name="1008850"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Coding for the Registration Process</font>
+</h3>
+
+
+<p>
+  <a name="1009558"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When XPCOM discovers your component for the first time (via XPInstall or  <font  face="Verdana, Arial, Helvetica, sans-serif">regxpcom</font>, both of which are discussed in <a href="weblock_package.html#999194">"Component Installation Overview"</a>), the first thing it tries to do is load your library and find the symbol <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font>. When this special entry point is called, it is passed XPCOM's Component Manager and the location of the shared library where the component lives. </font>
+</p>
+
+
+<p>
+  <a name="1009562"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The Component Manager is an interface implemented by XPCOM that encapsulates the creation of objects and provides summary information about all registered components. The location on disk is passed via another interface named <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font>. This interface is XPCOM's abstraction of files and directories.  An <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> object is usually a file or directory on a local volume, but it may represent something on a network volume as well.</font>
+</p>
+
+
+<a name="1009520"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsresult NSGetModule(nsIComponentManager *servMgr,</font><a name="1009530"> </a>
+<font face="Courier New">                     nsIFile* location,</font><a name="1009531"> </a>
+<font face="Courier New">                     nsIModule** result);</font><a name="1009532"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="998288"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM expects a successful call to <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font> to return an implementation of the interface <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font>. When you write a XPCOM component, you implement <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> to do all of the necessary registration, unregistration, and object creation. <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> has four methods that must be implemented. </font>
+</p>
+
+
+<h3>
+  <a name="1009626"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Registration Methods</font>
+</h3>
+
+
+<p>
+  <a name="1009627"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Two closely related registration methods are declared below.</font>
+</p>
+
+
+<a name="1010491"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHOD RegisterSelf(nsIComponentManager *aCompMgr,</font><a name="1010483"> </a>
+<font face="Courier New">                         nsIFile *aLocation, </font><a name="1010484"> </a>
+<font face="Courier New">                         const char *aLoaderStr, </font><a name="1010485"> </a>
+<font face="Courier New">                         const char *aType) = 0;</font><a name="1010486"> </a>
+<font face="Courier New"></font><a name="1010487"> </a>
+<font face="Courier New">NS_IMETHOD UnregisterSelf(nsIComponentManager *aCompMgr, </font><a name="1010488"> </a>
+<font face="Courier New">                          nsIFile *aLocation, </font><a name="1010489"> </a>
+<font face="Courier New">                          const char *aLoaderStr) = 0;</font><a name="1010490"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1010492"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> is called when a component is first registered with XPCOM. It is only called once, which gives you a chance to add any one time setup functionality. The <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> call allows your component to tell XPCOM exactly what it supports. Note that whatever you do in <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> should be undone in <font  face="Verdana, Arial, Helvetica, sans-serif">UnregisterSelf</font>.</font>
+</p>
+
+
+<p>
+  <a name="998358"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">First, the <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font> entry point is called in your component library, and it returns an interface pointer to a <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> implementation. Then XPCOM calls <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font>, passing parameters that we'll examine here.</font>
+</p>
+
+
+<h5>
+  <a name="1010496"> </a><i><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The RegisterSelf Method</font></i>
+</h5>
+
+
+<p>
+  <a name="998360"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first parameter is the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font>, which provides a kind of entry point into managing the registration process. You can <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> it to access to the other component management interfaces described below.</font>
+</p>
+
+
+<a name="1010325"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1010380"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Many Faces of the XPCOM Component Manager</font>
+</h4>
+
+<a name="1010431"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The three core component management interfaces, <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font>, and <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar</font>, are described below.</font><ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1010440"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font> - Creates objects and gets implementation details about objects</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1010451"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font> - Provides access to singleton objects and discovers singleton state</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1010454"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar</font> - Registers and unregisters factories and components; handles autoregistration and the discovery and enumeration of registered components.</font>
+</ul>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1009947"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Your <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> method may call <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> on the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font> interface parameter to obtain the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar</font> or <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font>. <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font> can be used to obtain a singleton service, which can be useful if you have to register with a service other than the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar</font> if necessary. For example, you may want to get the service that is responsible for an event you want to be notified about. See the section <a href="weblock.html#1001977">"Getting Called at Startup" on page 91</a> for an example of this.</font>
+</p>
+
+
+<p>
+  <a name="1009959"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The second parameter in <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> is the location of the component being registered. This parameter is useful when the component needs to know where it has been installed or registered-as, for example, when other files must be stored or accessed relative to the component. This method is only called once, so you have to persist the location if you are going to use it later.</font>
+</p>
+
+
+<p>
+  <a name="999024"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next two parameters are usually passed into the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar</font> methods and used by XPCOM to determine how to handle the component's registration. The <font  face="Verdana, Arial, Helvetica, sans-serif">aLoaderStr</font> parameter, which is opaque and should not be modified, distinguishes components that are loaded from the same location specified by the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> parameter. A single ZIP archive may store several XPCOM components, where every component in the archive has the same <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> parameter but the <font  face="Verdana, Arial, Helvetica, sans-serif">aLoaderStr</font> parameter can be used to refer to the location within the ZIP archive.</font>
+</p>
+
+
+<p>
+  <a name="999036"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The last parameter specifies what kind of loader to use on the component. This is reserved as an optimization, for the most part, but it can be a useful way to extend XPCOM.  Since XPCOM already knows internally what kind of file it has just loaded and called <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> on, passing this value to the registration methods is a shortcut for determining what kind of component is being registered.</font>
+</p>
+
+
+<h5>
+  <a name="999042"> </a><i><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentRegistrar Methods</font></i>
+</h5>
+
+
+<p>
+  <a name="1008046"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To tell XPCOM what implementation is in the component library, call this method:</font>
+</p>
+
+
+<a name="1009777"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHOD RegisterFactoryLocation(const nsCID &amp; aClass,</font><a name="1009787"> </a>
+<font face="Courier New">                const char *aClassName,</font><a name="1009788"> </a>
+<font face="Courier New">                const char *aContractID,</font><a name="1009789"> </a>
+<font face="Courier New">                nsIFile *aFile,</font><a name="1009790"> </a>
+<font face="Courier New">                const char *aLoaderStr, </font><a name="1009791"> </a>
+<font face="Courier New">                const char *aType) = 0;</font><a name="1009792"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999077"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The last three parameters are the same as the three passed into the <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> method of <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> objects. All you have to do is forward these parameters from your <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> call into this method, leaving just the first three parameters.</font>
+</p>
+
+
+<p>
+  <a name="999086"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">For any class that implements an XPCOM interface, the implementation must have a class identifier if it is to be shared with other parts of code via XPCOM. This identifier, called a CID, uniquely specifies the implementation. This CID can be created via the tool uuidgen on most operating systems, as in the sidebar above (<a href="components.html#1010380">"The Many Faces of the XPCOM Component Manager"</a>). Given a CID and an IID, you can refer to any class in XPCOM. Consider the following:</font>
+</p>
+
+
+<a name="999091"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/componentsa.gif" height="195" width="396">
+</div><br></font>
+
+<dl>  <dl>
+    <dt><a name="999074"> </a><font size="-1"  face="Verdana, Arial, Helvetica, sans-serif">Figure 5.  Figure X: Referencing Objects by ID</font>
+  </dl>
+</dl>
+<p>
+  <a name="999111"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In this case, you have two implementations of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> interface. Each implementation has a separate CID. The interface also as an IID which is the same for both implementations. When specifying implementation A, the two required pieces of information are the CID of A and the IID of the interface that A supports. The code to register such an object is simple:</font>
+</p>
+
+<pre>
+<font face="Courier New">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHODIMP</font><a name="1009071"> </a>
+<font face="Courier New">SampleModule::RegisterSelf(nsIComponentManager *aCompMgr,</font><a name="1009096"> </a>
+<font face="Courier New">  nsIFile* aPath,</font><a name="1009073"> </a>
+<font face="Courier New">  const char* registryLocation,</font><a name="1009074"> </a>
+<font face="Courier New">  const char* componentType)</font><a name="1009075"> </a>
+<font face="Courier New">{</font><a name="1009076"> </a>
+<font face="Courier New">    printf("Hello Mozilla Registration!\n\n");</font><a name="1009077"> </a>
+<font face="Courier New">    nsIComponentRegistrar* compReg = nsnull;</font><a name="1009078"> </a>
+<font face="Courier New">    nsresult rv = aCompMgr-&gt;</font><a name="1009079"> </a>
+<font face="Courier New">    QueryInterface(kIComponentRegistrarIID,(void**)&amp; comp</font><a name="1009080"> </a>
+<font face="Courier New">    if (NS_FAILED(rv))</font><a name="1009081"> </a>
+<font face="Courier New">        return rv;</font><a name="1009082"> </a>
+<font face="Courier New">    rv = compReg-&gt;RegisterFactoryLocation(kSampleCID,</font><a name="1009083"> </a>
+<font face="Courier New">                                          "Sample Class",</font><a name="1009084"> </a>
+<font face="Courier New">                                          nsnull,</font><a name="1009085"> </a>
+<font face="Courier New">                                          aPath,</font><a name="1009086"> </a>
+<font face="Courier New">                                          registryLocation,</font><a name="1009087"> </a>
+<font face="Courier New">                                          componentType);</font><a name="1009229"> </a>
+<font face="Courier New">    compReg-&gt;Release();</font><a name="1009230"> </a>
+<font face="Courier New">    return rv;</font><a name="1009231"> </a>
+<font face="Courier New">}</font><a name="1009069"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+</font><a name="999127"> </a>
+</pre>
+
+<p>
+  <a name="999149"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Unregistration follows the same logic. To unregister, all you have to do is pass the CID and the file which is passed into <font  face="Verdana, Arial, Helvetica, sans-serif">UnregisterSelf</font>.</font>
+</p>
+
+
+<h3>
+  <a name="999153"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Creating an Instance of Your Component</font>
+</h3>
+
+
+<p>
+  <a name="1001853"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The example above uses a CID, but after the component is registered, anyone that uses XPCOM can access your classes if they know either the contract ID or CID. (Note that <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterSelf</font> method above does not register a contract ID-it simply passes null. This prevents clients from ever accessing the component with a contract ID.) </font>
+</p>
+
+
+<p>
+  <a name="1011025"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To be accessible to others, you need to publish the CID and/or contract ID of the component along with the interfaces it supports. Given the example above, someone could create the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>Sample</b></font> object via the component manager as follows:</font>
+</p>
+
+
+<a name="1009659"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsIComponentManager* compManger;  // assume initialized </font><a name="1009669"> </a>
+<font face="Courier New">	</font><a name="1009670"> </a>
+<font face="Courier New">nsISupports* sample;</font><a name="1009671"> </a>
+<font face="Courier New">compManager-&gt;CreateInstance(kSampleCID, </font><a name="1009672"> </a>
+<font face="Courier New">        nsnull,</font><a name="1009673"> </a>
+<font face="Courier New">        kISupportsIID,</font><a name="1009674"> </a>
+<font face="Courier New">        (void**)&amp;sample);</font><a name="1009675"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999180"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In the above snippet, we assume that the component manager has been initialized.  In many cases this value is passed in or easily accessible.  If not, it can always be obtained by a call to <font  face="Verdana, Arial, Helvetica, sans-serif">NS_GetComponentManager()</font>. A listing of this and other global XPCOM functions is in <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Appendix B: The XPCOM API Reference</i></font>. </font>
+</p>
+
+
+<p>
+  <a name="1008127"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first parameter of the call to <font  face="Verdana, Arial, Helvetica, sans-serif">CreateInstance</font> specifies the component the client code is looking for, which is the same value passed to <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterFactoryLocation</font>. The next parameter is for aggregation, which the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component does not support.  The third parameter is the interface used to talk to the component. The last parameter is the out variable which will contain a valid object if and only if the method succeeds<a href="#1009701"><sup>1</sup></a>. The implementation of CreateInstance will ensure that the result will support the passed IID, <font  face="Verdana, Arial, Helvetica, sans-serif">kISupportsIID</font>.  The type of the variable <font  face="Verdana, Arial, Helvetica, sans-serif">sample</font> should match the IID passed in as <font  face="Verdana, Arial, Helvetica, sans-serif">kISupportsIID</font>.</font>
+</p>
+
+
+<p>
+  <a name="1011062"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When <font  face="Verdana, Arial, Helvetica, sans-serif">CreateInstance</font> is called, XPCOM looks through all registered components to find a match for the given CID. XPCOM then loads the component library associated with the CID if it isn't loaded already. XPCOM then calls the function <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font> on the library. Finally, it calls the method <font  face="Verdana, Arial, Helvetica, sans-serif">GetClassObject</font> on the module. This method, which you must implement in your component code, is expected to return an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> object for a give CID/IID pair. To prepare your component code, you need to create a factory object for each object that you have registered with XPCOM. </font>
+</p>
+
+
+<p>
+  <a name="1008181"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The main function that must be implemented in the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> interface is <font  face="Verdana, Arial, Helvetica, sans-serif">CreateInstance</font>.  The implementation follows a simple algorithm:</font>
+</p>
+
+<ol type="1">
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="1"><a name="999186"> </a>Create the raw object.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="2"><a name="1003949"> </a>If that fails, return an out of memory error code.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="3"><a name="1003952"> </a>Call <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> on the new object.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="4"><a name="1003955"> </a>If that fails, null the out param and free the new object.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li  value="5"><a name="1003958"> </a>Return the <font  face="Verdana, Arial, Helvetica, sans-serif">nsresult</font> value from <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font>.</font>
+</ol>
+
+<p>
+  <a name="999192"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Often, you don't have to create the object first because the factory implicitly knows what IIDs are supported. When this is not the case, however, doing it this way further abstracts the factories from their concrete classes. If you have a factory that knows every IID supported by the concrete base class, for example, then when you go to add a new supported interface you add this IID comparison in both the factory and the <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> implementation in the concrete class.</font>
+</p>
+
+
+<a name="1010581"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHODIMP </font><a name="1010560"> </a>
+<font face="Courier New">SampleFactory::CreateInstance(
+       nsISupports *aOuter, </font><a name="1010561"> </a>
+<font face="Courier New">    const nsIID &amp; iid,</font><a name="1010562"> </a>
+<font face="Courier New">    void * *result)</font><a name="1010563"> </a>
+<font face="Courier New">{</font><a name="1010564"> </a>
+<font face="Courier New">    if (!result)</font><a name="1010565"> </a>
+<font face="Courier New">        return NS_ERROR_INVALID_ARG;</font><a name="1010566"> </a>
+<font face="Courier New"></font><a name="1010567"> </a>
+<font face="Courier New">    Sample* sample = new Sample();</font><a name="1010568"> </a>
+<font face="Courier New">    if (!sample)</font><a name="1010569"> </a>
+<font face="Courier New">        return NS_ERROR_OUT_OF_MEMORY;</font><a name="1010570"> </a>
+<font face="Courier New"></font><a name="1010571"> </a>
+<font face="Courier New">    nsresult rv = sample-&gt;QueryInterface(iid, result);</font><a name="1010572"> </a>
+<font face="Courier New"></font><a name="1010573"> </a>
+<font face="Courier New">    if (NS_FAILED(rv)) {</font><a name="1010574"> </a>
+<font face="Courier New">        *result = nsnull;</font><a name="1010575"> </a>
+<font face="Courier New">        delete sample;</font><a name="1010576"> </a>
+<font face="Courier New">    }</font><a name="1010577"> </a>
+<font face="Courier New"></font><a name="1010578"> </a>
+<font face="Courier New">    return rv;</font><a name="1010579"> </a>
+<font face="Courier New">}</font><a name="1010580"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h2>
+  <a name="1007774"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">webLock1.cpp</font>
+</h2>
+
+
+<p>
+  <a name="1007785"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Before any of the improvements and XPCOM tools we describe in the following chapter are brought in, the source code for the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component that implements all the necessary interfaces looks like this.</font>
+</p>
+
+
+<a name="1007386"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include &lt;stdio.h&gt;<br></font>
+
+
+<a name="1007387"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007388"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#define MOZILLA_STRICT_API<br></font>
+
+
+<a name="1007389"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007390"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsIModule.h"<br></font>
+
+
+<a name="1007391"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsIFactory.h"<br></font>
+
+
+<a name="1007392"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007393"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsIComponentManager.h"<br></font>
+
+
+<a name="1007394"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsIComponentRegistrar.h"<br></font>
+
+
+<a name="1007395"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007396"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">static const nsIID kIModuleIID   = NS_IMODULE_IID;<br></font>
+
+
+<a name="1007397"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">static const nsIID kIFactoryIID   = NS_IFACTORY_IID;<br></font>
+
+
+<a name="1007398"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">static const nsIID kISupportsIID = NS_ISUPPORTS_IID;<br></font>
+
+
+<a name="1007399"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">static const nsIID kIComponentRegistrarIID = NS_ICOMPONENTREGISTRAR_IID;<br></font>
+
+
+<a name="1007400"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007401"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007402"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#define SAMPLE_CID \<br></font>
+
+
+<a name="1007403"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{ 0x777f7150, 0x4a2b, 0x4301, \<br></font>
+
+
+<a name="1007404"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{ 0xad, 0x10, 0x5e, 0xab, 0x25, 0xb3, 0x22, 0xaa}}<br></font>
+
+
+<a name="1007405"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007406"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">static const nsCID kSampleCID = SAMPLE_CID;<br></font>
+
+
+<a name="1007407"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007408"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">class Sample: public nsISupports {  <br></font>
+
+
+<a name="1007409"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">private:  <br></font>
+
+
+<a name="1007410"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  nsrefcnt mRefCnt;  <br></font>
+
+
+<a name="1007411"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">public:  <br></font>
+
+
+<a name="1007412"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  Sample();  <br></font>
+
+
+<a name="1007413"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  virtual ~Sample();  <br></font>
+
+
+<a name="1007414"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007415"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_IMETHOD QueryInterface(const nsIID &amp;aIID, void **aResult);  <br></font>
+
+
+<a name="1007416"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_IMETHOD_(nsrefcnt) AddRef(void);  <br></font>
+
+
+<a name="1007417"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_IMETHOD_(nsrefcnt) Release(void);  <br></font>
+
+
+<a name="1007418"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007419"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">};  <br></font>
+
+
+<a name="1007420"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007421"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Sample::Sample()  <br></font>
+
+
+<a name="1007422"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007423"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  :mRefCnt(0);  <br></font>
+
+
+<a name="1007424"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007425"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Sample::~Sample()  <br></font>
+
+
+<a name="1007426"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007427"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007428"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP Sample::QueryInterface(const nsIID &amp;aIID,  <br></font>
+
+
+<a name="1007429"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                  void **aResult)  <br></font>
+
+
+<a name="1007430"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007431"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (aResult == NULL) {  <br></font>
+
+
+<a name="1007432"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return NS_ERROR_NULL_POINTER;  <br></font>
+
+
+<a name="1007433"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  } <br></font>
+
+
+<a name="1007434"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *aResult = NULL;  <br></font>
+
+
+<a name="1007435"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (aIID.Equals(kISupportsIID)) {  <br></font>
+
+
+<a name="1007436"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    *aResult = (void *) this;  <br></font>
+
+
+<a name="1007437"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  } <br></font>
+
+
+<a name="1007438"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (aResult != NULL) {  <br></font>
+
+
+<a name="1007439"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return NS_ERROR_NO_INTERFACE;  <br></font>
+
+
+<a name="1007440"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  }  <br></font>
+
+
+<a name="1007441"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  AddRef();  <br></font>
+
+
+<a name="1007442"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;  <br></font>
+
+
+<a name="1007443"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007444"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007445"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP_(nsrefcnt) Sample::AddRef()  <br></font>
+
+
+<a name="1007446"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007447"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return ++mRefCnt;  <br></font>
+
+
+<a name="1007448"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007449"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007450"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP_(nsrefcnt) Sample::Release()  <br></font>
+
+
+<a name="1007451"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007452"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (--mRefCnt == 0) {  <br></font>
+
+
+<a name="1007453"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    delete this;  <br></font>
+
+
+<a name="1007454"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return 0;  <br></font>
+
+
+<a name="1007455"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  }  <br></font>
+
+
+<a name="1007456"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return mRefCnt;  <br></font>
+
+
+<a name="1007457"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007458"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007459"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007462"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1010730"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">// factory implementation class for component<br></font>
+
+
+<a name="1007463"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">class SampleFactory: public nsIFactory{  <br></font>
+
+
+<a name="1007464"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">private:  <br></font>
+
+
+<a name="1007465"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  nsrefcnt mRefCnt;  <br></font>
+
+
+<a name="1007466"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">public:  <br></font>
+
+
+<a name="1007467"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  SampleFactory();  <br></font>
+
+
+<a name="1007468"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  virtual ~SampleFactory();  <br></font>
+
+
+<a name="1007469"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007470"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_IMETHOD QueryInterface(const nsIID &amp;aIID, void **aResult);  <br></font>
+
+
+<a name="1007471"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_IMETHOD_(nsrefcnt) AddRef(void);  <br></font>
+
+
+<a name="1007472"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_IMETHOD_(nsrefcnt) Release(void);  <br></font>
+
+
+<a name="1007473"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007474"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_IMETHOD CreateInstance(nsISupports *aOuter, const nsIID &amp; iid, void * *result);<br></font>
+
+
+<a name="1007475"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_IMETHOD LockFactory(PRBool lock); <br></font>
+
+
+<a name="1007476"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007477"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">};  <br></font>
+
+
+<a name="1007478"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007479"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleFactory::SampleFactory()  <br></font>
+
+
+<a name="1007480"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007481"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  mRefCnt = 0;  <br></font>
+
+
+<a name="1007482"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007483"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleFactory::~SampleFactory()  <br></font>
+
+
+<a name="1007484"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007485"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007486"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP SampleFactory::QueryInterface(const nsIID &amp;aIID,  <br></font>
+
+
+<a name="1007487"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                  void **aResult)  <br></font>
+
+
+<a name="1007488"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007489"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (aResult == NULL) {  <br></font>
+
+
+<a name="1007490"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return NS_ERROR_NULL_POINTER;  <br></font>
+
+
+<a name="1007491"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  } <br></font>
+
+
+<a name="1007492"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *aResult = NULL;  <br></font>
+
+
+<a name="1007493"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (aIID.Equals(kISupportsIID)) {  <br></font>
+
+
+<a name="1007494"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    *aResult = (void *) this;  <br></font>
+
+
+<a name="1007495"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  } <br></font>
+
+
+<a name="1007496"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  else<br></font>
+
+
+<a name="1007497"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (aIID.Equals(kIFactoryIID)) {  <br></font>
+
+
+<a name="1007498"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    *aResult = (void *) this;  <br></font>
+
+
+<a name="1007499"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  } <br></font>
+
+
+<a name="1007500"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007501"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (aResult != NULL) {  <br></font>
+
+
+<a name="1007502"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return NS_ERROR_NO_INTERFACE;  <br></font>
+
+
+<a name="1007503"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  }  <br></font>
+
+
+<a name="1007504"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  AddRef();  <br></font>
+
+
+<a name="1007505"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;  <br></font>
+
+
+<a name="1007506"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007507"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007508"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP_(nsrefcnt) SampleFactory::AddRef()  <br></font>
+
+
+<a name="1007509"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007510"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return ++mRefCnt;  <br></font>
+
+
+<a name="1007511"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007512"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007513"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP_(nsrefcnt) SampleFactory::Release()  <br></font>
+
+
+<a name="1007514"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{  <br></font>
+
+
+<a name="1007515"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (--mRefCnt == 0) {  <br></font>
+
+
+<a name="1007516"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    delete this;  <br></font>
+
+
+<a name="1007517"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return 0;  <br></font>
+
+
+<a name="1007518"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  }  <br></font>
+
+
+<a name="1007519"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return mRefCnt;  <br></font>
+
+
+<a name="1007520"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}  <br></font>
+
+
+<a name="1007521"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007522"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007523"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP <br></font>
+
+
+<a name="1007524"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleFactory::CreateInstance(nsISupports *aOuter, const nsIID &amp; iid, void * *result)<br></font>
+
+
+<a name="1007525"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007526"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (!result)<br></font>
+
+
+<a name="1007527"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return NS_ERROR_INVALID_ARG;<br></font>
+
+
+<a name="1007528"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007529"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    Sample* sample = new Sample();<br></font>
+
+
+<a name="1007530"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (!sample)<br></font>
+
+
+<a name="1007531"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return NS_ERROR_OUT_OF_MEMORY;<br></font>
+
+
+<a name="1007532"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007533"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsresult rv = sample-&gt;QueryInterface(iid, result);<br></font>
+
+
+<a name="1007534"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007535"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv)) {<br></font>
+
+
+<a name="1007536"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        *result = nsnull;<br></font>
+
+
+<a name="1007537"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        delete sample;<br></font>
+
+
+<a name="1007538"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    }<br></font>
+
+
+<a name="1007539"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007540"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return rv;<br></font>
+
+
+<a name="1007541"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007542"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007543"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007544"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP <br></font>
+
+
+<a name="1007545"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleFactory::LockFactory(PRBool lock)<br></font>
+
+
+<a name="1007546"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007547"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return NS_ERROR_NOT_IMPLEMENTED;<br></font>
+
+
+<a name="1007548"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007549"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007550"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007551"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007552"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007553"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007554"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007555"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">// Module implementation<br></font>
+
+
+<a name="1007556"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">class SampleModule : public nsIModule<br></font>
+
+
+<a name="1007557"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007558"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">public:<br></font>
+
+
+<a name="1007559"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    SampleModule();<br></font>
+
+
+<a name="1007560"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    virtual ~SampleModule();<br></font>
+
+
+<a name="1007561"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007562"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    //  nsISupports methods:<br></font>
+
+
+<a name="1007563"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    NS_IMETHOD QueryInterface(const nsIID &amp; uuid, void * *result);<br></font>
+
+
+<a name="1007564"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    NS_IMETHOD_(nsrefcnt) AddRef(void);<br></font>
+
+
+<a name="1007565"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    NS_IMETHOD_(nsrefcnt) Release(void); <br></font>
+
+
+<a name="1007566"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007567"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    //  nsIModule methods:<br></font>
+
+
+<a name="1007568"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    NS_IMETHOD GetClassObject(nsIComponentManager *aCompMgr, const nsCID &amp; aClass, const nsIID &amp; aIID, void * *aResult);<br></font>
+
+
+<a name="1007569"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    NS_IMETHOD RegisterSelf(nsIComponentManager *aCompMgr, nsIFile *aLocation, const char *aLoaderStr, const char *aType);<br></font>
+
+
+<a name="1007570"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    NS_IMETHOD UnregisterSelf(nsIComponentManager *aCompMgr, nsIFile *aLocation, const char *aLoaderStr);<br></font>
+
+
+<a name="1007571"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    NS_IMETHOD CanUnload(nsIComponentManager *aCompMgr, PRBool *_retval);<br></font>
+
+
+<a name="1007572"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007573"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">private:<br></font>
+
+
+<a name="1007574"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsrefcnt mRefCnt;<br></font>
+
+
+<a name="1007575"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">};<br></font>
+
+
+<a name="1007576"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007577"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007578"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">//----------------------------------------------------------------------<br></font>
+
+
+<a name="1007579"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007580"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::SampleModule()<br></font>
+
+
+<a name="1007581"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007582"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    mRefCnt = 0;<br></font>
+
+
+<a name="1007583"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007584"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007585"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::~SampleModule()<br></font>
+
+
+<a name="1007586"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007587"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007588"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007589"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007590"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">// nsISupports implemention<br></font>
+
+
+<a name="1007591"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP_(nsrefcnt) <br></font>
+
+
+<a name="1007592"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::AddRef(void)<br></font>
+
+
+<a name="1007593"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{                                                                             <br></font>
+
+
+<a name="1007594"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  ++mRefCnt;                                                                  <br></font>
+
+
+<a name="1007595"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return mRefCnt;                                                             <br></font>
+
+
+<a name="1007596"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007597"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007598"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007599"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP_(nsrefcnt) <br></font>
+
+
+<a name="1007600"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::Release(void)                                <br></font>
+
+
+<a name="1007601"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{                                                                             <br></font>
+
+
+<a name="1007602"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  --mRefCnt;                                                                  <br></font>
+
+
+<a name="1007603"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (mRefCnt == 0) {                                                         <br></font>
+
+
+<a name="1007604"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    mRefCnt = 1; /* stabilize */                                              <br></font>
+
+
+<a name="1007605"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    delete this;                                                                 <br></font>
+
+
+<a name="1007606"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return 0;                                                                 <br></font>
+
+
+<a name="1007607"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  }                                                                           <br></font>
+
+
+<a name="1007608"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return mRefCnt;                                                             <br></font>
+
+
+<a name="1007609"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007610"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007611"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP <br></font>
+
+
+<a name="1007612"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::QueryInterface(REFNSIID aIID, void** aInstancePtr)      <br></font>
+
+
+<a name="1007613"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{                                                                             <br></font>
+
+
+<a name="1007614"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if ( !aInstancePtr )                                                        <br></font>
+
+
+<a name="1007615"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return NS_ERROR_NULL_POINTER;                                             <br></font>
+
+
+<a name="1007616"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007617"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  nsISupports* foundInterface;<br></font>
+
+
+<a name="1007618"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007619"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if ( aIID.Equals(kIModuleIID) )                                  <br></font>
+
+
+<a name="1007620"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">      foundInterface = (nsIModule*) this;                       <br></font>
+
+
+<a name="1007621"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007622"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  else if ( aIID.Equals(kISupportsIID) )                                  <br></font>
+
+
+<a name="1007623"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    foundInterface = (nsISupports*) this;                       <br></font>
+
+
+<a name="1007624"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  <br></font>
+
+
+<a name="1007625"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  else<br></font>
+
+
+<a name="1007626"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    foundInterface = 0;<br></font>
+
+
+<a name="1007627"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007628"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  if (foundInterface) {<br></font>
+
+
+<a name="1007629"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">      foundInterface-&gt;AddRef();<br></font>
+
+
+<a name="1007630"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">      *aInstancePtr = foundInterface;<br></font>
+
+
+<a name="1007631"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">      return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;<br></font>
+
+
+<a name="1007632"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  }<br></font>
+
+
+<a name="1007633"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  <br></font>
+
+
+<a name="1007634"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *aInstancePtr = foundInterface;<br></font>
+
+
+<a name="1007635"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  return NS_NOINTERFACE;<br></font>
+
+
+<a name="1007636"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007637"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007638"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007639"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">// Create a factory object for creating instances of aClass.<br></font>
+
+
+<a name="1007640"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP<br></font>
+
+
+<a name="1007641"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::GetClassObject(nsIComponentManager *aCompMgr,<br></font>
+
+
+<a name="1007642"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                               const nsCID&amp; aClass,<br></font>
+
+
+<a name="1007643"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                               const nsIID&amp; aIID,<br></font>
+
+
+<a name="1007644"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                               void** result)<br></font>
+
+
+<a name="1007645"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007646"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    <br></font>
+
+
+<a name="1007647"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (!kSampleCID.Equals(aClass))<br></font>
+
+
+<a name="1007648"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return NS_ERROR_FACTORY_NOT_REGISTERED;<br></font>
+
+
+<a name="1007649"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    <br></font>
+
+
+<a name="1007650"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (!result)<br></font>
+
+
+<a name="1007651"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return NS_ERROR_INVALID_ARG;<br></font>
+
+
+<a name="1007652"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007653"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    SampleFactory* factory = new SampleFactory();<br></font>
+
+
+<a name="1007654"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (!factory)<br></font>
+
+
+<a name="1007655"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return NS_ERROR_OUT_OF_MEMORY;<br></font>
+
+
+<a name="1007656"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007657"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsresult rv = factory-&gt;QueryInterface(aIID, result);<br></font>
+
+
+<a name="1007658"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007659"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv)) {<br></font>
+
+
+<a name="1007660"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        *result = nsnull;<br></font>
+
+
+<a name="1007661"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        delete factory;<br></font>
+
+
+<a name="1007662"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    }<br></font>
+
+
+<a name="1007663"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007664"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return rv;<br></font>
+
+
+<a name="1007665"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007666"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007667"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007668"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">//----------------------------------------<br></font>
+
+
+<a name="1007669"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007670"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007671"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP<br></font>
+
+
+<a name="1007672"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::RegisterSelf(nsIComponentManager *aCompMgr,<br></font>
+
+
+<a name="1007673"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                             nsIFile* aPath,<br></font>
+
+
+<a name="1007674"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                             const char* registryLocation,<br></font>
+
+
+<a name="1007675"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                             const char* componentType)<br></font>
+
+
+<a name="1007676"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007677"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    <br></font>
+
+
+<a name="1007678"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsIComponentRegistrar* compReg = nsnull;<br></font>
+
+
+<a name="1007679"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    <br></font>
+
+
+<a name="1007680"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsresult rv = aCompMgr-&gt;QueryInterface(kIComponentRegistrarIID, (void**)&amp;compReg);<br></font>
+
+
+<a name="1007681"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv))<br></font>
+
+
+<a name="1007682"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return rv;<br></font>
+
+
+<a name="1007683"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007684"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    rv = compReg-&gt;RegisterFactoryLocation(kSampleCID, <br></font>
+
+
+<a name="1007685"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          "Sample Class", <br></font>
+
+
+<a name="1007686"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          nsnull,<br></font>
+
+
+<a name="1007687"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          aPath, <br></font>
+
+
+<a name="1007688"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          registryLocation, <br></font>
+
+
+<a name="1007689"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          componentType);<br></font>
+
+
+<a name="1007690"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    <br></font>
+
+
+<a name="1007691"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    compReg-&gt;Release();<br></font>
+
+
+<a name="1007692"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007693"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return rv;<br></font>
+
+
+<a name="1007694"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007695"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007696"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP<br></font>
+
+
+<a name="1007697"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::UnregisterSelf(nsIComponentManager* aCompMgr,<br></font>
+
+
+<a name="1007698"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                               nsIFile* aPath,<br></font>
+
+
+<a name="1007699"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                               const char* registryLocation)<br></font>
+
+
+<a name="1007700"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007701"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007702"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsIComponentRegistrar* compReg = nsnull;<br></font>
+
+
+<a name="1007703"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    <br></font>
+
+
+<a name="1007704"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsresult rv = aCompMgr-&gt;QueryInterface(kIComponentRegistrarIID, (void**)&amp;compReg);<br></font>
+
+
+<a name="1007705"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv))<br></font>
+
+
+<a name="1007706"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return rv;<br></font>
+
+
+<a name="1007707"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007708"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    rv = compReg-&gt;UnregisterFactoryLocation(kSampleCID, aPath);<br></font>
+
+
+<a name="1007709"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    <br></font>
+
+
+<a name="1007710"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    compReg-&gt;Release();<br></font>
+
+
+<a name="1007711"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    <br></font>
+
+
+<a name="1007712"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return rv;<br></font>
+
+
+<a name="1007713"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007714"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007715"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP<br></font>
+
+
+<a name="1007716"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">SampleModule::CanUnload(nsIComponentManager *aCompMgr, PRBool *okToUnload)<br></font>
+
+
+<a name="1007717"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007718"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    *okToUnload = PR_FALSE;  // we do not know how to unload.<br></font>
+
+
+<a name="1007719"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;<br></font>
+
+
+<a name="1007720"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1007721"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007722"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">//----------------------------------------------------------------------<br></font>
+
+
+<a name="1007723"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007724"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">extern "C" NS_EXPORT nsresult NSGetModule(nsIComponentManager *servMgr,<br></font>
+
+
+<a name="1007725"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          nsIFile* location,<br></font>
+
+
+<a name="1007726"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          nsIModule** return_cobj)<br></font>
+
+
+<a name="1007727"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1007728"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsresult rv = <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;<br></font>
+
+
+<a name="1007729"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007730"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    // Create and initialize the module instance<br></font>
+
+
+<a name="1007731"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    SampleModule *m = new SampleModule();<br></font>
+
+
+<a name="1007732"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (!m) {<br></font>
+
+
+<a name="1007733"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return NS_ERROR_OUT_OF_MEMORY;<br></font>
+
+
+<a name="1007734"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    }<br></font>
+
+
+<a name="1007735"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1007736"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    // Increase refcnt and store away nsIModule interface to m in return_cobj<br></font>
+
+
+<a name="1007737"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    rv = m-&gt;QueryInterface(kIModuleIID, (void**)return_cobj);<br></font>
+
+
+<a name="1007738"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv)) {<br></font>
+
+
+<a name="1007739"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        delete m;<br></font>
+
+
+<a name="1007740"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    }<br></font>
+
+
+<a name="1007741"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return rv;<br></font>
+
+
+<a name="1007742"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1003741"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+  
+<a name="1009701"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#1008127"><sup>1</sup></a>
+<a name="1009701"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">Note: the </font><font  face="Verdana, Arial, Helvetica, sans-serif">CreateInstance</font><font  face="Verdana, Arial, Helvetica, sans-serif"> method guarantees that if the out variable is non-null, it is valid.</font><br></font>
+
+<br></font>
+</blockquote>
+
+<hr>
+
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+  <td><font size="1"><font face="courier"> Copyright (c)
+  2003 by Doug Turner and Ian Oeschger. This material may be
+  distributed only subject to the terms and conditions set forth in
+  the <a href="http://www.opencontent.org/openpub/">Open Publication
+  License</a>, v1.02 or later. Distribution of substantively modified
+  versions of this document is prohibited without the explicit
+  permission of the copyright holder. Distribution of the work or
+  derivative of the work in any standard (paper) book form is
+  prohibited unless prior permission is obtained from the copyright
+  holder.</td>
+  </tr>
+</table>
+
+<table width="331" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23" border="0"
+    alt="TOC"> </a></td>
+    <td><a href="component_internals2.html"><img src="images/navprev.gif" width="81" height="23" border="0"
+    alt="PREV"> </a></td>
+    <td><a href="tools.html"><img src="images/navnext.gif" width="81" height="23" border="0"
+    alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23" border="0"
+    alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+</body>
+</html>

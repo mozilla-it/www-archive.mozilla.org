@@ -1,0 +1,329 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="Author" content="Frank Yung-Fong Tang">
+   <meta name="GENERATOR" content="Mozilla/4.77 [en]C-NSCP  (WinNT; U) [Netscape]">
+   <title>Tuning Startup Performance For International Library</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<h1>
+Tuning Startup Performance For International Library</h1>
+Author: Frank Yung-Fong Tang &lt;<a href="mailto:ftang@netscape.com">ftang@netscape.com</a>>
+AIM:yungfongta x2913
+<h3>
+Goal:</h3>
+Improve Gecko / Netscape6 <b><u>startup</u></b> performance.
+<h3>
+High Level Strategy:</h3>
+
+<ul>
+<li>
+Reduce the need to call international library at startup time.</li>
+
+<li>
+Reduce the time spend at international library at startup time.</li>
+</ul>
+
+<h3>
+Responsibility Area:</h3>
+The code which <b><u>implement</u></b> or <b><u>call (use)</u></b> the
+implementation in the following directories:
+<ul>
+<li>
+<u>mozilla/intl/*</u></li>
+
+<li>
+text measuring, text drawing, font handling code under <u>mozilla/gfx/src/{windows,mac,gtk}</u></li>
+
+<li>
+input method code under <u>mozilla/widget/src/{windows,mac,gtk}</u></li>
+
+<li>
+<u>mozilla/extensions/universalchardet/*</u></li>
+</ul>
+
+<h3>
+High Level Requirements:</h3>
+The new code
+<ol>
+<li>
+SHOULD NOT cause functionality regression,</li>
+
+<li>
+SHOULD NOT trade off the current extensibility model which allow users
+reconfigure external property files to tune code behavior,</li>
+
+<li>
+SHOULD be faster then the old code at least XX% at startup time, (XX% is
+TBD now)</li>
+
+<li>
+SHOULD NOT cause any obvious slow down of run-time (after startup) performance.</li>
+</ol>
+
+<h3>
+Categories of Problem:</h3>
+
+<ol>
+<li>
+Unnecessary Loading of International Library at startup time - <b>DLLLOAD</b>
+(example: bug )</li>
+
+<li>
+Unnecessary Loading of external files at startup time - <b>FILELOAD</b>
+(example: bug )</li>
+
+<li>
+Unnecessary Construction of data structure at startup time- <b>INITDATA</b>
+(example: bug )</li>
+
+<li>
+Redudent excutions of code which always return the same result at startup
+time- <b>LOOP</b> (example: bug )</li>
+</ol>
+
+<h3>
+Staff:</h3>
+
+<table BORDER  >
+<tr>
+<td></td>
+
+<td>Contact</td>
+
+<td>XP Tuning</td>
+
+<td>Windows Tuning</td>
+
+<td>Macintosh Tuning</td>
+
+<td>UNIX Tuning</td>
+</tr>
+
+<tr>
+<td>Juraj Betak &lt;<a href="mailto:jbetak@netscape.com">jbetak@netscape.com</a>></td>
+
+<td>Primary</td>
+
+<td>Primary</td>
+
+<td>Primary</td>
+
+<td></td>
+
+<td>Secondary</td>
+</tr>
+
+<tr>
+<td>Naoki Hotta &lt;<a href="mailto:nhotta@netscape.com">nhotta@netscape.com</a>></td>
+
+<td></td>
+
+<td></td>
+
+<td></td>
+
+<td>Primary</td>
+
+<td></td>
+</tr>
+
+<tr>
+<td>Brian Stell &lt;<a href="mailto:bstell@netscape.com">bstell@netscape.com</a>></td>
+
+<td></td>
+
+<td></td>
+
+<td></td>
+
+<td></td>
+
+<td>Primary</td>
+</tr>
+
+<tr>
+<td>Frank Yung-Fong Tang &lt;<a href="mailto:ftang@netscape.com">ftang@netscape.com</a>></td>
+
+<td>Secondary</td>
+
+<td>Secondary
+<br>Reviewer</td>
+
+<td></td>
+
+<td>Secondary
+<br>Reviewer</td>
+
+<td></td>
+</tr>
+
+<tr>
+<td>Roy Yokoyama &lt;<a href="mailto:yokoyama@netscape.com">yokoyama@netscape.com</a>></td>
+
+<td></td>
+
+<td></td>
+
+<td>Reviewer</td>
+
+<td></td>
+
+<td></td>
+</tr>
+
+<tr>
+<td>Shanjian Li &lt;<a href="mailto:shanjian@netscape.com">shanjian@netscape.com</a>></td>
+
+<td></td>
+
+<td></td>
+
+<td>Secondary</td>
+
+<td></td>
+
+<td>Reviewer</td>
+</tr>
+</table>
+
+<h3>
+List of issues:</h3>
+
+<h3>
+Schedule:</h3>
+
+<h3>
+<b>Meta Bug Tracking:</b></h3>
+
+<ul>
+<li>
+&nbsp;<a href="http://bugzilla.mozilla.org/show_bug.cgi?id=103174">Bug
+103174 - main tracking bug about intl startup performance</a> ( <a href="http://bugzilla.mozilla.org/showdependencytree.cgi?id=103174">Tree</a>
+)</li>
+
+<ul>
+<li>
+&nbsp;<a href="http://bugzilla.mozilla.org/show_bug.cgi?id=103175">Bug
+103175 - tracking bug about XP code intl startup performance</a> ( <a href="http://bugzilla.mozilla.org/showdependencytree.cgi?id=103175">Tree</a>
+)</li>
+
+<li>
+&nbsp;<a href="http://bugzilla.mozilla.org/show_bug.cgi?id=103176">Bug
+103176 - tracking bug about Window code intl startup performance</a> (
+<a href="http://bugzilla.mozilla.org/showdependencytree.cgi?id=103176">Tree</a>
+)</li>
+
+<li>
+&nbsp;<a href="http://bugzilla.mozilla.org/show_bug.cgi?id=103177">Bug
+103177 - tracking bug about Mac code intl startup performance</a> ( <a href="http://bugzilla.mozilla.org/showdependencytree.cgi?id=103177">Tree</a>
+)</li>
+
+<li>
+&nbsp;<a href="http://bugzilla.mozilla.org/show_bug.cgi?id=103179">Bug
+103179 - tracking bug about UNIX code intl startup performance</a> ( <a href="http://bugzilla.mozilla.org/showdependencytree.cgi?id=103179">Tree</a>
+)</li>
+</ul>
+</ul>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified October  8,  2001</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/intl/startupperf.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

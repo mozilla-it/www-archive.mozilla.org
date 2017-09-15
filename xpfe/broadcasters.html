@@ -1,0 +1,213 @@
+<HTML>
+<!--This file created 3/5/99 3:55 PM by Claris Home Page version 3.0 30 Day Trial-->
+<HEAD>
+   <TITLE>Broadcasters And Observers</TITLE>
+   <META NAME=GENERATOR CONTENT="Claris Home Page 3.0 30 Day Trial">
+   <X-CLARIS-WINDOW TOP=56 BOTTOM=747 LEFT=358 RIGHT=974>
+   <X-CLARIS-TAGVIEW MODE=minimal>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF">
+<H1>Broadcasters And Observers</H1>
+
+<P><I>Draft 0<BR>
+Last modified on 2/16/99 by Mike Pinkerton</I></P>
+
+<P><I>This is a concatenation of some relevant emails and newsgroup
+postings about command parameter. Hyatt and Rod are behind most of
+this, blame them :-).</I></P>
+
+<H2>Overview</H2>
+
+<P>Much of the XPToolkit is based on the observer concept. A widget's
+implementation observes its content model representation, the AOM
+node, for changes. The AOM node in turn observes a Command node, just
+another AOM node, to see if the command that the widget surfaces in
+the UI is enabled. The command node observes some property of an
+AppCore/Service to determine its enabled state. All of the above
+interactions have been discussed, hinted at, worked around, or
+otherwise assumed in previous XPToolkit papers and brownbag
+discussions. Obviously the observer concept is fundamental to
+XPToolkit, but it has so far been hidden inside of discussions about
+the command architecture.</P>
+
+<P>Earlier proposals from the XPToolkit team encouraged the use of
+<I>Command</I> nodes to separate user interface elements from the
+application code which implemented behaviors. Unfortunately, command
+nodes became the dumping ground for just about every bit of
+functionality and glue related to tying together application core
+objects and UI elements, and as a result, became a big complicated
+mess.</P>
+
+<P>Our new proposal introduces <I>Broadcaster</I> and <I>Observer</I>
+nodes in the AOM. These new nodes retain the original goal of Command
+nodes (that is, allowing multiple reusable UI elements to observe
+changes in app core state) but aren't as muddled down with extra
+baggage as Command nodes are. In fact, given a combination of event
+handlers on UI elements and Broadcaster/Observer nodes, and appCore
+reflection into JavaScript, Command nodes are no longer
+necessary.</P>
+
+<H2>Replacing Command Nodes</H2>
+
+<P>The observer XUL construct is intended as a mechanism for
+communication between AOM nodes. It simply allows the AOM node
+observer relationships to be specified in XUL so that they can be
+automatically set up at XUL load time.</P>
+
+<H4><A NAME=Syntax></A><B>XUL Syntax</B></H4>
+
+<PRE>&lt;broadcaster id="nodeIdentifier" /&gt;</PRE>
+
+<P><TABLE BORDER=1 WIDTH="90%">
+   <TR>
+      <TH>
+         <P ALIGN=left>Attribute</P>
+      </TH>
+      <TH>
+         <P ALIGN=left>Description</P>
+      </TH>
+   </TR>
+   <TR>
+      <TD>
+         <P>id</P>
+      </TD>
+      <TD>
+         <P>a tag so that other XUL, such as the &lt;observes&gt;
+         tag, can reference the broadcaster</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<PRE>&lt;observes element="nodeIdentifier" attribute="AttributeIdentifier"
+    onchange="...some JavaScript" /&gt;</PRE>
+
+<P><TABLE BORDER=1 WIDTH="90%">
+   <TR>
+      <TH>
+         <P ALIGN=left>Attribute</P>
+      </TH>
+      <TH>
+         <P ALIGN=left>Description</P>
+      </TH>
+   </TR>
+   <TR>
+      <TD>
+         <P>element</P>
+      </TD>
+      <TD>
+         <P>the id of the broadcaster being observed.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>attribute</P>
+      </TD>
+      <TD>
+         <P>the attribute of the parent object which should be
+         updated when that attribute changes on the broadcaster.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>onchange</P>
+      </TD>
+      <TD>
+         <P>an event handler called when the attribute changes on the
+         broadcaster.</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<H4>Example</H4>
+
+<PRE>&lt;window&gt;
+
+...
+
+&lt;broadcasterset&gt;
+   &lt;broadcaster id="cantSendMail"/&gt;
+   &lt;broadcaster id="BrowserCore_LoadProgress" percentage=0 /&gt;
+&lt;/broadcasterset&gt;
+
+....
+
+&lt;titledbutton id="sendMailButton" 
+      onclick="mailCore.sendMessage(document.forms&#91;0&#93;, document.forms&#91;1&#93;, document.forms&#91;2&#93;)"&gt;
+   &lt;observes element="cantSendMail" attribute="disabled"&gt;
+&lt;/button&gt;
+
+&lt;titledbutton id="someOtherButton" 
+      onclick="mailCore.sendMessage(document.forms&#91;3&#93;, document.forms&#91;4&#93;, document.forms&#91;5&#93;"&gt;
+    &lt;observes element="cantSendMail" attribute="disabled"&gt;
+&lt;/button&gt;
+
+&lt;progressmeter&gt;
+   &lt;observes element="BrowserCore_LoadProgress" attribute="percentage" /&gt;
+&lt;/progressmeter&gt;
+
+...
+
+&lt;/window&gt;</PRE>
+
+<P>In the above example, different form elements are passed in
+depending on which button you click. This is really how you'd like it
+to work. The AppCore has <I>no</I> knowledge of the UI; it simply
+gets some parameters and knows what to do. Any direct UI manipulation
+happens at the event-handling level.</P>
+
+<P>In other words, you don't <I>have</I> to use Command nodes. We
+also have this notion of broadcaster nodes (with a command being a
+specific type of broadcaster). Assuming that the appCore is exposed
+somehow as a JS object with its methods reflected into JavaScript,
+and that it knows the IDs of the broadcaster or Command nodes it
+wants to poke on to do enabling/disabling, you could do the right
+thing by making the command invocation (in this case a sendMessage
+call) happen at the widget level, and then passing in the elements
+that are appropriate based on which widget you're dealing with.</P>
+
+<P>I'm sure many of you are thinking, "Why is all the logic
+enabled/disabled logic seemingly backwards?" Recall that the DOM
+attribute for enabled/disabled state of an HTML4 &lt;button&gt; tag
+is "disabled," and as a result, the properties must be phrased in
+those terms. At some point in the future, we will try to add the
+ability to observe the negative of an attribute, but this mechanism
+in not currently present.</P>
+
+<H2>Observers vs. Commands</H2>
+
+<H4><B>The Same Thing...</B></H4>
+
+<P>If one takes a step back and looks at the command architecture,
+you can see the observer relationship in it. The widget observes the
+command's enabled state. Since the command is actually fulfilled by
+appcore code, and the AppCore code decides when to enable or disable
+the command, it is really the AppCore that owns the command node. The
+command node is surfacing a capability of the AppCore to the widget
+via the AOM in much the same way that a broadcaster node surfaces a
+state of the AppCore to the widget.</P>
+
+<H4><B>...Only Different</B></H4>
+
+<P>The general observer mechanism implies an observed persistent
+state. The AppCore has a state, such as "LoadProgress" which is
+expressed via an AOM node with a progress percentage as a parameter.
+This is a persistent state of the AppCore which is then expressed
+through the AOM node.</P>
+
+<P>Contrast this with a command node. A command node is a binding
+between the widget's AOM node and some code that fulfills the
+function of the widget. A command node is not a representation of
+persistent state (with the exception of the command's enabled state).
+Primarily, the command node is simply a transport path for getting
+something done in response to a user interacting with a widget.</P>
+
+<P>
+
+<HR>
+
+<I>Last modified by Mike Pinkerton</I><BR>
+Send comments to the news group netscape.public.mozilla.xpfe</P>
+</BODY>
+</HTML>

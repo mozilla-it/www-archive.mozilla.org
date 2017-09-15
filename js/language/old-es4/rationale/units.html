@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>ECMAScript 4 Units Rationale</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="operators.html">
+<LINK rel=Next href="unit-patterns.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=es-title>ECMAScript 4 Netscape Proposal</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Units</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="operators.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="unit-patterns.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Friday, September 20, 2002</P>
+
+<!--IMPORT "../../js20/rationale/units.html" -class=js2 -class=js2-hidden +class=es4 +class=es4-hidden -->
+
+<P class=issue>Units derived from the <A href="../../bibliography.html#spice">Spice proposals</A> had originally been part
+of the ECMAScript 4 proposal but were deferred to a future version of the language in order to keep ECMAScript 4 small.
+If implemented, units might behave as described in this section.</P>
+
+<H2><A name="lexer"></A>Lexing Units</H2>
+
+<P>A unit expression usually consists of a number followed by a unit name with no intervening white space, as in <CODE>7cm</CODE>.
+The unit name can be quoted (for example, <CODE>7&nbsp;"cm"</CODE>), in which case white space is permitted between
+the number and the unit and the unit name can instead be a <A href="unit-patterns.html">unit pattern</A> (for example, <CODE>7&nbsp;"Kg*cm^2/s"</CODE>).</P>
+
+<P>When a numeric literal is immediately followed by an identifier, the lexer converts the identifier to a string literal.
+The parser then treats the number and string as a <A href="#unit-expression">unit expression</A>. The identifier cannot start
+with an underscore, but there are no reserved word restrictions on the identifier; any identifier that begins with a letter
+will work, even if it is a reserved word.</P>
+
+<P>For example, <CODE>3in</CODE> is converted to <CODE>3&nbsp;"in"</CODE>. <CODE>5xena</CODE> is converted to <CODE>5&nbsp;"xena"</CODE>.
+On the other hand, <CODE>0xena</CODE> is converted to <CODE>0xe&nbsp;"na"</CODE>. It is unwise to define unit names that begin
+with the letters <CODE>e</CODE> or <CODE>E</CODE> either alone or followed by a decimal digit, or <CODE>x</CODE> or <CODE>X</CODE>
+followed by a hexadecimal digit because of potential ambiguities with exponential or hexadecimal notation.</P>
+
+<H2><A name="unit-expression"></A>Unit Expressions</H2>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>PrimaryExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>null</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>true</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>false</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>public</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>Number</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>this</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>RegularExpression</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-UnitExpression" class=nonterminal>UnitExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-ArrayLiteral" class=nonterminal>ArrayLiteral</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-ObjectLiteral" class=nonterminal>ObjectLiteral</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-FunctionExpression" class=nonterminal>FunctionExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-UnitExpression"></A><SPAN class=nonterminal>UnitExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>Number</SPAN>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-UnitExpression" class=nonterminal>UnitExpression</A>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+</DIV>
+
+<P>A <SPAN class=terminal>Number</SPAN> literal, <A href="../core/expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A>,
+or <A href="#N-UnitExpression" class=nonterminal>UnitExpression</A> followed by a <SPAN class=terminal>String</SPAN> literal
+is a unit expression, which is evaluated as follows:</P>
+
+<P>Evaluate the <SPAN class=terminal>String</SPAN> literal to obtain a string <VAR>S</VAR>. Parse that string according to
+the <A href="unit-patterns.html">unit pattern grammar and semantics</A> to obtain a list of identifiers and exponents [<VAR>id</VAR><SUB class=var-sub>1</SUB><SUP><VAR>e</VAR><SUB class=var-sub>1</SUB></SUP>,
+<VAR>id</VAR><SUB class=var-sub>2</SUB><SUP><VAR>e</VAR><SUB class=var-sub>2</SUB></SUP>, ..., <VAR>id<SUB>n</SUB></VAR><SUP><VAR>e<SUB>n</SUB></VAR></SUP>].
+If the parse fails, signal a syntax error. If the list is empty, let <VAR>U</VAR> be the function <CODE>nullUnit</CODE>, which
+accepts one required and one optional argument and returns its first argument, ignoring the optional argument.</P>
+
+<P>If the list is not empty, for each <VAR>i</VAR> between 1 and <VAR>n</VAR>, let <VAR>V<SUB>i</SUB></VAR> be the value of
+looking up <VAR>id<SUB>i</SUB></VAR> in the system <CODE>unit</CODE> namespace. If <VAR>e<SUB>i</SUB></VAR> is 1, let <VAR>F<SUB>i</SUB></VAR>
+= <VAR>V<SUB>i</SUB></VAR>; otherwise, let <VAR>F<SUB>i</SUB></VAR> = <VAR>V<SUB>i</SUB></VAR><CODE>.public::pow(</CODE><VAR>e<SUB>i</SUB></VAR><CODE>)</CODE>.
+Then let <VAR>U</VAR> = <VAR>F</VAR><SUB class=var-sub>1</SUB><CODE>*</CODE><VAR>F</VAR><SUB class=var-sub>2</SUB><CODE>*</CODE>...<CODE>*</CODE><VAR>F<SUB>n</SUB></VAR>.
+For example, if <VAR>S</VAR> is <CODE>"Kg*m^2/s^2*q"</CODE>, then <VAR>U</VAR> is the value of <VAR>unit</VAR><CODE>::Kg*</CODE><VAR>unit</VAR><CODE>::m.public::pow(2)*</CODE><VAR>unit</VAR><CODE>::s.public::pow(&#8211;2)*</CODE><VAR>unit</VAR><CODE>::q.public::pow(&#8211;1)</CODE>,
+where <VAR>unit</VAR> is the system <CODE>unit</CODE> namespace (the distinction between <VAR>unit</VAR> and the name <CODE>unit</CODE>
+is only relevant for perverse code that has a local definition named <CODE>unit</CODE>; the presence of such a local definition
+doesn&#8217;t affect unit lookup).</P>
+
+<P>The result <VAR>U</VAR> should be callable as a function that accepts one required and one optional argument. The unit
+expression calls <VAR>U</VAR>, providing the numeric value of the <SPAN class=terminal>Number</SPAN> literal, <A href="../core/expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A>,
+or <A href="#N-UnitExpression" class=nonterminal>UnitExpression</A> as the first argument. The second argument is present
+only for the <A href="#N-UnitExpression" class=nonterminal>UnitExpression</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<SPAN class=terminal>Number</SPAN>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<SPAN class=terminal>String</SPAN>
+production, in which case it is the original <SPAN class=terminal>Number</SPAN> literal expressed as a string. Continuing
+the example above, the unit expression <CODE>32.50&nbsp;"Kg*m^2/s^2*q"</CODE>, evaluates to the result of <CODE>(</CODE><VAR>unit</VAR><CODE>::Kg*</CODE><VAR>unit</VAR><CODE>::m.public::pow(2)*</CODE><VAR>unit</VAR><CODE>::s.public::pow(&#8211;2)*</CODE><VAR>unit</VAR><CODE>::q.public::pow(&#8211;1))(32.5,&nbsp;"32.50")</CODE>.
+</P>
+
+<P><VAR>U</VAR>&#8217;s second argument allows user-defined unit classes to define extended syntaxes for numbers. For instance,
+a long-integer package might define a unit called <CODE>"L"</CODE> that treats the <SPAN class=terminal>Number</SPAN> literal
+as a full 64-bit number without rounding it to a float64 first. Such a unit can be combined with other units by listing the
+units one after another; note that the lexer allows the first unit to be <A href="#lexer">unquoted</A> if it directly
+follows the number: <CODE>3L&nbsp;"cm"</CODE> is the same as <CODE>3&nbsp;"L"&nbsp;"cm"</CODE> and evaluates to the result
+of <VAR>unit</VAR><CODE>::cm(</CODE><VAR>unit</VAR><CODE>::L(3,&nbsp;"3"))</CODE>.</P>
+
+<H2>Defining Units</H2>
+
+<P>Units are defined by placing them in the <CODE>unit</CODE> namespace, which is predefined by the system. <A href="#unit-expression">Unit
+expressions</A> are implicitly qualified using the <CODE>unit</CODE> namespace. The unit namespace is not <CODE>use</CODE>d
+by default, so a program needs to explicitly qualify identifiers with <CODE>unit::</CODE> to access existing unit definitions..</P>
+
+<P>The easiest way to define new units is to scale, multiply, or divide existing ones. For example:</P>
+
+<PRE>unit const &micro;m = unit::m/1e6;
+unit const &Aring; = unit::m/1e10;
+unit const dm = unit::m/10;
+unit const \_in = unit::m*0.0254;
+unit const liter = unit::dm.pow(3);</PRE>
+
+<P><CODE>\_</CODE> must be used to define the unit <CODE>in</CODE> because <CODE>in</CODE> is a reserved word. However, the
+unit <CODE>in</CODE> may be used without quoting it, as in the expression <CODE>3in&nbsp;+&nbsp;5cm</CODE>.</P>
+
+<H3><A name="unit-extension"></A>Unit Class Extension</H3>
+
+<P>If <A href="miscellaneous.html#class-extension">class extensions</A> were also added to the language, the class extension
+mechanism could be used instead of a <CODE>unit</CODE> namespace to define units. This way units could be designated as <CODE>internal</CODE>,
+<CODE>private</CODE>, etc.</P>
+
+<P>The <CODE>unit</CODE> attribute would be defined as though</P>
+
+<PRE>const unit = extend(Unit);</PRE>
+
+<P>were evaluated at the top level. <CODE>Unit</CODE> would be the class that holds the definitions of unit names.</P>
+
+<!--/IMPORT-->
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Friday, September 20, 2002</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="operators.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="unit-patterns.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+</BODY>
+</HTML>

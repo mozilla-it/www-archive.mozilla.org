@@ -1,0 +1,80 @@
+<HTML>
+<HEAD>
+   <TITLE>netlib dns</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+netlib dns</H1>
+<B>implementation:</B> ns/lib/libnet/mkconenct.c
+<BR><B>see:</B> net_FindAddress()
+
+<P>In order to resolve host names, netlib uses the standard dns lookup
+mechanism. net_FindAddress() makes the gethostbyname call to lookup the
+ip address for the specified host, and is called from NET_BeginConnect().
+If a numeric ip address is passed into net_FindAddress(), it is passed
+directly into the getHostByName call which will always return success when
+an ip address is passed in. If a successful lookup is made, the result
+is cached in the netlib dns cache (a simple XP_List struct) for a default
+time of 900 seconds (15 minutes). The dns cache expiration time is user
+configurable via the prefs.js file, simply add/edit this line:
+
+<P><TT>user_pref("network.dnsCacheExpiration", 900);</TT>
+
+<P>Dns lookup behavior can be asynchronous or not, depending on whether
+or not a front end specific async dns lookup routine is provided. If an
+async routine is provided, the host name is passed into it along with a
+host entity structure. The first call to the async routine returns the
+"waiting for lookup" value immediately so execution is not blocked, and
+the next_state variable for that connection is updated to "NET_TCP_FINISH_DNS_LOOKUP"
+so netlib knows to call net_FindAddress() again to get the result of the
+lookup. net_FindAddress() is actually called repeatedly until it returns
+success or failure. Upon success the host entity struct is filled out,
+and cached. Upon failure, the host entity struct is freed and the "not
+found" result is passed back up to the caller.
+
+<P>If no async routine is provided, net_FindAddress() makes a direct, blocking
+call to PR_GetHostByName(). If this call returns success, the host entity
+is cached, otherwise memory is free'd and the "not found" result is passed
+back up to the caller.
+<H4>
+Unix</H4>
+On unix platforms netlib provides nonblocking dns lookup behavior by implementing
+it's own routines that maintain an array, on a separate thread, of forked
+processes, each of which makes a blocking gethostbyname call.
+<H4>
+Round Robin Support</H4>
+A single host name may resolve to multiple ip addresses, each of which
+is stored in the host entity returned after a successful lookup. Netlib
+preserves the order in which the dns server returns the ip addresses. If
+at any point during a connection, the ip address currently in use for a
+host name fails, netlib will use the next ip address stored in the host
+entity. If that one fails, the next is queried, and so on. This progression
+through available ip address is accomplished in the NET_FinishConnect()
+function. Before a url load is considered complete because it's connection
+went foul, it's host entity is consulted to determine whether or not another
+ip address should be tried for the given host. Once an ip address fails,
+it's out, removed from the host entity in the cache. If all ip addresses
+in the host entity fail, netlib propegates the "server not responding"
+error back up the call chain.
+
+<P>Netlib used to select an ip address from a particular host's entity
+structure at random, however, since dns servers themselves have started
+to employ load balancing algorithms to determine in what order to return
+the ip address.
+<H4>
+TTL (Time To Live)</H4>
+A dns A-record has a field that designates a ttl time. This ttl time indicates
+how long a particular ip address should be valid, and would ideally be
+consulted during/after a dns lookup to determine how long to cache the
+host entity. However, netlib has not been in the business of working with
+dns at this level, it instead relies on nspr's host name lookup routines
+with currently map to system host name lookup routines, which do not provide
+this level of visibility into the dns lookup. <I>Netlib doesn't use ttl's
+to do smarter caching because ttl's haven't made it through the host name
+lookup apis.</I>
+
+<P><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

@@ -1,0 +1,243 @@
+<HTML>
+<HEAD>
+   <META NAME="Author" CONTENT="Rick Elliott">
+   <META NAME="description" CONTENT="What's new in this version of the kit?">
+   <META NAME="keywords" CONTENT="localization kits, release notes, what's new">
+   <TITLE>Release Notes</TITLE>
+</HEAD>
+<BODY TEXT="#000000" BGCOLOR="#FFFFFF" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<CENTER>
+<IMG SRC="release-notes.gif">
+</CENTER>
+
+<H1>
+<CENTER>localization kit release notes</H1>
+<H2>
+version 4.05</H2>
+</CENTER>
+
+These are the current release notes for the localization kit for
+Communicator and Navigator for 32 bit Windows. Please ignore any 
+localization kit release notes that might have been previously 
+installed on your system. 
+
+<P>
+<HR SIZE=3>
+<P>
+
+These release notes include: 
+<UL>
+	<LI><A HREF="#whats_new">What's New in this localization kit</A></LI>
+	<LI><A HREF="#known_issues">Known issues</A></LI>
+	<LI><A HREF="#leveraging">Leveraging from previous versions</A></LI>
+</UL>
+
+<HR SIZE=3>
+
+<A NAME="whats_new"></A>
+<H3>
+What's New in this Kit</H3>
+This kit is the first update to the publicly available localization kits being
+distributed under Netscape's universal localization program. The first kit 
+was based on Communicator version 4.03; this kit is based on version 4.05. 
+For information on the changes and improvements made to Communicator and Navigator
+4.05, please read the product release notes 
+<A HREF="http://home.netscape.com/eng/mozilla/4.0/relnotes/windows-4.0.html">here:</A>
+<P>
+(http://home.netscape.com/eng/mozilla/4.0/relnotes/windows-4.0.html)
+<P>
+From the standpoint of localization, there are no major new components to translate,
+although a fair number of strings and other User Interface elements have changed
+since 4.03. (Our internal word counts showed some 800 words changed between 4.03 and
+4.04, and some 3,000 words changed between 4.04 and 4.05). If you are localizing 
+Communicator for the first time, these changes will be of no consequence to you. 
+If, however, you have previously localized version 4.03 and wish to preserve your 
+earlier work, please read the next two sections carefully.
+
+<HR SIZE=3>
+
+<A NAME="known_issues"></A>
+<H3>
+Known Issues</H3>
+
+As noted above, a large number of user visible strings changed between versions 
+4.04 and 4.05. These changes are largely due to the reorganizing of the so-called
+"Security Advisor" dialogs. These dialogs are cross-platform string resources
+derived from HTML pages; they are visible when the user chooses Communicator | 
+Security Info from the main menus, or presses any of the Security icons or buttons
+in the product. They range in resource ID from STRINGTABLE30000 to STRINGTABLE32597.
+The reorganization of these resources included changing some of the original
+text, adding new strings, deleting old strings and changing the resource IDs of 
+existing strings. In some cases, both the text and the ID changed simultaneously. 
+These changes will make leveraging (automatically re-using) earlier translation 
+work difficult. These changes were made for the following reasons:
+
+<UL>
+	<LI>Previously, if a group of strings required contiguous ID numbers, there was no way 
+	to add a string to the group without moving other strings.</LI> 
+	
+	<LI>The old Security build system did not know how to build the security strings in 
+	ALLXPSTR.H without assigning consecutive ID numbers at build time
+	(this has now been addressed). </LI>
+
+	<LI>A table of resource names had to be moved down in "ID Space" so that the Security 
+	strings would not run out of IDs. </LI>
+</UL>
+
+If you plan on leveraging a previous translation into 4.05, using DogLev or another 
+resource leveraging tool that depends on matching resource IDs, you will need to deal
+with these changes. The section below discusses the approach we used at Netscape to 
+address this issue.
+
+<HR SIZE=3>
+
+<A NAME="leveraging"></A>
+<H3>
+Leveraging from Previous Versions</H3>
+
+&quot;Leveraging&quot; is the term we use to describe the process of
+reusing translations from one version to the next. This avoids the 
+cost and effort of retranslating items for which we already have usable
+translations.
+<P>
+DogLev is the Netscape Leveraging tool for Windows resources. It is 
+provided as part of this localization kit to help you preserve your
+translation investment. You are not required to use this tool, but
+if you choose to use it, please consult the 
+<A HREF="../dogTool/dogToolUG.html">Netscape Translation Tools Users Guide</A>
+for more information DogLev and ToolCool (the resource editing 
+component of the translation tool set).
+<H4>
+Leveraging the 4.03 or 4.04 Security Advisor Strings</H4>
+As mentioned above, you will need to deal with the changed resources 
+in the Security Advisor strings. 
+<P>
+Following this section, there is a link to a .ZIP file containing several files, 
+including a Windows resource script (.rc) file. This file contains the new 
+STRINGTABLE resources from 4.05. Strings which have changed from 4.04 
+are identified using standard C comments: 
+
+<BR>
+<FONT COLOR=green>
+// Previously <I>n</I>
+</FONT>
+<BR>
+where <I>n</I> is equal to the resource's ID value in version 4.04.
+<P>
+
+Also included in this .ZIP file is a perl script, a modified version of 
+the 4.04 resdll.dll file and a couple of supporting files. You can use 
+these to create a leveragable version of your localized 4.04 or 4.03 product
+in the following way:
+
+<P>
+<OL>
+	<LI>Download the attached .ZIP file and unzip the contents.</LI>
+	<P>
+	<LI>Make sure that allxpstr_win32.txt is in the current directory.</LI>
+	<P>
+	<LI>In Developer Studio or similar resource editor, create a new
+	resource script file, and copy all of the string tables from your
+	localized resdll.dll into the empty resource script.</LI>
+	<P>
+	<LI>Save the new resource script (we'll assume you call it old_strs.rc).</LI>
+	<P>
+	<LI>Run the Perl script, pulling your old strings from standard input,
+	and redirecting the output into a new resource script file
+	(we'll use "new_strs.rc"):
+	<P>
+		<UL>
+		<B><TT>perl convert_404_st.pl < old_strs.rc > new_strs.rc</B></TT>
+	    </UL>
+	<P>
+	If all goes well, your new string file should open up as a resource
+	script in Developer Studio.  Fix any errors found by the compiler
+	(in our tests, we had no such problems, although the script could 
+	potentially generate an empty STRINGTABLE, which Developer Studio
+	doesn't like).</LI>
+	<P>
+	<LI>Make a copy of your localized 4.04 resdll.dll, and delete the 
+	entire string table from the copy.</LI>
+	<P>
+	<LI>Copy the "shifted" strings from your new_strs.rc file into the 
+	copy of your localized DLL, and save the changes.</LI>
+</OL>
+<P>
+The new "shifted" localized DLL can now be used to leverage with the
+old "shifted" US file, and will result in better results when leveraged
+against 4.05. A copy of the shifted 4.04 US resdll.dll is contained in the
+.ZIP file.
+<P>
+The above steps will also work with 4.03, however, you may need to adjust a 
+small number of strings after processing. These will most likely be identified
+as ID ONLY matches in ToolCool's REASON field.
+<P>
+NOTE: You may want to adjust the .rc file's language settings to account 
+for your language's requirements.
+
+<P>
+If you try to leverage without addressing the changed resource IDs first, 
+you will have the cross platform Security Advisor strings scattered through the
+product at random IDs. This will cause the program to malfunction or even crash.
+<P>
+The alternative to the steps above is to releverage from 4.04, but first
+remove the cross platform (XP) strings from the string table. This will
+treat all the XP strings as new (NO MATCH) and they will be in English. You
+can then retranslate them.  
+<P>
+Hint: if you used the .dbf files to keep your translations up to date you can 
+use ToolCool to "Import from Glossary". This might save you some work. Here's 
+how to do this:
+<OL>
+	<LI>Open your resdll.dbf in ToolCool.</LI>
+	<LI>Choose Export | Text and save as resdll.txt.</LI>
+	<LI>Do the leveraging described above.</LI>
+	<LI>Open the newXL resdll.dbf</LI>
+	<LI>Choose "Import from Glossary" and select resdll.txt you created in step
+     2.</LI>
+	<LI>This will look up translations from the resdll.txt and try to match
+     them to resdll.dbf.</LI>
+	<LI>When that is done, choose Save and update RESDLL.DLL.</LI>
+</OL>
+<P>
+(This may not be perfect but it might save you some retranslation work).
+
+<P>
+Download the <A HREF="sec-dlg-hack.zip">Security Advisor ZIP file</A> here.
+<P>
+
+<CENTER><TABLE COLS=3 WIDTH="50%" >
+<TR>
+<TD>
+<CENTER>[<A HREF="splash.html">BACK</A>]</CENTER>
+</TD>
+
+<TD>
+<CENTER>[<A HREF="projectOverview.html">NEXT</A>]</CENTER>
+</TD>
+
+<TD>
+<CENTER>[<A HREF="toc.html">CONTENTS</A>]</CENTER>
+</TD>
+</TR>
+</TABLE></CENTER>
+
+<CENTER><BR>
+<FONT FACE="Arial, Helvetica"><FONT SIZE=-2>1998, Copyright Netscape Communications
+Corp. All Rights Reserved</FONT></FONT></CENTER>
+
+</BODY>
+</HTML>
+
+
+
+
+
+
+
+
+
+
+
+

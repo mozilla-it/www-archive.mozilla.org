@@ -1,0 +1,169 @@
+<HTML>
+<head>
+<title>From Dynatable demo</title>
+<script>
+	//-------------------------------------------------------------------------------------
+	// start function 
+	//
+	// This function is called when the page is loaded. 
+	// See the onload="start()" attribute in the body tag. 
+	//
+	function start() {
+		//--------------------------------------------------------------------
+		// Adding beginDrag function as event listener for mousedown event
+		// at dd_image and dd_resize elements. 
+		//
+		// NOTE: dd_image is the div that contains the jpg image.  
+		// dd_resize is a small image used as icon to resize the dd_image.
+		//
+		document.getElementById("dd_image").addEventListener("mousedown",beginDrag, false);
+		document.getElementById("dd_resize").addEventListener("mousedown",beginDrag, false);
+
+	}
+
+	//-------------------------------------------------------------------------------------
+	// doDrag event - called when dragging
+	//
+	function doDrag(e) {
+		
+		// Calculates the difference between the last mouse position
+		// and the current position. 
+		//
+	        var difX=e.clientX-window.lastX;
+	        var difY=e.clientY-window.lastY;
+
+		// If mode equals resize... (see beginDrag function)
+		//
+		if(dd_mode=="resize") {
+
+			// Then the drag operation is just for the little resize icon.
+			// 
+
+			// Retrieves the x and y position for the dd_resize2 div and adding 
+			// the dif value.
+			// NOTE that the dd_resize2 includes the dd_resize image (icon).
+			//
+		        var newX1 = parseInt(document.getElementById("dd_resize2").style.left)+difX;
+		        var newY1 = parseInt(document.getElementById("dd_resize2").style.top)+difY;
+	
+			// Sets the new position 
+		        document.getElementById("dd_resize2").style.left=newX1+"px";
+		        document.getElementById("dd_resize2").style.top=newY1+"px";
+
+		} else {
+			// Same thing but now for dd_area...
+			// In this case the user is dragging the image instead the little resize icon. 
+			//
+		        var newX1 = parseInt(document.getElementById("dd_area").style.left)+difX;
+		        var newY1 = parseInt(document.getElementById("dd_area").style.top)+difY;
+
+		        document.getElementById("dd_area").style.left=newX1+"px";
+		        document.getElementById("dd_area").style.top=newY1+"px";
+		}
+
+		// Stores the current mouse position.
+		//
+	        window.lastX=e.clientX;
+	        window.lastY=e.clientY;
+
+	}
+
+	//----------------------------------------------------------------------------
+	// When drag begins, this function is called.. see addEventListener calls 
+	// in start function. 
+	//
+	function beginDrag(e) {
+		e.preventDefault();
+
+		// Stores the current mouse position for further use.
+		//
+	        window.lastX=e.clientX;
+	        window.lastY=e.clientY;
+
+		// Register doDrag event handler to receive generic onmousemove events. 
+		//
+	        window.onmousemove=doDrag;
+
+		// Register endDrag event handler to receive generic onmouseup events. 
+		//
+	        window.onmouseup=endDrag;
+
+		// Verify the attribute of the event's target. 
+
+		myattr=e.target.getAttribute("ID");
+
+		if(myattr=="dd_resize") {
+			// If the attribute's value is dd_resize,
+			// the user clicked over the dd_resize image, 
+			// and the dd_mode should be resized.
+
+			dd_mode="resize";
+		} else {
+			// Else the user just clicked over the image, so the mode is set to drag. 
+			//
+			dd_mode="drag";			
+		}
+	}
+	
+	//----------------------------------------------------------------------------
+	// Called when the mouse button is released
+	//
+	function endDrag(e) {
+
+		// Releases the onmousemove event.
+
+	        window.onmousemove=null;
+
+		// If the operation is resize then...
+		if(dd_mode=="resize") {
+			
+			// DOM Steps to resize the image.
+
+			// Stores the x and y position of the dd_resize2 icon area and the dd_image are
+			var oldX1 = parseInt(document.getElementById("dd_resize2").style.left);
+		        var oldY1 = parseInt(document.getElementById("dd_resize2").style.top);
+			var oldX2 = parseInt(document.getElementById("dd_image").style.left);
+		        var oldY2 = parseInt(document.getElementById("dd_image").style.top);
+
+ 			// Since user was resizing by dragging the dd_resize2 div element, the
+			// oldX1 and oldY1 values represent the new resize position. 
+
+			// In this case, the difference between oldX1 and oldX2 is the new width.
+			ddx=oldX1-oldX2;
+	
+			// And the difference between oldY1 and oldY2 is the new height.
+			ddy=oldY1-oldY2;
+
+			// Dynamicallty sets the width and height attributes.
+			imagg=document.getElementById("img");
+			imagg.setAttribute("width",""+ddx+"");
+			imagg.setAttribute("height",""+ddy+"");
+
+			// dd_area is an area in the background of the image. It is a border.
+			// Its width and height values are the same as those for ddx and ddy plus 2 pixels. 
+			// NOTE that dd_area in the HTML is a single div with gray background, 
+			// so the size can be changed directly by setting style width and height
+			// properties. 
+			//
+			ndx=ddx+2;
+			document.getElementById("dd_area").style.width=ndx+"px";
+			ndy=ddy+2;
+			document.getElementById("dd_area").style.height=ndy+"px";
+		}
+	}
+</script>
+</head>
+<body onload="start()">
+<div id="dd_area"  style="position:absolute;left:0px;top:0px;width:598px;height:216px;background-color:gray">
+<div id="dd_image" style="position:absolute;left:1px;top:1px">
+<img id="img" src="geckosmic.jpg" width="597" >
+</div>
+<div id="dd_resize2" style="position:absolute;left:599px;top:217px;">
+<img id="dd_resize" src="resizeicon.gif">
+</div>
+</div>
+</body>
+</HTML>
+
+
+

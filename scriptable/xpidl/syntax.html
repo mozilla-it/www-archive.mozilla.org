@@ -1,0 +1,296 @@
+<!doctype html public "-//W3C//DTD HTML4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+    <title>XPIDL syntax</title>
+  <script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+  
+
+  
+
+    <h1 ALIGN=CENTER>XPIDL syntax (strawman)</h1>
+    <CENTER><!-- Created: Thu Sep  3 11:58:55 EDT 1998 -->
+      <!-- hhmts start -->
+Last modified: Mon Dec 14 15:14:10 EST 1998
+<!-- hhmts end --></CENTER>
+    <P>
+      XPIDL should be able to faithfully represent XPCOM interfaces, with
+      minimal change to the interface introduced during the switch from
+      hand-coded interfaces to generated ones.
+    <P>
+      Some thoughts on XPIDL and XPCOM:<BR>
+    <UL>
+      <LI> <TT>NS_IMETHOD</TT> is the near-universal return type for
+	XPCOM interface methods, so that methods can use a consistent
+	protocol for reporting errors.  In IDL, we'll say that the
+	method returns <TT>void</TT> and <TT>raises (nsError)</TT>.  Where
+	the <TT>NS_IMETHOD_(type)</TT> macro is used for a method, we will
+	instead return <TT>type</TT> and still raise <TT>nsError</TT>.
+	(The <TT>nsError</TT> IDL specification will include a type field
+	compatible with the <TT>NS_*</TT> defines, etc.) <B>Update</B>:
+	I'm now thinking of doing away with the <TT>raises nsError</TT>
+	setup, and just moving away from <TT>NS_IMETHOD_(type)</TT> in
+	C++ headers.  This will require a one-time update of the various
+	interfaces to have an additional <TT>out</TT> parameter to replace the
+	old return type, but that's not too bad of a scene. <B>Resolution</B>:
+	the return type, if non-<TT>void</TT> will become a final out param,
+	except when it has to appear after the varargs entry (q.v.).
+      </LI>
+      <LI> Many interfaces specify methods of the form <TT>SetFoo</TT> without
+	a corresponding <TT>GetFoo</TT> method.  Using the IDL <TT>attribute
+	  int foo</TT> syntax will cause a <TT>GetFoo</TT> to be generated as
+	well.  I don't think that's a big deal, but if it is we could try
+	adding a <TT>writeonly</TT> attribute or something. </LI>
+      <LI> OMG IDL doesn't have a notion of <TT>in nsIFoo *aFooPtr</TT>, so
+	we need to either agree that any <TT>in nsIFoo</TT> is passed as
+	<TT>nsIFoo *aFooPtr</TT> in C++, and therefore switch the use of
+	<TT>nsRect &aRect</TT> to be <TT>nsRect *aRectPtr</TT> or something.
+	Ideas are more than welcome. <B>Resolution</B>: all interfaces are
+        passed as pointers (double-indirect for
+	<TT>out</TT>/<TT>inout</TT>), and we'll do the same for structs, I
+        think.  (Some resolution.)</LI>
+      <LI> We need varargs and probably a ``function'' type for some of the DOM
+	stuff, and that sort of thing might be generally useful.  Given JS
+	impersonation of XPCOM interfaces, we could do the CORBA thing and
+	just require that an object has methods (properties?) with the right
+	names, which might take care of the ``function type''.
+	  For varargs, I think I'll turn something like:<BR>
+      <CODE>void method(in string arg1, ...);</CODE><BR>
+      into:<BR>
+      <CODE>NS_IMETHOD method(nsString *arg1, const char *varfmt, ...);</CODE>
+	<B>Resolution</B>: The IDL will use <TT>...</TT>, and that will become
+	<TT>nsVarArgs *_varargs</TT>, where <TT>nsVarArgs</TT> is likely
+	a struct.  Function type will be provided by JS impersonation of XPCOM
+	interfaces, which will just generally rock.
+      </LI>
+    </UL>
+
+    Sample IDL for <A HREF="http://lxr.mozilla.org/mozilla/source/widget/public/nsIToolbar.h">nsIToolbar</A>:<P>
+    <BLOCKQUOTE><PRE>
+    interface nsIToolbar : nsISupports {
+
+      readonly attribute boolean visible;
+      attribute int hGap;
+      attribute int vGap;
+      attribute int margin;
+      attribute boolean horizontalLayout;
+      attribute boolean lastItemIsRightJustified;
+      attribute boolean lastItemIsStretchy;
+      attribute nsIToolbarManager toolbarManager;
+      attribute nsToolbarBorderType borderType;
+      attribute boolean wrapping;
+
+      void AddItem(in nsIToolbarItem anItem,
+                   in int aLeftGap,
+                   in boolean stretchable);
+
+      void InsertItemAt(in nsIToolbarItem anItem,
+	                in int aLeftGap,
+                        in boolean aStretchable,
+                        in int anIndex);
+      
+      void GetItemAt(out nsIToolbarItem anItem,
+                     in int anIndex);
+
+      void GetPreferredSize(out int aWidth,
+                            out int aHeight);
+
+      void GetPreferredConstrainedSize(in int aSuggestedWidth,
+                                       in int aSuggestedHeight,
+                                       out int aWidth,
+                                       out int aHeight);
+
+      void DoLayout();
+
+      nsEventStatus HandleEvent(in nsGUIEvent aEvent);
+
+      nsEventStatus OnPaint(in nsIRenderingContext aRenderingContext,
+                            in nsRect aDirtyRect);
+
+      void CreateTab(out nsIWidget aTab);
+
+    }
+      </PRE></BLOCKQUOTE>       
+    More sample IDL:
+    <BLOCKQUOTE><PRE>
+#include "nsISupports.idl"
+
+%{ C++
+/* this goes into the C++ header verbatim. */
+#include "someCplusplus.h"
+rawType rawVar;
+%}
+
+[
+        uuid(4A781D61-3D28-11d2-8DB8-00609703C14E)
+]
+interface nsITest : nsISupports {
+  /* a comment */
+  attribute boolean visible;
+  readonly attribute string name;
+
+  /* method with a return type */
+  boolean method(in string bogo, out string mips);
+
+  /* a varargs method */
+  void printf(in string format, ...);
+
+  /* a varargs with return */
+  long sprintf(out string filled, in string format, ...);
+
+};</PRE></BLOCKQUOTE>
+   The output (still needs some pretty-printing and stuff):
+<BLOCKQUOTE><PRE>
+/*
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsITest.idl
+ */
+
+#ifndef __nsITest_h__
+#define __nsITest_h__
+
+#include "nsISupports.h" /* interface nsISupports */
+
+/* this goes into the C++ header verbatim. */
+#include "someCplusplus.h"
+rawType rawVar;
+
+/* starting interface nsITest */
+
+/* {4A781D61-3D28-11d2-8DB8-00609703C14E} */
+#define NS_ITEST_IID_STR "4A781D61-3D28-11d2-8DB8-00609703C14E"
+#define NS_ITEST_IID \
+  {0x4A781D61, 0x3D28, 0x11d2, \
+    { 0x8D, 0xB8, 0x00, 0x60, 0x97, 0x03, 0xC1, 0x4E }}
+
+class nsITest : public nsISupports {
+ private:
+  void operator delete(void *); // NOT TO BE IMPLEMENTED
+
+ public: 
+  static const nsIID& IID() {
+    static nsIID iid = NS_ITEST_IID;
+    return iid;
+  }
+
+  /* attribute boolean visible; */
+  NS_IMETHOD IsVisible(PRBool *aIsVisible);
+  NS_IMETHOD SetVisible(PRBool aVisible) = 0;
+
+  /* readonly attribute string name; */
+  NS_IMETHOD GetName(char * *aName) = 0;
+
+  /* boolean method(in string bogo, out string mips); */
+  NS_IMETHOD method(const char *bogo, char **mips, PRBool *_retval) = 0;
+
+  /* void printf(in string format, ...); */
+  NS_IMETHOD printf(const char *format, ...) = 0;
+
+  /*  sprintf(out string filled, in string format, ...); */
+  NS_IMETHOD sprintf(char **filled, const char *format,
+                     PRInt32 *_retval, ...) = 0;
+};
+
+#endif /* __nsITest_h__ */
+
+    </PRE></BLOCKQUOTE>
+
+    <hr>
+    <address><a href="mailto:shaver@netscape.com">Mike Shaver</a></address>
+  
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified July  5,  2000</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/scriptable/xpidl/syntax.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

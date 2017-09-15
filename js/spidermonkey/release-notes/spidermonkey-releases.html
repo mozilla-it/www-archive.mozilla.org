@@ -1,0 +1,871 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+  <meta name="generator" content=
+  "HTML Tidy for Cygwin (vers 1st September 2004), see www.w3.org" />
+  <meta http-equiv="CONTENT-TYPE" content="text/html; charset=us-ascii" />
+
+  <title>Producing Spidermonkey Javascript Releases</title>
+<style type="text/css">
+/*<![CDATA[*/
+pre {border: solid 1px black; color: black;}
+kbd { font-family: italic; font-weight: 700; color: blue;}
+kbd var { text-decoration: underline; }
+/*]]>*/
+</style>
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+  <h1>Producing Spidermonkey JavaScript Releases</h1>
+
+  <p>This document details how to produce a new Spidermonkey release
+  <var>newversion</var> with release tag
+  <code>JS_<var>newversion</var></code>.</p>
+
+  <h2>Prerequisites</h2>
+
+  <ul>
+    <li>
+      <p><strong>You must either perform these procedures on a Unix/Linux box
+      or under Cygwin (Windows) with Unix line endings.</strong></p>
+    </li>
+
+    <li>
+      <p><strong>Ask Brendan if there are any temporary fixes in js/src that
+      would be inappropriate to release (e.g. DOM hacks, etc.)</strong></p>
+    </li>
+
+    <li>
+      <p><strong>You should plan on updating
+      <code>JS_GetImplementationVersion()</code> in jsapi.c prior to any code
+      freezes which may affect your ability to check in changes into
+      CVS.</strong></p>
+    </li>
+  </ul>
+
+  <h2>Document Conventions</h2>
+
+  <p>All examples are written as if user <em>foo</em> was working on his local
+  machine <em>bar.com</em>.</p>
+  <pre>
+black text is normal prompt
+
+# lines beginning with # are inline comments describing the procedure
+
+<kbd>blue text is user input.</kbd>
+
+<kbd><var>underlined blue text is a variable value which must be substituted</var>.</kbd>
+
+# the login name, machine name and directory path for each command
+# are displayed as the <em>prompt</em>:
+
+foo@bar.com:path
+$
+
+# commands are split into shorter segments using \
+# to continue the command across line boundaries. 
+# this helps keep the width of the page manageable.
+#
+foo@bar.com:path
+$<kbd>this is a very long \
+command that has been split into shorter lines \
+for presentation purposes</kbd>
+</pre>
+
+  <h2>Directory locations</h2>
+
+  <p>This discussion assumes that files are placed in your home directory
+  <code>~</code> underneath the <code>SpiderMonkey</code> sub-directory.</p>
+  <pre>
+foo@bar.com:~
+$<kbd>mkdir SpiderMonkey</kbd>
+
+foo@bar.com:~
+$<kbd>cd SpiderMonkey</kbd>
+
+foo@bar.com:~/SpiderMonkey
+$
+  
+</pre>
+
+  <p>Set up CVS to use ssh</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey
+$<kbd>export CVS_RSH=ssh</kbd>
+  </pre>
+
+  <h2>Checkout Release Notes</h2>
+
+  <p>You will need to add new release notes for the release to <a href=
+  "http://www.mozilla.org/js/spidermonkey/release-notes/">http://www.mozilla.org/js/spidermonkey/release-notes/</a>.
+  See <a href="http://www.mozilla.org/contribute/writing/cvs">CVS Access to the
+  Website Tree</a> for information about getting an account.</p>
+
+  <p>Checkout the Spidermonkey release notes</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey
+$<kbd>cvs -z3 -d ":ext:<var>foo%bar.com</var>@cvs-www.mozilla.org:/cvsroot" \
+co -d release-notes mozilla-org/html/js/spidermonkey/release-notes</kbd>
+
+foo@bar.com:~/SpiderMonkey
+$
+</pre>
+
+  <h2>Obtain the previous release</h2>
+
+  <p>If you do not already have the source for the previous release, download
+  the tarball
+  <code>ftp://ftp.mozilla.org/pub/mozilla.org/js/js-<var>oldversion</var>.tar.gz</code>
+  of the previous release <code>JS_<var>oldversion</var></code> from
+  <code><a href=
+  "ftp://ftp.mozilla.org/pub/mozilla.org/js/">ftp://ftp.mozilla.org/pub/mozilla.org/js/</a></code></p>
+  <pre>
+foo@bar.com:~/SpiderMonkey
+$<kbd>mkdir <var>oldversion</var></kbd>
+
+foo@bar.com:~/SpiderMonkey
+$<kbd>cd <var>oldversion</var></kbd>
+
+foo@bar.com:~/SpiderMonkey/<var>oldversion</var>
+$<kbd>wget ftp://ftp.mozilla.org/pub/mozilla.org/js/js-<var>oldversion</var>.tar.gz</kbd>
+
+foo@bar.com:~/SpiderMonkey/<var>oldversion</var>/
+$<kbd>tar -zxvf js-<var>oldversion</var>.tar.gz</kbd>
+
+foo@bar.com:~/SpiderMonkey/js_<var>oldversion</var>
+$<kbd>cd ~/SpiderMonkey</kbd>
+
+foo@bar.com:~/SpiderMonkey
+$
+</pre>
+
+  <h2>Checkout the appropriate version of SpiderMonkey.</h2>
+
+  <p>Create the directory where your working copies will be located.</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey
+$<kbd>mkdir <var>newversion</var></kbd>
+  
+foo@bar.com:~/SpiderMonkey
+$<kbd>cd ~/SpiderMonkey/<var>newversion</var></kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>
+$<kbd>mkdir js</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>
+$<kbd>cd js</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js
+$
+</pre>
+
+  <div>
+    <p>Releasing from the trunk</p>
+    <pre>
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js
+$<kbd>cvs -z3 -q -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+   co -d src mozilla/js/src</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js
+$<kbd>cvs -z3 -q -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+   co -d jsd mozilla/js/jsd</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js
+$<kbd>cd src</kbd>
+
+#
+# xpconnect is not part of SpiderMonkey, so remove it.
+#
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js/src
+$<kbd>rm -fR xpconnect/</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js/src
+$<kbd>cvs -z3 -q -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+   update -d config liveconnect/config perlconnect editline</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js/src
+$ 
+  
+</pre>
+  </div>
+
+  <div>
+    <p>Releasing from a Tag or Branch</p>
+    <pre>
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js
+$<kbd>cvs -z3 -q -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+   co -d src -r <var>TAG</var> mozilla/js/src</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js
+$<kbd>cvs -z3 -q -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+   co -d jsd -r <var>TAG</var> mozilla/js/jsd</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js
+$<kbd>cd src</kbd>
+
+#
+# xpconnect is not part of SpiderMonkey, so remove it.
+#
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js/src
+$<kbd>rm -fR xpconnect/</kbd>
+
+#
+# the following directories only exist on the trunk.
+# so you must use <code>update -A</code>
+#
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js/src
+$<kbd>cvs -z3 -q -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+   update -A -d config liveconnect/config perlconnect editline</kbd>
+
+foo@bar ~/SpiderMonkey/<var>newversion</var>/js/src
+$ 
+  
+</pre>
+  </div>
+
+  <h3>Build the debug JS shell</h3>
+
+  <blockquote>
+    If you are building under Windows with MSVC, you must build from a DOS
+    command shell. The following commands will work both under Unix/Linux and
+    Windows.
+  </blockquote>
+
+  <p><strong>Set up your build environment as you would when building debug
+  Seamonkey or debug Mozilla Firefox and build the debug js shell.</strong></p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/js/src
+$<kbd>make -f Makefile.ref</kbd>
+</pre>
+
+  <h3>Build the optimized JS shell</h3>
+
+  <p><strong>Set up your build environment as you would when building optimized
+  Seamonkey or optimized Mozilla Firefox and build the optimized js
+  shell.</strong></p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/js/src/
+$<kbd>make -f Makefile.ref BUILD_OPT=1</kbd>
+
+</pre>
+
+  <p>check the JS version by doing ./js --help</p>
+
+  <p>run the JS testsuite on it in and compare the failures to those listed in
+  the release notes. Remove any bugs listed as fixed which do not pass.</p>
+
+  <h3>Remove the object directories containing the compiled js shell.</h3>
+
+  <pre>
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/js/src/
+$<kbd>rm -fR *.OBJ</kbd>
+
+</pre>
+  <h3>Update JS_GetImplementationVersion()</h3>
+
+  <p>If you are releasing SpiderMonkey from the trunk or a branch, you should
+  update <code>JS_GetImplementationVersion()</code> in jsapi.c to the
+  appropriate date and version of the release and check this change into the
+  trunk or the appropriate branch before tagging. File a new bug for the
+  version change in Core:JavaScript Engine, get approvals, etc and check in the
+  change.</p>
+
+  <p>If you are releasing SpiderMonkey from a previous Firefox release tag and
+  did not already update <code>JS_GetImplementationVersion()</code>, you should
+  just live with that fact.</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/js/src
+$<kbd>emacs jsapi.c</kbd>
+
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/js/src
+$<kbd>cvs -z3 -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+ci -m "bug xxxxx, updating JS_GetImplementationVersion() for SpiderMonkey <var>version</var>" jsapi.c</kbd>
+
+</pre>
+
+  <h2>Determine the Spidermonkey Release Tags</h2>
+
+  <p>Each release is <em>tagged</em> in CVS using a release tag of the form
+  <code>JS_<var>version</var></code>. Release candidates may have
+  <var>_RCn</var> appended to <var>version</var> to indicate the
+  <var>n<sup>th</sup></var> release candidate.</p>
+
+  <p>To check previous SpiderMonkey release tags:</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/js/src
+$<kbd>cvs -z3 -q -d ":pserver:anonymous@cvs-mirror.mozilla.org:/cvsroot" \
+   log js.c | egrep JS_[0-9]+\(_RC[0-9a-z]+\)?:</kbd>
+        JS_150: 3.80
+        JS_150_RC6a: 3.77
+        JS_150_RC6: 3.76
+        JS_150_RC5a: 3.65
+        JS_150_RC5: 3.61
+        JS_150_RC4a: 3.57
+        JS_150_RC4: 3.53
+        JS_150_RC3a: 3.46
+        JS_150_RC3: 3.44.0.4
+        JS_150_RC2: 3.29.0.4
+        JS_150_RC1: 3.25
+
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/js/src
+$
+</pre>
+
+  <p>Determine the release tag of the previous release, pick the next release
+  tag and update this document
+  (<code>~/SpiderMonkey/release-notes/spidermonkey-releases.html</code>).</p>
+
+  <table border="1" summary="Spidermonkey Releases">
+    <caption>
+      Spidermonkey Releases
+    </caption>
+
+    <thead>
+      <tr>
+        <th>Release Tag</th>
+
+        <th>Date</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr>
+        <td>JS_160</td>
+
+        <td>2006-11-21</td>
+      </tr>
+
+      <tr>
+        <td>JS_150</td>
+
+        <td>2005-09-28</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC6a</td>
+
+        <td>2004-06-09</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC6</td>
+
+        <td>2004-01-27</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC5a</td>
+
+        <td>2003-05-29</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC5</td>
+
+        <td>2003-01-10</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC4a</td>
+
+        <td>2002-03-21</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC4</td>
+
+        <td>2002-01-01</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC3a</td>
+
+        <td>2001-05-11</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC3</td>
+
+        <td>2001-03-07</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC2</td>
+
+        <td>2000-08-10</td>
+      </tr>
+
+      <tr>
+        <td>JS_150_RC1</td>
+
+        <td>2000-03-03</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Update the Change Log for this release.</h2>
+
+  <p>The Change Log is supposed to contain a list of all bugs fixes in
+  SpiderMonkey since the last release. There are two major sources for
+  determining the bugs that have been fixed.</p>
+
+  <ol>
+    <li>Bugzilla
+
+      <p>Do a Bugzilla query on all bugs with:</p>
+
+      <p>Product <b>Core</b>, Component <b>JavaScript Engine</b>, Where
+      <b>Resolution</b> changed to <b>FIXED</b> between <b>last release
+      date</b> to <b>(the release date; hard-coded)</b> [<b>DON'T</b> use
+      keyword "Now"] (affects generated links).</p>
+
+      <p>Change the column settings for the bugzilla query to only include the
+      following columns: ID, Summary</p>
+
+      <p>Depending on the circumstances, you can limit the query to a specific
+      Gecko branch by using the <code>fixed<var>branch</var></code> and
+      <code>verified<var>branch</var></code> keywords.</p>
+
+      <p>Use the following JavaScript bookmarklet to change your bugzilla query
+      into a query which uses bug numbers.</p>
+
+      <div style="border: solid black 2px; float: right;">
+        <p>Bookmarklet to convert bugzilla query list to bugzilla id list</p>
+        <pre style="overflow: scroll;">
+<a href=
+"javascript:(function(){var%20y,i,L,x,a;%20y%20=%20'';%20for%20(i%20=%200;%20i%20%3C%20document.links.length;%20++i)%20{%20L%20=%20document.links[i];%20x%20=%20L.href;%20a%20=%20L.innerHTML;%20if%20(x.substring(0,45)%20==%20'https://bugzilla.mozilla.org/show_bug.cgi?id='%20&amp;&amp;%20x%20!=%20document.location.href%20&amp;&amp;%20a%20!=%20'First'%20&amp;&amp;%20a%20!=%20'Last'%20&amp;&amp;%20a%20!=%20'Prev'%20&amp;&amp;%20a%20!=%20'Next')%20y%20+=%20','%20+%20parseInt(x.substring(45,62))%20}%20if(y.length)%20document.location.href='https://bugzilla.mozilla.org/buglist.cgi?bugidtype=include&amp;order=bugs.bug_id&amp;bug_id='%20+%20y;%20else%20alert('no%20buglinks%20on%20this%20page');%20})();">javascript:(function(){var y,i,L,x,a; y = ''; for (i = 0; i &lt; document.links.length; ++i) { L = document.links[i]; x = L.href; a = L.innerHTML; if (x.substring(0,45) == 'https://bugzilla.mozilla.org/show_bug.cgi?id=' &amp;&amp; x != document.location.href &amp;&amp; a != 'First' &amp;&amp; a != 'Last' &amp;&amp; a != 'Prev' &amp;&amp; a != 'Next') y += ',' + parseInt(x.substring(45,62)) } if(y.length) document.location.href='https://bugzilla.mozilla.org/buglist.cgi?bugidtype=include&amp;order=bugs.bug_id&amp;bug_id=' + y; else alert('no buglinks on this page'); })();</a>
+
+</pre>
+      </div>
+
+      <p>The easiest approach is to copy the previous change to the new version
+      (<code>~/SpiderMonkey/release-notes/JS_<var>version</var>.html</code>)
+      and edit it to remove the existing list of fixed bugs, then copy/paste
+      the source from the bugzilla query into the new document.</p>
+    </li>
+
+    <li>CVS
+
+      <p>Do a Bonsai query on the appropriate module/branch for directory
+      <code>mozilla/js</code> for Date in the same range as used in the
+      Bugzilla query. Compare the Bonsai query results to the Bugzilla query,
+      adding or removing items from
+      <code>~/SpiderMonkey/release-notes/JS_150_RC<var>new</var>.html</code> to
+      make sure the report contains all bugs checked into the
+      <code>mozilla/js/src</code> and <code>mozilla/js/jsd</code> directories
+      while ignoring any checkins to <code>mozilla/js/src/xpconnect</code>.</p>
+    </li>
+  </ol>
+
+  <p><strong>NOTE:</strong></p>
+
+  <ul>
+    <li>
+      <p>Do <b>NOT</b> imitate the web version: <a href=
+      "http://www.mozilla.org/js/spidermonkey/release-notes/JS_160.html">http://www.mozilla.org/js/spidermonkey/release-notes/JS_160.html</a>.</p>
+
+      <p>The www.mozilla.org build process inserts extra HTML elements above
+      and to the left of your own content.</p>
+    </li>
+
+    <li>
+      <p>In the editing process, change the HREFs for the bug hyperlinks from
+      the above query from <b>relative</b> to <b>absolute</b>;</p>
+    </li>
+
+    <li>
+      <p>e.g. from href="show_bug.cgi?id=137000" to
+      href="http://bugzilla.mozilla.org/show_bug.cgi?id=137000".</p>
+    </li>
+
+    <li>
+      <p>Remove all CSS |class| attributes from the HTML; otherwise, some of
+      the anchors will be red (for "Critical" bugs), etc. etc.</p>
+    </li>
+
+    <li>
+      <p>Make sure that the HREFs at the top of the document (for "ID", "Sev",
+      etc.) do not include "Now". (See "dates" parameter above).</p>
+    </li>
+
+    <li>
+      <p>Of course, if you have optimized to a hard-coded bug number query as
+      described above, this will not be relevant.</p>
+    </li>
+
+    <li>
+      <p>The details in the "Highlights" section can be taken from bonsai. For
+      example, look at the bonsai comments</p>
+    </li>
+
+    <li>
+      <p>for recent checkins to mozilla/js/src/*.c for ideas on what to put
+      here.</p>
+    </li>
+  </ul>
+
+  <p>Save to
+  <code>~/SpiderMonkey/release-notes/JS_<var>version</var>.html</code></p>
+
+  <p>Now edit the index file
+  <code>~/SpiderMonkey/release-notes/index.html</code> by adding a new row
+  pointing to the new html file above:</p>
+
+  <h2>Tag the SpiderMonkey release</h2>
+
+  <p><strong>Note: do NOT cut a branch; i.e. do NOT do cvs -b</strong></p>
+  <pre>
+foo@bar.com:~
+$<kbd>cd ~/SpiderMonkey/<var>newversion</var>/src</kbd>
+
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/src
+$<kbd>cvs -z3 -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+tag JS_<var>newversion</var></kbd>
+
+foo@bar.com:~
+$<kbd>cd ~/SpiderMonkey/<var>newversion</var>/jsd</kbd>
+
+foo@bar.com:~/SpiderMonkey/<var>newversion</var>/jsd
+$<kbd>cvs -z3 -d ":ext:<var>foo%bar.com</var>@cvs.mozilla.org:/cvsroot" \
+tag JS_<var>newversion</var></kbd>
+
+</pre>
+
+  <h2>Prepare Tarball containing the release.</h2>
+
+  <p><strong>POINT TO REMEMBER:</strong></p>
+
+  <p><strong>Wait for mirror server to update after you tag the SpiderMonkey
+  source. It should take no more than 1/2 hour.</strong></p>
+
+  <p>After you make the appropriate JS tag for the release, you should do an
+  anonymous checkout of the source into a fresh location and use it to create
+  the SpiderMonkey release tarball. This will create the appropriate CVS
+  directories with the anonymous login info will be contained in CVS/Root files
+  througout the tarball, and will allow the user to update his tree directly
+  from CVS if he wants.</p>
+
+  <p>Checkout the source</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey
+$<kbd>mkdir -p tarball/js</kbd>
+
+foo@bar.com:~/SpiderMonkey
+$<kbd>cd tarball/js</kbd>
+
+foo@bar.com:~/SpiderMonkey/tarball/js
+$<kbd>cvs -z3 -d ":pserver:anonymous@cvs-mirror.mozilla.org:/cvsroot" \
+co -r JS_<var>newversion</var> -d src mozilla/js/src</kbd>
+
+foo@bar.com:~/SpiderMonkey/tarball/js
+$<kbd>cvs -z3 -d ":pserver:anonymous@cvs-mirror.mozilla.org:/cvsroot" \
+co -r JS_<var>newversion</var> -d jsd mozilla/js/jsd</kbd>
+
+</pre>
+
+  <p>Verify that the checked out source is from
+  ":ext:anonymous@cvs-mirror.mozilla.org:/cvsroot".</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/tarball/js
+$<kbd>cat src/CVS/Root</kbd>
+:ext:anonymous@cvs-mirror.mozilla.org:/cvsroot
+
+</pre>
+
+  <h3>Update Windows *.mak files</h3>
+
+  <p>The Windows-only <code>src/js.mak</code>, and
+  <code>src/fdlibm/fdlibm.mak</code> need Windows line endings, so convert the
+  '\n' Unix line endings in these files to '\r\n' before packaging. See
+  <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=72234">bug 72234</a>
+  .</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/tarball/js
+$<kbd>find src -name '*.mak' -print | xargs unix2dos -D</kbd>
+
+</pre>
+
+  <p>Create <code>README</code> for this release from the <code>README</code>
+  of the previous release's tarball and edit the README if necessary.</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/tarball/js
+$<kbd>cp ~/SpiderMonkey/JS_<var>oldversion</var>/README README</kbd>
+
+foo@bar.com:~/SpiderMonkey/tarball/js
+$<kbd>emacs README</kbd>
+
+</pre>
+
+  <p>Be sure to delete any backup file created when editing README.</p>
+
+  <p>Create the tarball for the release.</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/tarball/js
+$<kbd>cd ..</kbd>
+
+foo@bar.com:~/SpiderMonkey/tarball
+$<kbd>tar -vczf ~/SpiderMonkey/js-<var>newversion</var>.tar.gz js/</kbd>
+
+foo@bar.com:~/SpiderMonkey/tarball/js
+$<kbd>cd ~/SpiderMonkey</kbd>
+
+foo@bar.com:~/SpiderMonkey
+$
+
+</pre>
+
+  <h2>Test the tarball</h2>
+
+  <p>Decompress the tarball into a virgin directory</p>
+  <pre>
+foo@bar.com:~/SpiderMonkey
+$<kbd>mkdir testtarball</kbd>
+
+foo@bar.com:~/SpiderMonkey
+$<kbd>cd testtarball</kbd>
+
+foo@bar.com:~/SpiderMonkey/testtarball
+$<kbd>tar -xzvf ~/SpiderMonkey/js-<var>newversion</var>.tar.gz</kbd>
+
+</pre>
+
+  <h3>Build the debug JS shell</h3>
+
+  <blockquote>
+    If you are building under Windows with MSVC, you must build from a DOS
+    command shell. The following commands will work both under Unix/Linux and
+    Windows.
+  </blockquote>
+
+  <p><strong>Set up your build environment as you would when building debug
+  Seamonkey or debug Mozilla Firefox and build the debug js shell.</strong></p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/testtarball
+$<kbd>cd js/src</kbd>
+
+foo@bar.com:~/SpiderMonkey/testtarball/js/src
+$<kbd>make -f Makefile.ref</kbd>
+
+</pre>
+
+  <h3>Build the optimized JS shell</h3>
+
+  <p><strong>Set up your build environment as you would when building optimized
+  Seamonkey or optimized Mozilla Firefox and build the optimized js
+  shell.</strong></p>
+  <pre>
+foo@bar.com:~/SpiderMonkey/testtarball
+$<kbd>cd js/src</kbd>
+
+foo@bar.com:~/SpiderMonkey/testtarballjs/src
+$<kbd>make -f Makefile.ref BUILD_OPT=1</kbd>
+
+</pre>
+
+  <p>check the JS version by doing ./js --help</p>
+
+  <p>run the JS testsuite on it in and compare the failures to those listed in
+  the release notes. Remove any bugs listed as fixed which do not pass.</p>
+
+  <h2>Publish the tarball to stage.mozilla.org</h2>
+
+  <p>File a bug in mozilla.org:FTP:Staging to have the tarball placed on the
+  ftp server. The tarball is too large to be attached to a bug, so you will
+  have to place it somewhere that Server operations can access it.</p>
+
+  <p>Include these steps in the bug:</p>
+
+  <ul>
+    <li>
+      <p>Place the new tarball <code>js-<var>newversion</var>.tar.gz</code> in
+      <code>stage.mozilla.org:/home/ftp/pub/js/</code></p>
+    </li>
+
+    <li>
+      <p>Move (not copy) the old tarball <code>js-<var>oldversion</var></code>
+      to the <tt>older-packages</tt> directory</p>
+    </li>
+  </ul>
+
+  <h2>Commit the Release Notes to <a href=
+  "http://www.mozilla.org/js/spidermonkey/release-notes/">http://www.mozilla.org/js/spidermonkey/release-notes/</a></h2>
+  <pre>
+foo@bar.com:~/SpiderMonkey
+$<kbd>cd release-notes</kbd>
+
+foo@bar.com:~/SpiderMonkey/release-notes
+$<kbd>cvs -z3 -d ":ext:<var>foo%bar.com</var>@cvs-www.mozilla.org:/cvsroot" \
+add JS_<var>newversion</var>.html</kbd>
+
+foo@bar.com:~/SpiderMonkey/release-notes
+$<kbd>cvs -z3 -d ":ext:<var>foo%bar.com</var>@cvs-www.mozilla.org:/cvsroot" \
+ci -m "bug xxxxxx - Updating for Spidermonkey JS_<var>newversion</var> release"</kbd>
+</pre>
+
+  <h2>Announce to Newsgroups</h2>
+
+  <ul>
+    <li>mozilla.dev.tech.js-engine</li>
+
+    <li>mozilla.announce<br />
+    (A moderated newsgroup. Your email won't appear right away)</li>
+  </ul>
+
+  <h3>Sample Email</h3>
+  <pre>
+Hello,
+
+The latest tarball for version 1.5 of the SpiderMonkey (JavaScript-C) 
+engine is now available at:
+
+   http://ftp.mozilla.org/pub/mozilla.org/js/js-1.5-rc6.tar.gz
+
+
+This is Release Candidate 6 of JavaScript 1.5, containing a number of 
+bugfixes as we progress toward a final release. Note: the Mozilla 
+browser may display an incorrect file date of 2003-01-30 for the tarball 
+if accessed via the ftp protocol instead of http. This is a known bug 
+(http://bugzilla.mozilla.org/show_bug.cgi?id=220948), and should be 
+ignored. The actual date of the tarball is 2004-01-30.
+
+
+A change log for this release is available at 
+http://www.mozilla.org/js/spidermonkey/release-notes.
+
+Note in particular there has been a rewrite of SpiderMonkey regular 
+expression engine. Certain behavior has changed as a result. See 
+http://bugzilla.mozilla.org/show_bug.cgi?id=85721 and its many related 
+bugs for further details. Some changes that have resulted:
+
+   * Improved regexp performance
+
+   * Anything that starts like a {min,max} quantifier but doesn't parse 
+as one is taken as a flat string to match, instead of throwing a 
+SyntaxError (http://bugzilla.mozilla.org/show_bug.cgi?id=228087).
+
+   * The match array now always has N+1 elements, where N is the number 
+of capturing left parentheses in the regular expression, regardless of 
+whether all of them are actually used or not. 
+(http://bugzilla.mozilla.org/show_bug.cgi?id=123437)
+
+      o EXAMPLE:  arr = /(a)?a/("a")
+         + |arr| is now:["a", undefined]
+         + (no longer): ["a"]
+
+
+
+As always, you can get the most recent version of the JS engine by 
+pulling the source code via CVS and building it locally. Details on how 
+to do this are available at:
+
+      http://www.mozilla.org/js/spidermonkey/
+
+
+To pull this specific RC6 release instead of the current CVS tip, one 
+would use the tag -r JS_150_RC6.
+
+
+Sincerely,
+Phil
+</pre>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January  8,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/js/spidermonkey/release-notes/spidermonkey-releases.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

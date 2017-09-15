@@ -1,0 +1,158 @@
+<HTML>
+<HEAD>
+   <META NAME="GENERATOR" CONTENT="Mozilla/4.04 [en] (WinNT; U) [Netscape]">
+   <META NAME="KeyWords" CONTENT="client, source, documentation">
+   <TITLE>WinFE Module Overview</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF">
+
+<H2>WinFE Module</H2>
+The WinFE module is the Windows front end for Mozilla (that is, Navigator).
+It was originally created using the Microsoft Foundation Classes (MFC)
+class library and the Microsoft Visual C++ compiler.
+<H3>
+
+<HR WIDTH="100%"><B>How It Works</B></H3>
+The WinFE module is a regular MFC Windows application, although it differs
+from the standard MFC application in certain ways.
+
+<P><B>Document Template. </B>One of the most notable ways in which the
+WinFE application deviates from MFC is its document template. The WinFE
+application supports a multiple single document interface (MSDI). When
+the user invokes the New Navigator Window command from the File menu, the
+application displays an entire new main window, with a toolbar and other
+controls, not just a child window inside the base window frame.
+
+<P><B>Message Routing. </B>The WinFE application also differs from the
+standard MFC application in that most of the message (event) routing has
+been heavily modified. MFC proved inadequate when Netscape introduced HTML
+frameset support. We had to target the frame with a focus, which was beyond
+the capability of the standard MFC <TT>WM_COMMAND</TT> message routing
+system. The MFC mechanism expects a view to be owned by a frame. The view
+is what Mozilla shows the HTML presentation in. We needed views that were
+children of views instead of frames. We changed the message routing so
+that messages are directed to the frame with the current focus.
+
+<P><B>Interface to the Back End. </B>The interfaces with the back end of
+Mozilla are generally common for all the front ends, although there are
+some differences. There's a file in the Windows front end called <TT>cfe.cpp</TT>.
+There are a lot of functions with <TT>CFE</TT> in their names; those functions
+fill in a table of function pointers from the header file <TT>mk_cx_fn.h</TT>.
+That header file contains the interface through which most of the back
+end communicates with the front end. The <TT>CFE</TT> functions are the
+functions whose pointers fill in that table. When a <TT>CFE</TT> function
+is called, it takes a pointer to the <TT>MWContext</TT> structure and converts
+it to a C++ object. Then it calls the particular virtual function through
+the converted C++ object.
+
+<P><B>MWContext.</B> <TT>MWContext</TT> is a C struct with a bunch of members,
+many of which deal with the loading of a URL. The letter "MW" stand for
+"Mozilla Window." <TT>MWContext</TT> contains the current language identifier
+of the document and other miscellaneous information. It is the container
+of the <TT>mk_cx_fn.h</TT> function table and some state data. It's largely
+known as evil, and we try our best not to invent anything new by expanding
+the <TT>MWContext</TT>. By now <TT>MWContext</TT> has been extended so
+much that it's difficult to separate the various components of the Mozilla
+(modularity) without reworking a lot of code. <TT>MWContext</TT> structures
+are created whenever a new window is created. In addition, there are two
+hidden <TT>MWContext</TT> structures used for background URL loading when
+it's not user invoked. <TT>MWContext</TT> structures can load multiple
+URLs at a time, and the actions you take on one <TT>MWContext</TT> will
+not effect a different <TT>MWContext</TT>. If the user presses the stop
+button in a browser window, we don't want to quit loading URLs in a different
+<TT>MWContext</TT>.
+
+<P><B>Loading a URL. </B>The following diagram shows the inheritance hierarchy
+of key classes which load content from a given URL and process the data
+for display or other purposes in the Windows front end. Other platforms
+will differ greatly.&nbsp;<IMG SRC="diagrama.gif" >
+
+<P>Given any <TT>CStubsCX</TT> instance, you can load a URL. It won't do
+anything except perhaps go into the cache. Derived from <TT>CStubsCX</TT>
+is the great behemoth, <TT>CDCCX</TT>. The operative letters in the name
+are <TT>DC</TT>, a Windows term. <TT>DC</TT> refers to the device context
+through which you draw, so if you need to create any type of drawing to
+a new device, you derive from <TT>CDCCX</TT>. Also, CDCCX is the easiest
+place to implement drawing code, because the print engine and the window
+display engine automatically benefit. The other letters in this and the
+other class names in this section are the initial <TT>C</TT> which stands
+for "class," and the trailing <TT>CX</TT> which indicates that the class
+implements the interface for an <TT>MWContext</TT> structure.
+
+<P><TT>CPrintCX</TT> does printing. The <TT>CPaneCX</TT> refers to a window
+pane. It's halfway implemented. This is an opportunity for future development
+if someone would take <TT>CPaneCX</TT> make it actually work. The goal
+was to have no MFC knowledge inside the class <TT>CPaneCX</TT>. <TT>CPaneCX</TT>
+knows how to draw to a window on the screen. <TT>CWinCX</TT> is the same
+thing, except that it has more implmentation; it knows all the details
+of MFC and calls into it a lot. However, a certain amount of the implementation
+could be moved into <TT>CPaneCX</TT>, as a good future direction, and eventually
+<TT>CWinCX</TT> could die. It would eliminate one dependency on MFC and
+probably go a lot faster as well.
+
+<P><TT>CMetafileCX</TT> is used with the OLE server. A Mozilla document
+can be embedded into an OLE application. When it's active, Mozilla draws
+into <TT>CWinCX</TT>. When inactive, OLE requires that it draw into a metafile,
+represented in Mozilla by <TT>CMetafileCX</TT>. However, the implementation
+has flaws and may not work well. The <TT>CNetworkCX</TT> doesn't do any
+display. It works with an OLE automation client. Its purpose is to load
+the document data from a URL and provide the data back to the external
+application. <TT>CSaveCX</TT> doesn't do any display but it displays a
+progress dialog. It's used when Mozilla saves a file to disk or displays
+to an external viewer.
+
+<P>The exit code of the application is very confusing. Every <TT>MWContext</TT>
+structure that exists places a type of lock on the application so that
+it cannot exit. If even one browser window is open Mozilla can't exit until
+the user closes the window. Or, for example, if the user saves a large
+file, Mozilla won't exit until the file has finished being saved. The algorithm
+for exiting is: count the number of <TT>MWContext</TT> structs; if number
+equals 2 (the number of hidden <TT>MWContext</TT> structures described
+previously), then exit.
+<H3>
+
+<HR WIDTH="100%"><B>Where It's Headed</B></H3>
+We would like to remove the dependency on MFC, primarily for speed and
+size considerations, but also to enable access to compilers that don't
+support MFC. We would prefer not to be required to ship the extra libraries
+whenever we ship a product. We don't think any Netscape internal effort
+will push in that direction any time soon, but we believe the free source
+community may desire this strongly.
+
+<P>Another direction for future development is the implementation of Aurora
+capabilities in the Windows front end. Aurora is a Communicator client
+effort that implements the Resource Description Framework (RDF), which
+is represented in XML, to facilitate categorization and manipulation of
+information.
+
+<P>RDF promises to facilitate everything from accessing your local file
+stem to up and downloading using FTP, history, bookmarks, site maps, and
+search results. It can also improve handling of mail and news by providing
+a hierarchy information instead of just the messages themselves. For example,
+you could more easily save a message as a file or upload a local file to
+an FTP server. The goal is to enable someone to integrate whatever they
+want, add support for whole new types of data or new kinds of servers.
+RDF technology makes available information about the relationships between
+various units of data. For example, you could read the player information
+or server statistics on a Quake server and find out how many people had
+been killed, get a list of current players and how long they'd been playing.
+You'd never have to leave your own locale to do that. Also, servers can
+serve up site maps of their sites, providing an organized structure of
+their links that you could use to browse the site more easily. For example,
+new data could appear in a different colored icon. More information about
+RDF is available at <A HREF="http://www.w3.org/RDF/">http://www.w3.org/RDF/</A>.
+
+<P>Any new services added to Mozilla will probably be delivered using RDF
+technology. If someone's going to develop new features, especially involving
+a hierarchical display of information, then if they use RDF it will be
+more easily integrated into Mozilla. The goal of RDF is to integrate all
+the different displays of hierarchical information into a common format
+and interface.
+<DIV ALIGN=right>
+<HR SIZE=4></DIV>
+
+<CENTER>Copyright &copy; 1998 <A HREF="http://home.netscape.com/misc/contact_info.html" TARGET="_top">Netscape
+Communications Corporation</A></CENTER>
+
+</BODY>
+</HTML>

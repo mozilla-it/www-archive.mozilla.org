@@ -1,0 +1,136 @@
+<?xml version="1.0"?>  <!-- -*- Mode: HTML -*- -->
+
+<!--
+
+  This is a simple example of using the RDF service from
+  JavaScript. It creates an in-memory datasource, and populates it
+  with a simple graph as follows:
+
+  [urn:root]==[http://home.netscape.com/NC-rdf#child]==>[urn:1]
+      |                                                     |
+      | "Number 1"<==[http://home.netscape.com/NC-rdf#name]-+
+      |
+      |
+      +=======[http://home.netscape.com/NC-rdf#child]==>[urn:2]
+      |                                                     |
+      | "Number 2"<==[http://home.netscape.com/NC-rdf#name]-+
+      |
+      |
+      +=======[http://home.netscape.com/NC-rdf#child]==>[urn:3]
+                                                            |
+        "Number 3"<==[http://home.netscape.com/NC-rdf#name]-+
+
+  This datasource is presented inside a XUL outliner using a XUL
+  template.
+
+  Pressing a button creates more entries in the datasource beneath
+  "Number 1"; modifying the datasource automatically keeps the
+  outliner synchronized.
+
+  Note that for this example to work, it must be run from a ``secure
+  context (i.e., a ``chrome:'' URL). That's because it makes use of
+  XPConnect.
+
+-->
+
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+
+<window width="400" height="300"
+  onload="init();"
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script>
+    <![CDATA[
+      var RDF =
+        Components
+        .classes["@mozilla.org/rdf/rdf-service;1"]
+        .getService(Components.interfaces.nsIRDFService);
+
+      var DS =
+        Components
+        .classes["@mozilla.org/rdf/datasource;1?name=in-memory-datasource"]
+        .createInstance(Components.interfaces.nsIRDFDataSource);
+
+      function init()
+      {
+        // Create three resources (urn:1, urn:2, and urn:3) that are
+        // children of urn:root
+        for (var i = 1; i <= 3; ++i) {
+          DS.Assert(RDF.GetResource("urn:root"),
+                    RDF.GetResource("http://home.netscape.com/NC-rdf#child"),
+                    RDF.GetResource("urn:" + i),
+                    true);
+
+          DS.Assert(RDF.GetResource("urn:" + i),
+                    RDF.GetResource("http://home.netscape.com/NC-rdf#name"),
+                    RDF.GetLiteral("Number " + i),
+                    true);
+        }
+
+        // Add the datasource to the outliner
+        var outliner = document.getElementById("outliner");
+        outliner.database.AddDataSource(DS);
+        outliner.setAttribute("ref", "urn:root");
+      }
+
+      // This will remember the index of the last child we've added
+      var Kid = 1;
+
+      function make_kid()
+      {
+        // Add a new child urn:1.x beneath urn:1.
+        DS.Assert(RDF.GetResource("urn:1." + Kid),
+                  RDF.GetResource("http://home.netscape.com/NC-rdf#name"),
+                  RDF.GetLiteral("Number 1." + Kid),
+                  true);
+
+        DS.Assert(RDF.GetResource("urn:1"),
+                  RDF.GetResource("http://home.netscape.com/NC-rdf#child"),
+                  RDF.GetResource("urn:1." + Kid),
+                  true);
+
+        ++Kid;
+      }
+    ]]>
+  </script>
+
+  <vbox flex="1">
+    <hbox>
+      <button onclick="make_kid();" label="Make Kid" />
+    </hbox>
+
+    <outliner flex="1" id="outliner" datasources="rdf:null"
+              flags="dont-build-content"
+              containment="http://home.netscape.com/NC-rdf#child">
+      <template>
+        <rule>
+          <conditions>
+            <outlineritem uri="?uri" />
+            <member container="?uri" child="?subheading" />
+          </conditions>
+  
+          <bindings>
+            <binding subject="?subheading"
+                     predicate="http://home.netscape.com/NC-rdf#name"
+                     object="?name" />
+          </bindings>
+  
+          <action>
+            <outlinerchildren>
+              <outlineritem uri="?subheading">
+                <outlinerrow>
+                  <outlinercell label="?name" />
+                </outlinerrow>
+              </outlineritem>
+            </outlinerchildren>
+          </action>
+        </rule>
+      </template>
+
+      <outlinercols>
+        <outlinercol id="ChapterColumn" flex="1" label="Chapter" sort="?name"
+                     primary="true" />
+      </outlinercols>
+    </outliner>
+  </vbox>
+</window>

@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+ <title>JavaScript XPCOM Components Status</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+ <h1>JavaScript XPCOM Components Status - Draft 2</h1>
+ <div class="section">
+  <h2 id="introduction">Introduction</h2>
+
+<p>
+In the document <a href="xpjs-components.html">XPJS Components Proposal</a> I
+proposed that we build a system for implementing xpcom components and services
+in JavaScript - components that could be used transparently by any other xpcom
+components.
+
+<p>
+<a href="mailto:shaver@mozilla.org">Mike Shaver</a> has since done the
+work to make this system work. This document will explain the status of that
+work and will try to detail the limitations of the system as currently implemented.
+
+ </div>
+ <div class="section">
+  <h2 id="implementation">Implementation</h2>
+
+<p>
+The system, of course, is all based on <a href="index.html">XPConnect</a>. The
+main innovation was in factoring out the system that xpcom uses to instantiate
+components. Previously there was a builtin component loader that assumed that
+all components were implemented in C/C++ and either loaded from a DLL or via
+factory instances registered (non-persistently) at runtime. Mike broke this code
+out to build a plugable component loader system. He then wrote one loader for native
+components loaded from DLLs and one for JavaScript components loaded from .js
+files. This is an extensible system and we can expect that others will write
+additional loaders in the future.
+
+<p>
+The JS component loader implementation is in <a
+href="http://lxr.mozilla.org/seamonkey/source/js/src/xpconnect/loader/">/js/src/xpconnect/loader/</a>.
+As far as I know Mike Shaver did not write any detailed documentation about its
+use. In a nutshell... It will try to load for registration and use as a
+component any .js files it discovers in the 'components' directory during
+autoregistration time; i.e. the same directory where native components in DLLs
+are located. I'm not sure if it will attempt to discover these files everytime
+the app is started or only during autoregistration [shaver clarification?].
+
+<p>
+The best document that I know of is in the sample at <a
+href="http://lxr.mozilla.org/seamonkey/source/xpcom/sample/nsSample.js">xpcom/sample/nsSample.js</a>.
+I think it worth noting that this is both a sample and a bit of a test bed.
+There is some unnecessary debug code. And the boilerplate code really ought to
+be reorganized a bit with the customizable part broken out as separate variables
+so that future JS component implementors can just copy the common blocks and
+fill in their own strings for progids and iids etc. Nevertheless, it is the sample we have and the comments in the sample explain how to use the system.
+
+<p>
+An additional source of info on the evolution of the system (for the hardcore
+curious) is the discussions on the <a
+href="news://news.mozilla.org/netscape.public.mozilla.xpcom">xpcom
+newsgroup</a>. Search the  subjects for keywords like: JS components, component
+loader.
+
+<p>
+Any .js file that shows up in the components directory is a likely example of JS
+component usage. Currently, there is a sidebar component. Mike Shaver had
+implemented the category manager using JS, but it was reimplemented in C++. Not
+because its implementation in JS was not viable, but simply because it was
+decided that xpcom should not have a core service which required JavaScript and
+XPConnect. This would have limited xpcom's usefulness in some non-browser
+embeddings where JavaScript might not otherwise be needed or wanted.
+
+ </div>
+ <div class="section">
+  <h2 id="unwrapping">Unwrapping</h2>
+
+<p>
+Until 1 August 2000 there was a 'killer' problem with JS Components... When used
+by JS code they did not 'look' like other xpcom components. The source of this
+problem was that xpconnect was giving the calling JS code direct access to the
+underlying JSObject of the JS Component. This meant that the caller had access
+to all of the methods and properties of the JS Component and was not limited by
+the declared interface. It also meant that other xpconnect infrastructure did
+not recognize the 'unwrapped' JS Component as being an implementation of any given
+xpcom interface. See the discussion of these problems  <a
+href="https://bugzilla.mozilla.org/show_bug.cgi?id=25180">here</a>.
+
+<p>
+In the long run this will be fixed by a third sort of xpconnect wrapper which is
+specialized for this purpose. In the short run it was decided to 'double wrap'
+the JS Components when they are handed to JS code from native code. This means
+that when the JS Component is created and handed to native code xpconnect builds
+a wrapper to be used by the native code AND when that wrapper is later handed to
+JS code then xpconnect builds a wrapper around that wrapper for use from JS.
+This makes the JS Component nearly indistinguishable from native xpcom
+components. But there is one difference....
+
+<p id="wrappedJSObject">
+It is anticipated that in some rare cases the calling JS code might actually
+<strong>need</strong> to get access to the underlying JSObject of the JS Component. For
+this purpose xpconnect wrappers around xpcom components now support a property
+named <i>wrappedJSObject</i>. This allows JS code to do something like...
+
+<pre class="code">// 'foo' is an xpcom object that *might* be implemented in JS
+var underlyingObject = foo.wrappedJSObject;
+if(underlyingObject) {
+   underlyingObject.somePropertyThatIsNotPartOfTheInterface = 'bar';
+}</pre>
+
+<p>
+If 'foo' is not implemented in JS then <i>foo.wrappedJSObject</i> will return
+<i>undefined</i>. Also, even if 'foo' <i>is</i> implemeneted in JS this will
+only succeed if the underlying JSObject has a property called 'wrappedJSObject'
+which is set to a JSObject (typically the <i>this</i> of the JSObject). This
+means that only JS Componets that want to expose their underlying JSObject can
+be unwrapped this way. It also allows for those objects to return some
+<b>other</b> JSObject if they choose. XPConnect also supports having the
+security system do a special check before allowing this activity to succeed.
+But, for now, all such XPConnect activities are gated only they the
+<i>UniversalXPConnect</i> 'super-privilege'.
+
+ </div>
+ <div class="section">
+  <h2>Bugs</h2>
+
+<ul>
+
+<li><del><a href="https://bugzilla.mozilla.org/show_bug.cgi?id=24688">24688</a> -
+runtime errors in wrapped JS are not made obvious</del> (FIXED) </li>
+
+<li>
+ <p><a href="https://bugzilla.mozilla.org/show_bug.cgi?id=25180">25180</a> -
+xpconnect needs wrappers for JS -> JS communication
+
+<p>
+I've checked in an interim solution which 'double wraps' JS components when they
+are handed back to Js code. This is not particulary efficient. But it is better
+that simply unwrapping the JSObject as we did before.</li>
+
+<li><del><a href="https://bugzilla.mozilla.org/show_bug.cgi?id=27867">27867</a> -
+xpconnect does not always work well with DOM objects</del> (FIXED)</li>
+
+</ul>
+
+ </div>
+ <div class="section">
+  <h2>Conclusions and Recommendations</h2>
+
+<p>
+I think that JavaScript components have a bright future. There are  limitations
+that one must be aware of - especially when working with the DOM. But, JS
+Components are appropriate for many tasks.
+ </div>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 23,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/scriptable/js-components-status.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

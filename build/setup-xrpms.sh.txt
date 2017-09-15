@@ -1,0 +1,19 @@
+#!/bin/sh
+PATH2RPMS=/builds/seawood/ps2/rpms
+xtarget_arch=mipsEEel-linux
+
+cd /usr/${xtarget_arch}/${xtarget_arch}
+for r in ${PATH2RPMS}/*.rpm; do
+	rpm2cpio $r | cpio -ivd
+done
+chmod 755 `find . -type d`
+ln -s usr/include sys-include
+(cd usr/src && ln -sf linux-2.2.1_ps2 linux)
+(cd lib && ln -s ../usr/lib/*.o .)
+
+# modify various build -config scripts
+perl -i.bak -pe "s/\/usr/\/usr\/${xtarget_arch}\/${xtarget_arch}\/usr/g" usr/bin/{glib,gtk,libIDL,orbit}-config usr/lib/libc.so
+perl -i.bak -pe "s/\/lib\/libc.so.6/\/usr\/${xtarget_arch}\/${xtarget_arch}\/lib\/libc.so.6/g" usr/lib/libc.so
+rm -f usr/bin/{glib,gtk,libIDL,orbit}-config.bak usr/lib/libc.so.bak
+
+

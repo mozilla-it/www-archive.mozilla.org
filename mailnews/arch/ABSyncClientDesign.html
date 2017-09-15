@@ -1,0 +1,339 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="Author" content="Richard H. Pizzarro">
+   <meta name="GENERATOR" content="Mozilla/4.74 [en] (WinNT; U) [Netscape]">
+   <title>Address Book Sync Client Design</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<center><b><font color="#000000"><font size=+2>Address Book Sync Client
+Design</font></font></b>
+<br><b><font color="#000000">by Richard H. Pizzarro &lt;<a href="mailto:rhp@netscape.com">rhp@netscape.com</a>></font></b></center>
+
+<p><b><font color="#000000"><font size=+2>Contents</font></font></b>
+<ul>
+<li>
+<a href="#OVER">Overview</a></li>
+
+<li>
+<a href="#client">Client Side Sync Logic</a></li>
+
+<li>
+<a href="#public">Public Interfaces</a></li>
+</ul>
+
+<table COLS=1 WIDTH="100%" BGCOLOR="#CCFFFF" >
+<tr>
+<td><a NAME="OVER"></a><b><font color="#000000"><font size=+2>Overview</font></font></b></td>
+</tr>
+</table>
+There is an component available in the mozilla tree for performing synchronization
+operations against a server based address book. The general architecture
+for the sync component is the following:
+<br>&nbsp;
+<center><table>
+<tr>
+<td>
+<center><table CELLSPACING=4 CELLPADDING=4 WIDTH="100%" HEIGHT="100%" BGCOLOR="#FFFFFF" >
+<tr>
+<td BGCOLOR="#CCFFFF">
+<center>Mozilla UI</center>
+</td>
+
+<td>&nbsp;</td>
+</tr>
+
+<tr>
+<td BGCOLOR="#99FF99">
+<center>AB Sync Logic</center>
+</td>
+
+<td BGCOLOR="#99FF99">
+<center>Mork AB Database</center>
+</td>
+</tr>
+
+<tr>
+<td BGCOLOR="#33CCFF">
+<center>Sync Protocol Encoding</center>
+</td>
+
+<td BGCOLOR="#33CCFF">
+<center>Sync Protocol Decoding</center>
+</td>
+</tr>
+</table></center>
+</td>
+</tr>
+
+<tr>
+<td BGCOLOR="#FFFFCC">
+<center>HTTP "POST" API</center>
+</td>
+</tr>
+
+<tr>
+<td BGCOLOR="#FFCC99">
+<center>Mozilla Networking</center>
+</td>
+</tr>
+</table></center>
+
+<br>&nbsp;
+<table COLS=1 WIDTH="100%" BGCOLOR="#CCFFFF" >
+<tr>
+<td BGCOLOR="#FFFFCC"><a NAME="client"></a><b><font color="#000000"><font size=+1>Client
+Side Sync Logic</font></font></b></td>
+</tr>
+</table>
+The client synchronization logic defers to the server peforming some intelligence
+in handling duplicate entries for the sync process. The static information
+that is held on the client for address book sync operations is stored in
+a file called <b>absync.dat</b> which is located in the root directory
+of the users profile information.
+<p><tt>//</tt>
+<br><tt>// The client keeps a Sync mapping table which holds the following:</tt>
+<br><tt>//</tt>
+<br><tt>// ServerRecordID&nbsp;&nbsp; - Unique ID for a record provided
+by the</tt>
+<br><tt>//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+UAB server.</tt>
+<br><tt>// LocalRecordID&nbsp;&nbsp;&nbsp; - Local Unique ID, for mobile
+devices this</tt>
+<br><tt>//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+is assigned by the mobile device.</tt>
+<br><tt>// CRC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+- CRC of the record last time we synced.</tt>
+<br><tt>// Flags&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+- Operation to apply to this record.&nbsp; ADD</tt>
+<br><tt>//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+if it's new, MOD if it's been modified,</tt>
+<br><tt>//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+RET if it was already sent to the server</tt>
+<br><tt>//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+but an error occured, etc.</tt>
+<br><tt>//</tt>
+<br><tt>// Step 1:</tt>
+<br><tt>// When the user begins a sync, run through the local database
+and update the</tt>
+<br><tt>// sync mapping table.&nbsp; If the CRC has changed, mark the entry
+modified, if</tt>
+<br><tt>// it's a new record, add an entry and mark it new, if a record
+was deleted,</tt>
+<br><tt>// mark the entry deleted, etc.</tt>
+<br><tt>//</tt>
+<br><tt>// Sync approach - server handles all conflict resolution:</tt>
+<br><tt>//</tt>
+<br><tt>// Step 2:</tt>
+<br><tt>// Using the sync mapping table and the local records database,
+generate the change</tt>
+<br><tt>// list to send to the server.&nbsp; Mark any modified or new record
+with the RET (retry)</tt>
+<br><tt>// flag.</tt>
+<br><tt>//</tt>
+<br><tt>// Step 3:</tt>
+<br><tt>// Get the response back from the server.&nbsp; Since the communication
+was successful,</tt>
+<br><tt>// clear the RET (retry) flag on all records.&nbsp; Then apply
+the server changes back</tt>
+<br><tt>// to the local database (updating the CRC's in the process).&nbsp;
+Save the changes to</tt>
+<br><tt>// the local database, clear the sync mapping table flags and save
+the new sync</tt>
+<br><tt>// mapping table.</tt>
+<br><tt>//</tt>
+<br>&nbsp;
+<br>&nbsp;
+<table COLS=1 WIDTH="100%" BGCOLOR="#CCFFFF" >
+<tr>
+<td BGCOLOR="#FFFFCC"><a NAME="public"></a><b><font color="#000000"><font size=+1>Public
+Interfaces</font></font></b></td>
+</tr>
+</table>
+There is a very simple interface to the address book sync component. This
+interface is defined in&nbsp; <a href="http://lxr.mozilla.org/mozilla/source/mailnews/addrbook/public/nsIAbSyncDriver.idl">mozilla/mailnews/addrbook/public/nsIAbSyncDriver.idl</a>
+<p><tt>#include "nsrootidl.idl"</tt>
+<br><tt>#include "nsIAbSyncListener.idl"</tt>
+<p><tt>[scriptable, uuid(91FDFEE1-EFBC-11d3-8F97-000073757374)]</tt>
+<br><tt>interface nsIAbSyncDriver : nsIAbSyncListener</tt>
+<br><tt>{</tt>
+<br><tt>&nbsp;&nbsp;&nbsp; void KickIt();</tt>
+<br><tt>};</tt>
+<p>As you can see, this is a very simple interface which allows for the
+starting of the address book sync operation. The interface of greater interest
+is the address book sync listener. This provides feedback of the current
+sync operation. This interface is as follows:
+<p><tt>#include "nsISupports.idl"</tt>
+<br><tt>#include "nsrootidl.idl"</tt>
+<br><tt>#include "nsIFileSpec.idl"</tt><tt></tt>
+<p><tt>[scriptable, uuid(E0ED29E0-098A-11d4-8FD6-00A024A7D144)]</tt>
+<br><tt>interface nsIAbSyncListener : nsISupports {</tt><tt></tt>
+<p><tt>&nbsp;&nbsp;&nbsp; /**</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * Notify the observer that the AB Sync
+Authorization operation has begun.</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; */</tt>
+<br><tt>&nbsp;&nbsp;&nbsp; void OnStartAuthOperation();</tt><tt></tt>
+<p><tt>&nbsp;&nbsp;&nbsp; /**</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * Notify the observer that the AB Sync
+operation has been completed.</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * This method is called regardless of
+whether the the operation was</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * successful.</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; aTransactionID&nbsp;&nbsp;&nbsp;
+- the ID for this particular request</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; aStatus&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+- Status code for the sync request</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; aMsg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+- A text string describing the error (if any).</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; aCookie&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+- hmmm...cooookies!</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; */</tt>
+<br><tt>&nbsp;&nbsp;&nbsp; void OnStopAuthOperation(in nsresult aStatus,
+in wstring aMsg, in string aCookie);</tt><tt></tt>
+<p><tt>&nbsp;&nbsp;&nbsp; /**</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * Notify the observer that the AB Sync
+operation has begun. This method is</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * called only once, at the beginning of
+a sync transaction</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; */</tt>
+<br><tt>&nbsp;&nbsp;&nbsp; void OnStartOperation(in PRInt32 aTransactionID,
+in PRUint32 aMsgSize);</tt><tt></tt>
+<p><tt>&nbsp;&nbsp;&nbsp; /**</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * Notify the observer that progress as
+occurred for the AB Sync operation</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; */</tt>
+<br><tt>&nbsp;&nbsp;&nbsp; void OnProgress(in PRInt32 aTransactionID, in
+PRUint32 aProgress, in PRUint32 aProgressMax);</tt><tt></tt>
+<p><tt>&nbsp;&nbsp;&nbsp; /**</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * Notify the observer with a status message
+for sync operation</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; */</tt>
+<br><tt>&nbsp;&nbsp;&nbsp; void OnStatus(in PRInt32 aTransactionID, in
+wstring aMsg);</tt><tt></tt>
+<p><tt>&nbsp;&nbsp;&nbsp; /**</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * Notify the observer that the AB Sync
+operation has been completed.</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * This method is called regardless of
+whether the the operation was</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; * successful.</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; aTransactionID&nbsp;&nbsp;&nbsp;
+- the ID for this particular request</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; aStatus&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+- Status code for the sync request</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; aMsg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+- A text string describing the error (if any).</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp; */</tt>
+<br><tt>&nbsp;&nbsp;&nbsp; void OnStopOperation(in PRInt32 aTransactionID,
+in nsresult aStatus,</tt>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+in wstring aMsg);</tt>
+<br><tt>};</tt>
+<p>
+<hr><!-- hhmts start --><font size=-1>Last modified: Mon Nov 13, 2000&nbsp;<!-- hhmts end --><a href="mailto:rhp@netscape.com">rhp@netscape.com</a></font>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February  6,  2001</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/mailnews/arch/ABSyncClientDesign.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

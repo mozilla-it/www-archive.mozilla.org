@@ -1,0 +1,290 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Language" content="en">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+<title>Chrome (JAR) Packaging</title>
+<link type="text/css" rel="stylesheet" href="build-common.css">
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+<h1>Jar Packaging</h1>
+
+ <address class="author">Maintained by <a href="mailto:Benjamin%20Smedberg%20&lt;benjamin&#x40;smedbergs&#x2E;us&gt;?subject=Build%20Docs%20-%20Jar Packaging">Benjamin Smedberg &lt;benjamin&#x40;smedbergs&#x2E;us&gt;</a></address>
+
+<h2>Introduction</h2>
+
+<p>During the build process, various <em>chrome</em> files are
+collected into dist/bin/chrome. These files define the user interface
+of the application, and include <a
+href="http://www.mozilla.org/projects/xul/">XUL</a>, <a href="http://www.mozilla.org/js/">JS</a>,
+DTDs (for <a href="http://www.mozilla.org/projects/l10n/mlp.html">localization</a>),
+CSS, XBL, and images. The build system automates the process of
+building the chrome files through manifest files named
+<code>jar.mn</code>.</p>
+
+<h2>Chrome packaging formats</h2>
+
+<p>There are different formats that chrome files can take. Each has its
+advantages and disadvantages:</p>
+<table border="1" class="with-border">
+<thead>
+<tr><th>Format</th>
+    <th>Advantages</th>
+    <th>Disadvantages</th>
+</thead>
+<tbody>
+<tr><td>JAR packaging<br>
+        <em>(default)</em></td>
+    <td>Most efficient. Chrome files are combined into a small number of JAR
+        archives (also known as ZIP files). This allows easier caching and
+        reduces the number of open filehandles on the system.</td>
+    <td>Creating patches from the resulting files can be very difficult.</td>
+
+<tr><td>Flat-file chrome
+    <td>Good for testing purposes and experimental use, because flat
+        chrome allows easier editing, diffing, and patching.</td>
+    <td>Not as efficient as JAR packaging.</td>
+
+<tr><td>Symlinked flat chrome
+    <td>Similar to flat chrome, symlinked chrome allows easy editing
+        and patching of the mozilla source tree. It also saves some
+        disk space.</td>
+    <td>Only available on platforms that support real symlinks (not windows).
+        Not as efficient as JAR packaging.</td>
+</tbody>
+</table>
+
+<p>When building mozilla, you can specify the chrome packaging format using
+the <a href="http://webtools.mozilla.org/build/config.cgi">Build Configurator</a> or manually using the configure flag --enable-chrome-format=(jar|flat|symlink)</p>
+
+<h2>The <em>jar.mn</em> format:</h2>
+
+<p>The build system automatically looks for files names <em>jar.mn</em>
+   in the same directory as a Makefile, and parses these files to
+   create chrome.
+
+<pre class="code">
+<strong>Example: mozilla/browser/base/jar.mn (shortened)</strong>
+browser.jar:
+        content/browser/contents.rdf                  (content/contents.rdf)
+<span class="comment"># Source file content/contents.rdf is copied into jar
+# file browser.jar at path content/browser/contents.rdf</span>
+        content/browser/about.png                     (content/about.png)
+*       content/browser/aboutDialog.xul               (content/aboutDialog.xul)
+<span class="comment"># Source file content/aboutDialog.xul is passed
+# through the XUL preprocessor before being placed in the JAR</span>
+
+classic.jar:
+        skin/classic/browser/aboutDialog.css          (skin/aboutDialog.css)
+        skin/classic/browser/Bookmarks-folder.png     (skin/Bookmarks-folder.png)
+
+en-US.jar:
+        locale/en-US/browser/contents.rdf             (locale/contents.rdf)
+*       locale/en-US/browser/browser.dtd              (locale/browser.dtd)
+
+</pre>
+
+<h2>Structure of JAR files</h2>
+
+<p> The internal structure of jar files is consistent, to allow for
+easy debugging. This allows us to inspect jar files (eventually) to
+determine what they contain, and easily rearrange packages for
+different product releases. For example, one product might want to
+integrate the content, skin and locale for its chrome into a single
+package (e.g. chatzilla), whereas another product might want to
+include the content of the first product in its content jar file, but
+factor off the skins in to separate jar files for extensibility.</p>
+
+<p>Internally, each jar file now has one of the following 3 forms:</p>
+
+<ul>
+  <li><code>content/<span class="comment underbar">package-name</span>/&lt;path&gt;</code></li>
+  <li><code>skin/<span class="comment underbar">skin-name</span>/<span class="comment underbar">package-name</span>/&lt;path&gt;</code></li>
+  <li><code>locale/<span class="comment underbar">locale-name</span>/<span class="comment underbar">package-name</span>/&lt;path&gt;</code></li>
+</ul>
+
+<p>Each of these correspond to the 3 forms of chrome URLs:</p>
+
+<ul>
+  <li><code>chrome://<span class="comment underbar">package-name</span>/content/&lt;path&gt;</code></li>
+  <li><code>chrome://<span class="comment underbar">package-name</span>/skin/&lt;path&gt;</code></li>
+  <li><code>chrome://<span class="comment underbar">package-name</span>/locale/&lt;path&gt;</code></li>
+</ul>
+
+<h2>contents.rdf and the Chrome Registry</h2>
+
+<p>Merely putting XUL files into JARs does not mean that these files
+can be accessed from a chrome:// URI. You also need to let the chrome
+registry know about your files. This is done using <a
+href="http://www.mozilla.org/rdf/doc/">RDF</a> and a special file
+named <code>contents.rdf</code>. Unfortunately, the RDF schema for
+<code>contents.rdf</code> is not really documented. The best way to learn
+it is to copy an existing example:</p>
+
+<pre class="code">
+<strong>Example: mozilla/extensions/venkman/resources/content/contents.rdf</strong>
+&lt;RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:chrome="http://www.mozilla.org/rdf/chrome#"&gt;
+
+  <span class="comment">&lt;!-- list all the packages being supplied by this jar --&gt;</span>
+  &lt;RDF:Seq about="urn:mozilla:package:root"&gt;
+    &lt;RDF:li resource="urn:mozilla:package:venkman"/&gt;
+  &lt;/RDF:Seq&gt;
+
+  <span class="comment">&lt;!-- package information --&gt;</span>
+  &lt;RDF:Description about="urn:mozilla:package:venkman"
+        chrome:displayName="JavaScript Debugger"
+        chrome:author="mozilla.org"
+        chrome:localeVersion="@MOZILLA_VERSION@"
+        chrome:name="venkman"&gt;
+  &lt;/RDF:Description&gt;
+
+  <span class="comment">&lt;!-- overlay information --&gt;</span>
+  &lt;RDF:Seq about="urn:mozilla:overlays"&gt;
+    &lt;RDF:li resource="chrome://communicator/content/tasksOverlay.xul"/&gt;
+  &lt;/RDF:Seq&gt;
+
+  &lt;RDF:Seq about="chrome://communicator/content/tasksOverlay.xul"&gt;
+    &lt;RDF:li&gt;chrome://venkman/content/venkman-overlay.xul&lt;/RDF:li&gt;
+  &lt;/RDF:Seq&gt;
+&lt;/RDF:RDF&gt;
+</pre>
+
+<p>Whenever the chrome build
+system encounters a <code>contents.rdf</code> file, it registers the package
+in the global file <code>installed-chrome.txt</code>.</p>
+
+<pre class="code">
+<strong>Example: installed-chrome.txt when flat chrome packaging is selected.</strong>
+locale,install,url,resource:/chrome/en-US/locale/en-US/necko/
+content,install,url,resource:/chrome/comm/content/editor/
+locale,install,url,resource:/chrome/en-US/locale/en-US/editor/
+content,install,url,resource:/chrome/comm/content/navigator/
+locale,install,url,resource:/chrome/en-US/locale/en-US/navigator/
+content,install,url,resource:/chrome/toolkit/content/global/
+locale,install,url,resource:/chrome/en-US/locale/en-US/global/
+content,install,url,resource:/chrome/comm/content/communicator/
+locale,install,url,resource:/chrome/en-US/locale/en-US/communicator/
+skin,install,url,resource:/chrome/classic/skin/classic/communicator/
+skin,install,url,resource:/chrome/classic/skin/classic/editor/
+skin,install,url,resource:/chrome/classic/skin/classic/global/
+skin,install,url,resource:/chrome/classic/skin/classic/messenger/
+skin,install,url,resource:/chrome/classic/skin/classic/navigator/
+skin,install,url,resource:/chrome/blue/skin/blue/communicator/
+skin,install,url,resource:/chrome/blue/skin/blue/editor/
+skin,install,url,resource:/chrome/blue/skin/blue/global/
+skin,install,url,resource:/chrome/blue/skin/blue/messenger/
+skin,install,url,resource:/chrome/blue/skin/blue/navigator/
+skin,install,url,resource:/chrome/modern/skin/modern/communicator/
+skin,install,url,resource:/chrome/modern/skin/modern/editor/
+skin,install,url,resource:/chrome/modern/skin/modern/global/
+skin,install,url,resource:/chrome/modern/skin/modern/messenger/
+skin,install,url,resource:/chrome/modern/skin/modern/navigator/
+skin,install,select,classic/1.0 
+locale,install,select,en-US 
+content,install,url,resource:/chrome/messenger/content/messenger/
+locale,install,url,resource:/chrome/en-US/locale/en-US/messenger/
+</pre>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 20,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/build/jar-packaging.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

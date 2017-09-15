@@ -1,0 +1,67 @@
+<HTML>
+<HEAD>
+   <TITLE>NET_ProcessNet()</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+NET_ProcessNet()</H1>
+<FONT COLOR="#3333FF">int</FONT> <B>NET_ProcessNet</B> (<FONT COLOR="#990000">PRFileDesc
+*ready_fd, int fd_type</FONT>)
+
+<P><B>implementation:</B> ns/lib/libnet/mkgeturl.c
+<BR><B>include:</B> net.h
+<BR> 
+<H4>
+<FONT COLOR="#990000">Arguments:</FONT></H4>
+ready_fd (ns\nsprpub\pr\include\prio.h) - A pointer to a file descriptor
+(a socket for not file protocols).
+<BR>fd_type - The type of file descriptor we're dealing with.
+
+<P>File Descriptor types as defined in net.h.
+<BR>NET_UNKNOWN_FD (0) - The file descriptor type is unknown.
+<BR>NET_LOCAL_FILE_FD (1) - The file descriptor is a local file descriptor.
+<BR>NET_SOCKET_FD (2) - The file descriptor is a socket.
+<BR>NET_EVERYTIME_TYPE (3) - special case
+<BR> 
+<H4>
+<FONT COLOR="#3333FF">Returns:</FONT></H4>
+An integer. If the return value is one, there are still active entries
+that netlib needs to process (i.e. be sure to call NET_ProcessNet() again).
+If the return value is zero, there are no active connections to process.
+
+<P>NET_ProcessNet() is the workhorse of netlib. It is repeatedly called
+to process urls (usually it is called from a front end loop; an onIdle
+loop for example). When NET_ProcessNet() is called, a file descriptor that
+is in the ready state is passed in as an argument. Of course a file descriptor
+ready for reading is meaningless unless you know where to put the data,
+so, NET_ProcessNet() looks up the active entry whose file descriptor is
+equal to the ready_fd passed in (eg. the url that is ready for ready for
+processing), and calls it's protocol implementation's process member function.
+This puts the responsiblity of reading and writing, from and to the file
+descriptor, on each protocol specific implementation.
+
+<P>Confused? Try this. A call to NET_GetURL() is made to retrieve a url.
+An entry is created for that url and put in netlib's active entry list.
+The caller then calls NET_ProcessNet() when a socket (file descriptor)
+is ready to receive or send data. NET_ProcessNet() figures out which active
+entry in the  list is the owner of the ready socket. It then tells
+the protocol implementation of that entry, to process (read/write) the
+socket. The process member function reads/writes data, pumping the data
+it receives into a stream, or sending the data it wants to send down the
+socket.
+
+<P>Remember that NET_ProcessNet()'s only responsibility is to match ready
+sockets (file descriptors) with active entries (urls that need loading),
+it's up to each entry's protocol implementation to communicate commands
+between the client and the server and to send and receive the data.
+
+<P>Analogy: NET_ProcessNet() is like the lever of a water pump. The hinge
+(protocol implementation's process routine) is actually bearing the load
+(handling the hard stuff). You need the lever to get water, but, you also
+need the hinge.
+
+<P><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

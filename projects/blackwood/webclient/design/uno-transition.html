@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Using Webclient in StarOffice</title>
+  </head>
+
+  <body BGCOLOR="#FFFFFF">
+    <h1>Using Webclient in StarOffice</h1>
+
+<H2>Introduction</H2>
+
+<P>
+
+This document describes the proposed strategy for using webclient in
+StarOffice.  If you don't know what webclient is, it is a Java API that
+wraps the mozilla embedding API and enables one to add a web browser to
+a java application.  For more details, visit the webclient homepage [<A
+HREF="#Ref1">1</A>].
+
+</P>
+
+<H2>Goal of the "Webclient in StarOffice" Project</H2>
+
+<P>
+
+The goal of the Webclient in StarOffice Project is to arrive at a
+maintainable solution for embedding webclient into StarOffice that adds
+as little extra code as possible to the existing webclient codebase,
+while not requiring StarOffice to use Java to access the webclient API.
+Such a solution will have the attribute that when a feature is added to
+the webclient java API, little work will have to be done to expose that
+feature to the StarOffice webclient.
+
+</P>
+
+<H2>The Existing webclient</H2>
+
+<CENTER>
+<IMG SRC="webclient-uno-existing.gif"></IMG>
+</CENTER>
+
+<P>
+
+The above diagram illustrates the call path from the user app, which
+uses webclient to get browsing behavior, to mozilla, which provides the
+browsing behavior.  
+
+</P>
+
+<P>
+
+Webclient currently uses JNI as the browser abstraction layer.  There is
+no browser specific code in the Java.  If we wanted to wrap another
+browser, say IE, we would rewrite the "webclient JNI code" layer to talk
+to IE.
+
+</P>
+
+<H2>The Proposed Webclient for UNO</H2>
+
+<CENTER>
+<IMG SRC="webclient-uno-proposed.gif"></IMG>
+</CENTER>
+
+<P>
+
+My proposal is to define an UNO API that matches the Java API 1 for 1,
+then modify the "webclient JNI code" layer so that it can be called from
+the "webclient UNO interface" layer.  Before you get all worried and say
+"but I thought we wouldn't have to use Java!" realize that we don't have
+to use Java.  There are two key concepts to my proposal:
+
+</P>
+
+<P>
+	<OL>
+
+	  <LI> <P>The amount of actual JNI functionality used in the
+	  "webclient JNI code" layer is pretty small.  I propose, and
+	  indeed have implemented, that we wrap all JNI specific code in
+	  the "webclient JNI code" layer in a small set of utility
+	  functions.</P>
+	  </LI>
+
+	  <LI> <P>Create a local jni.h that defines only the necessary JNI
+	  types used in the "webclient JNI code" layer.  This locally
+	  defined jni.h is included in the code in the "webclient UNO
+	  interface" layer.</P>
+	  </LI>
+
+
+	</OL>
+
+</P>
+
+<P>I feel strongly that both of these concepts are necessary to achieve
+the above mentioned goal, but I'm open to suggestions.</P>
+
+<P>
+
+To illustrate concept 1, in the existing webclient we might have:
+
+</P>
+
+<P><CODE><PRE>
+JNIEXPORT void JNICALL Java_org_mozilla_webclient_wrapper_1native_NavigationImpl_nativeLoadURL
+(JNIEnv *env, jobject obj, jint webShellPtr, jstring urlString)
+{
+    jobject			jobj = obj;
+    const char	*	urlChars = (char *) env->GetStringUTFChars(env, 
+                                                                   urlString);
+    
+    printf("Native URL = \"%s\"\n", urlChars);
+
+// ... omitted code for telling mozilla to load a URL
+
+    env->ReleaseStringUTFChars(env, urlString, urlChars);
+}
+</PRE></CODE></P>
+
+<P>
+
+But in the proposed "webclient for UNO" we would have.
+
+</P>
+
+
+
+<P><CODE><PRE>
+JNIEXPORT void JNICALL Java_org_mozilla_webclient_wrapper_1native_NavigationImpl_nativeLoadURL
+(JNIEnv *env, jobject obj, jint webShellPtr, jstring urlString)
+{
+    jobject			jobj = obj;
+    const char	*	urlChars = (char *) ::util_GetStringUTFChars(env, 
+                                                                 urlString);
+    
+    printf("Native URL = \"%s\"\n", urlChars);
+
+// ... omitted code for telling mozilla to load a URL
+
+    ::util_ReleaseStringUTFChars(env, urlString, urlChars);
+}    
+</PRE></CODE></P>
+
+<P>
+
+Basically, all occurrences of <CODE>env->Func(...</CODE> are replaced
+with <CODE>::util_Func(env...</CODE>.  Then, the code in the
+<CODE>::util_Func</CODE> implementations will use some form of logic,
+probably conditional compilation, to do the right thing whether the
+function is being called from Java, or from the "webclient UNO
+interface" layer.  If the util_Func is being called from the "webclient
+UNO interface" layer, JNIEnv will be NULL, but that's OK since we'll use
+locally implemented functions instead of those provided by JNI.
+
+</P>
+
+<P>The code in the "webclient UNO interface" layer will look something
+like this:</P>
+
+<P><CODE><PRE>
+// UNO method declaration for LoadURL, something like
+void Navigation::LoadURL(sal_Int32 webShell, const sal_wChar *url)
+{
+    jstring urlJString = ::util_NewString(url);
+    Java_org_mozilla_webclient_wrapper_1native_NavigationImpl_nativeLoadURL(NULL, NULL, webShell, urlJString);
+    ::util_DeleteString(urlJString);
+}
+</PRE></CODE></P>
+
+<P>
+
+To illustrate concept 2, in the existing webclient we have code in the
+"webclient JNI code" layer including the jni.h from the JDK.  In the
+proposed webclient, we use Makefile logic to change which jni.h gets
+included.  When compiling webclient.dll for use in Java, the real jni.h
+will get used.  When compiling webclient.dll for use in StarOffice, the
+locally defined jni.h will get used.  Note that the locally defined
+jni.h is much smaller than the real jni.h, and only defines those types
+actually used in the "webclient JNI code" layer.
+
+ </P>
+
+<H2>Drawbacks to the Proposed Solution</H2>
+
+<P>
+
+There is no doubt that the proposed solution increases complexity.  But
+I believe this solution minimizes and localizes the complexity to the
+Makefile, and the ::util_Func definitions.  Furthermore, it requires no
+change to the code in the "webclient JNI code" layer.  This achieves the
+goal that when a feature is implemented for use in the Java version of
+webclient, it is also available for use in the "webclient UNO interface"
+layer.
+
+</P>
+
+<P>
+
+Another drawback is the apparent in-elegance of redefining JNI symbols so
+they are really NOT JNI symbols.  While this is indeed inelegant, it is
+the only way to achieve the goals without increasing the complexity
+substantially.
+
+</P>
+
+<H2>Conclusion</H2>
+
+<P>
+
+Please consider the above proposal and let me know what you think as
+soon as possible.  The timeliness of your answer will impact whether or
+not we have a working "webclient in StarOffice" demo for InternetWorld
+on 3 April 2000.
+
+</P>
+
+<H2>References</H2>
+
+<P>[1] <A NAME="Ref1">The Webclient home page</A> <A HREF="../">http://www.mozilla.org/projects/blackwood/webclient/</A></P>
+
+    <hr>
+    <address><a href="mailto:Ed Burns <ed.burns@sun.com>">Ed Burns</a></address>
+<!-- Created: Mon Mar 20 11:18:03 PST 2000 -->
+<!-- hhmts start -->
+Last modified: Mon Mar 20 12:32:33 PST 2000
+<!-- hhmts end -->
+  </body>
+</html>

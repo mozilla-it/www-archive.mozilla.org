@@ -1,0 +1,233 @@
+PUBLIC int
+NET_GetURL
+(
+    URL_Struct         *URL_s,
+    FO_Present_Types    output_types,
+    MWContext          *window_id,
+    Net_GetUrlExitFunc *exit_routine
+)
+{
+    ActiveEntry_t ae = new ActiveEntry_t;
+
+    ae->down_queue = new EventQueue_t;
+    ae->up_queue   = new EventQueue_t;
+    ae->url        = URL_s;
+    ae->out        = output_types;
+    ae->handle     = BuildContextAndData(window_id);
+    ae->end        = exit_routine;
+
+    AddEntry(active_list, ae);
+
+    FE_RegisterMonitorCallback(ae->up_queue->monitor, NET_ProcessNet);
+    StartThread(ae->thread, do_URL, ae);
+
+    Event_t e = new Event_t(handle_URL, cleanup_event);
+    e->data = ae;
+
+    EnqueueEvent(ae->down_queue, e);
+    return;
+}
+
+PRIVATE void
+do_URL
+(
+    ActiveEntry_t ae
+)
+{
+    while( 1 )
+    {
+        Event_t e = GetEvent(ae->down_queue);
+        HandleEvent(e);
+    }
+}
+
+PRIVATE void
+handle_URL
+(
+    Event_t self
+)
+{
+    URL_type_t type = NET_URL_Type(self->data->url);
+    Protocol_Module_t module = LoadProtocolModule(type);
+    (*module->handle_URL)(self);
+}
+
+DYNAMIC void
+HTTP_handle_URL
+(
+    Event_t self
+)
+{
+    ActiveEntry_t ae = self->data;
+    URL_Struct *url = ae->url;
+    AsynchProgress(self, "Connecting to %s.", url->host);
+
+    Socket_t s = NET_Connect(url->address, url->host, url->port);
+
+    if( s == -1 )
+    {
+        Event_t oops = new Event_t(display_error, cleanup_event);
+        oops->data = CANT_CONNECT_ERROR;
+        EnqueueEvent(ae->up_queue, oops);
+        return;
+    }
+
+    AsynchProgress(ae, "Connected.");
+
+    char *command = NET_BuildCommand(...);
+
+    if( command == NULL )
+    {
+        // handle the error..
+    }
+
+    NET_BlockingWrite(s, command, strlen(command));
+    ParseHTTPMimeHeaders(s, url);
+
+    if( url->authorisation_required )
+    {
+        url->authinfo = AsynchAskForAuthString(ae, url);
+        // reconnect, etc..
+    }
+
+    Stream_t stream = AsynchBuildStream(ae, url, ae->out);
+
+    char buffer[ SIZE ];
+    int amount;
+    Event_t push = new Event_t(push_data, cleanup_event);
+
+    while( (amount = NET_BlockingRead(s, buffer)) > 0 )
+    {
+        push->data = buffer;
+        push->amount = amount;
+        push->stream = stream;
+        EnqueueSynchronousEvent(ae->up_queue, push);
+    }
+
+    if( amount == -1 )
+    {
+        // handle error as above
+    }
+
+    Event_t done = new Event_t(final_event, cleanup_event);
+    EnqueueEvent(ae->up_queue, done);
+    return;
+}
+
+PUBLIC void
+AsynchProgress
+(
+    ActiveEntry_t ae,
+    char         *directive,
+    args..
+)
+{
+    Event_t e = new Event_t(Progress, cleanup_event);
+    e->data = sprint(directive, args);
+    EnqueueEvent(ae->up_queue, e);
+}
+
+PUBLIC AuthInfo_t
+AsynchAskForAuthString
+(
+    ActiveEntry_t ae,
+    URL_Struct   *url
+)
+{
+    Event_t e = new Event_t(AskForAuthString, cleanup_event);
+    e->data = url;
+    return EnqueueSynchronousEvent(ae->up_queue, e);
+}
+
+PUBLIC Stream_t
+AsynchBuildStream
+(
+    ActiveEntry_t    ae,
+    URL_Struct      *url,
+    FO_Present_Types out
+)
+{
+    Event_t e = new Event_t(BuildStream, cleanup_event);
+    e->data = url;
+    e->moredata = out
+    return EnqueueSynchronousEvent(ae->up_queue, e);
+}
+    
+PUBLIC void
+NET_ProcessNet
+(
+    Monitor_t which
+)
+{
+    ActiveEntry_t ae = FindEntry(active_list, which);
+
+    Event_t e = GetEvent(ae->up_queue);
+    HandleEvent(e);
+}
+
+PRIVATE void
+Progress
+(
+    Event_t self
+)
+{
+    FE_Progress(self->data);
+}
+
+PRIVATE AuthInfo_t
+AskForAuthString
+(
+    Event_t self
+)
+{
+    FE_whatever(...)
+
+    return result;
+}
+
+PRIVATE Stream_t
+BuildStream
+(
+    Event_t self
+)
+{
+    return NET_StreamBuilder(self->etc...);
+}
+
+PRIVATE void
+push_data
+(
+    Event_t self
+)
+{
+    int amount = (*self->stream->write_ready)(self->handle);
+
+    (*self->stream->write)(self->handle, self->data, amount);
+
+    if( amount < self->amount )
+    {
+        // requeue remaining data at head of queue
+    }
+
+    return;
+}
+
+PUBLIC void
+NET_Interrupt
+(
+    criteria
+)
+{
+    ActiveEntry_t ae;
+
+    foreach( ae in active_list )
+    {
+        if( criteria hold for ae )
+        {
+            SignalThread(ae->thread);
+        }
+    }
+
+    return;
+}
+

@@ -1,0 +1,699 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta name="GENERATOR" content="Quadralay WebWorks Publisher Professional Edition 6.0.5">
+<meta name="TEMPLATEBASE" content="Portable HTML Professional Edition">
+<meta name="LASTUPDATED" content="07/02/03 09:55:47">
+<title>CHAPTER 8 Tutorial:  Building the WebLock UI</title>
+</head>
+
+<body link="#3366CC" vlink="#9999CC" text="#000000" alink="#0000CC" bgcolor="#FFFFFF">
+
+<table width="331" border="0" align="right" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23"
+    border="0" alt="TOC"> </a></td>
+    <td><a href="weblock_finish.html"><img src="images/navprev.gif" width="81" height="23"
+    border="0" alt="PREV"> </a></td>
+    <td><a href="weblock_package.html"><img src="images/navnext.gif" width="81" height="23"
+    border="0" alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23"
+    border="0" alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+<p><img src="images/xpcom.gif"></p>
+<hr align="left">
+
+<blockquote>
+<h1>
+  <a name="998197"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">CHAPTER 8	 Tutorial: <br>Building the WebLock UI</font>
+</h1><hr>
+
+
+<p>
+  <a name="999055"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Up until now, we've been building a component that can be installed in any Gecko application. The XPCOM interfaces and tools you've used have been general, cross-platform, and available in the Gecko Runtime Environment or in any Gecko-based application after Mozilla 1.2 (when the GRE began to be used). </font>
+</p>
+
+
+<p>
+  <a name="999066"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In this chapter, however, we are going to be building a user interface for the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component that's meant to be added to the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>existing</i></font> Mozilla browser<a href="#1000332"><sup>1</sup></a>. It uses XUL, which is an XML language that Gecko knows how to render as user interface, but it also interacts with particular parts of the Mozilla user interface, where it must install itself as an extension to the UI. Specifically, the user interface we create in this chapter will be <font  face="Verdana, Arial, Helvetica, sans-serif"><i>overlaid</i></font> into the statusbar of the browser component, where it will provide a small icon the user can click to access the web lock interface (see <a href="weblock_ui.html#999092"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 1</i></font></a>).</font>
+</p>
+
+
+<a name="999117"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/weblock_icon.gif">
+</div><br></font>
+
+<a name="999092"> </a><font face="Times New Roman">Figure 1.  WebLock Indicator in Browser</font>
+<h2>
+  <a name="999799"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">User Interface Package List</font>
+</h2>
+
+
+<p>
+  <a name="1000186"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The user interface described in this section is comprised of four files:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000160"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><i>webLockOverlay.xul</i></font> is the file that defines the little status icon in the browser.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000164"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.xul</i></font> defines the web lock manager dialog.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000165"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.css</i></font> provides style rules for both of the XUL files.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000166"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.js</i></font> provides JavaScript functions for both of the XUL files.</font>
+</ul>
+
+<p>
+  <a name="1000179"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Each of these files is described briefly in the sections below. In the following chapter we'll describe how you can take these files and create a <font  face="Verdana, Arial, Helvetica, sans-serif"><i>package</i></font>, an installable archive that includes the WebLock component and the new UI.</font>
+</p>
+
+
+<p>
+  <a name="1000157"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Because this step (particularly the overlay section) is so dependent on Mozilla, the chapter is divided up into a couple of different sections. The second section, <a href="weblock_ui.html#1000374">"XUL"</a>, describes the XML-based User Interface Language (XUL) and how you can use it to create a dialog that provides access to the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component and its services. The third section, <a href="weblock_ui.html#999060">"Overlaying New User Interface Into Mozilla"</a>, describes how to create an overlay into the browser that will make this dialog accessible from a Mozilla build. The overlay section, where we discuss how to import scripts, images, and other resources from Mozilla into your own UI, is by far the more complicated of the two. </font>
+</p>
+
+
+<p>
+  <a name="999894"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">If the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component is being installed in Mozilla or another Gecko-based browser, then this third section shows you how to create the entry point in the browser for controlling the web locking. If you are planning on deploying the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component in some other application, you'll have to devise a different means of access (e.g., native widgetry that instantiates and controls the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component).</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999246"> </a><a href="weblock_ui.html#999249">"Client Code Overview"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999274"> </a><a href="weblock_ui.html#1000374">"XUL"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999277"> </a><a href="weblock_ui.html#999060">"Overlaying New User Interface Into Mozilla"</a></font>
+</ul>
+
+<h2>
+  <a name="999249"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Client Code Overview</font>
+</h2>
+
+
+<p>
+  <a name="999257"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Before we get started on the actual user interface, we should establish how the client code is to access the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component and use its interfaces to control the web locking of the browser. </font>
+</p>
+
+
+<p>
+  <a name="999903"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">First of all, it's important to be able to represent the basic state of the lock as soon as it's loaded. Like the secure page icon, the weblock icon that appears in the lower right corner of the browser should indicate whether the browser is currently locked or unlocked. Since the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component is always initialized as unlocked, we can have the client code-the JavaScript code in the interface-represent this state and track it as the user manipulates the <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font> interface. A boolean <font  face="Verdana, Arial, Helvetica, sans-serif">wLocked</font> variable can do this:</font>
+</p>
+
+
+<a name="999908"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">// initialize the wLocked variable as unlocked</font><a name="999906"> </a>
+<font face="Courier New">var wLocked = 0;</font><a name="999907"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999258"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Then the functions that get called from the interface and call through to the <font  face="Verdana, Arial, Helvetica, sans-serif">lock</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">unlock</font> methods of the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component must also adjust this variable accordingly:</font>
+</p>
+
+
+<a name="999305"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">function wLock() {</font><a name="999315"> </a>
+<font face="Courier New">   // check to see if locking is on or off</font><a name="999316"> </a>
+<font face="Courier New">   weblock.lock()</font><a name="999317"> </a>
+<font face="Courier New">   wLocked = 1;</font><a name="999318"> </a>
+<font face="Courier New">}</font><a name="999319"> </a>
+<font face="Courier New"> </font><a name="999320"> </a>
+<font face="Courier New">function wUnLock() {</font><a name="999321"> </a>
+<font face="Courier New">   // check to see if locking is on or off</font><a name="999322"> </a>
+<font face="Courier New">   weblock.unlock()</font><a name="999323"> </a>
+<font face="Courier New">   wLocked = 0;</font><a name="999324"> </a>
+<font face="Courier New">}</font><a name="999325"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999059"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">An important preliminary of these functions is that the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component be made available to the JavaScript in the form of the <font  face="Verdana, Arial, Helvetica, sans-serif">weblock</font> object being used in the snippets above. As you can see, <font  face="Verdana, Arial, Helvetica, sans-serif">weblock</font> is initialized as a global JavaScript variable, available in the scope of these functions and others:</font>
+</p>
+
+
+<a name="999380"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">var weblock = Components.classes[
+      "@dougt/weblock"].getService();</font><a name="999388"> </a>
+<font face="Courier New">weblock = weblock.QueryInterface
+     (Components.interfaces.iWebLock);</font><a name="999389"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999353"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In addition to this basic setup, you must also write JavaScript that uses the <font  face="Verdana, Arial, Helvetica, sans-serif">AddSite</font> method to add new sites to the white list. This is a bit more complicated, because it requires that you work with the currently loaded page or provide other UI (e.g., a textfield where you can enter an arbitrary URL) for specifying URLs. In the <a href="weblock_ui.html#1000374">"XUL"</a> section below, we'll go into how the user interface is defined. This section describes the functions that are called from the interface and how they interact with the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component.</font>
+</p>
+
+
+<p>
+  <a name="999432"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The URL that the <font  face="Verdana, Arial, Helvetica, sans-serif">AddSite</font> method expects is a string, so we can pass a string directly in from the user interface, or we can do a check on the string and verify that it's a valid URL. In this tutorial, focusing as it is on the WebLock functionality (rather than the UI), we'll assume the strings we get from the UI itself are URLs we actually want to write to the white list:</font>
+</p>
+
+
+<a name="999435"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">function addThisSite() {</font><a name="999441"> </a>
+<font face="Courier New">   tf = document.getElementById("dialog.input");</font><a name="1000576"> </a>
+<font face="Courier New">   // weblock is global and declared above</font><a name="1000593"> </a>
+<font face="Courier New">   weblock.AddSite(tf.value);</font><a name="999446"> </a>
+<font face="Courier New">}</font><a name="999444"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999400"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This JavaScript function can be called directly from the XUL widget, where the input string is retrieved as the <font  face="Verdana, Arial, Helvetica, sans-serif">value</font> attribute of the <font  face="Verdana, Arial, Helvetica, sans-serif">textbox</font> element.</font>
+</p>
+
+
+<p>
+  <a name="1000456"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">You also need to create the function that displays the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> window itself when the user clicks the weblock icon in the statusbar. That function uses the <font  face="Verdana, Arial, Helvetica, sans-serif">openDialog</font> method from the <font  face="Verdana, Arial, Helvetica, sans-serif">window</font> object and takes the URL to the XUL file in which the dialog is defined:</font>
+</p>
+
+
+<a name="1000380"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">function loadWebLock() {</font><a name="1000386"> </a>
+<font face="Courier New">   openDialog("chrome://weblock/weblock.xul");</font><a name="1000392"> </a>
+<font face="Courier New">}</font><a name="1000394"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h2>
+  <a name="1000374"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XUL</font>
+</h2>
+
+
+<p>
+  <a name="999141"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The entire user interface of the Mozilla browser and all of the applications that go with it, including the mail client, the IRC client, and others, have been defined in an XML language called XUL. Elements in the XUL markup map to widgets in the interface that Gecko renders in a fairly straightforward way-so, for instance, the root element of an application window is the element <font  face="Verdana, Arial, Helvetica, sans-serif">&lt;window&gt;</font>, the root element of the dialog we'll be creating here is <font  face="Verdana, Arial, Helvetica, sans-serif">&lt;dialog&gt;</font>, and so forth. Within a XUL application file, elements like button, menu, checkbox can be hooked up to an event model, to scripts, and to the XPCOM interfaces that carry out a lot of the browser functionality in Mozilla. </font>
+</p>
+
+
+<p>
+  <a name="999154"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In the chapter <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Using Components</i></font>, you saw how XPCOM objects are reflected into the interface layer as JavaScript objects. In this chapter, now that we've created the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component and made it available to XPCOM, we create the UI that actually instantiates the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component and uses its methods to control page loading in the browser. </font>
+</p>
+
+
+<p>
+  <a name="999172"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In the previous section, we outlined the JavaScript that interacts with the WebLock component. In this section, we are going to create the XUL interface that calls the JavaScript methods when the user interacts with it.</font>
+</p>
+
+
+<h3>
+  <a name="999131"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The XUL Document</font>
+</h3>
+
+
+<p>
+  <a name="999622"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first thing to do is create the actual XUL document in which the user interface for the dialog and the events that initiate interaction with the web locking are defined. At the top of all XUL documents, an XML declaration is followed by the root element for the document, which is usually <font  face="Verdana, Arial, Helvetica, sans-serif">&lt;window&gt;</font> but for dialog boxes can also be the element <font  face="Verdana, Arial, Helvetica, sans-serif">&lt;dialog&gt;</font>. The "shell" for the XUL file, then, looks like this:</font>
+</p>
+
+
+<a name="999512"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">&lt;?xml version="1.0"?&gt; </font><a name="999504"> </a>
+<font face="Courier New">&lt;?xml-stylesheet href="chrome://global/skin/" type="text/css"?&gt;</font><a name="999505"> </a>
+<font face="Courier New"></font><a name="999506"> </a>
+<font face="Courier New">&lt;dialog id="weblock_ui"</font><a name="999507"> </a>
+<font face="Courier New">   xmlns="http://www.mozilla.org/keymaster/gatekeeper/      there.is.only.xul"</font><a name="999508"> </a>
+<font face="Courier New">	title="Web Lock Manager"</font><a name="999509"> </a>
+<font face="Courier New">   persist="screenX screenY"</font><a name="999510"> </a>
+<font face="Courier New">   screenX="24" screenY="24"&gt;</font><a name="999511"> </a>
+<font face="Courier New"></font><a name="999519"> </a>
+<font face="Courier New">&lt;/dialog&gt;</font><a name="999520"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999513"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that this part of the XUL file also contains a stylesheet declaration, which imports CSS rules and applies them to particular parts of the interface. In Gecko, CSS is used to do virtually all of the presentation of the XUL interface-its color, position, style, and to some extent its behavior as well. The web lock manager dialog does not deviate from the look of a standard dialog, so it can use a single  declaration to import the "global" skin from the browser and make it available to the widgets you define in weblock.xul.</font>
+</p>
+
+
+<p>
+  <a name="999637"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">You can save this first, outermost part of the web lock dialog in a file called <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.xul</i></font>, which you'll be adding to an installer archive in Appendix B in this book. </font>
+</p>
+
+
+<a name="999645"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999683"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that this file defines the dialog that displays when the user/administrator clicks the web locking icon in the bottom right corner of the browser. That piece of UI-which needs to be dynamically inserted into the browser at run-time-is described in the following section, <a href="weblock_ui.html#999060">"Overlaying New User Interface Into Mozilla"</a>.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999652"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The finished dialog appears in <a href="weblock_ui.html#999657"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 2</i></font></a> below.</font>
+</p>
+
+
+<a name="999655"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/weblock_ui2.gif" height="176" width="693">
+</div><br></font>
+
+<a name="999657"> </a><font face="Times New Roman">Figure 2.  Web Lock Manager Dialog</font>
+<p>
+  <a name="999658"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">As you can see, it's a simple interface, providing just enough widgetry to lock and unlock the browser, and to add new sites to the list. The entire XUL file for the web lock manager dialog is defined in the <a href="weblock_ui.html#999549">"weblock.xul"</a> subsection below.</font>
+</p>
+
+
+<h3>
+  <a name="999626"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Locking UI</font>
+</h3>
+
+
+<p>
+  <a name="999665"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once you have the basic XUL wrapper set up for your interface, the next step is to define that part of the interface that locks and unlocks the browser. One of the most efficient ways to expose this is to use radio buttons, which allow the user to toggle a particulart state, as the figure above illustrates.</font>
+</p>
+
+
+<p>
+  <a name="999702"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In XUL, individual radio elements are contained within a parent element called radiogroup. Grouping radio elements together creates the toggling UI by requiring that one or another of the elements be selected, but not both. </font>
+</p>
+
+
+<p>
+  <a name="999703"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The XUL that defines the radiogroup in the web lock manager dialog is this:</font>
+</p>
+
+
+<a name="999704"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">&lt;radiogroup&gt;</font><a name="999712"> </a>
+<font face="Courier New">   &lt;radio label="lock" /&gt;</font><a name="999713"> </a>
+<font face="Courier New">   &lt;radio label="unlock" selected="true" /&gt;</font><a name="999714"> </a>
+<font face="Courier New">&lt;/radiogroup&gt;</font><a name="999715"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999727"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Since the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component always starts up in the unlocked position, you can set the default <font  face="Verdana, Arial, Helvetica, sans-serif">selected="true"</font> property on the unlock radio button and reset it dynamically as the user takes action.</font>
+</p>
+
+
+<h3>
+  <a name="999737"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Site Adding UI</font>
+</h3>
+
+
+<p>
+  <a name="999741"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next step is to create that part of the user interface that lets you add a new site to the white list. There are other, more sophisticated ways to do this; you may also want to include some UI that lets you view the whitelist or edit it as a list. In this part of the tutorial, however, we only provide the means of adding an URL provided as a string (and not checked for validity) and passing it through to the AddSite API we defined in the earlier part of the tutorial.</font>
+</p>
+
+
+<a name="999745"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">&lt;separator class="thin"/&gt;</font><a name="999753"> </a>
+<font face="Courier New"></font><a name="999755"> </a>
+<font face="Courier New">&lt;hbox align="center"&gt;</font><a name="999766"> </a>
+<font face="Courier New">  &lt;textbox id="url.input" flex="1"/&gt;</font><a name="999756"> </a>
+<font face="Courier New">  &lt;button label="Add this URL" oncommand="addThisSite();" /&gt;</font><a name="999757"> </a>
+<font face="Courier New">&lt;/hbox&gt;</font><a name="999758"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999767"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This snippet introduces a couple of new general layout widgets in XUL. The separator that appears at the top of this snippet creates a little divider between widgets like the kind you see in menus that divide sets of functionality available there. The parent of the textbox that users enter an URL into is something called an <font  face="Verdana, Arial, Helvetica, sans-serif">&lt;hbox&gt;</font>, which is a layout widget-often invisible-that controls the way its child elements are rendered. In this case, the hbox centers the textbox and the button children, and it orients them horizontally (in contrast to the vbox, which orients its children veritically).</font>
+</p>
+
+
+<p>
+  <a name="999781"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Notice also that when it's clicked, the button executes a JavaScript function called <font  face="Verdana, Arial, Helvetica, sans-serif">addThisSite()</font>, which we've already defined in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.js</i></font> file in the <a href="weblock_ui.html#999249">"Client Code Overview"</a> section above.</font>
+</p>
+
+
+<h3>
+  <a name="999549"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">weblock.xul</font>
+</h3>
+
+
+<a name="999553"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">&lt;?xml version="1.0"?&gt; </font><a name="999561"> </a>
+<font face="Courier New">&lt;?xml-stylesheet href="chrome://global/skin/" type="text/css"?&gt;</font><a name="999562"> </a>
+<font face="Courier New"></font><a name="999563"> </a>
+<font face="Courier New">&lt;dialog id="weblock_mgg"</font><a name="999564"> </a>
+<font face="Courier New">        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"</font><a name="999565"> </a>
+<font face="Courier New">	title="Web Lock Manager"</font><a name="999566"> </a>
+<font face="Courier New">        style="width: 30em;"</font><a name="999567"> </a>
+<font face="Courier New">        persist="screenX screenY"</font><a name="999568"> </a>
+<font face="Courier New">        screenX="24" screenY="24"&gt;</font><a name="999569"> </a>
+<font face="Courier New"></font><a name="999570"> </a>
+<font face="Courier New">&lt;script src="chrome://weblock/content/weblock.js" /&gt;</font><a name="999572"> </a>
+<font face="Courier New">              </font><a name="999573"> </a>
+<font face="Courier New">  &lt;hbox&gt;</font><a name="999574"> </a>
+<font face="Courier New">    &lt;separator orient="vertical" class="thin"/&gt;</font><a name="999575"> </a>
+<font face="Courier New">    &lt;vbox flex="1"&gt;</font><a name="999576"> </a>
+<font face="Courier New">      &lt;separator class="thin"/&gt;</font><a name="999577"> </a>
+<font face="Courier New"></font><a name="999578"> </a>
+<font face="Courier New">      &lt;hbox align="center"&gt;</font><a name="999579"> </a>
+<font face="Courier New">        &lt;textbox id="dialog.input" flex="1" /&gt;</font><a name="999580"> </a>
+<font face="Courier New">        &lt;button label="Add this URL" </font><a name="999583"> </a>
+<font face="Courier New">           oncommand="addThisSite();"/&gt;</font><a name="999809"> </a>
+<font face="Courier New">      &lt;/hbox&gt;</font><a name="1000482"> </a>
+<font face="Courier New">      &lt;hbox align="center"&gt;</font><a name="999585"> </a>
+<font face="Courier New">        	&lt;radiogroup onchange="toggleLock();"&gt;</font><a name="999586"> </a>
+<font face="Courier New">           &lt;radio label="lock" /&gt;</font><a name="999587"> </a>
+<font face="Courier New">           &lt;radio label="unlock" /&gt;</font><a name="999588"> </a>
+<font face="Courier New">	     &lt;/radiogroup&gt;</font><a name="999589"> </a>
+<font face="Courier New"></font><a name="999590"> </a>
+<font face="Courier New">        &lt;spacer flex="1"/&gt;</font><a name="999591"> </a>
+<font face="Courier New">      &lt;/hbox&gt;</font><a name="999592"> </a>
+<font face="Courier New">    &lt;/vbox&gt;</font><a name="999593"> </a>
+<font face="Courier New">  &lt;/hbox&gt; </font><a name="999594"> </a>
+<font face="Courier New">           </font><a name="999595"> </a>
+<font face="Courier New"> &lt;/dialog&gt;</font><a name="999596"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999542"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"></font>
+</p>
+
+
+<h2>
+  <a name="999060"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Overlaying New User Interface Into Mozilla</font>
+</h2>
+
+
+<p>
+  <a name="999175"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">You've got a dialog that will interact with the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component, but how do you install that dialog you've created into the browser? And how do you access it once it's in? Once it's installed and registered, the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component itself is ready to go: XPCOM finds it and adds it to the list of registered components, and then <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> observes the XPCOM start up event and initializes itself.</font>
+</p>
+
+
+<p>
+  <a name="999529"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">But you still have to insinuate your new UI into the browser so it can call the component, and the Mozilla <font  face="Verdana, Arial, Helvetica, sans-serif"><i>overlay</i></font> mechanism is the way to do this. Overlays are XUL files that register themselves to be dynamically inserted into the appropriate parts of the browser UI at runtime. </font>
+</p>
+
+
+<h3>
+  <a name="999819"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">webLockOverlay.xul</font>
+</h3>
+
+
+<p>
+  <a name="999823"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The XUL that defines the new icon is small: it's a little icon that has an image associated with it, and that calls a JavaScript function to loads the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.xul</i></font> file we defined in the previous section. The icon is actually a separate <font  face="Verdana, Arial, Helvetica, sans-serif">&lt;statusbar&gt;</font> element that gets overlaid into the main browser, along with some JavaScript and some CSS to control the behavior and appearance of the element, respectively. Here is that XUL file in its entirety:</font>
+</p>
+
+
+<a name="999827"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">&lt;?xml version="1.0"?&gt;</font><a name="999954"> </a>
+<font face="Courier New">&lt;?xml-stylesheet </font><a name="999956"> </a>
+<font face="Courier New">   href="chrome://navigator/content/weblock.css" </font><a name="999976"> </a>
+<font face="Courier New">   type="text/css"?&gt; </font><a name="999977"> </a>
+<font face="Courier New"></font><a name="999957"> </a>
+<font face="Courier New">&lt;overlay id="weblockOverlay" </font><a name="999958"> </a>
+<font face="Courier New">  xmlns="http://www.mozilla.org/keymaster/gatekeeper/       there.is.only.xul"&gt;</font><a name="999959"> </a>
+<font face="Courier New"></font><a name="999960"> </a>
+<font face="Courier New">  &lt;script type="application/x-javascript" </font><a name="999961"> </a>
+<font face="Courier New">     src="chrome://weblock/content/weblock.js" /&gt;</font><a name="999982"> </a>
+<font face="Courier New"></font><a name="999962"> </a>
+<font face="Courier New">  &lt;statusbar id="status-bar"&gt;</font><a name="999963"> </a>
+<font face="Courier New">     &lt;statusbarpanel class="statusbarpanel-iconic" </font><a name="999964"> </a>
+<font face="Courier New">       id="weblock-status" </font><a name="999985"> </a>
+<font face="Courier New">       insertbefore="offline-status"</font><a name="999988"> </a>
+<font face="Courier New">       oncommand="loadWebLock();" </font><a name="1000001"> </a>
+<font face="Courier New">       status="none"/&gt;</font><a name="999989"> </a>
+<font face="Courier New">  &lt;/statusbar&gt; </font><a name="999965"> </a>
+<font face="Courier New"></font><a name="999966"> </a>
+<font face="Courier New">&lt;/overlay&gt;</font><a name="999967"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+<a name="999061"> </a><font face="Times New Roman">Figure 3.  The WebLock Overlay</font>
+<p>
+  <a name="1000388"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that the root element for this file is not a window but an overlay. In overlays, the ordinarily unique ID attributes that XUL elements use to distinguish themselves are purposely made redundant with UI in the existing browser with which they should be merged. In this case, the weblock <font  face="Verdana, Arial, Helvetica, sans-serif">statusbarpanel</font> appears as a child of the <font  face="Verdana, Arial, Helvetica, sans-serif">statusbar</font> element with ID "status-bar". This ID is the same one used by the <font  face="Verdana, Arial, Helvetica, sans-serif">statusbar</font> in <font  face="Verdana, Arial, Helvetica, sans-serif"><i>navigator.xul</i></font>, which means that the overlay mechanism will merge the new UI here (i.e., the weblock <font  face="Verdana, Arial, Helvetica, sans-serif">statusbarpanel</font>) and the UI already defined within that browser <font  face="Verdana, Arial, Helvetica, sans-serif">statusbar</font> at runtime.</font>
+</p>
+
+
+<h2>
+  <a name="1000084"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Other Resources</font>
+</h2>
+
+
+<p>
+  <a name="1000277"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This chapter describes the remaining files that must be added to and packaged up with the WebLock component to provide user interface for web locking.</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000278"> </a><a href="weblock_ui.html#1000273">"weblock.css"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000297"> </a><a href="weblock_ui.html#1000272">"Image Resources"</a></font>
+</ul>
+
+<a name="1000302"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1000308"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Other Front End Resources</font>
+</h4>
+
+<a name="1000309"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In some UI packages, localization resources are also defined. These include DTDs in which the language in which the UI is labelled can be extracted into external files, which are swapped with DTDs for other languages. For example, user interface packages often include an English DTD that defines labels and strings for button and menus and other elements in the interface. When the user selects a different <font  face="Verdana, Arial, Helvetica, sans-serif"><i>language pack</i></font>, all of the English that's been externalized in these files is dynamically replaced with the new choice.</font><a name="1000318"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In addition to DTDs, the localization parts of a user interface may also include string bundles in which strings that are used in the interface JavaScript can be similarly replaced.</font><a name="1000321"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There are also technologies, not discussed here, which may be used in separate, installable files. These include <font  face="Verdana, Arial, Helvetica, sans-serif"><i>bindings</i></font> in XML files, <font  face="Verdana, Arial, Helvetica, sans-serif"><i>metadata</i></font> in RDF files, whole collections of CSS files called <font  face="Verdana, Arial, Helvetica, sans-serif"><i>skins</i></font>, and others. </font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="1000273"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">weblock.css</font>
+</h3>
+
+
+<p>
+  <a name="1000088"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The following style rules are defined in <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.css</i></font>, a CSS file that is loaded by the overlay and applied to the icon in the browser that reflects the current status of the web lock and provides access to the web lock manager dialog.</font>
+</p>
+
+
+<a name="1000002"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">statusbarpanel#weblock-status {</font><a name="1000012"> </a>
+<font face="Courier New">   list-style-image: url("chrome://weblock/wlock.gif");</font><a name="1000013"> </a>
+<font face="Courier New">}</font><a name="1000014"> </a>
+<font face="Courier New"></font><a name="1000015"> </a>
+<font face="Courier New">statusbarpanel#weblock-status[status="locked"] {</font><a name="1000016"> </a>
+<font face="Courier New">   list-style-image: url("chrome://weblock/wl-lock.gif");</font><a name="1000017"> </a>
+<font face="Courier New">}</font><a name="1000018"> </a>
+<font face="Courier New"></font><a name="1000019"> </a>
+<font face="Courier New">statusbarpanel#weblock-status[status="unlocked"] {</font><a name="1000020"> </a>
+<font face="Courier New">   list-style-image: url("chrome://weblock/wl-un.gif");</font><a name="1000021"> </a>
+<font face="Courier New">}</font><a name="1000022"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1000003"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The style rules are distinguished by the state of the <font  face="Verdana, Arial, Helvetica, sans-serif">status</font> attribute on the element in the XUL with the ID "weblock-status." As you can see above, when the status of the element is set to "locked", the image <font  face="Verdana, Arial, Helvetica, sans-serif"><i>wl-lock.gif</i></font> is used to show the state, and when the web locking is unlocked, it uses <font  face="Verdana, Arial, Helvetica, sans-serif"><i>wl-un.gif</i></font>. (Note: We include three images to represent the state of the weblock, but <font  face="Verdana, Arial, Helvetica, sans-serif"><i>wlock.gif</i></font> and <font  face="Verdana, Arial, Helvetica, sans-serif"><i>wl-lock.gif</i></font> are identical, since weblock is presumed to be unlocked when it's loaded. This tutorial makes use of only two different states, but you can further customize the look of the weblock using the three images if you wish.) </font>
+</p>
+
+
+<p>
+  <a name="1000234"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Since the presentation of the weblock manager dialog itself doesn't require any special styles, these are all the rules you need in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.css</i></font>. Note that the weblock.xul file in which the manager is defined imports only the global skin:</font>
+</p>
+
+<pre>
+<font face="Courier New">&lt;?xml-stylesheet href="chrome://global/skin/" type="text/css"?&gt;</font><a name="1000240"> </a>
+</pre>
+
+<p>
+  <a name="1000248"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Save <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.css</i></font> in your working directory.</font>
+</p>
+
+
+<p>
+  <a name="1000255"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">You should now have the four files listed at the top of this chapter as the "packing list" for the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> package (see <a href="weblock_ui.html#999799">"User Interface Package List"</a>). Don't worry for now about where these files are. In the next chapter, <a href="weblock_package.html#998197">"Tutorial: Packaging WebLock"</a>, we'll describe how to organize and package them so that they can be installed along with the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component itself and the other resources.</font>
+</p>
+
+
+<h3>
+  <a name="1000272"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Image Resources</font>
+</h3>
+
+
+<p>
+  <a name="1000350"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">If you are following along with this tutorial and want to use the images we use here for the states of the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component in the statusbar, you can download them and the other resources for <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> from <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.brownhen.com/weblock</i></font>. The GIF files that represent the various states are:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000289"> </a>wlock.gif</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000295"> </a>wl-lock.gif</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000296"> </a>wl-un.gif</font>
+</ul>
+
+<p>
+  <a name="1000220"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"></font>
+</p>
+
+
+<p>
+  <a name="1000004"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"></font>
+</p>
+
+
+  
+<a name="1000332"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#999066"><sup>1</sup></a>
+<a name="1000332"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Or one very much like it. There are Gecko-based browsers such as Beonex and the IBM Web Browser that share a lot of the structure of the Mozilla user interface, into which it may be possible to install both the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component and the user interface described in this chapter.<br></font>
+
+<br></font>
+</blockquote>
+
+<hr>
+
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+  <td><font size="1"><font face="courier"> Copyright (c)
+  2003 by Doug Turner and Ian Oeschger. This material may be
+  distributed only subject to the terms and conditions set forth in
+  the <a href="http://www.opencontent.org/openpub/">Open Publication
+  License</a>, v1.02 or later. Distribution of substantively modified
+  versions of this document is prohibited without the explicit
+  permission of the copyright holder. Distribution of the work or
+  derivative of the work in any standard (paper) book form is
+  prohibited unless prior permission is obtained from the copyright
+  holder.</td>
+  </tr>
+</table>
+
+<table width="331" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23" border="0"
+    alt="TOC"> </a></td>
+    <td><a href="weblock_finish.html"><img src="images/navprev.gif" width="81" height="23" border="0"
+    alt="PREV"> </a></td>
+    <td><a href="weblock_package.html"><img src="images/navnext.gif" width="81" height="23" border="0"
+    alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23" border="0"
+    alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+</body>
+</html>

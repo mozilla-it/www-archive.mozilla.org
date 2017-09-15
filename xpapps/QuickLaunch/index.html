@@ -1,0 +1,576 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.77 [en] (WinNT; U) [Netscape]">
+   <title>Quick Launch</title>
+<style type="text/css">
+    h4 { background: lightgrey; color: black; font-style: italic; }
+    a[href] { font-size: 11; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<center>
+<h1>
+quick launch</h1></center>
+
+<table CELLPADDING=13 >
+<tr VALIGN=TOP>
+<td><a href="#startup">Entering Quick Launch on Startup</a>
+<li>
+<a href="#ignore">Ignore startup prefs</a>&nbsp;</li>
+
+<li>
+<a href="#dontopen">Don't open a visible browser window; preload</a>&nbsp;</li>
+
+<li>
+<a href="#suppress">Suppress the splash screen</a></li>
+</td>
+
+<td><a href="#launching">Launching While in Quick Launch</a>
+<li>
+<a href="#respect2">Respect startup prefs</a>&nbsp;</li>
+
+<li>
+<a href="#show">Show the profile picker if necessary</a></li>
+</td>
+
+<td><a href="#shutting">"Quitting" While Staying in Quick Launch</a>
+<li>
+<a href="#prevent">Prevent actually quitting</a>&nbsp;</li>
+
+<li>
+<a href="#notify">Notify user of quicklaunch</a>&nbsp;</li>
+
+<li>
+<a href="#simulate">Simulate quit to flush private data</a></li>
+</td>
+</tr>
+
+<tr VALIGN=TOP <td>
+<td><a href="#relaunch">Entering Quick Launch on Relaunch</a>
+<li>
+<a href="#respect">Respect startup prefs</a>&nbsp;</li>
+
+<li>
+<a href="#internal">Enter quicklaunch internally</a>&nbsp;</li>
+
+<li>
+<a href="#open">Open a visible window; don't preload</a></li>
+</td>
+
+<td><a href="#toggling">Toggling Quick Launch Dynamically</a>
+<li>
+<a href="#contentpending">Content coming soon</a></li>
+
+<li>
+<a href="#contentpending">Content coming soon</a></li>
+
+<li>
+<a href="#contentpending">Content coming soon</a></li>
+</td>
+
+<td><a href="#really">Really Shutting Down Quick Launch</a>
+<li>
+<a href="#shutting2">Shutting down from the systray icon menu</a></li>
+</td>
+</tr>
+</table>
+<a NAME="startup"></a>
+<h3>
+Entering Quick Launch on Startup</h3>
+We use the standard registry key Software\\Microsoft\\Windows\\CurrentVersion\\Run
+to load Mozilla when the computer starts. In this scenario, we want Mozilla
+to be silent and invisible, because the user has not indicated that he
+wishes to use the app yet. There are a number of things we need to do to
+accomplish this.
+<br><a NAME="ignore"></a>
+<h4>
+Ignore startup prefs</h4>
+We don't want to respect the application startup prefs in the Appearance
+panel. main1() in nsAppRunner.cpp contains the following code:
+<pre>&nbsp; rv = DoCommandLines( cmdLineArgs, <b>(argc == 1)</b>, &amp;windowOpened );</pre>
+DoCommandLine's second parameter is a boolean value indicating whether
+to respect the startup prefs. Because argc == 1 is only true when there
+are no command line arguments, we are guaranteed to ignore the startup
+prefs: -turbo must be specified in this mode.
+<br><a NAME="dontopen"></a>
+<h4>
+Don't open a visible browser window; preload</h4>
+We do, of course, need to open a browser window quickly to do preloading
+-- that's how quicklaunch improves performance. But we don't want the user
+to notice anything when he's starting his computer. nsNativeAppSupportWin::StartServerMode()
+handles this magic; we call it from nsAppRunner.cpp's Ensure1Window() and
+then bail if we've been instructed not to show UI:
+<pre>&nbsp; // If starting up in server mode, then we do things differently.
+&nbsp; nsCOMPtr<nsINativeAppSupport> nativeApp;
+&nbsp; rv = GetNativeAppSupport(getter_AddRefs(nativeApp));
+&nbsp; if (NS_SUCCEEDED(rv)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRBool isServerMode = PR_FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nativeApp->GetIsServerMode(&amp;isServerMode);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (isServerMode) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>nativeApp->StartServerMode();
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRBool shouldShowUI = PR_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nativeApp->GetShouldShowUI(&amp;shouldShowUI);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>if (!shouldShowUI) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NS_OK;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</b>&nbsp; }</pre>
+GetIsServerMode returns true because we set nsNativeAppSupportWin::mServerMode
+previously in nsNativeAppSupportWin::CheckConsole():
+<pre>&nbsp; } else if ( strcmp( "-turbo", __argv[i] ) == 0
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ||
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; strcmp( "/turbo", __argv[i] ) == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Start in server mode (and suppress splash screen).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mServerMode = PR_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ...
+&nbsp; }</pre>
+nsNativeAppSupportWin::StartServerMode() calls nsNativeAppSupportWin::SetupSysTrayIcon()
+to setup the quicklaunch systray icon, and then opens a browser window.
+It reparents the window to ensure that it can't be seen. It passes about:blank
+as the window argument indicating what start page to use, as we don't want
+to do any networking. It also passes the turbo=yes argument to indicate
+that the window should be closed immediately, as we're only using it to
+preload. navigator.js' Startup() function, called when a browser window
+loads, checks for this argument and handles the closing:
+<pre>&nbsp; } else if (window.arguments[1].indexOf("turbo=yes") != -1) {
+&nbsp;&nbsp;&nbsp; turboMode = true;
+&nbsp; }
+&nbsp;&nbsp;
+&nbsp; ...
+&nbsp;&nbsp;
+&nbsp; // Close the window now, if it's for turbo mode startup.
+&nbsp; if ( turboMode ) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Set "command line used" flag.&nbsp; If we don't do this, then when a cmd line url
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // for a "real* invocation comes in, we will override it with the "cmd line url"
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // from the turbo-mode process (i.e., the home page).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; appCore.cmdLineURLUsed = true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // For some reason, window.close() directly doesn't work, so do it in the future.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>window.setTimeout( "window.close()", 100 );
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return;
+&nbsp; }</pre>
+<a NAME="suppress"></a>
+<h4>
+Suppress the splash screen</h4>
+In nsNativeAppSupportWin::CheckConsole(), we check for the -turbo command
+line argument and "replace" it internally with the -nosplash argument:
+<pre>&nbsp; } else if ( strcmp( "-turbo", __argv[i] ) == 0
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ||
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; strcmp( "/turbo", __argv[i] ) == 0 ) {
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>__argv[i] = "-nosplash";</b> // Bit of a hack, but it works!
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Ignore other args.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;
+&nbsp; }</pre>
+The -nosplash argument is handled in nsAppRunner.cpp's GetWantSplashScreen().<a NAME="relaunch"></a>
+<h3>
+Entering Quick Launch on Relaunch</h3>
+This case is fundamentally different from that described above. Here, Mozilla
+is being voluntarily run after the computer has already booted, after we've
+already completed the above steps, and after the app has been fully exited
+-- that is, the user chose Exit Mozilla from the systray icon or otherwise
+shutdown the app process. In this case, preloading isn't possible because
+the user wants to use Mozilla right away. We just want to enter quicklaunch
+internally so that when the last window is closed, the process remains
+open, so subsequent openings will be fast. We also want to respect the
+application startup prefs, unlike above, and show the systray icon.
+<br><a NAME="respect"></a>
+<h4>
+Respect startup prefs</h4>
+Once again, the second argument in this call in nsAppRunner.cpp's main1()
+determines whether we respect the application startup prefs:
+<pre>&nbsp; rv = DoCommandLines( cmdLineArgs, <b>(argc == 1)</b>, &amp;windowOpened );</pre>
+However, this time the -turbo argument will not be specified, so argc ==
+1 will be true (provided no other arguments are specified).
+<br><a NAME="internal"></a>
+<h4>
+Enter quicklaunch internally</h4>
+Unlike in the "On startup" case above, Mozilla will not be started with
+the -turbo command line argument. We use the existence of our value in
+the registry key Software\\Microsoft\\Windows\\CurrentVersion\\Run to determine
+whether the user has quicklaunch turned on. We check for this in nsNativeAppSupportWin::CheckConsole():
+<pre>&nbsp; // check if this is a restart of the browser after quiting from
+&nbsp; // the servermoded browser instance.
+&nbsp; if (!mServerMode ) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HKEY key;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LONG result = ::RegOpenKeyEx( HKEY_CURRENT_USER,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_QUERY_VALUE, &amp;key );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( result == ERROR_SUCCESS ) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BYTE regvalue[_MAX_PATH];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD type, len = sizeof(regvalue);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; result = ::RegQueryValueEx( key, NS_QUICKLAUNCH_RUN_KEY, NULL, &amp;type, regvalue, &amp;len);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ::RegCloseKey( key );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( result == ERROR_SUCCESS &amp;&amp; len > 0 ) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Make sure the filename in the quicklaunch command matches us
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; char fileName[_MAX_PATH];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int rv = ::GetModuleFileName( NULL, fileName, sizeof fileName );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>if (rv &amp;&amp; !PL_strncasecmp(fileName, (const char *)regvalue, PR_MIN(len, strlen(fileName)))) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mServerMode = PR_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mShouldShowUI = PR_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp; }</pre>
+Note that now mShouldShowUI is set to true: the user is voluntarily starting
+the app, so we must show UI.
+<br><a NAME="open"></a>
+<h4>
+Open a visible window; don't preload</h4>
+nsAppRunner.cpp's Ensure1Window() is responsible for opening the window,
+but unlike in the "On startup" case above, nsNativeAppSupportWin::GetShouldShowUI()
+returns true, so we don't bail early: Once again, nsNativeAppSupportWin::StartServerMode(),
+called from nsAppRunner.cpp's Ensure1Window(), is responsible for setting
+up the system tray icon. However, because mShouldShowUI is now true, the
+function will bail before preloading:
+<pre>&nbsp; // If starting up in server mode, then we do things differently.
+&nbsp; nsCOMPtr<nsINativeAppSupport> nativeApp;
+&nbsp; rv = GetNativeAppSupport(getter_AddRefs(nativeApp));
+&nbsp; if (NS_SUCCEEDED(rv)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRBool isServerMode = PR_FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nativeApp->GetIsServerMode(&amp;isServerMode);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (isServerMode) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>nativeApp->StartServerMode();
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRBool shouldShowUI = PR_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nativeApp->GetShouldShowUI(&amp;shouldShowUI);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>if (!shouldShowUI) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NS_OK;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</b>&nbsp; }</pre>
+We still call nsNativeAppSupportWin::StartServerMode(), but now that function
+will just setup the systray icon and bail early, without preloading, because
+mShouldShowUI is true:
+<pre>&nbsp; // Turn on system tray icon.
+&nbsp; SetupSysTrayIcon();
+
+&nbsp; if (mShouldShowUI) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // We dont have to anything anymore. The native UI
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // will create the window
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NS_OK;
+&nbsp; }</pre>
+<a NAME="launching"></a>
+<h3>
+Launching While in Quick Launch</h3>
+When Mozilla is running in quicklaunch but there are no windows open, the
+user probably expects launching the application to behave much like it
+would if Quick Launch weren't on. Thus, we want to respect application
+startup prefs and show the profile picker if there are multiple profiles.
+<br><a NAME="respect2"></a>
+<h4>
+Respect startup prefs</h4>
+Because Mozilla is already running, nsAppRunner.cpp's main1() is not called.
+Instead, we handle the task of respecting application startup prefs in
+nsNativeAppSupportWin::HandleRequest():
+<pre>&nbsp; PRBool heedStartupPrefs = PR_FALSE;
+&nbsp; PRInt32 argc = 0;
+&nbsp; args->GetArgc( &amp;argc );
+&nbsp; if ( argc &lt;= 1 ) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Use startup prefs iff there are no windows currently open.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsCOMPtr<nsIDOMWindowInternal> win;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GetMostRecentWindow( 0, getter_AddRefs( win ) );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( !win ) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; heedStartupPrefs = PR_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp; }
+
+&nbsp; // Process command line options.
+&nbsp; rv = DoCommandLines( args, heedStartupPrefs, &amp;windowOpened );</pre>
+<a NAME="show"></a>
+<h4>
+Show the profile picker if necessary</h4>
+The following code in nsNativeAppSupportWin::HandleRequest() ensures that
+we have a profile to use (it will thus show the profile picker if there
+multiple profiles exist and the -P "<ProfileName>" command line argument
+wasn't specified):
+<pre>&nbsp; // Need profile before opening windows.
+&nbsp; rv = nativeApp->EnsureProfile(args);
+&nbsp; if (NS_FAILED(rv)) return;</pre>
+We had set the mForceProfileStartup flag to true in nsNativeAppSupportWin::OnLastWindowClosing()
+to indicate that the current "session" was over, and thus we *must* again
+prompt for profile choice on next launch. So nsNativeAppSupportWin::EnsureProfile()
+checks this flag and calls nsIAppShellService::DoProfileStartup() to display
+the profile picker if it's true:
+<pre>&nbsp; PRBool haveProfile;
+&nbsp; rv = profileMgr->IsCurrentProfileAvailable(&amp;haveProfile);
+&nbsp; if (!mForceProfileStartup &amp;&amp; NS_SUCCEEDED(rv) &amp;&amp; haveProfile)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NS_OK;
+
+&nbsp; // If the profile selection is happening, fail.
+&nbsp; PRBool doingProfileStartup;
+&nbsp; rv = profileMgr->GetIsStartingUp(&amp;doingProfileStartup);
+&nbsp; if (NS_FAILED(rv) || doingProfileStartup) return NS_ERROR_FAILURE;
+
+&nbsp; rv = appShell->DoProfileStartup(args, PR_TRUE);
+
+&nbsp; mForceProfileStartup = PR_FALSE;</pre>
+<a NAME="toggling"></a>
+<h3>
+Toggling Quick Launch Dynamically</h3>
+<a NAME="contentpending"></a>&lt;content pending since this area just got
+rewritten><a NAME="shutting"></a>
+<h3>
+"Quitting" While Staying in Quick Launch</h3>
+When the user is in quicklaunch and he closed the last window, we will
+actually quit the current Mozilla process and then restart a new one.&nbsp;
+The new process will be in the state as the process that was launched on
+startup.&nbsp; That is, it will be silent and invisible because the user
+has not yet indicated that he wants to use the app.
+<p>Doing such a complete shutdown and restart will ensure that session
+history is cleared.
+<br><a NAME="prevent"></a>
+<h4>
+Prevent actually quitting</h4>
+<i>This section is no longer relevant.&nbsp; It existed in the old turbo
+model when we didn't actually quite the Mozilla process when the user closed
+the last window.&nbsp; The code presented in this section is still in the
+product (it's not clear why this isn't causing a problem) so it will be
+described here.</i>
+<p>When there are no remaining windows in nsIAppShellService::UnregisterTopLevelWindow(),
+before calling nsIAppShellService::Quit(), we check for quicklaunch and
+bail early if it's on:
+<pre>&nbsp; // Check to see if we should quit in this case.
+&nbsp; if (mNativeAppSupport) {
+&nbsp;&nbsp;&nbsp; PRBool serverMode = PR_FALSE;
+&nbsp;&nbsp;&nbsp; mNativeAppSupport->GetIsServerMode(&amp;serverMode);
+&nbsp;&nbsp;&nbsp; <b>if (serverMode) {
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mNativeAppSupport->OnLastWindowClosing(aWindow);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>return NS_OK;
+</b>&nbsp;&nbsp;&nbsp; <b>}
+</b>&nbsp; }
+
+&nbsp; Quit();</pre>
+<a NAME="notify"></a>
+<h4>
+Notify user of quicklaunch</h4>
+It's important to notify the user that the app hasn't actually been shut
+down, and to give instructions about how to fully shut down. In nsNativeAppSupportWin::OnLastWindowClosing(),
+called when the last window is closed while in quicklaunch (see above code
+snippet), we throw a dialog (the FE for which is in turboDialog.xul/js):
+<pre>&nbsp; if ( !mShownTurboDialog ) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRBool showDialog = PR_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsCOMPtr<nsIPref> prefService ( do_GetService( NS_PREF_CONTRACTID, &amp;rv ) );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( NS_SUCCEEDED( rv ) )
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; prefService->GetBoolPref( "browser.turbo.showDialog", &amp;showDialog );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsCOMPtr<nsIDOMWindowInternal> domWindowInt ( do_GetInterface( docShell ) );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( showDialog &amp;&amp; domWindowInt ) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsCOMPtr<nsIDOMWindow> newWindow;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mShownTurboDialog = PR_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>domWindowInt->OpenDialog( NS_LITERAL_STRING( "chrome://navigator/content/turboDialog.xul" ),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NS_LITERAL_STRING( "_blank" ),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NS_LITERAL_STRING( "chrome,modal,titlebar,centerscreen,dialog" ),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsnull, getter_AddRefs( newWindow ) );
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp; }</pre>
+The mShownTurboDialog flag prevents recursion: OnLastWindowClosing() would
+be called upon closure of the dialog. Note that we only throw the dialog
+if the browser.turbo.showDialog pref is true; users who don't wish to be
+constantly reminded of quicklaunch can check the dialog's "Don't show me
+this again" checkbox. It is important that we don't throw this dialog if
+the window being closed is our "special" window, that is, the hidden one
+that we open briefly to preload. A guard at the top of OnLastWindowClosing()
+prevents this:
+<pre>&nbsp; // If the last window closed is our special "turbo" window made
+&nbsp; // in StartServerMode(), don't do anything.
+&nbsp; nsCOMPtr<nsIDocShell> docShell;
+&nbsp; ( void )aWindow->GetDocShell( getter_AddRefs( docShell ) );
+&nbsp; nsCOMPtr<nsIDOMWindow> domWindow( do_GetInterface( docShell ) );
+&nbsp; <b>if ( domWindow == mInitialWindow ) {
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mInitialWindow = nsnull;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>return NS_OK;
+</b>&nbsp; <b>}</b></pre>
+mInitialWindow is set in nsNativeAppSupportWin::StartServerMode(), where
+the "special" browser window is created and opened.
+<br><a NAME="simulate"></a>
+<h4>
+Quiting and restarting the process</h4>
+The new "restart" code grabs the mutex semaphore and doesn't release it
+till process termination (see the code below). As a consequence, the restarted
+process, when it attempts to obtain this mutex, will get it due to WAIT_ABANDONED.
+So code was added to the Lock method of Mutex struct in nsNativeAppSupportWin
+to accept WAIT_ABANDONED as a successful return value (meaning, we obtained
+exclusive access).
+<p>That is certainly true (we do have exclusive access). We can ignore
+the distinction between WAIT_ABANDONED and WAIT_OBJECT_O because being
+abandoned doesn't put us at any risk and we certainly don't want to prevent
+starting Mozilla for the rest of eternity.
+<p>Note that we could get into this predicament ("abandoned" state) if
+Mozilla had ever crashed while it owned the semaphore (which is very unlikely,
+BTW).
+<p>&nbsp;&nbsp;&nbsp; BOOL Lock( DWORD timeout ) {
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if ( mHandle ) {
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+...
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+mState = WaitForSingleObject( mHandle, timeout );
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+...
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+return mState == WAIT_OBJECT_0 || mState == WAIT_ABANDONED;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+return FALSE;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+<br>&nbsp;&nbsp;&nbsp; }
+<p>In the private section of class nsNativeAppSupportWin is a static data
+member to hold the calculated mutex semaphore name. This is needed so that
+we can use that name in the restart logic to grab the mutex before quitting.
+<p>&nbsp;&nbsp;&nbsp; static char mMutexName[];
+<p>Here is where that new static data member is defined and initialized
+<p>&nbsp; char nsNativeAppSupportWin::mMutexName[ 128 ] = { 0 };
+<p><br>
+Here is the code that calculates the mutex semaphore name. It now stores
+that name into the static data member instead of a local<br>
+char buffer.&nbsp;<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp; // Build mutex name from app name.<br>
+&nbsp;&nbsp;&nbsp;&nbsp; ::_snprintf( mMutexName, sizeof mMutexName, "%s%s",
+nameBuffer, MOZ_STARTUP_MUTEX_NAME );<br>
+&nbsp;&nbsp;&nbsp;&nbsp; Mutex startupLock = Mutex( mMutexName );<br>
+
+<p>Here's the bulk of the code to perform the shutdown and restart. Just
+read the comments.
+<p>Note the bit at the beginning that grabs the mutex semaphore. There
+is some risk that if we don't subsequently terminate the application this
+semaphore will remain owned and no other mozilla process will be able to
+start. That shouldn't happen, but it is a risk.
+<p>We ensure the mutex is freed as soon as we're done destroying the MessageWindow.
+The reason is that the mutex is effectively protecting the lookup logic
+in MessageWindow::MessageWindow that searches for an existing MessageWindow.
+We need to block that code in the second process until we've destroyed
+the window. But once it is destroyed, there is no reason to hold the mutex.
+Letting the second process run at that point will not affect how it runs.
+<p>Technically, there is some risk that the code that runs after we do
+the DestroyWindow here may access the same resources as code that runs
+during startup of the second process. But because shutdown is reasonably
+quick, so the risk is not too great.
+<p>Alert readers may wonder whether we could just dispense with the mutex
+completely, since we'd be releasing it immediately after we launch the
+process anyway. But we can't because the user might accidently cause yet
+another process to run and we need to protect against *that* process talking
+to us (via our MessageWindow) while we're shutting down.
+<p>&nbsp;&nbsp;&nbsp; nsCOMPtr&lt;nsIAppShellService> appShell =
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; do_GetService( "@mozilla.org/appshell/appShellService;1",
+&amp;rv);
+<br>&nbsp;&nbsp;&nbsp; if ( NS_SUCCEEDED( rv ) ) {
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Instead of staying alive,
+launch a new instance of the application and then
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // terminate for real.&nbsp;
+We take steps to ensure that the new instance will run
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // as a "server process"
+and not try to pawn off its request back on this
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // instance.
+<br>&nbsp;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Grab mutex.&nbsp; We
+need to allocate an instance and not free it because otherwise the
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Mutex object's destructor
+will release it.&nbsp; Instead, we want process termination to
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // release it.
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (new Mutex( mMutexName ))->Lock(
+-1 );
+<br>&nbsp;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Turn off MessageWindow
+so the other process can't see us.
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DWORD rc = ::DestroyWindow(
+(HWND)MessageWindow() );
+<br>&nbsp;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Launch another instance.
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; char buffer[ _MAX_PATH ];
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Same application as this
+one.
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ::GetModuleFileName( 0,
+buffer, sizeof buffer );
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Clean up name so we don't
+have to worry about enclosing it in quotes.
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ::GetShortPathName( buffer,
+buffer, sizeof buffer );
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsCAutoString cmdLine( buffer
+);
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // The new process must
+run in turbo mode (no splash screen, no window, etc.).
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cmdLine.Append( " -turbo"
+);
+<br>&nbsp;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Now do the Win32 stuff...
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; STARTUPINFO startupInfo;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ::GetStartupInfo( &amp;startupInfo
+);
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PROCESS_INFORMATION processInfo;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rc = ::CreateProcess( 0,
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+(LPTSTR)cmdLine.get(),
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+0,
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+0,
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+0,
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+0,
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+0,
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+0,
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&amp;startupInfo,
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&amp;processInfo );
+<br>&nbsp;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Turn off turbo mode and
+quit the application.
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SetIsServerMode( PR_FALSE
+);
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; appShell->Quit();
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // Done.&nbsp; This app will
+now commence shutdown.
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return NS_OK;
+<br>&nbsp;&nbsp;&nbsp; }
+<br>&nbsp;
+<p><br>
+<a NAME="really"></a>
+<h3>
+Really Shutting Down Quick Launch</h3>
+The standard way of exiting quicklaunch is choosing Exit Mozilla from the
+systray icon menu.<a NAME="shutting2"></a>
+<h4>
+Shutting down from the systray icon menu</h4>
+We handle the selection of the Exit Mozilla menuitem (and all of the items
+in the menu) in nsNativeAppSupportWin.cpp's WindowProc(). nsNativeAppSupportWin::HandleRequest()
+is called with a request of "mozilla -kill":
+<pre>&nbsp; case TURBO_EXIT:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (void)nsNativeAppSupportWin::HandleRequest( (LPBYTE)"mozilla -kill" );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; break;</pre>
+HandleRequest's handling of this request is straightforward. It shuts down
+quicklaunch and, if there are no windows open and nsIAppShellService instructs
+us to quit on last window closing, quits Mozilla:
+<pre>&nbsp; // try for the "-kill" argument, to shut down the server
+&nbsp; rv = args->GetCmdLineValue( "-kill", getter_Copies(arg));
+&nbsp; if ( NS_SUCCEEDED(rv) &amp;&amp; (const char*)arg ) {
+&nbsp;&nbsp;&nbsp; // Turn off server mode.
+&nbsp;&nbsp;&nbsp; nsCOMPtr<nsIAppShellService> appShell =
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; do_GetService( "@mozilla.org/appshell/appShellService;1", &amp;rv);
+&nbsp;&nbsp;&nbsp; if (NS_FAILED(rv)) return;
+
+&nbsp;&nbsp;&nbsp; nsCOMPtr<nsINativeAppSupport> native;
+&nbsp;&nbsp;&nbsp; rv = appShell->GetNativeAppSupport( getter_AddRefs( native ));
+&nbsp;&nbsp;&nbsp; if (NS_SUCCEEDED(rv)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>native->SetIsServerMode( PR_FALSE );
+
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // close app if there are no more top-level windows.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRBool quitIfNoWindows = PR_FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; appShell->GetQuitOnLastWindowClosing( &amp;quitIfNoWindows );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>if (quitIfNoWindows) {
+</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsCOMPtr<nsIDOMWindowInternal> win;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; GetMostRecentWindow( 0, getter_AddRefs( win ) );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>if (!win)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; appShell->Quit();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+</b>&nbsp;&nbsp;&nbsp; }</pre>
+
+<hr noshade><i><a href="mailto:blaker@netscape.com">Blake Ross</a></i>
+</body>
+</html>

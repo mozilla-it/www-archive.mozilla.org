@@ -1,0 +1,76 @@
+<html>
+<head>
+<title>RDF API example</title>
+
+<script language="JavaScript">
+// Get the RDF service and keep it around as a global
+var RDF = Components.classes['component://netscape/rdf/rdf-service'].getService();
+RDF = RDF.QueryInterface(Components.interfaces.nsIRDFService);
+
+// Create an in-memory datasource, and keep it around as a global
+var ds = Components.
+          classes['component://netscape/rdf/datasource?name=in-memory-datasource'].
+          createInstance();
+
+ds = ds.QueryInterface(Components.interfaces.nsIRDFDataSource);
+
+// Grab some nodes to monkey around with in the RDF graph
+var homepage = RDF.GetResource('http://people.netscape.com/waterson');
+var FV_quality = RDF.GetResource('urn:my-web-vocabulary:quality');
+var value = RDF.GetLiteral('tres cool');
+
+function doAssert()
+{
+  // make an assertion into the datasource
+  ds.Assert(homepage, FV_quality, value, true);
+}
+
+
+function doUnassert()
+{
+  // remove the assertion from the datasource
+  ds.Unassert(homepage, FV_quality, value);
+}
+
+function doCheckAssertion()
+{
+  // check to see if the assertion is there
+  if (ds.HasAssertion(homepage, FV_quality, value, true)) {
+    alert('yep, the assertion sure is there.');
+  }
+  else {
+    alert('nope, the assertion ain\'t there.');
+  }
+}
+
+function doGetTarget()
+{
+  var target = ds.GetTarget(homepage, FV_quality, true);
+  target = target.QueryInterface(Components.interfaces.nsIRDFLiteral);
+
+  // expect 'tres cool'
+  alert('target is ' + target.Value + '!');
+}
+
+
+function doGetSource()
+{
+  var source = ds.GetSource(FV_quality, value, true);
+  sourcen = source.QueryInterface(Components.interfaces.nsIRDFResource);
+
+  // expect 'http://people.netscape.com/waterson'
+  alert('source is ' + source.Value + '!');
+}
+</script>
+
+</head>
+
+<body>
+<button onclick="doAssert();">Assert</button>
+<button onclick="doUnassert();">Unassert</button>
+<button onclick="doCheckAssertion();">Check</button>
+<button onclick="doGetTarget();">Get Targets</button>
+<button onclick="doGetSource();">Get Source</button>
+</body>
+
+</html>

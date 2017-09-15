@@ -1,0 +1,242 @@
+known issues, problems, with the MailNews_Performance_20010208_BRANCH branch
+
+Must fix for landing:
+
+2) fix crash on exit
+
+3) Crash when clicking Sidebar Tabs button.  I don't know why this would be because of us,
+but it apparently doesn't happen in the 2/8 trunk build.
+
+4) Crash when switching folders.  This happened to me twice when running a build from 3/5 11:30pm.
+I don't know what I did to cause this.
+
+5) divide by zero crasher in nsOutlinerBodyFrame (hyatt?)
+
+crash if I try to scroll the thread pane before (while?) a folder is loading.
+    #0  0x41496b53 in nsOutlinerBodyFrame::PositionChanged (this=0x8745a04,
+    aOldIndex=67, aNewIndex=@0xbfffdb34) at nsOutlinerBodyFrame.cpp:1253
+
+    rh is 0, SIGFPE.  it's the same old divide by zero crash, since rh == 0
+
+Other issues:
+
+2) remove these files from the tree, makefiles, .mcp, and factories, and CIDs
+
+./base/src/nsMsgMessageDataSource.cpp
+./base/src/nsMsgMessageDataSource.h
+./base/src/nsMsgViewNavigationService.cpp
+./base/src/nsMessageView.cpp
+./base/src/nsMessageView.h
+./base/public/nsIMessage.idl
+./base/search/src/nsMsgSearchDataSource.cpp
+./base/util/nsMessage.h
+./base/util/nsMessage.cpp
+./base/public/nsIMessageView.idl
+./imap/src/nsImapMessage.cpp
+./news/src/nsNewsMessage.cpp 
+./news/public/nsINNTPCategory.idl
+./news/public/nsINNTPCategoryContainer.idl
+./news/public/nsINNTPHost.idl
+./news/public/nsINNTPNewsgroup.idl
+./news/src/nsNNTPCategoryContainer.cpp
+./news/src/nsNNTPHost.cpp
+./news/src/nsINNTPNewsgroup.cpp
+./base/src/nsMsgKeyArray.h
+./base/src/nsMsgKeyArray.cpp
+
+added:
+./base/util/nsMsgKeyArray.h
+./base/util/nsMsgKeyArray.cpp
+
+3) test outlook compose import
+
+5) commandglue.js, fix LoadMessageByUri(uri) not to use RDF (no more message datasource) 
+
+7) fix "View | Sort By | ..." to do the right thing with check box state
+
+8) remove "pad" from sort code (don't use sizeof)
+
+9) remove "len" from sort code, unless doing a collation key based sort
+
+10) remove extra copies when creating collation keys (log bug on nhotta)
+
+11) better guesses for allocating block of memory for collation key sort
+
+12) purify for memory leaks
+
+13) file / copy, d&d from search (gayatrib + sspitzer)
+
+14) Fix initial thread sort order to be ascending
+
+16) remove all the printfs / dump statements we added
+
+18) implement sort unread thread count, implement sort thread total
+(currently prints "fix me" and doesn't sort.)
+
+19) Arrow for ascending/descending order of column is brought from previously
+ selected folder (example Folder 1 sorts by Date, change to folder 2 and sort by Sender,
+ change to folder 3 and sort by Subject.  Now go back to Folder one and you will see the
+ sort order arrow on all three column headers.
+
+20) disable sort by thread for search pane
+
+21) if you expand a thread above the current selection, selection stays at the same index.
+it should changes, (we need to restore selection after expansion)
+
+22) expand thread / collapse thread
+
+24) clean up SearchDialog.js (gayatrib)
+
+25) opening links from mail sometimes leaves me with about:blank instead of the url
+
+26) undoing a delete, leaves selection out of sync with the displayed message
+
+27) Deleting message sometimes causes the outliner to jump around a bit
+
+29) Trouble with folder hierarchy dropdowns sticking (remnants of  nested subfolder sections)
+often when using search messages scope dropdown. Must close search and try again.
+
+31) Scroll to first new message in folder. (sspitzer)
+
+32) After sorting or going into threaded mode, we should retain the selection and open
+up a thread if the selected message is the child of that thread.
+
+33) Delete doesn't update the unread/total count at the bottom right corner of the 3 pane
+
+34) Standalone message window context menu problems (what are these?)
+
+35) If no message is loaded in the message pane, you select all, and then you sort, we load a message.
+
+36) fix problems with d&d for multiple 3 pane (sspitzer)
+
+37) cross folder navigation:  when landing in new folder, we don't select the message.  (related to #38) (sspitzer)
+
+38) land putterman's "don't land on the trash folder when navigating" patch on the branch (sspitzer)
+
+39) verify that .newsrc overrides the .msf file (thanks to hwaara and bienvenu for pointing this out) (sspitzer)
+
+40) add MarkAllRead to the folder pane context menu (sspitzer)
+
+41) make sure #Move, #Copy, etc still all work for folder datasource [and that I didn't break anything] (sspitzer)
+
+43) js error, need to check dbview when populating the "View | Messages | ..." menu. (bienvenu)
+
+44) fix menus to not be enabled if in account central (or none of the sub menus are enabled.  (as top level as possible)  Examples:  Message | Mark, View | Messages, View | Sort By, etc.
+
+46) switch themes crasher (could be fixed on the trunk, testing a potential fix in my [sspitzer] tree)
+
+47) theme switching problems with outliner (go from modern to modern to test). (bug logged on hyatt for the trunk)
+
+48) When forwarding a mail with Ja subject, if you add some Ja chars before the forwarded subject,
+   the space between "Fwd:" and the original subject is displayed as a square. 
+
+49) When the thread pane can display all the message headers then the scroll bar should disappear.
+ Currently the scroll bar remains although the widget to move the focus up or down is not present.
+ The folder pane works as expected. 
+
+53)(already known, mentioned by Ninoschka?)  need visual indicators for Watched, Killed threads.
+54) reply to a collapsed thread , click Get Msg causes topic message to change/show you as sender.
+
+   1. select collapsed news thread, topic message is from someone else
+   2. reply, send reply
+   3. still on collapsed thread, Get Msg.
+   4. Now the sender column shows you as the sender (thread still collapsed, shows you as sender for topic message)
+55) Crash when switch to empty watched threads with unread and click in thread pane. 
+56) I don't see that kill thread works.  If I use Kill Thread on a topic message then send a reply to the thread, new reply is new/unread/bold and navigation will take you to that message.  Shouldn't if kill works, correct?
+58) Get Msg selects new message instead of leaving thread pane selection on current selected message:
+
+   1. Threaded mode or flat sort by date, newest messages at top of thread pane.
+   2. Select top message in thread pane.
+   3. Send yourself a message, Get Msg.
+   4. When new message arrives, thread pane selection jumps to new message. (Note the message pane contents are left at previous selection.)  Should not jump to new selection; should remain at currently selected message.  (Also note, Next unread won't work now if that's the only new/unread message. User has to select something else then reselect the new message.)
+59)Navigation via NextUnread button in standalone message window crashes in news when firing quickly..
+
+   1. Open a newsgroup with quite a few unread messages.
+   2. Open the first message in thread pane to a standalone message window.
+   3. In the standalone message window, click Next button, again, again... usually by the 3rd-4th Next a crash occurs. (Note: not sure if this may be due to the problem where throbber/barberpole never stops).
+ 
+60) linux only:  next button doesn't work in the stand alone message window until I click in the message body.  (sspitzer)
+
+??) land back on the trunk
+
+maybe some day:
+
+1) fix subscribe dialog to use the outliner
+
+2) fix the folder pane to use the outliner (on top of RDF, piggybacking off of what they do for bookmarks?)
+
+4) other commands in the search dialog:  mark all read, etc.
+
+5) fix the address book to use outliner (needed for performance on day, think about a giant LDAP addressbook)
+
+FIXED:
+
+1) 3/1 Fix inserting headers into flat views sorted by subject/sender 
+(insert location is incorrect) (bienvenu)
+2) 3/1 Undo delete marks the message as unread 
+3) 3/1 implement toggle thread killed (in nsMsgDBView.cpp)
+4) 3/1 implement toggle thread watched (in nsMsgDBView.cpp)
+6) 3/1 Delete, move/copy messages between pop folders are not working.
+9) 3/2 default sort order should be date, newest last.  
+13) 3/4 Delete from thread / message pane context menu
+14) 3/4 expand all / collapse all (you need expand all for select all, in threaded mode)
+16) 3/5 forwarding a message broken (won't allow me to add an address) (ducarroz)
+18) 3/5 collapse all threads leaves '+' next to threads with 1 message
+19) 3/5 message display performance, improve command enabling / updating architecture. (mscott)
+20) 3/5 toolbar disabled on the first message I select
+21) 3/5 Snapping message pane open doesn't load newly selected content.
+26) 3/5 dragging (and moving) a message doesn't display the next message after the move.
+27) 3/5 editing a draft causes us to lose the addresses.  (ducarroz) Works For Me, wrong alert!
+28) 3/5 fix account central problems with message display
+29) 3/5 cross folder navigation, add back support for "mailnews.nav_crosses_folders"
+30) 3/5 remove message data source and all the commands, like http://home.netscape.com/NC-rdf#Move, #ReallyDelete, #Delete, #Copy, #Download*, etc.
+31) 3/6 File | Empty Trash for an IMAP account causes crash.
+32) 3/6 Mark a message unread, switch folders and then switch back. The original message you marked unread will
+ now be read. This only happened in IMAP.  The same happens when marking a message read and switching.
+33) 3/6 Mark a thread child as unread.  See the parent's count go up.  Now select that child message and the parent's
+count stays the same. If I cause the window to repaint, the count is correct.
+34) 3/6 threaded menu item doesn't change to threaded mode.
+35) 3/6 If you are threaded and then choose the unread view it removes the threaded mode and just shows a flat view.
+36) 3/6 mark all read
+37) 3/6 land mozilla/gfx changes on the trunk
+38) 3/7 remove nsIMsgFolder from the Navigate interface, we do it from JS now. 
+39) 3/7 fix IsSpecialFolderSelected() in threadPane.js (we don't need RDF to do that) 
+40) 3/7 stand alone message window navigation (mscott)
+41) 3/7 Window title isn't correct in the standalone or the 3 pane
+42) 3/7 Fix level of promoted messages when deleting top message in an expand 
+thread.
+43) 3/7 Multiple delete doesn't select the correct next message
+44) 3/7 No focus ring for thread pane
+45) 3/7 Tabbing doesn't change focus.
+46) 3/7 + / - stay on message even when all children are deleted
+47) 3/7 fixed JS errors when click on menus when in account central (forget to check gDBView)
+48) 3/7 Delete/File from standalone message window not working.  I will act differently than in 6.01, since we have stand alone message navigation. (mscott?)
+49) 3/7 On 3 pane, when switching folders, message view pane doesn't get refreshed. 
+50) 3/11 sort by sender performance, nsMsgHdr::GetAuthorCollationKey(), cache the mime converter (bienvenu)
+51) 3/11 convert commands to go through the db view, instead of the message datasource: 
+mark thread read, download selected messages, download flagged messages, mark all read
+(bienvenu)
+52) 3/11 fix "View | Messages | ..." to do the right thing with check box state (bienvenu)
+53) 3/11 allow the user to mark a message read or flagged from the search pane (by clicking on the diamond or the flag)
+54) 3/11 Fix bugs unread messages only in threaded view (if QA is reading this and you have examples
+send to me and I will add to the list)
+55) 3/11 Ignore/Watch Threads
+- With a news message selected, the Message menu displays "Kill Thread" and "Watch Thread"
+- Select Message|Watch Thread and no Watch icon appears (known issue)
+* Select View|Messages|Watched Threads with Unread displays nothing in the thread or message pane 
+56) Stand Alone Window
+- Next button works
+- Go|Next menus work
+- Go|Previous menus work
+* Go|Next and Go|Previous accelerators don't work when the window first opens. I have to select a menu item such as Go|Next|Message then I can use the accelerators.
+59) 3/12 news://host/group?list-ids urls work!
+60) 3/12 Select View|Headers|All and the current message is not reloaded.
+- Select a message so that Normal headers are displayed
+* Select View|Headers|All and notice that the current message still diplays in normal mode
+- Select another message and it now displays all the headers
+- Select the original message and it also displays all the headers 
+61) 3/12 use a string bundle for the hard coded strings (mscott?)
+62) 3/12 command updating in SearchDialog.js (currently, "Open" is always enabled) (mscott: I implemented command updating in the search pane the other week)
+64) news regressions fixed
+65) Loading document barber pole never finishes for news messages, must click Stop
+30) 3/15 Thread pane selection doesn't turn grey when thread pane loses focus (fixed on merged tip build)

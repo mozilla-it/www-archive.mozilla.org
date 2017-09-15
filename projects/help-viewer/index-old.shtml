@@ -1,0 +1,339 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+  <title>Help System Specification (obsolete)</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel nomenu">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mBody" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+
+
+
+
+
+<div id="side" class="left">
+  <ul id="nav">
+    <li><a href="./"><strong>Help Viewer Project</strong></a>
+      <ul>
+        <li><a href="documentation">Docs</a></li>
+        <li><a href="bugs">Bugs</a></li>
+        <li><a href="help">How to Help</a></li>
+        <li><a href="contributors">Contributors</a></li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+
+<div id="mainContent" class="bodyleft">
+<h1>Help System Specification</h1>
+<address>Ian Oeschger &lt;oeschger@brownhen.com&gt;</address>
+
+<p>This document describes some changes to the way that the help
+system works in Mozilla 1.0. Two major updates in particular may
+affect the way that authors include new content, that developers
+provide context-sensitive help from the UI, and the way that other
+applications can use the help system to display their own customized
+help content. These changes are so significant that the existing
+specifications for the help viewer, listed in the References section
+at the end of this document, have been semi-retired.</p>
+
+<p>Changes described in this document:</p>
+<ul>
+  <li><a href="#key">Context key lookups</a>
+  <li><a href="#rdf">RDF Metafiles: A framework for different sets of help</a>
+</ul>
+
+<p>In addition to these two systematic changes, the look of the help
+window has changed somewhat. Among other things, the help window now
+uses sidebar-like panels on the left side to organize an enlarged set
+of navigation tools. These tools, described in the <a
+href="#sidebar">Sidebar</a> section below, include a client-side
+search facility, a separate glossary, and a dynamically created index.</p>
+
+<a name="key"></a>
+<h2>Context Key Lookups</h2>
+
+<p>The way that context-sensitive help works now is extremely
+inefficient. UI like the Preferences dialog uses the current subframe
+as a key for the lookup of an id number (Cf., pref-help.js, which
+contains the array), and then uses that id in a
+second lookup in the help system of the appropriate content to load
+when the window displays. The two lookups take extra time and create a
+larger margin for error, and the keys themselves, numbering in the
+hundreds, take up a lot of room in the build. </p>
+
+<p>Additionally, this system does not provide any simple way to select
+the appropriate item in the table of contents on the left side of the
+help viewer. The way that content is loaded via RDF templates makes
+particular subnodes, such as nested items in the table of contents,
+hard to find. A better way to load context-sensitive content into the
+help viewer is to ask for the node you want in the RDF data, and to
+have that request prompt the loading of the appropriate HTML
+content in the content pane, which is exactly what happens when a user
+selects a node in the table of contents, like so: </p>
+
+<pre class="code">Help button -lookup-> RDF -select-> TOC -onselect-> HTML Content</pre>
+
+<h3>Using RDF IDs as Context Keys</h3>
+
+<p>Since we already have a set of unique IDs for every topic in the
+help in the form of ID attributes in the RDF/XML that describes the
+table of contents, we don't need this extra set of IDs that sits in
+help.js and pref-help.js. If the "contextual" part of the help system
+is that certain nodes in the RDF datasources are selected as the
+window loads, then the IDs of those nodes is all we need to select in
+the TOC and load the right HTML. Currently, the function for opening
+the help window with context looks something like this:
+
+<pre class="code">openHelp("chrome://help/content/help.xul?imagemap_properties");</pre>
+
+<p>where the string in the parentheses is the URL for the help window
+and the part after the question mark is the special ID that gets
+resolved to an anchor within the HTML content.</p>
+
+<p>Instead, the URL would be something like this, where the URL is an
+RDF URI and the ID after the question mark is the ID of the node
+within the loaded datasources that should be selected.
+
+<table class="data">
+<tr>
+  <th>Syntax</th><td><pre>openHelp(rdfuri?rdfid);</pre></td></tr>
+<tr>
+  <th>Example</th><td><pre>openHelp("chrome://help/locale/mozillahelp.rdf?nav");</pre></td></tr>
+<tr>
+  <th>Shortcut Example</th><td><pre>openHelp("?nav");</pre></td></tr>
+</table>
+
+<p>The <tt>openHelp()</tt> function is defined in the next file
+<tt>help/content/contextHelp.js</tt>, which should be included in
+files elsewhere in the UI that wish to ask for the help window with a
+particular context. The function takes either the full RDF URI to the metafile
+(see the <a href="#rdf">RDF metafile</a> section below for a description of the workings
+of this metafile) or the ID of the item in the RDF/XML table of
+contents (<tt>help/locale/help-toc.rdf</tt>) that corresponds to the content
+that should be loaded when the help window is opened. Note that this
+means that every piece of content that can be opened as contextual
+help should be represented in the table of contents.</p>
+
+<p>This obviates the need for any lookup at all and makes it possible for
+UI developers to create new context-sensitive help by adding RDF data
+that can be composed into the help, that points to their HTML content,
+and without having to edit the javascript files in which the help
+"keys" are currently defined. This new, more direct way of displaying
+help in the help window is part of a more general update, described in
+the following section, in which the overall layout and scope of the
+help window, including the contextual help, is defined in a main RDF
+file.</p>
+
+<a name="rdf"></a>
+<h2>RDF Metafiles</h2>
+
+<p>The help system uses RDF in a limited way to display content in the
+viewer. The table of contents is an example of data that is read from
+a datasource and built as part of the UI. But the potential for
+dynamic data in the help viewer is much greater than that, and the
+help system needs, among other things, to be more modular, so that it
+can be used in other applications, so that it's easier to add HTML
+content and other new data, and so that the relationship of the
+various parts is more clear and effective. With these things in mind,
+Peter Wilson has come up with a prototype that uses RDF/XML to
+describe the help system more as a whole application. In other words,
+when the help.xul file loads, it looks for a metafile in which the
+contents of the TOC are specified, as well as the index, the searchable
+data, and any other modules that should be loaded as part of that set.</p>
+
+<p>The metafile will look something like this:</p>
+
+<pre class="code">&lt;?xml version="1.0"?>
+&lt;rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:nc="http://home.netscape.com/NC-rdf#">
+
+&lt;!-- MOZILLA MASTER HELP DOCUMENT -->
+  &lt;rdf:Description about="urn:root"
+    nc:title="Mozilla Help."
+    nc:defaulttopic="welcome"
+    nc:base="chrome://help/locale/">
+    &lt;nc:panellist>
+      &lt;rdf:Seq>
+        &lt;rdf:li>
+          &lt;rdf:Description nc:panelid="search" nc:title="Search" nc:datasources="rdf:null"/>
+        &lt;/rdf:li>
+        &lt;rdf:li>
+          &lt;rdf:Description nc:panelid="toc" nc:title="Contents"
+             nc:datasources="navigator-toc.rdf mail-toc.rdf composer-toc.rdf  help-toc.rdf"/>
+        &lt;/rdf:li>
+        &lt;rdf:li>
+          &lt;rdf:Description nc:panelid="index" nc:title="Index"
+             nc:datasources="help-index0 help-index1"/>
+        &lt;/rdf:li>
+        &lt;rdf:li>
+          &lt;rdf:Description nc:panelid="glossary" nc:title="Glossary"
+             nc:datasources="help-glossary.rdf"/>
+        &lt;/rdf:li>
+      &lt;/rdf:Seq>
+    &lt;/nc:panellist>
+  &lt;/rdf:Description>
+&lt;/rdf:RDF></pre>
+
+<p>The <tt>defaulttopic</tt> attribute identifiers the ID of the RDF
+node that should be selected (which in turn loads the HTML content);
+the <tt>base</tt> attribute identifies a base for URLs that point into
+the chrome at HTML content, and the <tt>panellist</tt> structure lists
+the RDF files that should be built into the UI as a part of this
+particular set of help content. This set lists four panels, contents,
+index, search, and glossary, and it has the name mozillahelp.rdf to
+identify it as the basic metafile for the help. But you could instead
+load a metafile called minhelp.rdf or perhaps sansmail.rdf, and in
+this way provide new data or data more specific to the installation.</p>
+
+
+<h2>Sidebar Panels and Navigation Tools</h2>
+
+<p>An important change to the user interface of the help system is the
+user of sidebar-like panels in the left side of the window. Where the
+original help viewer had a tabbox with two panels, a table of contents
+and an index, the new system provides a configurable list of sidebar
+panels. When you include all of the available panels in the
+<tt>&lt;nc:panellist></tt> definition in your metafile, these panels
+include:</p>
+
+<ul>
+  <li>Search
+  <li>Table of Contents
+  <li>Index
+  <li>Glossary
+</ul>
+
+<p>The flexibility of the metafile that defines the help system at an
+application-specific level, described above, allows you to include all
+of these panels or any subset.
+
+<h3>Search Facility</h3>
+
+<p>The new help system provides a lightweight client-side search
+facility based upon the use of RDF/XML to define much of the
+structured content of the help system.</p>
+
+<p>The search panel provides a simple textfield and button interface
+to the search facility. When you enter a term in the textfield and
+click the button, the search facility searches all of the RDF/XML data
+in the help system &ndash; including the table of contents, the glossary,
+and the index &ndash; for the term. It then builds a list of matches for
+the term in the area below. Each of the items in the list is a link to
+the content that corresponds to the RDF/XML in which that match was
+made.</p>
+
+<h3>Table of Contents</h3>
+
+<p>The table of contents, though implemented in very much the same way
+that it was in previous versions of the help system, has been
+reorganized to reflect the existence of other modes of navigation,
+reorganized to reflect some informal usability testing, and
+expanded. The table of contents is the main database against which
+context-sensitive help requests are resolved (see the <a
+href="#key">context section</a> above), and so all content that can be
+referred to in the contents pane (i.e., all HTML anchors in the HTML
+files) must be present in the table of contents and implemented as an RDF/XML
+element with a unique ID. This is because context-sensitive help
+requests, which used to ask for HTML content which would ask in turn
+for the right node in the table of contents to be loaded, now are
+requests for nodes in the table of contents, which then load the
+appropriate content into the content window. In this update, the table
+of contents is the main gateway between the help system and the
+rest of the user interface.
+
+<h3>Index</h3>
+
+<p>In earlier versions of the help system, the index was a simple HTML
+page that was generated from special anchors in the HTML content. The
+script that generated the HTML index, listed in the references section
+below, was run against the latest versions of the help and the
+resulting HTML page was checked in as help-index.html.</p>
+
+<p>Though the process for generating the index is the same as before,
+the index is now written in RDF/XML. This provides the structured
+index data (implemented as an outliner by means of an RDF template) in
+the index pane, and also provides the bulk of the database against
+which the seach facility does its matching. The use of RDF/XML for the
+index also resolves some issues with fonts and display in earlier
+versions of the help window and makes the panels more consistent with
+one another.</p>
+
+<h3>Glossary</h3>
+
+<p>The new glossary panel separates the glossary data that was
+already present in the old table of contents out into a separate
+panel. The glossary data is structured in a different way than the
+table of contents, and this separation acknowledges that and makes it
+easier to find and to navigate.
+
+
+<h2>References</h2>
+
+<ul>
+<li><a href="idx.py.txt">Old indexing Script</a>
+<li><a href="ridx.py.txt">Modified RDF/XML indexing script</a>
+</ul>
+
+</div>
+
+
+
+<hr class="hide">
+<hr class="hide">
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December  9,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/help-viewer/index-old.shtml&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

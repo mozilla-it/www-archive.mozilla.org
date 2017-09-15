@@ -1,0 +1,80 @@
+<HTML>
+<HEAD>
+   <TITLE>Protocol Implementations</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+Protocol Implementations</H1>
+There is a protocol implementation for each protocol that netlib can handle.
+The protocol implementation defines how to negotiate a transaction over
+a connection. The ftp protocol implementation knows how to negotiate (ask
+for and handle directory listings, send and receive files, etc.) with an
+ftp server. The http protocol knows how to negotiate with an http server.
+All the specifics inherent in a protocol specification are implemented
+in that protocol's respective implementation. Netlib maintains a list of
+the protocols that have registered themselves, and consults this list in
+a call to <A HREF="NET_GetURL.html">NET_GetURL()</A> to hook-up the appropriate
+protocol implementation with the given url.
+
+<P>A protocol implementation is a NET_ProtoImpl struct defined in ns/lib/libnet/mkgeturl.h.
+This struct simply consists of four function pointers; an initialization
+function, a processing function, an interrupt function, and a cleanup function.
+<BR>
+<H4>
+The Initialization function</H4>
+The initialization function must allocate, initialize (this includes acquiring
+a cached socket or creating a new one), and associate with the active entry,
+the connection data. One of the responsibilities of the connection data
+is to maintain the current state of the load. At the end of initialization
+a call to the protocol implementation's process routine is made to initiate
+the load.
+<BR>
+<H4>
+The Processing function</H4>
+The processing function drives the protocol implementation's state machine
+and is repeatedly called from a main application loop, until the load is
+complete. A url load can complete is a single call to the process function,
+or in many. It determines the current state of the load (by consulting
+the state member of the connection data) and calls the appropriate function.
+Depending on the result of that call it can also determine what the next
+state should be (next state can also be determined by the processing help
+routines that do the actual work (parsing, data push and receive, etc.)).
+<H4>
+The Interrupt function</H4>
+It's the responsibility of the interrupt function to properly stop a load.
+It must ensure that memory associated with the load is freed and that the
+ActiveEntry that was interrupted is removed from the netlib active entry
+list. The Interrupt function itself can do all of this, or (as is the more
+common case) it can simply set the next state of the connection data to
+the protocol implementations FREE, COMPLETE, or CLEANUP routine.
+<H4>
+The Cleanup function</H4>
+The cleanup function simply free's any memory associated with a given active
+entry load and removes it from the netlib net_EntryList.
+<H4>
+Pluggable Protocols</H4>
+As of the first free source drop netlib does not allow protocols to be
+dynamically loaded. This means protocols via plugins are not possible.
+<H2>
+The State Machine</H2>
+The mechanism utilized by all the current (as of the first free source
+release) netlib protocol implementations to send and receive data is a
+state machine. Each url to be loaded is placed in an active entry which
+is then placed in netlib's active entry list. An active entry also contains
+some connection data which maintains the state of the url load at any point
+in time. This state is updated throughout the url load. For example, for
+an http url, one of the things the http protocol implementation's initialization
+routine does is set the next state to HTTP_SEND_REQUEST or HTTP_BEGIN_UPLOAD_FILE.
+This way, when the http protocol implementation's process routine is called,
+it knows what to do, send the request or begin uploading the file. Basically
+all a protocol implementation's process routine consists of is a switch
+statement that checks the current state of the active entry and makes makes
+appropriate function calls. Because the state is maintained in the active
+entry, netlib can return without completing the entire url load. The next
+time that url is processed, it simply picks up where it left off previously.
+
+<P><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

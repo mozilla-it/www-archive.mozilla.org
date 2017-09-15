@@ -1,0 +1,335 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="Author" content="Travis Bogard">
+   <meta name="GENERATOR" content="Mozilla/4.61 [en] (WinNT; U) [Netscape]">
+   <title>Structure of the XP Event Loop Code</title>
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<center>
+<h1>
+Structure of the XP Event Loop Code</h1></center>
+
+<div align=right>By <a href="mailto:travis@netscape.com">Travis Bogard</a>
+<br>Last Modified: 9-2-99</div>
+
+<p><br>&nbsp;This page is devoted to providing information about how the
+XP Event Loop is implemented.&nbsp; This does not cover the design of the
+XP Event Loop, but rather the actually layout of the C++ used to implement
+the design.&nbsp; If you haven't already done so and wish to learn more
+about the design, read the collective documents about the background, types
+of loops and sets of interfaces found on the <a href="index.html">main
+XP Event Loop page</a>.&nbsp; Hopefully this will serve as an aid to anyone
+needing to port the event loop, but it should also be informative for anyone
+curious in how it is setup.
+<h3>
+The layout of the code was governed by a few key principles:</h3>
+
+<ul>
+<li>
+<b>Performance</b> - The first and foremost principle was to make the event
+loop as efficient as possible while retaining the ability to be cross platform.&nbsp;
+Clearly the best performance would come from writing all native code, however
+this is difficult to maintain and thus a slight (very, very, very, slight
+performance hit is ok for the sake of reusable maintainable code).&nbsp;
+Beyond this, however all effort was made to make the code as efficient
+as possible while staying XP.</li>
+
+<li>
+<b>High Percentage of XP code</b> - Though much of the implementation and
+actual APIs to implement the event loop are native, there is a large percentage
+of code that is redundant across the platforms.&nbsp; In these cases all
+effort was made to move common logic and program flow into XP locations
+in order to minimize the amount of non-xp code.</li>
+
+<li>
+<b>Minimize Cut and Paste</b> - Not only are there many different platforms
+that may share similar code, but there are also three types of event loops.&nbsp;
+The basic nature of these is very similar in some core respects, yet differ
+in others.&nbsp; This often leads to cutting and pasting the code across
+the variations and then many problems later as bugs are found in each implementation.&nbsp;
+Since the actual implementation lives in platform code, the number of places
+to keep in sync would have been 3 x number of platforms.&nbsp; So one of
+the main goals was to consolidate code that would have been cut and paste
+and instead share it in some way.&nbsp; Some of this is obviously the sharing
+that occurs by getting a high percentage of XP code as the previous goal
+stated.&nbsp; The other part aims to get sharing on a single platform across
+the three variations of loops.</li>
+
+<li>
+<b>Minimize dependencies</b> - It was also important to minimize the number
+of linking dependencies.&nbsp; Since the interaction with the event loop
+on many platforms varies depending on the UI toolkit chosen, in order to
+work with all toolkits we would have to link with each one.&nbsp; We really
+needed a way to for any given <a href="../glossary/module.html">module</a>
+to link with only one toolkit at a time.&nbsp; Yet in doing this we did
+not want to give up all the other goals expressed above.&nbsp; Especially
+the cut and paste goals.</li>
+
+<li>
+<b>Portable</b> - Last but not least, this code needed to be easily ported
+to other platforms.&nbsp; This means two things.&nbsp; First the fact that
+the code is XP should not force a given platform to give up access to a
+loop it would normally have.&nbsp; Plainly said, an app using the XP Event
+Loop should have the same control over the native event loop that they
+normally would when not using the native platform API calls.&nbsp; Secondly,
+the actual effort to port the code should be straight forward and without
+many unknown gotchas requiring large amounts of work to track down.&nbsp;
+This documentation as well as porting docs is hopefully a step to make
+this process easier, but the code layout was also designed with this purpose
+in mind.</li>
+</ul>
+
+<h3>
+The Components</h3>
+Each type of event loop can be found implemented in a <a href="../glossary/component.html">component</a>.&nbsp;
+As there are three types of event loops, there are <a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/xp/nsCEventLoop.idl">three
+different components</a> that implement one loop type each.&nbsp; By putting
+each one in a component it enables us to then put each component into it's
+own module.&nbsp; (In our case all three components live in one module).&nbsp;
+But we can then have multiple implementations of the same component.&nbsp;
+This allows us to make a runtime decision about which event loop implementation
+we will used based on which UI Toolkit is chosen.
+<h3>
+The Class Hierarchy</h3>
+In order to get maximum re-use of code and get a large percentage of the
+code to be XP, I have broken up the implementation into 4 levels of a class
+hierarchy.&nbsp; The code is actually structured in such a way where two
+of those levels live in the xp code side and two live in the platform side.&nbsp;
+The platform code is actually named in such a way where it is a build time
+issue as far as which implementation of a given platform file gets pulled
+in.&nbsp; This allows us to get away from having any ifdefs in the code.
+<p>The levels can actually be grouped into two groups, the base event loop
+group (nsCBaseLoop and nsCPlatformBaseLoop) which provides the basic implementation
+needed for implementing an event loop component. There is one xp and one
+platform class for this level.&nbsp; Then there is the class group level
+that handles implementing the specific types of event loops (nsCBaseAppLoop
+and nsCAppLoop).&nbsp; In this level there again is one platform class
+and one xp class.&nbsp; Below is the list of classes that make up the 4
+levels of the class hierarchy.&nbsp; (All platform links point to windows
+implementation).
+<br>&nbsp;
+<h4>
+<a NAME="nsCBaseLoop"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/xp/nsCBaseLoop.cpp">nsCBaseLoop</a></h4>
+This class is the base of all the event loops.&nbsp; It's jobs include:
+<ul>
+<li>
+<b>XPCOM Tasks</b> - This level handles all the logic needed to make an
+event loop and XPCOM component.</li>
+
+<li>
+<b>Interface Error Checking</b> - Provides all error checking on interface
+boundaries for nsIEventLoop.&nbsp; This level handles all the interface
+boundaries.&nbsp; Those that it can not implement the method in place because
+the implementation is either different per platform or per event loop,
+passes off the call to a pure virtual function that must be implemented
+by one of the sub-classes.&nbsp; These sub-classes therefore have the luxury
+and the responsibility to not do error checking.&nbsp; This is important
+to keep performance as near to a native event loop as possible.</li>
+
+<li>
+<b>Implement Run()</b> - The Run() implementation is setup to be very stream-lined
+based on the listeners being requested.&nbsp; This level handles creating
+the basic event structures needed and handing off the running to pure virtual
+functions that are implemented later by loops of a specific type.</li>
+
+<li>
+<b>Event and EventFilter Management</b> - This level handles creating and
+cloning events.&nbsp; It also handles extracting the platform data from
+these objects when it is requested.</li>
+</ul>
+
+<h4>
+<a NAME="nsCPlatformBaseLoop"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/windows/nsCPlatformBaseLoop.cpp">nsCPlatformBaseLoop</a></h4>
+This class subclasses from nsCBaseLoop.&nbsp; It is found in the parent
+hierarchy of all event loops.&nbsp; This class allows platform specific
+implementation to interject itself before the the classes branch into the
+various event loop types.&nbsp; Native code that is common across all types
+of events for a given platform should go here. It's jobs include:
+<ul>
+<li>
+<b>Avoid Error Checking</b> - All virtual overrides here should not do
+error checking.&nbsp; Any over-rides on the real interface boundaries however
+should.&nbsp; No one should be over-riding the interface boundaries though.</li>
+
+<li>
+<b>Implement Shared Platform Methods</b> - Any method that can be implemented
+the same for all types of event loops for the given platform should be
+implemented here to avoid copy and pasting after the loop type branch in
+classes.</li>
+</ul>
+
+<h4>
+<a NAME="nsCBaseAppLoop"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/xp/nsCBaseAppLoop.cpp">nsCBaseAppLoop</a>,&nbsp;<a NAME="nsCBaseThreadLoop"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/xp/nsCBaseThreadLoop.cpp">nsCBaseThreadLoop</a>,
+and&nbsp;<a NAME="nsCBaseBreathLoop"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/xp/nsCBaseBreathLoop.cpp">nsCBaseBreathLoop</a></h4>
+This class subclasses from nsCPlatformBaseLoop.&nbsp; It is found in the
+parent hierarchy of all event loops.&nbsp; This class provides the code
+that is different for each or event loop type, but is the same for all
+platforms.&nbsp; It's jobs include:
+<ul>
+<li>
+<b>Implement the various RunWith*() functions</b> - nsCBaseLoop calls on
+a number of RunWith*() functions to implement the run in different ways
+based on which listeners are requested.&nbsp; This is done to avoid repetitive
+checks that would slow performance.&nbsp; Beyond this, these Run loops
+vary depending on event loop type so they must live at this level instead
+of in nsCBaseLoop.&nbsp; These are implemented by calling on a number of
+platform virtuals so this code is able to be XP as the virtual functions
+are overridden by the platform subclass.</li>
+</ul>
+
+<h4>
+<a NAME="nsCAppLoop"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/windows/nsCAppLoop.cpp">nsCAppLoop</a>,&nbsp;<a NAME="nsCThreadLoop"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/windows/nsCThreadLoop.cpp">nsCThreadLoop</a>,
+and&nbsp;<a NAME="nsCBreathLoop"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/windows/nsCBreathLoop.cpp">nsCBreathLoop</a></h4>
+This class subclasses from the appropriate nsCBase*Loop (nsCBaseAppLoop
+for nsCAppLoop etc).&nbsp; This is the final class in the class hierarchy
+and is what is instantiated as the implementor of the event loop component
+for the requested type.&nbsp; This code is nearly all platform specific.&nbsp;
+Note that the name of the class does not have a platform in it.&nbsp; This
+is done intentionally to put the burden on which class is instantiated
+on the build system rather than ifdefs in the code.&nbsp; It's jobs include:
+<ul>
+<li>
+<b>Implement remaining pure virtual functions</b> - Any methods that could
+not be implemented at a higher level must be implemented at this level.&nbsp;
+One can also override implementations off higher classes if only one event
+loop type varies in a slight way.</li>
+
+<li>
+<b>Implement the Class Factory "Create" function</b> - The code uses the
+Generic Class factory to handle creation of the event loop components.&nbsp;
+Since this is the level that knows the class name for creation, this level
+handles the creation.</li>
+</ul>
+
+<h3>
+Other Components</h3>
+There are a couple of other components that are used to make up the complete
+XP Event Loop.&nbsp; These components are actually instantiated and created
+by the event loop code.&nbsp; Both are completely implemented in platform
+code, but provide XP interfaces.
+<br>&nbsp;
+<h4>
+<a NAME="nsCEvent"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/windows/nsCEvent.cpp">nsCEvent</a></h4>
+This class implements the nsIEvent interface.&nbsp; The object that is
+instantiated and passed around is the basic event for the platform.&nbsp;
+It is passed around as platform independent entity via it's nsIEvent interface.&nbsp;
+A given platform however can quickly get to it's platform data by calling
+the appropriate Get or SetNativeData() functions.&nbsp; In fact the core
+job of nsCEvent is to wrap up this even data and provide access to it via
+the accessor functions.&nbsp; The data passed through these functions are
+a void* which means both sides have to know what the structure of the data
+is.&nbsp; Some platforms may be able to re-use structures defined by their
+OS, or they may need to define another known structure which will be the
+native data.
+<h4>
+<a NAME="nsCEventFilter"></a><a href="http://lxr.mozilla.org/seamonkey/source/xpcom/appshell/eventloop/windows/nsCEventFilter.cpp">nsCEventFilter</a></h4>
+This class implements the nsCEventFilter interface.&nbsp; This object serves
+as the wrapper for the platform event retrieval filter data.&nbsp; Much
+like nsCEvent this class simply provides Get and SetNativeData() functions
+to allow code to retrieve the internal filter data.&nbsp; Also like nsCEvent,
+the data passed through is void*.&nbsp; This means both sides have to know
+what the structure of the data is.&nbsp; Some platforms may be able to
+re-use structures defined by their OS, or they may need to define another
+known structure which will be the native data.
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September  2,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/xpcom/eventloop/codestructure.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Language" content="en">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta http-equiv="Content-Script-Type" content="text/javascript">
+    
+  <meta name="Author" content="Norris Boyd">
+    
+  <meta name="KeyWords" content="Rhino, JavaScript, Java">
+  <title>Scopes and Contexts</title>
+
+<link rel="up" href="./" title="Rhino project page">
+<link rel="section" href="#contexts" title="Contexts">
+<link rel="section" href="#scopes" title="Scopes">
+<link rel="section" href="#namelookup" title="Name Lookup">
+<link rel="section" href="#sharingscopes" title="Sharing Scopes">
+<link rel="section" href="#sealedshared" title="Sealed shared scopes">
+<link rel="section" href="#dynamic" title="Dynamic Scopes">
+<link rel="section" href="#namelookup" title="Name Lookup">
+
+<style type="text/css">
+h1 {text-align: center;}
+</style>
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+<!-- ***** BEGIN LICENSE BLOCK *****
+   - Version: MPL 1.1/GPL 2.0
+   -
+   - The contents of this file are subject to the Mozilla Public License Version
+   - 1.1 (the "License"); you may not use this file except in compliance with
+   - the License. You may obtain a copy of the License at
+   - http://www.mozilla.org/MPL/
+   -
+   - Software distributed under the License is distributed on an "AS IS" basis,
+   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+   - for the specific language governing rights and limitations under the
+   - License.
+   -
+   - The Original Code is Rhino code, released May 6, 1999.
+   -
+   - The Initial Developer of the Original Code is
+   - Netscape Communications Corporation.
+   - Portions created by the Initial Developer are Copyright (C) 1997-1999
+   - the Initial Developer. All Rights Reserved.
+   -
+   - Contributor(s):
+   -
+   - Alternatively, the contents of this file may be used under the terms of
+   - the GNU General Public License Version 2 or later (the "GPL"), in which
+   - case the provisions of the GPL are applicable instead of those above. If
+   - you wish to allow use of your version of this file only under the terms of
+   - the GPL and not to allow others to use your version of this file under the
+   - MPL, indicate your decision by deleting the provisions above and replacing
+   - them with the notice and other provisions required by the GPL. If you do
+   - not delete the provisions above, a recipient may use your version of this
+   - file under either the MPL or the GPL.
+   -
+   - ***** END LICENSE BLOCK ***** -->
+
+
+
+
+
+  
+
+ 
+ 
+<script type="text/javascript" src="owner.js"></script>  
+
+<p class="crumbs"><em>You are here:</em> <a href="./">Rhino project page</a> &gt; <strong>Scopes and Contexts</strong></p>
+
+<h1>Scopes and Contexts</h1>
+ 
+<script type="text/javascript">document.write(owner());</script>
+
+<p>Before using Rhino in a concurrent environment, it is important to 
+understand the distinction between Contexts and scopes. Both are 
+required to execute scripts, but they play different roles. Simple 
+embeddings of Rhino probably won't need any of the information here, 
+but more complicated embeddings can gain performance and flexibility 
+from the techniques described below.</p>
+
+<h2><a name="contexts" id="contexts">Contexts</a></h2>
+
+<p>The Rhino Context object is used to store thread-specific information 
+about the execution environment. There should be one and only one 
+Context associated with each thread that will be executing JavaScript.</p>
+
+<p>To associate the current thread with a Context, simply call the 
+<code>enter</code> method of Context:</p>
+
+<pre class="code">
+    Context cx = Context.enter();
+</pre>
+
+<p>Once you are done with execution, simply exit the Context:</p>
+
+<pre class="code">
+    Context.exit();
+</pre>
+
+<p>These calls will work properly even if there is already a Context 
+associated with the current thread. That context will be returned 
+and an internal counter incremented. Only when the counter reaches 
+zero will it be disassociated from the thread.</p>
+
+<p>Remember to put the <code>exit()</code> call in a <code>finally</code> 
+block if you're executing code that could throw an exception.</p>
+
+<h2><a name="scopes" id="scopes">Scopes</a></h2>
+
+<p>A scope is a set of JavaScript objects. Execution of scripts 
+requires a scope for top-level script variable storage as well as 
+a place to find standard objects like <code>Function</code> and 
+<code>Object</code>.</p>
+
+<p>It's important to understand that a scope is independent of the 
+Context that created it. You can create a scope using one Context 
+and then evaluate a script using that scope and another Context 
+(either by exiting the current context and entering another, or by 
+executing on a different thread). You can even execute scripts on 
+multiple threads simultaneously in the same scope. Rhino guarantees 
+that accesses to properties of JavaScript objects are atomic across 
+threads, but doesn't make any more guarantees for scripts executing
+in the same scope at the same time. If two scripts use the same scope 
+simultaneously, the scripts are responsible for coordinating any 
+accesses to shared variables.</p>
+
+<p>A top-level scope is created by calling 
+<code>Context.initStandardObjects</code> to create all the standard 
+objects:</p>
+
+<pre class="code">
+    ScriptableObject scope = cx.initStandardObjects();
+</pre>
+
+<p>The easiest way to embed Rhino is just to create a new scope this 
+way whenever you need one. However, <code>initStandardObjects</code> 
+is an expensive method to call and it allocates a fair amount of memory. 
+We'll see below that there are ways to share a scope created this way 
+among multiple scopes and threads.</p>
+
+<h2><a name="namelookup" id="namelookup">Name Lookup</a></h2>
+
+<p>So how are scopes used to look up names? In general, variables 
+are looked up by starting at the current variable object (which 
+is different depending on what code is being executed in the 
+program), traversing its prototype chain, and then traversing the 
+parent chain. In the diagram below, the order in which the six 
+objects are traversed is indicated.</p>
+
+<div class="figure" style="text-align: center;">
+<img src="lookup.gif" height="194" width="500" alt=""><br>
+<i>Order of lookups in a two-deep scope chain with prototypes.</i></div>
+  
+<p>For a more concrete example, let's consider the following script:</p>
+
+<pre class="code">
+  var g = 7;
+  function f(a) {
+      var v = 8;
+      x = v + a;
+  }
+  f(6);
+</pre>
+
+<p>We have a top-level variable <code>g</code>, and the call to 
+<code>f</code> will create a new top-level variable <code>x</code>. 
+All top-level variables are properties of the scope object. When 
+we start executing <code>f</code>, the scope chain will start with 
+the function's activation object and will end with the top-level
+scope (see diagram below). The activation object has two 
+properties, 'a' for the argument, and 'v' for the variable. The 
+top-level scope has properties for the variable <code>g</code> 
+and the function <code>f</code>.</p>
+
+<div class="figure" style="text-align: center;">
+<img src="scopes.gif" height="496" width="820" alt=""><br>
+<i>An example scope chain for a simple script.</i></div>
+  
+<p>When the statement <code>x = v + a;</code> is executed, the 
+scope chain is traversed looking for a 'x' property. When none 
+is found, a new property 'x' is created in the top-level scope.</p>
+
+<h2><a name="sharingscopes" id="sharingscopes">Sharing Scopes</a></h2>
+
+<p>JavaScript is a language that uses delegation rather than 
+traditional class-based inheritance. This is a large topic in 
+itself, but for our purposes it gives us an easy way to share 
+a set of read-only variables across multiple scopes.</p> 
+ 
+<p>To do this we set an object's prototype. When accessing a 
+property of an object in JavaScript, the object is first searched 
+for a property with the given name. If none is found, the object's 
+prototype is searched. This continues until either the object is 
+found or the end of the prototype chain is reached.</p>
+
+<p>So to share information across multiple scopes, we first 
+create the object we wish to share. Typically this object will 
+have been created with <code>initStandardObjects</code> and may 
+also have additional objects specific to the embedding. Then all
+we need to do is create a new object and call its 
+<code>setPrototype</code> method to set the prototype to the 
+shared object, and the parent of the new scope to null:</p>
+
+<pre class="code">
+    Scriptable newScope = cx.newObject(sharedScope);
+    newScope.setPrototype(sharedScope);
+    newScope.setParentScope(null);
+</pre>
+
+<p>The call to <code>newObject</code> simply creates a new 
+JavaScript object with no properties. It uses the 
+<code>sharedScope</code> passed in to initialize the
+prototype with the standard <code>Object.prototype</code> value.</p> 
+
+<p>We can now use <code>newScope</code> as a scope for calls to 
+evaluate scripts. Let's call this scope the <i>instance scope</i>. 
+Any top-level functions or variables defined 
+in the script will end up as properties of the instance scope. Uses 
+of standard objects like <code>Function</code>, <code>String</code>, 
+or <code>RegExp</code> will find the definitions in the shared 
+scope. Multiple instance scopes can be defined and have their own 
+variables for scripts yet share the definitions in the shared scope. 
+These multiple instance scopes can be used concurrently.</p>
+
+<h2><a name="sealedshared" id="sealedshared">Sealed shared scopes</a></h2>
+
+<p>The ECMAScript standard defines that scripts can add properties 
+to all standard library objects and in many cases it is also possible 
+to change or delete their properties as well. Such behavior may not 
+be suitable with shared scopes since if a script by mistake adds a 
+property to a library object from the shared scope, that object 
+would not be garbage collected until there are active references to 
+the shared scope potentially leading to memory leaks. In addition 
+if a script alters some of the standard objects, the library may 
+not work properly for other scripts. Such bugs are hard to debug 
+and to remove a possibility for them to occur one can seal the 
+shared scope and all its objects.</p>
+
+<p>A notion of a sealed object is a JavaScript extension supported 
+by Rhino and it means that properties can not be added/deleted to 
+the object and the existing object properties can not be changed. 
+Any attempt to modify sealed object throws an exception. To seal 
+all objects in the standard library pass <code>true</code> for 
+the sealed argument when calling 
+<code>Context.initStandardObjects(ScriptableObject, boolean)</code>:</p>
+
+<pre>
+    ScriptableObject sealedSharedScope = cx.initStandardObjects(null, true);
+</pre>  
+
+<p>This seals only all standard library objects, it does not seal 
+the shared scope itself thus after calling 
+<code>initStandardObjects</code>, <code>sealedSharedScope</code> 
+can be farther populated with application-specific objects and 
+functions. Then after a custom initialization is done, one can 
+seal the shared scope by calling 
+<code>ScriptableObject.sealObject()</code>:</p>
+
+<pre>
+    sealedSharedScope.sealObject();
+</pre>  
+
+<p>Note that currently one needs to explicitly seal any 
+additional properties he adds to the sealed shared scope since 
+although after calling <code>sealedSharedScope.sealObject();</code> 
+it would no be possible to set the additional properties to 
+different values, one still would be able to alter the objects 
+themselves.</p>
+
+<h2><a name="dynamic" id="dynamic">Dynamic Scopes</a></h2>
+
+<p>There's one problem with the setup outlined above. Calls to 
+functions in JavaScript use <i>static scope</i>, which means that 
+variables are first looked up in the function and then, if not 
+found there, in the lexically enclosing scope. This causes 
+problems if functions you define in your shared scope need access 
+to variables you define in your instance scope.</p>
+
+<p>With Rhino 1.6, it is possible to use <i>dynamic scope</i>. 
+With dynamic scope, functions look at the top-level scope of 
+the currently executed script rather than their lexical 
+scope. So we can store information that varies across scopes 
+in the instance scope yet still share functions that 
+manipulate that information reside in the shared scope.</p>
+
+<p>The <a href="http://lxr.mozilla.org/mozilla/source/js/rhino/examples/DynamicScopes.java">
+DynamicScopes example</a> illustrates all the points discussed above.</p>
+
+<h2>More on Scopes</h2>
+
+<p>The key things to determine in setting up scopes for 
+your application are</p> 
+
+<ol>
+  <li>What scope should global variables be created in when your 
+script executes an assignment to an undefined variable, and</li>
+  <li>What variables should your script have access to when it 
+references a variable?</li>
+</ol>
+
+<p>The answer to 1 determines which scope should be the ultimate 
+parent scope: Rhino follows the parent chain up to the top and 
+places the variable there. After you've constructed your parent 
+scope chain, the answer to question 2 may indicate that 
+there are additional scopes that need to be searched that are 
+not in your parent scope chain. You can add these as prototypes
+of scopes in your parent scope chain. When Rhino looks up a 
+variable, it starts in the current scope, walks the prototype 
+chain, then goes to the parent scope and its prototype chain, 
+until there are no more parent scopes left.</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified May 29,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/rhino/scopes.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

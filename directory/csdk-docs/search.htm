@@ -1,0 +1,2018 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+ <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+ <title>Mozilla LDAP C SDK: Chapter 6 Searching the Directory</title>
+ <link href="using.htm" rel="prev">
+ <link href="./" rel="contents">
+ <link href="ix.htm" rel="index">
+ <link href="filter.htm" rel="next">
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<ul class="snav">
+ <li><a href="using.htm">Previous</a>
+ <li><a href="./">Contents</a>
+ <li><a href="ix.htm">Index</a>
+ <li><a href="filter.htm">Next</a>
+</ul>
+
+<h1>Mozilla LDAP C SDK Programmer's Guide</h1>
+<h2 id="c6">Chapter 6 - Searching the Directory</h2>
+
+<p>This chapter explains how to call the LDAP 
+API functions to search the directory, retrieve search results, and 
+get attributes and values from each entry in the search results. 
+The chapter also provides examples of calling synchronous and 
+asynchronous functions to search the directory.</p>
+
+<p>This chapter contains the following sections, which explain how 
+to create and execute a search of the directory:</p>
+
+<ol class="toc">
+ <li><a href="#c6-overview-searching-with-ldap-api-functions">Overview: Searching with LDAP API Functions</a>
+ <li><a href="#c6-sending-a-search-request">Sending a Search Request</a>
+ <li><a href="#c6-sorting-the-search-results">Sorting the Search Results</a>
+ <li><a href="#c6-freeing-the-results-of-a-search">Freeing the Results of a Search</a>
+ <li><a href="#c6-example-searching-the-directory-asynchronous">Example: Searching the Directory (Asynchronous)</a>
+ <li><a href="#c6-example-searching-the-directory-synchronous">Example: Searching the Directory (Synchronous)</a>
+ <li><a href="#c6-reading-an-entry">Reading an Entry</a></li>
+ <li><a href="#c6-listing-subentries">Listing Subentries</a></li>
+</ol>
+
+<h3 id="c6-overview-searching-with-ldap-api-functions">Overview: Searching with LDAP API Functions</h3>
+
+<p>In the LDAPv3 protocol, a server can send 
+three different types of results back to the client:</p>
+
+<ul>
+ <li>Directory entries found by the search.</li>
+ <li>Any search references found within the scope of the search (a 
+  search reference is a reference to another LDAP server).
+ </li>
+ <li>An LDAP result code specifying the result of the search operation.</li>
+</ul>
+
+<p>Results are represented by 
+<code>LDAPMessage</code> structures.</p>
+
+<p>Note that in order to receive search 
+references from LDAPv3 servers you must identify your client as an 
+LDAPv3 client. If you do not, the server will return the LDAP error 
+code <code>LDAP_PARTIAL_RESULTS</code> and a set of referrals. See 
+"Specifying the LDAP Version of Your Client" for details.</p>
+
+<p>The Mozilla LDAP C SDK provides functions 
+that allow you to search the directory and retrieve results from 
+the server:</p>
+
+<ul>
+ <li>
+  <p>You can send a search request by calling the synchronous function 
+   <code>ldap_search_ext_s()</code> or the asynchronous function 
+   <code>ldap_search_ext()</code>. 
+  <p>(For more information about the difference between synchronous and 
+   asynchronous functions, see "Calling Synchronous and Asynchronous 
+   Functions.")
+  <p>The server sends back matching entries or search references to 
+   your client.
+ </li>
+ <li>If you are retrieving the results one at a time, you can call 
+  <code>ldap_result()</code> to get each result (an 
+  <code>LDAPMessage</code> structure) and determine what type of 
+  result (entry or search reference) was sent from the server.
+ </li>
+ <li>
+  <p>If you are retrieving a chain of results, you can call 
+   <code>ldap_first_message()</code> and 
+   <code>ldap_next_message()</code> to iterate through the results 
+   in the chain. 
+  <p>If you are just interested in entries, you can call 
+   <code>ldap_first_entry()</code> and <code>ldap_next_entry()</code>
+  <p>If you are just interested in search references, you can call 
+   <code>ldap_first_reference()</code> and 
+   <code>ldap_next_reference()</code>.
+ </li>
+ <li>To get an entry from a result (an <code>LDAPMessage</code> 
+  structure), call <code>ldap_first_entry()</code>.
+ </li>
+ <li>To get a search reference from a result (an 
+  <code>LDAPMessage</code> structure), call 
+  <code>ldap_parse_reference()</code>.
+ </li>
+ <li>To get the LDAP result code for the search operation from a result 
+  (an <code>LDAPMessage</code> structure), call 
+  <code>ldap_parse_result()</code>.
+ </li>
+</ul>
+
+<p>For more information, refer to the following sections in this chapter: 
+<a href="#example-searching-the-directory-synchronous">Example: 
+Searching the Directory (Synchronous)</a> and 
+<a href="$example-searching-the-directory-asynchronous">Example: 
+Searching the Directory (Asynchronous)</a>.</p>
+
+<h3 id="c6-sending-a-search-request">Sending a Search Request</h3>
+
+<p>To search the directory, call <code>ldap_search_ext_s()</code> 
+or <code>ldap_search_ext()</code>:</p>
+
+<ul>
+ <li><code>ldap_search_ext_s()</code> is a synchronous function. This 
+  function blocks until all results have been received from the 
+  server.
+ </li>
+ <li><code>ldap_search_ext()</code> is an asynchronous function. This 
+  function sends an LDAP search request to the server. You can do 
+  other work while periodically checking to see if the server has 
+  returned any results.
+ </li>
+</ul>
+
+<p>These two functions are declared as follows:</p>
+
+<pre>LDAP_API(int) LDAP_CALL ldap_search_ext( LDAP *ld,
+const char *base, int scope, const char *filter,
+char **attrs, int attrsonly, LDAPControl **serverctrls,
+LDAPControl **clientctrls, struct timeval *timeoutp,
+int sizelimit, int *msgidp );</pre>
+
+<pre>LDAP_API(int) LDAP_CALL ldap_search_ext_s( LDAP *ld,
+const char *base, int scope, const char *filter, char **attrs,
+int attrsonly, LDAPControl **serverctrls,
+LDAPControl **clientctrls, struct timeval *timeoutp,
+int sizelimit, LDAPMessage **res );</pre>
+
+<p>For either function, you specify the search 
+criteria using the following parameters:</p>
+
+<ul>
+ <li>
+  <p><code>base</code> specifies the starting point in the directory, 
+   or the base DN (an entry where to start searching).
+  <p>To search entries under "<code>dc=example,dc=com</code>", the 
+   base DN is "<code>dc=example,dc=com</code>". See "Specifying the 
+   Base DN and Scope" for details.
+ </li>
+ <li>
+  <p><code>scope</code> specifies the scope of the search (which 
+   entries you want to search). 
+  <p>You can narrow the scope of the search to search only the base DN, 
+   entries at one level under the base DN, or entries at all levels 
+   under the base DN. See 
+   <a href="#c6-specifying-the-base-dn-and-scope">Specifying the Base 
+   DN and Scope</a> for details.
+ </li>
+ <li>
+  <p><code>filter</code> specifies a search filter (what to search for).
+  <p>A search filter can be as simple as "find entries where the last 
+   name is Jensen" or as complex as "find entries that belong to 
+   Dept. #17 and whose first names start with the letter F." See 
+   <a href="#c6-specifying-a-search-filter">Specifying a Search Filter</a> for details.
+ </li>
+ <li>
+  <p><code>attrs </code>and <code>attrsonly </code>specify the type of 
+   information that you want return (which attributes you want to 
+   retrieve) and whether you want to retrieve only the attribute type 
+   or the attribute type and its values 
+  <p>For details, see <a href="#c6-specifying-the-attributes-to-retrieve">Specifying 
+   the Attributes to Retrieve.</a>
+  <p>You can also specify that you only want to return the names of 
+   attributes (and not the values) by passing a non-zero value for 
+   the <code>attrsonly </code>argument.
+ </li>
+ <li>
+  <p><code>serverctrls </code>and <code>clientctrls</code> specify the 
+   LDAPv3 controls associated with this search operation 
+  <p>For details on LDAPv3 controls, see <a href="controls.htm">Chapter 
+   14 - Working with LDAP Controls</a>."
+ </li>
+ <li>
+  <p><code>timeoutp </code>and <code>sizelimit </code>specify the 
+   search constraints that you want applied to this search. 
+  <p>For example, you can specify a different time-out period or 
+   maximum number of results that differ from the values of these 
+   options for the current session. See 
+   <a href="#c6-setting-search-preferences">Setting Search 
+   Preferences</a> for details.
+ </li>
+</ul>
+
+<p>Figure 6-1 illustrates how search criteria works.</p>
+
+<h4>Figure 6-1 - Search criteria for an LDAP search operation</h4>
+<div class="figure"><img src="graphics/hierovrw.gif" height="171" width="437" alt="search criteria"></div>
+
+<h3 id="c6-specifying-the-base-dn-and-scope">Specifying the Base DN and Scope</h3>
+
+<p>When sending a search request, you need to specify the base DN and 
+scope of the search to identify the entries that you want searched.</p>
+
+<p>The base DN (the <code>base </code>argument) is the DN of the 
+entry that serves as the starting point of the search.</p>
+
+<p>To specify the scope of the search, you pass 
+one of the following values as the <code>scope</code> parameter:</p>
+
+<ul>
+ <li>
+  <code>LDAP_SCOPE_SUBTREE </code>searches the <code>base</code> 
+  entry and all entries at all levels below the <code>base</code> 
+  entry (as illustrated in Figure 6-2).
+ </li>
+</ul>
+
+<h4>Figure 6-2 - Example of a search with the scope LDAP_SCOPE_SUBTREE</h4>
+<div class="figure"><img src="graphics/hiersrch.gif" height="153" width="437" alt="LDAP_SCOPE_SUBTREE"></div>
+
+<ul>
+ <li>
+  <code>LDAP_SCOPE_ONELEVEL </code>searches all entries at one level 
+  below the <code>base</code> entry (as illustrated in Figure 6-3). 
+  The <code>base</code> entry is not included in the search. Use 
+  this setting if you just want a list of the entries under a given 
+  entry. (See "Listing Subentries" for an example.)
+ </li>
+</ul>
+
+<h4>Figure 6-3 - Example of a search with the scope LDAP_SCOPE_ONELEVEL</h4>
+<div class="figure"><img src="graphics/hier1lvl.gif" height="153" width="437" alt="LDAP_SCOPE_ONELEVEL"></div>
+
+<ul>
+ <li>
+  <code>LDAP_SCOPE_BASE </code>searches only the <code>base</code> 
+  entry. Use this setting if you just want to read the attributes of 
+  the <code>base</code> entry (as illustrated in Figure 6-4). (See 
+  <a href="reading-an-entry">Reading an Entry</a> for an example.)
+ </li>
+</ul>
+
+<h4>Figure 6-4 - Example of a search with the scope LDAP_SCOPE_BASE</h4>
+<div class="figure"><img src="graphics/hierbase.gif" height="171" width="437" alt="LDAP_SCOPE_BASE"></div>
+
+<h3 id="c6-specifying-a-search-filter">Specifying a Search Filter</h3>
+
+<p>When you search the directory, you use a search filter to define 
+the search. Here is the basic syntax for a search filter:</p>
+
+<pre>(attribute operator value)</pre>
+
+<p>Here is a simple example of a search filter:</p>
+
+<pre>(cn=Barbara Jensen)</pre>
+
+<p>In this example, <code>cn</code> is the 
+<dfn>attribute</dfn>, <code>=</code> is the <dfn>operator</dfn>, and 
+<code>Barbara Jensen</code> is the <dfn>value</dfn>. The filter finds 
+entries with the common name <code>Barbara Jensen.</code></p>
+
+<p>For a listing of valid attributes that you can use in your search 
+filter, see the documentation for the LDAP server you are using.</p>
+
+<p>Table 6-1 lists the valid operators you can use.</p>
+
+<h4>Table 6-1 - Basic operators for search filters</h4>
+
+<table class="data">
+ <tr>
+  <th>Operator</th>
+  <th>Description</th>
+  <th>Example</th>
+ </tr>
+ <tr>
+  <td><code>=</code></td>
+  <td>Returns entries whose attribute is equal to the value.</td>
+  <td><code>(cn=Barbara Jensen)</code><br>
+   finds the entry "<code>cn=Barbara Jensen</code>"
+  </td>
+ </tr>
+ <tr>
+  <td><code>=</code></td>
+  <td>Returns entries whose attribute is greater than or equal to the value.</td>
+  <td>
+   <code>(sn &gt;= jensen)</code><br>
+   finds all entries from "<code>sn=jensen</code>" to 
+   "<code>sn=z...</code>"
+  </td>
+ </tr>
+ <tr>
+  <td><code>&lt;=</code></td>
+  <td>Returns entries whose attribute is less than or equal to the value.</td>
+  <td>
+   (sn &lt;= jensen)</code><br>
+   finds all entries from "<code>sn=a...</code>" to 
+   "<code>sn=jensen</code>"
+  </td>
+ </tr>
+ <tr>
+  <td><code>=*</code></td>
+  <td>
+   Returns entries that have a value set for 
+   that attribute.
+  </td>
+  <td>
+   <code>(sn =*)<br>
+   </code>finds all entries that have the <code>sn</code> attribute.
+  </td>
+ </tr>
+ <tr>
+  <td><code>~=</code></td>
+  <td>
+   Returns entries whose attribute value approximately matches the 
+   specified value. Typically, this is an algorithm that matches 
+   words that sound alike.
+  </td>
+  <td>
+   <code>(sn ~= jensen)</code><br>
+   finds the entry "s<code>n = jansen</code>"
+  </td>
+ </tr>
+</table>
+
+<p>Note that when comparing values containing letters, the letter 
+<code>a</code> is less than the value <code>z</code>. For example, 
+the following filter finds all entries with last names beginning 
+with <code>a</code> through <code>jensen</code>:</p>
+
+<code>(sn<=jensen)</code>
+
+<p>Using Boolean operators and parentheses, you can combine different 
+sets of conditions. Here is the syntax for combining search filters:</p>
+
+<code>( boolean_operator (filter1)(filter2)(filter3) )</code>
+
+<p>Table 6-2 lists the valid Boolean operators you can use.</p>
+
+<h4>Table 6-2 - Boolean operators for search filters</h4>
+
+<table class="data">
+ <tr>
+  <th>Boolean Operator</th>
+  <th>Description</th>
+ </tr>
+ <tr>
+  <td><code>&</code></td>
+  <td>Returns entries matching all specified filter criteria.</td>
+ </tr>
+ <tr>
+  <td><code>|</code></td>
+  <td>Returns entries matching one or more of the filter criteria.</td>
+ </tr>
+ <tr>
+  <td><code>!</code></td>
+  <td>
+   Returns entries for which the filter is not true. You can only apply 
+   this operator to a single filter. For example, you can use:<br>
+   <code>(!(filter)</code><br>
+   but not:<br>
+   <code>(!(filter1)(filter2))</code>
+  </td>
+ </tr>
+</table>
+
+<p>For example, you can use this filter to 
+search for all entries with the last name <code>Jensen</code> or the 
+last name <code>Johnson</code>:</p>
+
+<code>(|(sn=Jensen)(sn=Johnson))</code>
+
+<p>You can also include wildcards to search for 
+entries that start with, contain, or end with a given value. For 
+example, you can use this filter to search for all entries whose 
+names begin with the letter <code>F</code>:</p>
+
+<code>(givenName=F*)</code>
+
+<h3 id="c6-specifying-the-attributes-to-retrieve">Specifying the Attributes to Retrieve</h3>
+
+<p>Using the <code>attrs</code> argument, you 
+can either retrieve all attributes in entries returned by the 
+search, or you can specify the attributes that you want returned in 
+the search results. For example, you can specify that you want to 
+return the following attributes:</p>
+
+<ul>
+ <li>To return selected attributes, pass an array of the attribute 
+  names as the <code>attrs </code>argument. For example, to return 
+  only email addresses and phone numbers (by passing the 
+  NULL-terminated array <code>{"mail", "telephoneNumber", NULL}</code> 
+  as the <code>attrs</code> argument.
+ </li>
+ <li>To return all attributes in an entry, pass <code>NULL </code>as 
+  the <code>attrs</code> argument.
+ </li>
+ <li>To return none of the attributes from an entry, pass 
+  <code>LDAP_NO_ATTRS </code>as the <code>attrs </code>argument.
+ </li>
+</ul>
+
+<p>Note that if you plan to sort the results on your client (see 
+<a href="#c6-sorting-the-search-results">Sorting the Search Results</a>), 
+you need to return the attributes that you plan to use for sorting. For 
+example, if you plan to sort by email address, make sure that the mail 
+attribute is returned in the search results.</p>
+
+<p>Some attributes are used by servers for 
+administering the directory. For example, the <code>creatorsName</code> 
+attribute specifies the DN of the user who added the entry. These 
+attributes are called operational attributes.</p>
+
+<p>Servers do not normally return operational 
+attributes in search results unless you specify the attributes by 
+name. For example, if you pass <code>NULL</code> for the 
+<code>attrs</code> argument to retrieve all of the attributes in 
+entries found by the search, the operational attribute 
+<code>creatorsName</code> will not be returned to your client. You 
+need to explicitly specify the <code>creatorsName</code> attribute 
+in the <code>attrs</code> argument.</p>
+
+<p>To return all attributes in an entry and 
+selected operational attributes, pass a NULL-terminated array 
+containing <code>LDAP_ALL_USER_ATTRS</code> and the names of the 
+operational attributes as the <code>attrs</code> argument.</p>
+
+<p>The following table lists some of the 
+operational attributes and the information they contain.</p>
+
+<h4>Table 6-3 - Information available in operational attributes</h4>
+
+<table class="data">
+ <tr>
+  <th>Attribute Name</th>
+  <th>Description of Values</th>
+ </tr>
+ <tr>
+  <td><code>createTimestamp</code></td>
+  <td>The time the entry was added to the directory.</td>
+ </tr>
+ <tr>
+  <td><code>modifyTimestamp</code></td>
+  <td>The time the entry was last modified.</td>
+ </tr>
+ <tr>
+  <td><code>creatorsName</code></td>
+  <td>
+   Distinguished name (DN) of the user who 
+   added the entry to the directory.
+  </td>
+ </tr>
+ <tr>
+  <td><code>modifiersName</code></td>
+  <td>Distinguished name (DN) of the user who last modified the entry.</td>
+ </tr>
+ <tr>
+  <td><code>subschemaSubentry</code></td>
+  <td>
+   Distinguished name (DN) of the subschema entry, which controls 
+   the schema for this entry. (See "Getting Schema Information" for 
+   details.)
+  </td>
+ </tr>
+</table>
+
+<h3 id="c6-setting-search-preferences">Setting Search Preferences</h3>
+
+<p>For a given search, you can specify the maximum number of results 
+to be returned or the maximum amount of time to wait for a search. 
+Use the <code>timeoutp</code> and <code>sizelimit</code> arguments 
+of the <code>ldap_search_ext_s()</code> or 
+<code>ldap_search_ext()</code> functions.</p>
+
+<p>Note the following:</p>
+
+<ul>
+ <li>To specify an infinite time limit (basically, no limit), create a 
+  <code>timeval</code> structure with 
+  <code>tv_sec = tv_usec = 0</code>, and pass a pointer to this as 
+  the <code>timeoutp</code> argument.
+ </li>
+ <li>To use the time limit specified by the <code>LDAP_OPT_TIMELIMIT</code> 
+  preference for this connection, pass <code>NULL</code> as the 
+  <code>timeoutp </code>argument.
+ </li>
+ <li>To specify an infinite size limit (basically, no limit), pass 
+  <code>LDAP_NO_LIMIT</code> as the <code>sizelimit</code> argument.
+ </li>
+</ul>
+
+<p>To specify these preferences for all searches 
+under the current connection, call <code>ldap_set_option()</code> 
+and set the <code>LDAP_OPT_SIZELIMIT</code> and 
+<code>LDAP_OPT_TIMELIMIT</code> options. If you do not want to 
+specify a limit (basically, no limit), set the value of the option 
+to <code>LDAP_NO_LIMIT</code>.</p>
+
+<p>Note that the LDAP server may already have 
+time and size constraints set up that you cannot override.</p>
+
+<p>The following example sets these session 
+preferences so that a search returns no more than 100 entries and 
+takes no more than 30 seconds.</p>
+
+<h4>Code Example 6-1 - Setting session search preferences</h4>
+
+<pre class="example code">
+#include "ldap.h"
+...
+LDAP *ld;
+int max_ret, max_tim;
+char *host = "localhost";
+...
+/* Initialize a session with the LDAP server ldap.example.com:389. */
+if ( ( ld = ldap_init( host, LDAP_PORT ) ) == NULL ) { 
+  perror( "ldap_init" );
+  return( 1 );
+}
+
+/* Set the maximum number of entries returned. */
+max_ret = 100;
+ldap_set_option(ld, LDAP_OPT_SIZELIMIT, (void *)&max_ret );
+
+/* Set the maximum number of seconds to wait. */
+max_tim = 30;
+ldap_set_option( ld, LDAP_OPT_TIMELIMIT, (void *)&max_tim );
+...
+</pre>
+
+<h3 id="c6-example-of-sending-a-search-request">Example of Sending a Search Request</h3>
+
+<p>The following example sends a search request to the server 
+for all entries with the last name (or surname) 
+"<code>Jensen</code>" in the <code>example.com</code> organization.</p>
+
+<h4>Code Example 6-2 - Sending a search request</h4>
+
+<pre class="example code">
+#include &lt;stdio.h&gt;
+#include "ldap.h"
+...
+#define BASEDN "dc=example,dc=com"
+#define SCOPE LDAP_SCOPE_SUBTREE
+#define FILTER "(sn=Jensen)"
+...
+LDAP      *ld;
+int      msgid, rc;
+...
+/* Send the search request. */
+rc = ldap_search_ext( ld, BASEDN, SCOPE, FILTER, NULL, 0, NULL, 
+  NULL, NULL, LDAP_NO_LIMIT, &msgid );
+if ( rc != LDAP_SUCCESS ) {
+  fprintf( stderr, "ldap_search_ext: %s\n", ldap_err2string( rc ) );
+  ldap_unbind( ld );
+  return( 1 );
+}
+...</pre>
+
+<h3 id="c6-getting-search-results">Getting Search Results</h3>
+
+<p>In the LDAPv3 protocol, a server can return 
+the following types of results to your client:</p>
+
+<ul>
+ <li>
+  Directory entries found by the search (those entries matching the 
+  search criteria).
+ </li>
+ <li>
+  Any search references found within the scope of the search (a 
+  search reference is a reference to another LDAP server).
+ </li>
+ <li>An LDAP result code specifying the result of the search operation.</li>
+</ul>
+
+<p>The server returns the search results as a 
+chain of <code>LDAPMessage</code> structures. Each structure 
+contains an entry, a search reference, or an LDAP result code. 
+Because the results are represented as a chain, you should not free 
+individual <code>LDAPMessage</code> structures within the chain. 
+(When you are done working with the results, you can free the chain 
+itself, rather than individual structures within the chain.)</p>
+
+<p>To access data from entries found by the 
+search, you need to follow this general process:</p>
+
+<ol>
+ <li>Get each entry in the results. </li>
+ <li>Get the attributes from each entry.</li>
+ <li>Get the values from each attribute.</li>
+</ol>
+
+<p>Figure 6-5 illustrates the relationship 
+between entries, attributes, values, and search results.</p>
+
+<p><Figure 6-5 - Search results in terms of 
+entries, attributes, and values</p>
+
+<img src="graphics/entries.gif" height="147" width="437" alt="Search results">
+
+<p>This section explains how to get search results and retrieve data 
+from the search results. Topics covered include:</p>
+
+<ul>
+ <li><a href="#c6-getting-results-synchronously">Getting Results Synchronously</a>
+ <li><a href="#c6-getting-results-asynchronously">Getting Results Asynchronously</a>
+ <li><a href="#c6-iterating-through-a-chain-of-results">Iterating Through a Chain of Results</a>
+ <li><a href="#c6-getting-distinguished-names-for-each-entry">Getting Distinguished Names for Each Entry</a>
+ <li><a href="#c6-getting-attributes-from-an-entry">Getting Attributes from an Entry</a>
+ <li><a href="#c6-getting-the-values-of-an-attribute">Getting the Values of an Attribute</a>
+ <li><a href="#c6-getting-referrals-from-search-references">Getting Referrals from Search References</a>
+</ul>
+
+<h3 id="c6-getting-results-synchronously">Getting Results Synchronously</h3>
+
+<p>If you called the <code>ldap_search_ext_s()</code> function to 
+search the directory synchronously, the function blocks until all 
+results have been received. The function returns a chain of the 
+results in the <code>result</code> parameter (a handle to an 
+<code>LDAPMessage</code> structure).</p>
+
+<p>You can iterate through the results in this chain by calling 
+different API functions. See the section 
+<a href="#c6-iterating-through-a-chain-of-results">Iterating Through a Chain of 
+Results</a> for details.</p>
+
+<h3 id="c6-getting-results-asynchronously">Getting Results Asynchronously</h3>
+
+<p>If you use the asynchronous function <code>ldap_search_ext()</code> 
+instead, you need to call <code>ldap_result()</code> to determine 
+if the server sent back any results:</p>
+
+<pre>LDAP_API(int) LDAP_CALL ldap_result( LDAP *ld, int msgid, int all,
+struct timeval *timeout, LDAPMessage **result );</pre>
+
+<p>You can specify how you want to get the results:</p>
+
+<ul>
+ <li>
+  To get the results one at a time (as the client receives them from 
+  the server), pass <code>LDAP_MSG_ONE</code> as the <code>all</code> 
+  argument.
+ </li>
+ <li>
+  To get the results all at once (in other words, to block until all 
+  results are received), pass <code>LDAP_MSG_ALL</code> as the 
+  <code>all</code> argument.
+ </li>
+ <li>
+  To get the results received so far, pass 
+  <code>LDAP_MSG_RECEIVED</code> as the <code>all</code> argument.
+ </li>
+</ul>
+
+<p>If you specify either <code>LDAP_MSG_ALL</code> or 
+<code>LDAP_MSG_RECEIVED</code>, the function passes back a chain 
+of search results as the <code>result</code> argument. For details 
+on how to retrieve the results from this chain, see 
+<a href="#c6-iterating-through-a-chain-of-results">Iterating Through a Chain of Results</a>.</p>
+
+<p>If specify <code>LDAP_MSG_ONE</code>, the function passes back 
+a single search result as the <code>result</code> argument. The 
+function normally returns the type of the first search result; in 
+this case, since only one result is returned, the function returns 
+the type of that result. A search result can be one of the 
+following types:</p>
+
+<p>To determine what type of result was returned, call the 
+<code>ldap_msgtype()</code> function. A search result can be one 
+of the following types:</p>
+
+<ul>
+ <li>
+  <code>LDAP_RES_SEARCH_ENTRY</code> indicates that the result is 
+  an entry found in the search. 
+  <p></p>
+  You can pass the <code>LDAPMessage</code> structure representing 
+  the entry to the <code>ldap_get_dn()</code> function to get the 
+  DN of the entry or the <code>ldap_first_attribute()</code> and 
+  <code>ldap_next_attribute()</code> functions to get the attributes 
+  of the entry.
+  <p></p>
+  For details, see <a href="#c6-getting-distinguished-names-for-each-entry">Getting Distinguished 
+  Names for Each Entry</a> and <a href="#c6-getting-attributes-from-an-entry">Getting 
+  Attributes from an Entry</a>.
+ </li>
+ <li>
+  <code>LDAP_RES_SEARCH_REFERENCE </code>indicates that the result 
+  is a search reference found within the scope of the search. 
+  <p></p>
+  You can pass the <code>LDAPMessage</code> structure representing 
+  the search reference to the <code>ldap_parse_reference()</code> 
+  function to get the referrals (LDAP URLs) to other servers.
+  <p></p>
+  For details, see <a href="#c6-getting-referrals-from-search-references">Getting Referrals 
+  from Search References</a>.
+ </li>
+  <li><code>LDAP_RES_SEARCH_RESULT </code>indicates that the result 
+  is the final result sent by the server to indicate the result of 
+  the LDAP search operation. 
+  <p></p>
+  You can pass the <code>LDAPMessage</code> structure representing 
+  the result to the <code>ldap_parse_result()</code> function to 
+  get the LDAP result code for the search operation. (For a list 
+  of possible result codes for an LDAP search operation, see the 
+  result code documentation for the 
+  <code>ldap_search_ext_s()</code> function.)
+  <p></p>
+  For details, see "<a href="using.htm#get_info_LDAPMessage">Getting the 
+  Information from an LDAPMessage Structure</a>".
+ </li>
+</ul>
+
+<p>Note that in order to receive search references from an LDAPv3 
+server you must identify your client as an LDAPv3 client. If you 
+do not, the server will return the LDAP error code 
+<code>LDAP_PARTIAL_RESULTS</code> and a set of referrals. See 
+"Specifying the LDAP Version of Your Client" for details.</p>
+
+<p>The following section of code gets results one at a time and 
+checks the type of result:</p>
+
+<h4>Code Example 6-3 - Retrieving search results</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include "ldap.h"
+...
+#define BASEDN "dc=example,dc=com"
+#define SCOPE LDAP_SCOPE_SUBTREE
+#define FILTER "(sn=Jensen)"
+...
+LDAP      *ld;
+LDAPMessage    *res;
+int        msgid, rc, parse_rc, finished = 0;
+struct timeval  zerotime;
+zerotime.tv_sec = zerotime.tv_usec = 0L;
+...
+/* Send the LDAP search request. */
+rc = ldap_search_ext( ld, BASEDN, SCOPE, FILTER, NULL, 0, NULL, NULL, 
+  NULL, LDAP_NO_LIMIT, &msgid );
+...
+/* Poll the server for the results of the search operation. */
+while ( !finished ) {
+  rc = ldap_result( ld, msgid, LDAP_MSG_ONE, &zerotime, &res );
+  switch ( rc ) {
+  case -1:
+    /* An error occurred. */
+    ...
+  case 0:
+    /* The timeout period specified by zerotime was exceeded. */
+    ...
+  case LDAP_RES_SEARCH_ENTRY:
+    /* The server sent one of the entries found by the search. */
+    ...
+  case LDAP_RES_SEARCH_REFERENCE:
+    /* The server sent a search reference .*/
+    ...
+  case LDAP_RES_SEARCH_RESULT:
+    /* Parse the final result received from the server. */
+    ...
+  }
+...
+}
+...
+</pre>
+
+<h3 id="c6-iterating-through-a-chain-of-results">Iterating Through a Chain of Results</h3>
+
+<p>The results of a search are represented by a chain of 
+<code>LDAPMessage</code> structures. Each entry and search reference 
+is contained in an <code>LDAPMessage</code> structure. The final 
+result code of the LDAP search operation is also contained in one of 
+these structures.</p>
+
+<p>To retrieve results from a chain of search 
+results, you can call one of the following sets of functions:</p>
+
+<ul>
+ <li>
+  To get each entry and search reference in the result, call 
+  <code>ldap_first_message()</code> and 
+  <code>ldap_next_message()</code>. Both of these functions return 
+  a pointer to an <code>LDAPMessage</code> structure that represents 
+  an entry, search reference, or LDAP result code. 
+  <p></p>
+  You can get the count of the results in the chain by calling 
+  <code>ldap_count_messages()</code>
+ </li>
+ <li>
+  If you just want to retrieve the entries from the chain, call 
+  <code>ldap_first_entry()</code> and <code>ldap_next_entry()</code>.
+  Both of these functions return a pointer to an 
+  <code>LDAPMessage</code> structure that represents an entry.
+  <p></p>
+  You can get the count of the entries in the chain by calling 
+  <code>ldap_count_entries()</code>
+ </li>
+ <li>
+  If you just want to retrieve the search references from the chain, 
+  call <code>ldap_first_reference()</code> and 
+  <code>ldap_next_reference()</code>. Both of these functions return 
+  a pointer to an <code>LDAPMessage</code> structure that represents 
+  a search reference.
+  <p></p>
+  You can get the count of the search references in the chain by 
+  calling <code>ldap_count_references()</code>
+ </li>
+</ul>
+
+<p>Note that each <code>LDAPMessage</code> structure is part of a 
+chain and can point to other structures in the chain. You should 
+not attempt to free individual <code>LDAPMessage</code> structures 
+from memory; you may lose the rest of the results if you do this.</p>
+
+<p>If you are iterating through each result, you can determine the 
+type of the result by calling the <code>ldap_msgtype()</code> 
+function. A search result can be one of the following types:</p>
+
+<ul>
+ <li>
+  <code>LDAP_RES_SEARCH_ENTRY </code>indicates that the result is 
+  an entry found in the search. 
+  <p></p>
+  You can pass the <code>LDAPMessage</code> structure representing 
+  the entry to the <code>ldap_get_dn()</code> function to get the 
+  DN of the entry or the <code>ldap_first_attribute()</code> and 
+  <code>ldap_next_attribute()</code> functions to get the attributes 
+  of the entry.
+  <p></p>
+  For details, see <a href="#c6-getting-distinguished-names-for-each-entry">Getting Distinguished 
+  Names for Each Entry</a> and "<a href="#c6-getting-attributes-from-an-entry">Getting 
+  Attributes from an Entry</a>."
+ </li>
+ <li>
+  <code>LDAP_RES_SEARCH_REFERENCE </code>indicates that the result 
+  is a search reference found within the scope of the search. 
+  <p></p>
+  You can pass the <code>LDAPMessage</code> structure representing 
+  the search reference to the <code>ldap_parse_reference()</code> 
+  function to get the referrals (LDAP URLs) to other servers.
+  <p></p>
+  For details, see <a href="#c6-getting-referrals-from-search-references">Getting Referrals 
+  from Search References</a>.
+ </li>
+ <li>
+  <code>LDAP_RES_SEARCH_RESULT </code>indicates that the result is 
+  the final result sent by the server to indicate the result of the 
+  LDAP search operation. 
+  <p></p>
+  You can pass the <code>LDAPMessage</code> structure representing 
+  the result to the <code>ldap_parse_result()</code> function to get 
+  the LDAP result code for the search operation.
+  <p></p>
+  For details, see <a href="using.htm#get_info_LDAP">"Getting the 
+  Information from an LDAP Structure</a>."
+ </li>
+</ul>
+
+<p>Note that in order to receive search references from an LDAPv3 
+server you must identify your client as an LDAPv3 client. If you do 
+not, the server will return the LDAP error code 
+<code>LDAP_PARTIAL_RESULTS</code> and a set of referrals. See 
+"<a href="writing.htm#spec_client_version">Specifying the LDAP Version of Your 
+Client</a>" for details.</p>
+
+<p>The following section of code retrieves each 
+result in a chain and determines the type of the result.</p>
+
+<h4>Code Example 6-4 - Retrieving a chain of results</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include "ldap.h"
+...
+#define BASEDN "dc=example,dc=com"
+#define SCOPE LDAP_SCOPE_SUBTREE
+
+#define FILTER "(sn=Jensen)"
+...
+LDAP      *ld;
+LDAPMessage    *res, *msg;
+BerElement    *ber;
+char      *matched_msg = NULL, *error_msg = NULL;
+int        rc, msgtype, num_entries = 0, num_refs = 0;
+...
+/* Perform the search operation. */
+rc = ldap_search_ext_s( ld, BASEDN, SCOPE, FILTER, NULL, 0, NULL, NULL, 
+  NULL, LDAP_NO_LIMIT, &res );
+if ( rc != LDAP_SUCCESS ) {
+  fprintf( stderr, "ldap_search_ext_s: %s\n", ldap_err2string( rc ) );
+  if ( error_msg != NULL && *error_msg != '\0' ) {
+    fprintf( stderr, "%s\n", error_msg );
+  }
+  /* If the server cannot find an entry and 
+    returns the portion of the DN that can find 
+    an entry, print it out. (For details, see 
+    "Receiving the Portion of the DN Matching an Entry.") */
+  if ( matched_msg != NULL && *matched_msg != '\0' ) {
+    fprintf( stderr, 
+      "Part of the DN that matches an existing entry: %s\n", 
+      matched_msg );
+  }
+  ldap_unbind_s( ld );
+  return( 1 );
+}
+...
+num_entries = ldap_count_entries( ld, res );
+num_refs = ldap_count_references( ld, res );
+...
+/* Iterate through the results. */
+for ( msg = ldap_first_message( ld, res ); msg != NULL; 
+  msg = ldap_next_message( ld, msg ) ) {
+
+  /* Determine what type of message was sent from the server. */
+  msgtype = ldap_msgtype( msg );
+  switch( msgtype ) {
+  case LDAP_RES_SEARCH_ENTRY:
+    /* The result is an entry. */
+    ...
+  case LDAP_RES_SEARCH_REFERENCE:
+    /* The result is a search reference. */
+    ...
+  case LDAP_RES_SEARCH_RESULT:
+    /* The result is the final result sent by the server. */
+    ...
+  }
+...
+}
+...
+</pre>
+
+<h3 id="c6-getting-distinguished-names-for-each-entry">Getting Distinguished Names for Each Entry</h3>
+
+<p>Because the distinguished name of an entry 
+differentiates it from other entries, you may want to access the 
+distinguished names of entries in the search results. You may also 
+want to parse the name into its individual components.</p>
+
+<p>The LDAP API provides functions for both of 
+these tasks. You can call functions to get the name of an individual 
+entry and to split the name into its components.</p>
+
+<h3 id="c6-getting-the-distinquished-name-of-an-entry">Getting the Distinguished Name of an Entry</h3>
+
+<p>To get the distinguished name of an entry, 
+call the <code>ldap_get_dn()</code> function. The function returns 
+the distinguished name of the entry.</p>
+
+<p>When you are finished working with the 
+distinguished name returned by this function, you should free it 
+from memory by calling the <code>ldap_memfree()</code> function.</p>
+
+<p>Code Example 
+6-5 prints the distinguished name for each entry found in a 
+search: Obtaining the distinguished names for entries returned by a 
+search.</p>
+
+<h4>Code Example 6-5 - Obtaining the distinguished names for entries returned by a search</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include &lt;ldap.h&gt;
+...
+LDAP *ld;
+LDAPMessage *result, *e;
+char *dn;
+char *my_searchbase = "dc=example,dc=com";
+char *my_filter = "(sn=Jensen)";
+...
+/* Search the directory. */
+if ( ldap_search_s( ld, my_searchbase, LDAP_SCOPE_SUBTREE, my_filter, 
+      NULL, 0, &result ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_search_s" );
+  return( 1 );
+}
+
+/* For each matching entry found, print the name of the entry.*/
+for ( e = ldap_first_entry( ld, result ); e != NULL; 
+      e = ldap_next_entry( ld, e ) ) {
+  if ( ( dn = ldap_get_dn( ld, e ) ) != NULL ) {
+    printf( "dn: %s\n", dn );
+    /* Free the memory used for the DN when done */
+    ldap_memfree( dn );
+  }
+}
+/* Free the result from memory when done. */
+ldap_msgfree( result );</pre>
+
+<h3 id="c6-getting-the-components-of-a-distinquished-name">Getting the Components of a Distinguished Name</h3>
+
+<p>If you want to access individual components of a distinguished 
+name or a relative distinguished name, call the 
+<code>ldap_explode_dn()</code> and <code>ldap_explode_rdn()</code> 
+functions.</p>
+
+<p>Both functions return a <code>NULL</code>-terminated array of 
+the components of the distinguished name. When you are done 
+working with this array, you should free it by calling the 
+<code>ldap_value_free()</code> function.</p>
+
+<p>You can specify whether or not you want the names of the 
+components included in the array by using the 
+<code>notypes</code> parameter.</p>
+
+<ul>
+ <li>
+  Set <code>notypes</code> to <code>0</code> if you want to include 
+  component names in the array: 
+  <p></p>
+  <code>ldap_explode_dn( "uid=bjensen, ou=People, dc=example,dc=com", 0 )</code>
+  <p></p>
+  The function returns this array:
+  <p></p>
+  <code>{ "uid=bjensen", "ou=People", "dc=example,dc=com", NULL }</code>
+ </li>
+ <li>
+  Set <code>notypes</code>to <code>1</code> if you don't want to 
+  include the component names in the array: 
+  <p></p>
+  <code>ldap_explode_dn( "uid=bjensen, ou=People, dc=example,dc=com", 1 )</code>
+  <p></p>
+  The function returns this array:
+  <p></p>
+  <code>{ "bjensen", "People", "example.com", NULL }</code>
+ </li>
+</ul>
+
+<h3 id="c6-getting-attributes-from-an-entry">Getting Attributes from an Entry</h3>
+
+<p>To get the value of the first attribute in an 
+entry, call the <code>ldap_first_attribute()</code> function.</p>
+
+<p>This function returns the name of the first attribute in the 
+entry. To get the value of this attribute, you need to pass the 
+attribute name to the <code>ldap_get_values()</code> or 
+<code>ldap_get_values_len()</code> functions. (See 
+<a href="#c6-getting-the-values-of-an-attribute">Getting the Values of an Attribute</a> 
+for details.)</p>
+
+<p>To get the name of the next attribute, call 
+the <code>ldap_next_attribute()</code> function.</p>
+
+<p>Note that operational attributes such as <code>creatorsName</code> 
+and <code>modifyTimestamp</code> are not normally returned in search 
+results unless you explicitly specify them by name in the search 
+request. For more information, see "<a href="search.htm#c6-specifying-the-attributes-to-retrieve">Specifying 
+the Attributes to Retrieve</a>."</p>
+
+<p><When you are finished iterating through the 
+attributes, you need to free the <code>BerElement</code> structure 
+allocated by the <code>ldap_first_attribute()</code> function, if 
+the structure is not <code>NULL</code>. To free this structure, 
+call the <code>ldap_ber_free()</code> function.</p>
+
+<p>You should also free the attribute name 
+returned by the <code>ldap_first_attribute()</code> function. To free 
+the attribute name, call the <code>ldap_memfree()</code> function.</p>
+
+<p>The following section of code retrieves each attribute of an entry:</p>
+
+<h4>Code Example 6-6 - Retrieving entry attributes</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include &lt;ldap.h&gt;
+...
+LDAP         *ld;
+LDAPMessage  *result, *e;
+BerElement   *ber;
+char         *a;
+char         *my_searchbase = "dc=example,dc=com";
+char         *my_filter = "(sn=Jensen)";
+...
+/* Search the directory. */
+if ( ldap_search_s( ld, my_searchbase, LDAP_SCOPE_SUBTREE, my_filter, 
+      NULL, 0, &result ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_search_s" );
+  return( 1 );
+}
+
+/* Get the first matching entry.*/
+e = ldap_first_entry( ld, result );
+
+/* Retrieve the attributes of the entry. */
+  for (a = ldap_first_attribute(ld, e, &ber); a != NULL; 
+        a = ldap_next_attribute(ld, e, ber)){
+    ...
+    /* Code to get and manipulate attribute values */
+    ...
+    }
+    ldap_memfree( a );
+  }
+  /* Free the BerElement structure from memory when done. */
+  if ( ber != NULL ) {
+    ldap_ber_free( ber, 0 );
+  }
+...</pre>
+
+<h3 id="c6-getting-the-values-of-an-attribute">Getting the Values of an Attribute</h3>
+
+<p>The values of an attribute are represented by a 
+<code>NULL</code>-terminated array. The values are either a list of 
+strings (if the attribute contains string data, such as a name or 
+phone number) or a list of <code>berval</code> structures (if the 
+attribute contains binary data, such as a JPEG file or an audio file).</p>
+
+<ul>
+ <li>
+  To get the values of an attribute that contains string data, 
+  call the <code>ldap_get_values()</code> function.
+  <p></p>
+  The <code>ldap_get_values() </code>function returns a 
+  <code>NULL</code>-terminated array of strings representing the 
+  value of the attribute.
+ </li>
+ <li>
+  To get the values of an attribute that contains binary data, call 
+  the <code>ldap_get_values_len()</code> function. 
+  <p></p>
+  The <code>ldap_get_values_len()</code> function returns a 
+  <code>NULL</code>-terminated array of <code>berval</code> 
+  structures representing the value of the attribute.
+ </li>
+</ul>
+
+<p>To get the number of values in an attribute, call the 
+<code>ldap_count_values()</code> or <code>ldap_count_values_len()</code> 
+function. Both functions return the number of values in the attribute.</p>
+
+<p>When you have finished working with the 
+values of the attribute, you need to free the values from memory. To 
+do this, call the <code>ldap_value_free()</code> or 
+<code>ldap_value_free_len()</code> function.</p>
+
+<p>The following section of code gets and 
+prints the values of an attribute in an entry. This example assumes 
+that all attributes have string values:</p>
+
+<h4>Code Example 6-7 - Retrieving attribute values</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include &lt;ldap.h&gt;
+...
+LDAP          *ld;
+LDAPMessage   *result, *e;
+BerElement    *ber;
+char          *a;
+char          **vals;
+char            *my_searchbase = "dc=example,dc=com";
+char            *my_filter = "(sn=Jensen)";
+int i;
+...
+/* Search the directory. */
+if ( ldap_search_s( ld, my_searchbase, LDAP_SCOPE_SUBTREE, my_filter, 
+      NULL, 0, &result ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_search_s" );
+  return( 1 );
+}
+
+/* Get the first matching entry.*/
+e = ldap_first_entry( ld, result );
+
+/* Get the first matching attribute. */
+a = ldap_first_attribute( ld, e, &ber );
+
+/* Get the values of the attribute. */
+if ( ( vals = ldap_get_values( ld, e, a ) ) != NULL ) {
+  for ( i = 0; vals[i] != NULL; i++ ) {
+    /* Print the name of the attribute and each value */
+    printf( "%s: %s\n", a, vals[i] );
+  }
+  /* Free the attribute values from memory when done. */
+  ldap_value_free( vals );
+}
+...
+</pre>
+
+
+
+<p>The following section of code gets the first value of the 
+<code>jpegPhoto</code> attribute and saves the JPEG data to a file:</p>
+
+<h4>Code Example 6-8 - Getting and saving the first attribute value</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include &lt;ldap.h&gt;
+...
+LDAP *ld;
+LDAPMessage *result, *e;
+BerElement *ber;
+char *a;
+struct berval photo_data;
+struct berval **list_of_photos;
+FILE *out;
+char *my_searchbase = "dc=example,dc=com";
+char *my_filter = "(sn=Jensen)";
+...
+/* Search the directory. */
+if ( ldap_search_s( ld, my_searchbase, LDAP_SCOPE_SUBTREE, my_filter, 
+      NULL, 0, &result ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_search_s" );
+  return( 1 );
+}
+
+/* Get the first matching entry.*/
+e = ldap_first_entry( ld, result );
+
+/* Find the jpegPhoto attribute. */
+a = ldap_first_attribute( ld, e, &ber );
+while ( strcasecmp( a, "jpegphoto" ) != 0 ) {
+  a = ldap_next_attribute( ld, e, ber );
+}
+
+/* Get the value of the attribute. */
+if ( ( list_of_photos = ldap_get_values_len( ld, e, a ) ) != NULL ) {
+  /* Prepare to write the JPEG data to a file */
+  if ( ( out = fopen( "photo.jpg", "wb" ) ) == NULL ) {
+    perror( "fopen" );
+    return( 1 );
+  }
+  /* Get the first JPEG. */
+  photo_data = *list_of_photos[0];
+  /* Write the JPEG data to a file */
+  fwrite( photo_data.bv_val, photo_data.bv_len, 1, out );
+  fclose( out );
+  /* Free the attribute values from memory when done. */
+  ldap_value_free_len( list_of_photos );
+}
+...
+</pre>
+
+<h3 id="c6-getting-referrals-from-search-references">Getting Referrals from Search References</h3>
+
+<p>A search reference returned from the server 
+contains one or more referrals (LDAP URLs that identify other LDAP 
+servers). To get these referrals, you need to call the 
+<code>ldap_parse_reference()</code> function.</p>
+
+<p>The following section of code gets and prints the referrals 
+in a search reference:</p>
+
+<h4>Code Example 6-9 - Obtaining a referral</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include "ldap.h"
+...
+LDAP          *ld;
+LDAPMessage   *msg;
+char          **referrals;
+int           i, rc, parse_rc;
+...
+parse_rc = ldap_parse_reference( ld, msg, &referrals, NULL, 0 );
+if ( parse_rc != LDAP_SUCCESS ) {
+  fprintf( stderr, "ldap_parse_result: %s\n", 
+    ldap_err2string( parse_rc ) );
+  ldap_unbind( ld );
+  return( 1 );
+}
+if ( referrals != NULL ) {
+  for ( i = 0; referrals[ i ] != NULL; i++ ) {
+    printf( "Search reference: %s\n\n", referrals[ i ] );
+  }
+  ldap_value_free( referrals );
+}
+...
+</pre>
+
+
+<h3 id="c6-sorting-the-search-results">Sorting the Search Results</h3>
+
+<p>The LDAP API contains functions that you can 
+use to sort entries and values in the search results. You can either 
+sort entries on your client, or you can specify that the server 
+should return sorted results.</p>
+
+<p>To sort results on the server, you need to send a server-side 
+sorting control with the search request. For details, see 
+"<a href="controls.htm#use_server_sort_control">Using the Server-Side Sorting 
+Control</a>."</p>
+
+<p>The rest of this section explains how to sort 
+results on your client. Topics include:</p>
+
+<ul>
+ <li><a href="#c6-sorting-entries-by-an-attribute">Sorting Entries by an Attribute</a>
+ <li><a href="#c6-sorting-entries-by-multiple-attributes">Sorting Entries by Multiple Attributes</a>
+ <li><a href="#c6-sorting-the-values-of-an-attribute">Sorting the Values of an Attribute</a>
+</ul>
+
+<p>Note that you need to return any attributes that you plan to use 
+for sorting the results. For example, if you plan to sort the results 
+by email address, make sure that the mail attribute is one of the 
+attributes returned in the search. For details on specifying the 
+attributes returned, see "<a href="search.htm#c6-specifying-the-attributes-to-retrieve">Specifying the 
+Attributes to Retrieve</a>."</p>
+
+<h3 id="c6-sorting-entries-by-an-attribute">Sorting Entries by an Attribute</h3>
+
+<p>To sort the search results by a particular attribute, call the 
+<code>ldap_sort_entries()</code> function. Note that if you don't 
+specify an attribute for sorting (that is, if you pass <code>NULL</code> 
+for the <code>attr</code> parameter), the entries are sorted by DN.</p>
+
+<p>The following section of code sorts entries 
+by the <code>roomNumber</code> attribute:</p>
+
+<h4>Code Example 6-10 - Sorting entries by attribute value</h4>
+
+<pre class="example code">#include &lt;string.h&gt;
+#include &lt;ldap.h&gt;
+...
+LDAP *ld;
+LDAPMessage *result;
+char *my_searchbase = "dc=example,dc=com";
+char *my_filter = "(sn=Jensen)";
+char *sortby = "roomNumber";
+...
+/* Search the directory. */
+if ( ldap_search_s( ld, my_searchbase, LDAP_SCOPE_SUBTREE, my_filter, 
+    NULL, 0, &result ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_search_s" );
+  return( 1 );
+}
+
+/* Sort the results by room number, using strcasecmp. */
+if (ldap_sort_entries(ld, &result, sortby, strcasecmp) != LDAP_SUCCESS){ 
+  ldap_perror( ld, "ldap_sort_entries" );
+  return( 1 );
+}
+...</pre>
+
+
+
+<h3 id="c6-sorting-entries-by-multiple-attributes">Sorting Entries by Multiple Attributes</h3>
+
+<p>To sort the search results by a particular 
+attribute, call the <code>ldap_multisort_entries()</code> function. 
+Note that if you don't specify a set of attributes for sorting (that 
+is, if you pass <code>NULL</code> for the <code>attr</code> 
+parameter), the entries are sorted by DN.</p>
+
+<p>The following section of code sorts entries 
+first by the <code>roomNumber</code> attribute, then by the 
+<code>telephoneNumber</code> attribute.</p>
+
+<h4>Code Example 6-11 - Sorting entries by multiple values</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;ldap.h&gt;
+LDAP *ld;
+LDAPMessage *res;
+char *my_searchbase = "dc=example,dc=com";
+char *my_filter = "(sn=Jensen)";
+char *attrs[2]; 
+attrs[0] = "roomNumber"; 
+attrs[1] = "telephoneNumber";
+attrs[2] = NULL; 
+...
+/* Search the directory. */
+if ( ldap_search_s( ld, my_searchbase, LDAP_SCOPE_SUBTREE, my_filter, 
+      NULL, 0, &res ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_search_s" );
+  return( 1 );
+}
+
+/* Sort the results, using strcasecmp. */
+if (ldap_multisort_entries(ld,&res,attrs, strcasecmp) != LDAP_SUCCESS){
+  ldap_perror( ld, "ldap_sort_entries" );
+  return( 1 );
+}
+</pre>
+
+<h3 id="c6-sorting-the-values-of-an-attribute">Sorting the Values of an Attribute</h3>
+
+<p>You can also sort the values of a particular attribute. To do 
+this, call the <code>ldap_sort_values()</code> function.</p>
+
+<p><In the <code>ldap_sort_values()</code> function, the comparison 
+function must pass parameters of the type <code>char **</code>. You 
+should use the <code>ldap_sort_strcasecmp()</code> function, rather 
+than a function like <code>strcasecmp()</code> (which passes 
+parameters of the type <code>char *</code>).</p>
+
+<p>The following section of code sorts the 
+values of attributes before printing them.</p>
+
+<h4>Code Example 6-12 - Sorting attribute values</h4>
+
+<pre class="example code">#include <stdio.h>
+#include <string.h>
+#include <ldap.h>
+LDAP *ld;
+LDAPMessage *result, *e;
+BerElement *ber;
+char *a, *dn;
+char **vals;
+int i;
+char *my_searchbase = "dc=example,dc=com";
+char *my_filter = "(sn=Jensen)";
+...
+    if ( ( vals = ldap_get_values( ld, e, a ) ) != NULL ) {
+      /* Sort the values of the attribute */
+      if (ldap_sort_values(ld, vals, strcasecmp)) != LDAP_SUCCESS ) {
+        ldap_perror( ld, "ldap_sort_values" );
+        return( 1 );
+      }
+      /* Print the values of the attribute. */
+      for ( i = 0; vals[i] != NULL; i++ ) {
+        printf( "%s: %s\n", a, vals[i] );
+      }
+      /* Free the values from memory. */
+      ldap_value_free( vals );
+    }
+...
+</pre>
+
+<h3 id="c6-freeing-the-results-of-a-search">Freeing the Results of a Search</h3>
+
+<p>The results of the search are returned in an 
+<code>LDAPMessage</code> structure. After you are done working with 
+the search results, you should free this structure from memory.</p>
+
+<p>To free the search results, call the 
+<code>ldap_msgfree()</code> function. The <code>ldap_msgfree()</code> 
+function returns the type of the last message freed from memory.</p>
+
+<h3 id="c6-example-searching-the-directory-asynchronous">Example: Searching the Directory (Asynchronous)</h3>
+
+<p>The following section of code prints out the 
+values of all attributes in the entries returned by a search.</p>
+
+<h4>Code Example 6-13 - Asynchronous searching</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include "ldap.h"
+void do_other_work();
+int global_counter = 0;
+/* Change these as needed. */
+#define HOSTNAME "localhost"
+#define PORTNUMBER LDAP_PORT
+#define BASEDN "dc=example,dc=com"
+#define SCOPE LDAP_SCOPE_SUBTREE
+#define FILTER "(sn=Jensen)"
+int
+main( int argc, char **argv )
+{
+    LDAP           *ld;
+    LDAPMessage    *res;
+    BerElement     *ber;
+  LDAPControl      **serverctrls;
+    char           *a, *dn, *matched_msg = NULL, *error_msg = NULL;
+    char           **vals, **referrals;
+    int           version, i, msgid, rc, parse_rc, finished = 0, <br>
+                   num_entries = 0, num_refs = 0;
+    struct         timeval  zerotime;
+    zerotime.tv_sec = zerotime.tv_usec = 0L;
+    /* Get a handle to an LDAP connection. */
+    if ( (ld = ldap_init( HOSTNAME, PORTNUMBER )) == NULL ) {
+    perror( "ldap_init" );
+    return( 1 );
+    }
+  version = LDAP_VERSION3;
+  if ( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_SUCCESS ) {
+    rc = ldap_get_lderrno( ld, NULL, NULL );
+    fprintf( stderr, "ldap_set_option: %s\n", ldap_err2string( rc ) );
+    ldap_unbind( ld );
+    return( 1 );
+  }
+    /* Bind to the server anonymously. */
+    rc = ldap_simple_bind_s( ld, NULL, NULL );
+  if ( rc != LDAP_SUCCESS ) {
+    fprintf( stderr, "ldap_simple_bind_s: %s\n", ldap_err2string( rc ) );
+    ldap_get_lderrno( ld, &matched_msg, &error_msg );
+    if ( error_msg != NULL && *error_msg != '\0' ) {
+      fprintf( stderr, "%s\n", error_msg );
+    }
+    /* If the server cannot find an entry, 
+      print the portion of the DN that matches 
+      an existing entry. (For details, see 
+      "Receiving the Portion of the DN Matching an Entry.") */
+    if ( matched_msg != NULL && *matched_msg != '\0' ) {
+      fprintf( stderr, 
+        "Part of the DN that matches an existing entry: %s\n",
+        matched_msg );
+    }
+    ldap_unbind_s( ld );
+    return( 1 );
+    }
+    /* Send the LDAP search request. */
+    rc = ldap_search_ext( ld, BASEDN, SCOPE, FILTER, NULL, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msgid );
+  if ( rc != LDAP_SUCCESS ) {
+    fprintf( stderr, "ldap_search_ext: %s\n", ldap_err2string( rc ) );
+    ldap_unbind( ld );
+    return( 1 );
+    }
+    /* Poll the server for the results of the search operation. 
+     Passing LDAP_MSG_ONE indicates that you want to receive 
+     the entries one at a time, as they come in.  If the next
+     entry that you retrieve is NULL, there are no more entries. */
+    while ( !finished ) {
+    rc = ldap_result( ld, msgid, LDAP_MSG_ONE, &zerotime, &res );
+    /* The server can return three types of results back to the client,
+       and the return value of ldap_result() indicates the result type:
+       LDAP_RES_SEARCH_ENTRY identifies an entry found by the search,
+       LDAP_RES_SEARCH_REFERENCE identifies a search reference returned
+       by the server, and LDAP_RES_SEARCH_RESULT is the last result 
+       sent from the server to the client after the operation completes.
+       You need to check for each of these types of results. */
+    switch ( rc ) {
+    case -1:
+      /* An error occurred. */
+      rc = ldap_get_lderrno( ld, NULL, NULL );
+      fprintf( stderr, "ldap_result: %s\n", ldap_err2string( rc ) );
+      ldap_unbind( ld );
+      return( 1 );
+    case 0:
+      /* The timeout period specified by zerotime was exceeded.
+         This means that the server has still not yet sent the 
+         results of the search operation back to your client.
+         Break out of this switch statement, and continue calling  
+         ldap_result() to poll for results. */
+      break;
+    case LDAP_RES_SEARCH_ENTRY:
+      /* The server sent one of the entries found by the search 
+         operation. Print the DN, attributes, and values of the entry. */
+      /* Keep track of the number of entries found. */
+      num_entries++;
+      /* Get and print the DN of the entry. */
+      if (( dn = ldap_get_dn( ld, res )) != NULL ) {
+        printf( "dn: %s\n", dn );
+        ldap_memfree( dn );
+      }
+      /* Iterate through each attribute in the entry. */
+      for ( a = ldap_first_attribute( ld, res, &ber );
+      a != NULL; a = ldap_next_attribute( ld, res, ber ) ) {
+        /* Get and print all values for each attribute. */
+        if (( vals = ldap_get_values( ld, res, a )) != NULL ) {
+          for ( i = 0; vals[ i ] != NULL; i++ ) {
+            printf( "%s: %s\n", a, vals[ i ] );
+          }
+          ldap_value_free( vals );
+        }
+        ldap_memfree( a );
+      }
+      if ( ber != NULL ) {
+        ber_free( ber, 0 );
+      }
+      printf( "\n" );
+      ldap_msgfree( res );
+      break;
+    case LDAP_RES_SEARCH_REFERENCE:
+      /* The server sent a search reference encountered during the 
+         search operation. */
+      /* Keep track of the number of search references returned from
+         the server. */
+      num_refs++;
+      /* Parse the result and print the search references. 
+         Ideally, rather than print them out, you would follow the
+         references. */
+      parse_rc = ldap_parse_reference( ld, res, &referrals, NULL, 1 );
+      if ( parse_rc != LDAP_SUCCESS ) {
+        fprintf( stderr, "ldap_parse_result: %s\n", ldap_err2string( parse_rc ) );
+        ldap_unbind( ld );
+        return( 1 );
+      }
+      if ( referrals != NULL ) {
+        for ( i = 0; referrals[ i ] != NULL; i++ ) {
+          printf( "Search reference: %s\n\n", referrals[ i ] );
+        }
+        ldap_value_free( referrals );
+      }
+      break;
+    case LDAP_RES_SEARCH_RESULT:
+      /* Parse the final result received from the server. Note the last
+         argument is a non-zero value, which indicates that the 
+         LDAPMessage structure will be freed when done.  (No need
+         to call ldap_msgfree().) */
+      finished = 1;
+      parse_rc = ldap_parse_result( ld, res, &rc, &matched_msg, &error_msg, NULL, &serverctrls, 1 );
+      if ( parse_rc != LDAP_SUCCESS ) {
+        fprintf( stderr, "ldap_parse_result: %s\n", ldap_err2string( parse_rc ) );
+        ldap_unbind( ld );
+        return( 1 );
+      }
+      /* Check the results of the LDAP search operation. */
+      if ( rc != LDAP_SUCCESS ) {
+        fprintf( stderr, "ldap_search_ext: %s\n", ldap_err2string( rc ) );
+        ldap_get_lderrno( ld, &matched_msg, &error_msg );
+        if ( error_msg != NULL & *error_msg != '\0' ) {
+          fprintf( stderr, "%s\n", error_msg );
+        }
+        if ( matched_msg != NULL && *matched_msg != '\0' ) {
+          fprintf( stderr, "Part of the DN that matches an existing entry: %s\n", matched_msg );
+        }
+      } else {
+        printf( "Search completed successfully.\n"
+          "Entries found: %d\n"
+          "Search references returned: %d\n"
+          "Counted to %d while waiting for the search operation.\n",
+          num_entries, num_refs, global_counter );
+      }
+      
+      break;
+      
+    default:
+      break;
+    }
+    
+    /* Do other work here while waiting for the search operation to complete. */
+    if ( !finished ) {
+      do_other_work();
+    }
+  }
+    /* Disconnect when done. */
+    ldap_unbind( ld );
+    return( 0 );
+}
+/*
+ * Perform other work while polling for results.  This doesn't do anything
+ * useful, but it could.
+ */
+static void
+do_other_work()
+{
+    global_counter++;
+}
+</pre>
+
+<h3 id="c6-example-searching-the-directory-synchronous">Example: Searching the Directory (Synchronous)</h3>
+
+<p>The following section of code prints out the 
+values of all attributes in the entries returned by a search.</p>
+
+<h4>Code Example 6-14 - Synchronous searching</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include "ldap.h"
+/* Change these as needed. */
+#define HOSTNAME "localhost"
+#define PORTNUMBER LDAP_PORT
+#define BASEDN "dc=example,dc=com"
+#define SCOPE LDAP_SCOPE_SUBTREE
+#define FILTER "(sn=Jensen)"
+int
+main( int argc, char **argv )
+{
+    LDAP           *ld;
+    LDAPMessage    *res, *msg;
+  LDAPControl      **serverctrls;
+    BerElement     *ber;
+    char           *a, *dn, *matched_msg = NULL, *error_msg = NULL;
+    char           **vals, **referrals;
+    int            version, i, rc, parse_rc, msgtype, num_entries = 0, <br>
+                     num_refs = 0;
+    /* Get a handle to an LDAP connection. */
+    if ( (ld = ldap_init( HOSTNAME, PORTNUMBER )) == NULL ) {
+    perror( "ldap_init" );
+    return( 1 );
+    }
+  version = LDAP_VERSION3;
+  if ( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != <br>
+        LDAP_SUCCESS ) {
+    rc = ldap_get_lderrno( ld, NULL, NULL );
+    fprintf( stderr, "ldap_set_option: %s\n", ldap_err2string( rc ) );
+    ldap_unbind( ld );
+    return( 1 );
+  }
+    /* Bind to the server anonymously. */
+    rc = ldap_simple_bind_s( ld, NULL, NULL );
+  if ( rc != LDAP_SUCCESS ) {
+    fprintf( stderr, "ldap_simple_bind_s: %s\n", ldap_err2string( rc ) );
+    ldap_get_lderrno( ld, &matched_msg, &error_msg );
+    if ( error_msg != NULL && *error_msg != '\0' ) {
+      fprintf( stderr, "%s\n", error_msg );
+    }
+    if ( matched_msg != NULL && *matched_msg != '\0' ) {
+      fprintf( stderr, "Part of the DN that matches an existing entry: %s\n", matched_msg );
+    }
+    ldap_unbind_s( ld );
+    return( 1 );
+    }
+    /* Perform the search operation. */
+    rc = ldap_search_ext_s( ld, BASEDN, SCOPE, FILTER, NULL, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
+  if ( rc != LDAP_SUCCESS ) {
+    fprintf( stderr, "ldap_search_ext_s: %s\n", ldap_err2string( rc ) );
+    if ( error_msg != NULL && *error_msg != '\0' ) {
+      fprintf( stderr, "%s\n", error_msg );
+    }
+    if ( matched_msg != NULL && *matched_msg != '\0' ) {
+      fprintf( stderr, "Part of the DN that matches an existing entry: %s\n", matched_msg );
+    }
+    ldap_unbind_s( ld );
+    return( 1 );
+    }
+    num_entries = ldap_count_entries( ld, res );
+  num_refs = ldap_count_references( ld, res );
+  /* Iterate through the results. An LDAPMessage structure sent back from <br>
+      a search operation can contain either an entry found by the search, <br>
+      a search reference, or the final result of the search operation. */
+  for ( msg = ldap_first_message( ld, res ); msg != NULL; msg = ldap_next_message( ld, msg ) ) {
+    /* Determine what type of message was sent from the server. */
+    msgtype = ldap_msgtype( msg );
+    switch( msgtype ) {
+    /* If the result was an entry found by the search, get and print the
+       attributes and values of the entry. */
+    case LDAP_RES_SEARCH_ENTRY:
+      /* Get and print the DN of the entry. */
+      if (( dn = ldap_get_dn( ld, res )) != NULL ) {
+        printf( "dn: %s\n", dn );
+        ldap_memfree( dn );
+      }
+      /* Iterate through each attribute in the entry. */
+      for ( a = ldap_first_attribute( ld, res, &ber );
+      a != NULL; a = ldap_next_attribute( ld, res, ber ) ) {
+        /* Get and print all values for each attribute. */
+        if (( vals = ldap_get_values( ld, res, a )) != NULL ) {
+          for ( i = 0; vals[ i ] != NULL; i++ ) {
+            printf( "%s: %s\n", a, vals[ i ] );
+          }
+          ldap_value_free( vals );
+        }
+        ldap_memfree( a );
+      }
+      if ( ber != NULL ) {
+        ber_free( ber, 0 );
+      }
+      printf( "\n" );
+      break;
+    case LDAP_RES_SEARCH_REFERENCE:
+      /* The server sent a search reference encountered during the 
+         search operation. */
+      /* Parse the result and print the search references. 
+         Ideally, rather than print them out, you would follow the
+         references. */
+      parse_rc = ldap_parse_reference( ld, msg, &referrals, NULL, 0 );
+      if ( parse_rc != LDAP_SUCCESS ) {
+        fprintf( stderr, "ldap_parse_result: %s\n", ldap_err2string( parse_rc ) );
+        ldap_unbind( ld );
+        return( 1 );
+      }
+      if ( referrals != NULL ) {
+        for ( i = 0; referrals[ i ] != NULL; i++ ) {
+          printf( "Search reference: %s\n\n", referrals[ i ] );
+        }
+        ldap_value_free( referrals );
+      }
+      break;
+    case LDAP_RES_SEARCH_RESULT:
+      /* Parse the final result received from the server. Note the last
+         argument is a non-zero value, which indicates that the 
+         LDAPMessage structure will be freed when done.  (No need
+         to call ldap_msgfree().) */
+      parse_rc = ldap_parse_result( ld, msg, &rc, &matched_msg, &error_msg, NULL, &serverctrls, 0 );
+      if ( parse_rc != LDAP_SUCCESS ) {
+        fprintf( stderr, "ldap_parse_result: %s\n", ldap_err2string( parse_rc ) );
+        ldap_unbind( ld );
+        return( 1 );
+      }
+      /* Check the results of the LDAP search operation. */
+      if ( rc != LDAP_SUCCESS ) {
+        fprintf( stderr, "ldap_search_ext: %s\n", ldap_err2string( rc ) );
+        if ( error_msg != NULL & *error_msg != '\0' ) {
+          fprintf( stderr, "%s\n", error_msg );
+        }
+        if ( matched_msg != NULL && *matched_msg != '\0' ) {
+          fprintf( stderr, "Part of the DN that matches an existing entry: %s\n", matched_msg );
+        }
+      } else {
+        printf( "Search completed successfully.\n"
+          "Entries found: %d\n"
+          "Search references returned: %d\n", 
+          num_entries, num_refs );
+      }
+      
+      break;
+      
+    default:
+      break;
+    }
+  }
+    /* Disconnect when done. */
+    ldap_unbind( ld );
+    return( 0 );
+}</pre>
+
+<h3 id="c6-reading-an-entry">Reading an Entry</h3>
+
+<p>You can use the search functions to read a specific entry in the 
+directory. To read an entry, set the starting point of the search to 
+the entry, and set the scope of the search to <code>LDAP_SCOPE_BASE</code> 
+and specify <code>(objectclass=*)</code> for the search filter.</p>
+
+<h4>Figure 6-6 - Using the LDAP_SCOPE_BASE scope to read an entry</h4>
+<div class="figure"><img src="graphics/hierbase.gif" height="167" width="437" alt="LDAP_SCOPE_BASE"></div>
+
+<p>The following section of code prints the 
+attributes of the entry for Barbara Jensen.</p>
+
+<h4>Code Example 6-15 - Obtaining a specific entry</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include "ldap.h"
+/* Change these as needed. */
+#define HOSTNAME "localhost"
+#define PORT_NUMBER  LDAP_PORT
+#define FIND_DN "uid=bjensen, ou=People, dc=example,dc=com"
+int
+main( int argc, char **argv )
+{
+    LDAP  *ld;
+    LDAPMessage  *result, *e;
+    BerElement  *ber;
+    char  *a;
+    char  **vals;
+    int    i, rc;
+    /* Get a handle to an LDAP connection. */
+    if ( (ld = ldap_init( HOSTNAME, PORT_NUMBER )) == NULL ) {
+    perror( "ldap_init" );
+    return( 1 );
+    }
+    /* Bind anonymously to the LDAP server. */
+    if ( ( rc = ldap_simple_bind_s( ld, NULL, NULL ) ) != LDAP_SUCCESS ) {
+    fprintf( stderr, "ldap_simple_bind_s: %s\n", ldap_err2string( rc ) );
+    return( 1 );
+    }
+    /* Search for the entry. */
+    if ( ( rc = ldap_search_ext_s( ld, FIND_DN, LDAP_SCOPE_BASE, "(objectclass=*)", 
+    NULL, 0, NULL, NULL, LDAP_NO_LIMIT, LDAP_NO_LIMIT, &result ) ) != LDAP_SUCCESS ) {
+    fprintf( stderr, "ldap_search_ext_s: %s\n", ldap_err2string( rc ) );
+    return( 1 );
+    }
+    /* Since we are doing a base search, there should be only one matching entry.  */
+    e = ldap_first_entry( ld, result ); 
+  if ( e != NULL ) {
+    printf( "\nFound %s:\n\n", FIND_DN );
+    /* Iterate through each attribute in the entry. */
+    for ( a = ldap_first_attribute( ld, e, &ber );
+      a != NULL; a = ldap_next_attribute( ld, e, ber ) ) {
+      /* For each attribute, print the attribute name and values. */
+      if ((vals = ldap_get_values( ld, e, a)) != NULL ) {
+        for ( i = 0; vals[i] != NULL; i++ ) {
+          printf( "%s: %s\n", a, vals[i] );
+        }
+        ldap_value_free( vals );
+      }
+      ldap_memfree( a );
+    }
+    if ( ber != NULL ) {
+      ber_free( ber, 0 );
+    }
+  }
+  ldap_msgfree( result );
+  ldap_unbind( ld );
+  return( 0 );
+}</pre>
+
+<h3 id="c6-listing-subentries">Listing Subentries</h3>
+
+<p>You can use the search functions to list the 
+subentries under a specific entry in the directory. To list the 
+subentries, set the starting point of the search to the entry, and 
+set the scope of the search to <code>LDAP_SCOPE_ONELEVEL</code>.
+
+<h4>Figure 6-7 - Using the LDAP_SCOPE_ONELEVEL scope to list subentries</h4>
+<div class="figure"><img src="graphics/hier1lvl.gif" height="155" width="437" alt="LDAP_SCOPE_ONELEVEL"></div>
+
+<p>The following section of code lists all 
+entries one level below the <code>dc=example,dc=com</code> entry 
+in the directory hierarchy.</p>
+
+<h4>Code Example 6-16 - Listing subentries</h4>
+
+<pre class="example code">#include &lt;stdio.h&gt;
+#include &lt;ldap.h&gt;
+
+LDAP        *ld;
+LDAPMessage *result, *e;
+BerElement  *ber;
+char        *a, *dn;
+char        **vals;
+char        *my_searchbase = "dc=example,dc=com";
+char        *my_filter = "(objectclass=*)"
+
+/* Search one level under the starting point. */
+if ( ldap_search_s( ld, my_searchbase, LDAP_SCOPE_ONELEVEL, my_filter, 
+      NULL, 0, &result ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_search_s" );
+  return( 1 );
+}
+/* For each matching entry, print the entry name and its attributes. */
+for ( e = ldap_first_entry( ld, result ); e != NULL; 
+      e = ldap_next_entry( ld, e ) ) {
+  if ( ( dn = ldap_get_dn( ld, e ) ) != NULL ) {
+    printf( "dn: %s\n", dn );
+    ldap_memfree( dn );
+  }
+  for ( a = ldap_first_attribute( ld, e, &ber ); a != NULL; 
+      a = ldap_next_attribute( ld, e, ber ) ) {
+    if ( ( vals = ldap_get_values( ld, e, a ) ) != NULL ) {
+      for ( i = 0; vals[i] != NULL; i++ ) {
+        printf( "%s: %s\n", a, vals[i] );
+      }
+      ldap_value_free( vals );
+    }
+    ldap_memfree( a );
+  }
+  if ( ber != NULL ) {
+    ldap_ber_free( ber, 0 );
+  }
+  printf( "\n" );
+}
+ldap_msgfree( result );
+...</pre>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March 11,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/directory/csdk-docs/search.htm&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<HTML>
+<HEAD>
+   <TITLE>FAQ of Caching Mechanism</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+FAQ of the Caching Mechanism in 331 Release</H1>
+This document describes the caching mechanism in use the 331 release of
+the client source. If you still have a question that is not answered here,
+<A HREF="mailto:gagan@netscape.com?subject=Cache FAQ">mail me</A> and I
+will add it here along with its answer.
+<H4>
+Q. 1. What gets cached?</H4>
+A. Every successful return of a request that is of mime type image, text,
+message, and indexes of HTTP and java classes (including JAR files). (For
+HTTP this means 200, 203, 206, 300, 301, or 410 status response) Except
+... (read the next answer)
+<H4>
+Q. 2. What doesn't?</H4>
+A. Secure documents, or documents specifically marked for "not caching"
+through-- "<TT>Pragma: no-cache</TT>" or a "<TT>Cache-control:</TT>" directive
+specified as an HTTP response header. Also see Q.4.
+<H4>
+Q. 3. What about mail/news inline documents?</H4>
+<FONT COLOR="#000000">A. These are stored only in memory-cache.</FONT>
+<H4>
+Q. 4. Why are there two caches, disk and memory?</H4>
+A. Security and performance- Certain HTTP documents are marked specifically
+not to be stored in local caches.  These are listed above in Q2. However,
+to improve performance when reloaded only by the front end, they are stored
+in memory caches. In general, documents are stored preferentially in disk
+cache and not memory. Memory is used when disk is unavailable.
+<H4>
+Q. 5. How are disk and memory caches used?</H4>
+A. Depending upon the cache restrictions on the cache item, it will be
+added either to the disk or to the memory cache. If an item is marked as
+secure, and "dont cache SSL objects on disk" is set on or its a https:
+URL, then it will be stored in memory.  <FONT COLOR="#000000">All
+mail/news inlines are stored in memory. </FONT>Only exception to this rule
+is when the object is set as a StreamAsFile for a plugin.
+<H4>
+Q. 6. What is the image-cache for?</H4>
+A. Certain images are transferred over the internet in a compressed manner.
+These are decompressed for faster layout and hence are stored in a decompressed
+cache held in memory. This cache is handled inside image lib (or ns/lib/libimg).
+<H4>
+Q. 16. Why doesn't image-cache get cleared all the time, when we clear
+the memory-cache?</H4>
+A. If you have some images that are currently being displayed in one of
+the windows of the browser and you clear your memory-cache, the images
+that are currently being drawn out by the layout engine are not removed
+from the image-cache.
+<H4>
+Q. 7. How do I see what's in my cache?</H4>
+A.  Use the following reserved URLs-
+<UL>
+<TABLE COLS=2 WIDTH="80%" >
+<TR>
+<TD>about:cache</TD>
+
+<TD>To see your disk cache.</TD>
+</TR>
+
+<TR>
+<TD>about:memory-cache</TD>
+
+<TD>To see your memory cache. </TD>
+</TR>
+
+<TR>
+<TD>about:image-cache</TD>
+
+<TD>To see the images in libimg cache.</TD>
+</TR>
+
+<TR>
+<TD>about:cache?long</TD>
+
+<TD>To see the long form of cache. </TD>
+</TR>
+
+<TR>
+<TD>about:cache?traceon</TD>
+
+<TD>To switch on trace messages from the cache.</TD>
+</TR>
+
+<TR>
+<TD>about:cache?traceoff</TD>
+
+<TD>To switch off trace messages.</TD>
+</TR>
+</TABLE>
+ </UL>
+
+<H4>
+Q. 8. What happens when I hit the Reload Button? And what happens when
+I hit Shift-Reload?</H4>
+A. When you hit the Reload button, the browser checks to see if it has
+the document in its cache. If the document is present in the cache, It
+will then send an If-Modified-Since request to the server. Depending on
+whether the server sends a new response or a 304 (use local copy) the browser
+displays the corresponding document.
+
+<P>When you hit the Shift-Reload, it does a plain GET or an unconditional
+request and hence you never get anything from the cache.
+<H4>
+Q. 9. How compliant are we with HTTP/1.1 caching?</H4>
+A. Completely compliant. Also see HTTP/1.1 feature compliance.
+<H4>
+Q. 10. What happens if memory or disk cache is set to zero?</H4>
+A. There will be poor performance in reloads, or re-fetches. If only the
+disk cache is set to zero, the browser will tend to store all cachable
+documents in memory.
+<H4>
+Q. 12. When does an item expire in cache?</H4>
+A. Each cache item maintains an expires field which is filled from one
+of the following (in this preferred order)-
+<UL>
+<LI>
+"<TT>Expires:</TT>" header</LI>
+
+<LI>
+"<TT>Age:</TT>" header</LI>
+</UL>
+
+<H4>
+Q. 13. How does a cache clean up its files?</H4>
+A. Oldest first. Evaluated from "Last accessed" and "Last modified." Preferentially
+the files that do not correspond to a "Last Modified" date, or are not
+from an HTTP URL get deleted first.
+<H4>
+Q. 14. Does the caching mechanism support byte-ranges?</H4>
+A. Yes.
+<H4>
+Q. 15. What is item locking?</H4>
+A. When a front-end or a cache consumer (like mail/news, plugins, etc.)
+uses a cache object, it locks the item for the session. This ensures that
+the object does not get deleted as a part of the expiration or cache cleaning
+process. This lock is only valid for the life of a session. FTP has an
+interesting mechanism- it locks the cachefile when a download is interrupted.
+This is because ftp restart is most interesting on huge files, but re-browsing
+to the ftp directory containing the file would usually otherwise flush
+that huge partial download.  This was a hack. (Thanks <A HREF="mailto:roeber@netscape.com?subject=FTP restart hack">Roeber</A>)
+<H4>
+Q. 16. So whats a session? Is that the same "session" in "Once per session"?</H4>
+A. A new session starts when you initiate a new instance of Communicator.
+Yes that is the same as in "Once per session" in the preferences.
+<H4>
+Q. 17. Is there ever a duplicate entry in memory for one in cache?</H4>
+A. Never. An item will either be in memory cache or on disk.
+
+<h4>Q.18. What does it mean when I see the cache cleaning up "x" many
+files? How is this number decided?</h4>
+
+A. When the cache has been operational for a while, and the amount of
+available space for a new item becomes insufficient, the cache deletes
+approximately 10% of its size to make space for the item. Depending upon
+the average size of a file in the cache, a varying number of files may
+get cleaned up.
+
+<H4>Q.19. Secure documents are not getting cached. Why and how do I change 
+that behaviour? </H4>
+A. From version 4.* onwards a design decision was made to remove the UI for
+"Disk caching SSL objects." This is still available as a preference and can 
+be modified by editing your prefs.js file (Available under 
+netscape/users/{your profile}/prefs.js. Note that standard disclaimer 
+for preference-editing applies here. To allow disk caching of secure objects
+make sure the following line appears in your prefs.js file-<P>
+<BLOCKQUOTE>
+<TT>user_pref("browser.cache.disk_cache_ssl",true);</TT>
+</BLOCKQUOTE>
+You will have to make this change after shutting down any running Navigator
+or Communicator. By default this value is false, and so no disk caching of
+SSL objects takes place.
+<BR>
+<HR><TT><FONT SIZE=-1>Last modified on- <SCRIPT language="Javascript">
+<!--
+document.write(new Date(document.lastModified))
+document.write("<BR>")
+document.write("Page loaded on-    ")
+document.write(new Date())
+
+//-->
+</SCRIPT>
+</FONT></TT>
+</BODY>
+</HTML>

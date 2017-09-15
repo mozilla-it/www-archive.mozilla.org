@@ -1,0 +1,1699 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="Generator" content="Microsoft Word 97">
+   <meta name="keywords" content="xul xml solution user document">
+   <meta name="doccomm" content="solutions. [xul as solution] of XUL documents. XUL - Creating Localizable XML GUIAdvantages of XUL:">
+   <meta name="GENERATOR" content="Mozilla/4.61 [en] (WinNT; I) [Netscape]">
+   <title>XUL - Creating Localizable XML GUI</title>
+</head>
+<body bgcolor="#FFFFFF" link="#0000FF" vlink="#800080">
+&nbsp;
+<center>
+<p><b><font face="Arial"><font size=+1>XUL - Creating Localizable XML GUI</font></font></b>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>by Tao Cheng</font></center>
+
+<p><br>
+<p><a NAME="abstract"></a><b><i><font face="Arial">Abstract</font></i></b>
+<p><font size=-1>XUL, pronounced as /zool/, stands for "XML-based User
+Interface Language", is a cross platform way of describing user interface.
+It is used to construct the graphical user interface for the Mozilla browser
+client. Ideally, XUL documents are internationalization friendly since
+it is XML-based and all XML processors must support Unicode encoding (the
+UTF-8 and UTF-16 encoding of 10646). In reality, a typical XUL file may
+contain standard XML (eXtensible Markup Language) elements, XUL specific
+elements, style information (currently Cascading Style Sheets), HTML (HyperText
+Markup Language), and JavaScript functions. With such great variety of
+source types, localization enabling of XUL documents becomes quite a challenge.</font>
+<p><font size=-1>This paper gives a brief introduction to the concept of
+XUL and then examines the principles, including adoption of Unicode (UTF-8)
+as the standard document encoding, of seeking localization solutions. After
+that, it dissects the components of a XUL document and identifies resources
+to be localized. It then recommends a set of XUL coding style guidelines
+to ensure the localizability of XUL documents.</font>
+<p><font size=-1>While the localizability solutions proposed are for XUL,
+most of them can be applied to general Web document authoring for customization.</font>
+<p><a NAME="intro"></a><b><i><font face="Arial">1. Introduction</font></i></b>
+<p><font size=-1>XUL is an XML-based user interface description language.
+Mozilla developers invented it to describe graphical user interface uniformly
+across platforms.</font>
+<p><font size=-1>The best way to understand XUL is by going through a real
+example. In this section, the author uses a sample XUL document, "openLocation.xul",
+listed in Appendix A, for the purpose of illustrations. This XUL document
+describes a dialog window that prompts the user to enter a URL to be loaded
+in the browser window.</font>
+<p><font size=-1>A typical XUL document contains the following types of
+data:</font>
+<ul>
+<li>
+<a NAME="xmldecl"></a><font size=-1><b>XML declarations and elements</b>.
+XUL is XML. It follows standard XML syntax for element type declaration.
+Mozilla intends to support standard XML syntax recommended by XML spec.
+1.0. For example,</font></li>
+</ul>
+
+<dir>
+<dir><font size=-1>1 &lt;?xml version="1.0"?></font>
+<p><font size=-1>2 &lt;?xml-stylesheet href="xul.css" type="text/css"?></font>
+<p><font size=-1>3</font>
+<p><font size=-1>4 &lt;!DOCTYPE window></font>
+<br>&nbsp;</dir>
+<font size=-1>Although, there are some XUL specific features, such as XUL
+fragments, created by the developers to remedy the insufficiency of the
+standard XML, XUL writers can easily transfer their XML experience to XUL.
+Also, some XML spec 1.0 recommended features such as external entities
+support are limited due to the fact that DTD is being phased out by XML
+schema.</font></dir>
+
+<ul>
+<li>
+<a NAME="uitags"></a><font size=-1><b>UI elements and tags</b>. Since the
+purpose of XUL is to describe graphical user interface, the majority of
+the XUL specific elements are UI primitives and controls. Examples of these
+range from primitive UI controls, such as menus and command buttons, to
+more comprehensive composite widgets, such as Tree widget, ComboBox, and
+File Picker.</font></li>
+</ul>
+
+<dir><font size=-1>In the code segment below, the root element, a XUL window,
+has XUL elements live in the default namespace and HTML elements, prefixed
+with "html:", in HTML namespace. It has "Open Location" as its window title
+and an initial size of 420 x 190.</font></dir>
+
+<dir>
+<dir><font size=-1>6 &lt;window xmlns:html="http://www.w3.org/1999/xhtml"</font>
+<p><font size=-1>7 xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"</font>
+<p><font size=-1>8 onload="onLoad()"</font>
+<p><font size=-1>9 title="Open Location"</font>
+<p><font size=-1>10 width="420"</font>
+<p><font size=-1>11 height="190"></font></dir>
+</dir>
+
+<ul>
+<li>
+<a NAME="htmlmarkups"></a><font size=-1><b>HTML markups</b>. As with XML
+documents, HTML tags can be used to mark up content data in XUL documents.
+HTML markups live in HTML namespace and prefixed with "html:" to distinguish
+them from general XML markups. For example,</font></li>
+</ul>
+
+<dir>
+<dir><font size=-1>23 &lt;html:table width="400" cellspacing="5"></font>
+<p><font size=-1>24 &lt;html:tr></font>
+<p><font size=-1>25 &lt;html:td></font>
+<p><font size=-1>26 Enter the World Wide Web location (URL) you would like
+to open. Use</font>
+<p><font size=-1>27 the Choose File... button to select a local file:</font>
+<p><font size=-1>28 &lt;/html:td></font>
+<p><font size=-1>29 &lt;/html:tr></font>
+<p><font size=-1>…</font>
+<p><font size=-1>…</font>
+<p><font size=-1>…</font></dir>
+</dir>
+
+<ol START=63>
+<ol>
+<li>
+<font size=-1>&lt;/html:table></font></li>
+</ol>
+</ol>
+
+<dir><font size=-1>In the above code segment, HTML tags, "table", "tr",
+and "td", are used to regulate the positions of UI elements in the dialog.</font></dir>
+
+<ul>
+<li>
+<a NAME="stylelayout"></a><font size=-1><b>Style and layout</b>. XML, as
+well as XUL, syntax does not bear any display or layout semantics; instead,
+a style sheet is utilized for such purpose. As of now, CSS (Cascading Style
+Sheets) is the supported method of specifying display style and layout
+geometry of XUL-based graphical user interface. Line 2 in the example below
+associates the CSS style sheet, "xul.css", with this XUL document.</font></li>
+</ul>
+
+<dir>
+<dir><font size=-1>1 &lt;?xml version="1.0"?></font>
+<p><font size=-1>2 &lt;?xml-stylesheet href="xul.css" type="text/css"?></font></dir>
+</dir>
+
+<ul>
+<li>
+<a NAME="scripts"></a><font size=-1><b>Script functions</b>. A graphical
+user interface must provide a mechanism for event-handling and user interaction.
+Like HTML forms, scripting languages such as JavaScript are used to serve
+such purpose. The JavaScript file, "openLocation.js", referenced in the
+following code segment, contains all JavaScript functions needed to process
+events occurring in this window. The source listing of "openLocation.js"
+can be found in Appendix B.</font></li>
+</ul>
+
+<dir>
+<dir><font size=-1>13 &lt;html:script language="javascript" src="openLocation.js"></font>
+<p><font size=-1>14 &lt;/html:script></font>
+<br>&nbsp;</dir>
+</dir>
+
+<ul>
+<li>
+<a NAME="chromeurls"></a><font size=-1><b>Chrome URLs</b>. Chrome, in the
+XUL world, is the top level window which contains groups of UI elements
+of various types. Examples of chrome are the browser window and dialog
+windows. The chrome obtains its UI description from four types of providers:
+the content provider, the skin provider, the platform provider, and the
+locale provider. While the content provider provides the skeleton, i.e.,
+the menus, command buttons, and etc., the skin provider supplies the look-and-feel
+of the chrome. Similarly, the platform provider gives platform dependent
+UI description and the locale provider offers the language and culture
+sensitive resources.</font></li>
+</ul>
+
+<dir><font size=-1>To maximize the flexibility, Mozilla introduces a new
+technology called "<i>Configurable Chrome</i>"[3]. A XUL file can be written
+in such a fashion that its chrome description comes from a mixture of physical
+sources, either locally, remotely, or a combination of both. An end user
+may customize her/his configuration to pick up any of the source type from
+his favor chrome providers.</font>
+<p><font size=-1>To achieve this, chrome type URLs must be used to reference
+external sources; such as CSS files and JavaScript files. The general form
+of chrome URLs look like this:</font>
+<p><font size=-1>&nbsp;&nbsp;&nbsp; chrome://WindowType/ProviderType/[ProviderName/]</font>
+<p><font size=-1>The "WindowType" is the window type of the chrome. Possible
+values are "navigator", "messenger", etc. The "ProviderType" is one of
+the four providers: content, skin, platform, or locale. Examples of the
+provider names, "ProviderName", are Mozilla, Mozillazine, xyzOrg, myISP,
+and etc. See Table 1 for illustrations.</font>
+<br>&nbsp;</dir>
+
+<table BORDER CELLPADDING=7 WIDTH="558" >
+<tr>
+<td VALIGN=TOP WIDTH="15%"><font size=-1>Window Type</font></td>
+
+<td VALIGN=TOP WIDTH="11%"><font size=-1>Provider Type</font></td>
+
+<td VALIGN=CENTER WIDTH="44%"><font size=-1>base</font></td>
+
+<td VALIGN=TOP WIDTH="14%"><font size=-1>name</font></td>
+
+<td VALIGN=TOP WIDTH="16%"><font size=-1>main</font></td>
+</tr>
+
+<tr>
+<td VALIGN=CENTER ROWSPAN="4" WIDTH="15%" HEIGHT="16"><font size=-1>navigator</font></td>
+
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>content</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>resource:/chrome/navigator/content</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"><font size=-1>Mozilla</font></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"><font size=-1>navigator.xul</font></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>skin</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>http://home.mozillazine.org/chrome/content</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"><font size=-1>MozillaZine</font></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"><font size=-1>navigator.css</font></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>platform</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>./chrome/navigator/platform</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"><font size=-1>UNIX</font></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"><font size=-1>nav-unix.css</font></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>locale</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>./chrome/navigator/locale</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"><font size=-1>en-US</font></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"><font size=-1>navigator.dtd</font></td>
+</tr>
+
+<tr>
+<td VALIGN=CENTER ROWSPAN="4" WIDTH="15%" HEIGHT="16"><font size=-1>messenger</font></td>
+
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>content</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>…</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"><font size=-1>MozillaZine</font></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"><font size=-1>messenger.xul</font></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>skin</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>…</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"><font size=-1>Moziila</font></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"><font size=-1>messenger.css</font></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>platform</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>…</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"><font size=-1>UNIX</font></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"><font size=-1>messenger.css</font></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>locale</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>…</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"><font size=-1>en-US</font></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"><font size=-1>messenger.dtd</font></td>
+</tr>
+
+<tr>
+<td VALIGN=CENTER ROWSPAN="4" WIDTH="15%" HEIGHT="16"><font size=-1>Other
+windows…</font></td>
+
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>content</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>…</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>skin</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>…</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>platform</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>…</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"></td>
+</tr>
+
+<tr>
+<td VALIGN=TOP WIDTH="11%" HEIGHT="16"><font size=-1>locale</font></td>
+
+<td VALIGN=TOP WIDTH="44%" HEIGHT="16"><font size=-1>…</font></td>
+
+<td VALIGN=TOP WIDTH="14%" HEIGHT="16"></td>
+
+<td VALIGN=TOP WIDTH="16%" HEIGHT="16"></td>
+</tr>
+</table>
+
+<p><b><font size=-1>Table 1 Chrome registry: mapping chrome providers to
+URLs</font></b>
+<br>&nbsp;
+<p><b>Finally, the dialog constructed from the XUL file, "openLocation.xul",
+is shown in Figure 1.</b>
+<p><a NAME="openLocation"></a>
+<br><img SRC="Image2.gif" height=191 width=423>
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<p><a NAME="advantages"></a><b><i><font face="Arial">2. XUL’s Advantages</font></i></b>
+<br>&nbsp;
+<p><font size=-1>Examining the ingredients and structure of a XUL file,
+there are several advantages:</font>
+<ul>
+<li>
+<font size=-1><b>Scriptable</b>. Changing UI without recompilation. Applications
+development cycle is dramatically reduced. The browser client acts as an
+interpreter. An embedded user agent loads a XUL stream and builds the user
+interface on the fly. The UI controls and user interaction can be modified
+statically or dynamically.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b>Cross-platform</b>. The underlying XUL parser and interpreter
+are developed in a cross-platform fashion. The same XUL stream can be shared
+independent of Operating systems and Window systems. While Mozilla officially
+supports Linux (Unix), Win32, and Mac, it also provides a set of guidelines
+for porting Mozilla onto other Operating systems and Window systems.</font></li>
+</ul>
+
+<dir><font size=-1>Please note that while XUL offers a general mechanism
+of platform independent UI description, certain XUL widgets are wrappers
+of native widgets and therefore present platform-specific look and feel.
+Examples of such widgets are: File Selection Box, Font Picker, and Print
+dialog.</font></dir>
+
+<ul>
+<li>
+<font size=-1><b>Customizable</b>. With the introduction of "Configurable
+Chrome", all components of the chrome can be configured either statically
+in the chrome registry or dynamically on the fly. The chrome registry is
+stored in RDF format and can be edited by plain text editor or runtime
+JavaScript functions.</font></li>
+</ul>
+<b><i><font face="Arial">3.&nbsp;<a NAME="l12yissues"></a>Localizability
+issues</font></i></b>
+<p><font size=-1>Consisting of such great variety of ingredients, XUL localization
+becomes a challenging task. Historically, we encountered some difficulties
+in localizing Web-based documents:</font>
+<ul>
+<li>
+<font size=-1>Locale sensitive data is hard to separate from the rest of
+the document. Localizable resources reside in the same file with language
+and culture neutral data. Localizing Web-based documents often means going
+through the whole set of document to identify and translate localizable
+resources.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Markup tags are often translated or damaged in the process
+of localization. Validating the localization results is difficult, if not
+impossible.</font></li>
+</ul>
+<font size=-1>It is the desire of the Mozilla Internationalization group
+to address these issues in the XUL world.</font>
+<p><b><i><font face="Arial">4.&nbsp;<a NAME="criteria"></a>Criteria of
+the solution</font></i></b>
+<p><font size=-1>Before embarking on the solution-seeking journey, let’s
+layout a set of criteria we intend to meet:</font>
+<ul>
+<li>
+<font size=-1><b><i>Standard Compliant</i></b>. We shall avoid re-inventing
+the wheel. Both existing internationalization solutions and new proposals
+shall be taken into consideration. We will weight in standard compliance
+in the decision making process against proprietary approaches.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Simple</i></b>. The localizability solution shall be
+easy to implement, and will integrate seamlessly with core development.
+A localizability solution often needs the support from peer development
+groups. Should localization enabling become a burden or even hinder the
+development process, the proposed solution would less likely be accepted
+by supporting module owners.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Leveragible</i></b>. Leveraging can be defined as taking
+the localization results of previous releases for the use of the current
+release. A full-scale localization of a huge software product is not only
+time-consuming but also costly. It requires collaborative effort from localization
+engineers, translation vendors, and internationalization QA throughout
+the whole process. It is neither economic nor efficient to repeat the whole
+process from scratch for each release. Leveraging also helps improve the
+consistency of translation between releases.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Portable</i></b>. The final solution will be achievable
+on all platforms including Unix, Windows, Mac, and others. We do not want
+a solution for one platform and another solution for the other platform.
+The majority of Mozilla modules are platform-independent, so will be the
+localizability solution.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Extensible</i></b>. Technology evolves. A solution
+adopted now might not be valid in the future, however, we want it to be
+flexible enough for future extension.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Separable</i></b>. To simplify the localization task,
+localizable resources shall be placed into external files so that the translators
+can concentrate on localization instead of language or culture neutral
+resources.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Consistent</i></b>. If possible, we shall seek a scheme
+that will work across modules instead of within the XUL component only.
+We don't want to have distinguished solutions for different modules.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Dynamic binding</i></b>. Some of the resources requiring
+translation may be dynamic, usually because they require string composition,
+e.g., "Installing item 5 of 10".</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Validatable</i></b>. The result of localization shall
+be easily validated. Translators need to be able to verify the result as
+they progress.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Parseable</i></b>. It should be possible to unambiguously
+and automatically determine which embedded items contain localizable text,
+and which items need not be localized.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Invisible</i></b> (Internationalization). As much as
+possible, the standard tools that create English UI should emit files that
+are ready to be localized, without requiring additional processing. We
+want to make the localizability solution a part of the standard XUL authoring
+process instead of internationalization specific action. Localizability
+shall not be the only reason we adopt the solution.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b><i>Efficient</i></b>. The implementation of the solution
+shall not cause any noticeable performance degradation or memory bloat.</font></li>
+</ul>
+<font size=-1>While it might not be feasible to find a solution that satisfies
+all the criteria, they shall be used as the factors in decision making.</font>
+<br>&nbsp;
+<p><b><i><font face="Arial">5.&nbsp;<a NAME="proposals"></a>Localizability
+solutions</font></i></b>
+<br>&nbsp;
+<p><font size=-1>Localizability enabling requires the participation of
+various groups in product development. While it is the Internationalization
+and Localization groups that drive the effort, co-operation from the rest
+of the groups is essential to the success of the process. In this section,
+the author will present all the solutions proposed by developers from interested
+groups. Each will contain descriptions, samples, and analysis of pros and
+cons.</font>
+<p><font face="Arial">5.1 Proposed solutions</font>
+<p><font size=-1>In the process of seeking localizability solutions, four
+approaches are proposed and reviewed. While varying in how to identify
+and represent locale sensitive resources, they all attempt to isolate localizable
+resources from language and culture neutral data.</font>
+<ol TYPE="a">
+<li>
+<a NAME="localedtd"></a><b><font size=-1>"XUL + Language-specific DTD".</font></b></li>
+</ol>
+
+<dir><font size=-1><i><u>Descriptions</u></i>:</font></dir>
+
+<ul>
+<li>
+<font size=-1>In this approach, we declare general (text) entities for
+all locale sensitive resources in an external DTD (Document Type Definition)
+subset and use XML entity reference, "&amp;entity;", to reference them.</font></li>
+</ul>
+
+<dir><font size=-1><i><u>Sample XUL</u></i>: toolbar.xul</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>&lt;!DOCTYPE window SYSTEM "toolbar.dtd"></font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>&lt;xul:toolbar></font>
+<p><font size=-1>&amp;txtContentData;</font>
+<p><font size=-1>&lt;button cmd="nsCmd:BrowserBack"</font>
+<dir>
+<dir><font size=-1>style="background-color:rgb(192,192,192);"></font></dir>
+</dir>
+<font size=-1>&lt;img src="resource:/res/toolbar/TB_Back.gif"/></font>
+<p><font size=-1>&amp;txtBack;</font>
+<p><font size=-1>&lt;/button></font>
+<p><font size=-1>&lt;button cmd="nsCmd:BrowserForward"</font>
+<p><font size=-1>style="background-color:rgb(192,192,192);"></font>
+<p><font size=-1>&lt;img src="resource:/res/toolbar/TB_Forward.gif"/></font>
+<p><font size=-1>&amp;txtForward;</font>
+<p><font size=-1>&lt;/button></font>
+<p><font size=-1>&lt;button cmd="nsCmd:BrowserWizard"</font>
+<dir>
+<dir><font size=-1>style="background-color:rgb(192,192,192);"></font></dir>
+</dir>
+<font size=-1>&lt;img src="&amp;iconWizard;"/></font>
+<p><font size=-1>&amp;txtWizard;</font>
+<p><font size=-1>&lt;/button></font>
+<p><font size=-1>&lt;/xul:toolbar></font>
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;</dir>
+<font size=-1><i><u>Sample DTD</u></i>: toolbar.dtd</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>&lt;!ENTITY txtContentData "Random content data"></font>
+<p><font size=-1>&lt;!ENTITY txtBack "Back to &amp;#37;s"></font>
+<p><font size=-1>&lt;!ENTITY txtForward "Forward"></font>
+<p><font size=-1>&lt;!ENTITY iconWizard "resource:/res/toolbar/TB_Wizard.gif"></font>
+<p><font size=-1>&lt;!ENTITY txtWizard "Wizard"></font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+<font size=-1><i><u>Pros</u></i>:</font></dir>
+
+<ul>
+<li>
+<font size=-1>Already standard compliant; no new syntax names or tags need
+to be introduced.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Text replacement can be in either content or attribute values
+(but not in the attribute names).</font></li>
+</ul>
+
+<dir><font size=-1><b><u>Cons</u></b>:</font></dir>
+
+<ul>
+<li>
+<font size=-1>The language-specific DTD file is not a flat file. We need
+a DTD parser to extract entity values into a flat file for localizers.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Two file formats to deal with, the DTD file and the property
+file, from which other client modules retrieve the locale sensitive resource
+strings [1].</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Hard to group text entity by resource types. The entity name
+alone does not provide any resource type information which could be used
+as a localization note to the translators.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>In switching languages, we need to tear down the chrome window,
+reload the XUL and its DTD (probably from a remote host), and reconstruct
+the DOM tree (the whole chrome). This could be a very expensive operation
+for a low-end client machine fetching XUL components from a remote host.</font></li>
+</ul>
+
+<ol TYPE="a">
+<li>
+<font size=-1><b><i>"Resource ID + String Resource Manager"</i></b>.</font></li>
+</ol>
+
+<dir><font size=-1><i><u>Descriptions</u></i>:</font></dir>
+
+<ul>
+<li>
+<font size=-1>In XUL file, assign a widget ID, e.g. widgetID, to each UI
+element and a resource tag, e.g. resTag, to each localizable attribute
+of the widget. Then, during widget initialization, call a C function, said
+gettext(widgetID, resTag, default_string), to retrieve the resource from
+a Java-like property file. For example, a label widget can be described
+as &lt;label widgetID="345" text="label string"/> in a XUL file. Then,
+the function call to retrieve localized text will be gettext(345, RES_TEXT,
+"label string").</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>The English version of property file will be automatically
+generated during XUL to DOM conversion. The front-end developers can easily
+update a UI element's attribute/resource without leaving the XUL file.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>All localizable resources are uniquely identified by the
+combination of widget ID and resource tag.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>In function "gettext()", if the property file does not exist
+or the combination of widget ID and resource tag does not resolve to a
+resource string, the "default_string" will be returned instead.</font></li>
+</ul>
+
+<dir><font size=-1><b><u>Sample XUL</u></b>: toolbar.xul</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>&lt;!DOCTYPE xui SYSTEM "toolbar.dtd"></font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>&lt;!-- L10N-PTY type of data: file format can be found
+at http://www.netscape.com/PropertyFile --></font>
+<p><font size=-1>&lt;!NOTATION L10N-PTY SYSTEM "http://www.netscape.com/PropertyFile"></font>
+<p><font size=-1>&lt;!ENTITY JFile</font>
+<p><font size=-1>SYSTEM "http://www.home.org/l10n.property"</font>
+<p><font size=-1>NDATA L10N-PTY></font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>&lt;xul:toolbar></font>
+<p><font size=-1>&lt;label widgetID="8000">Random content data &lt;label></font>
+<p><font size=-1>&lt;button widgetID="8001"</font>
+<p><font size=-1>cmd="nsCmd:BrowserBack"</font>
+<p><font size=-1>style="background-color:rgb(192,192,192);"</font>
+<p><font size=-1>img="resource:/res/toolbar/TB_Back.gif"></font>
+<p><font size=-1>Back to &amp;#37;s</font>
+<p><font size=-1>&lt;/button></font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>&lt;button widgetID="8002"</font>
+<p><font size=-1>cmd="nsCmd:BrowserForward"</font>
+<p><font size=-1>style="background-color:rgb(192,192,192);"</font>
+<p><font size=-1>img="resource:/res/toolbar/TB_Forward.gif"></font>
+<p><font size=-1>Forward</font>
+<p><font size=-1>&lt;/button></font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>&lt;button widgetID="8003"</font>
+<p><font size=-1>cmd="nsCmd:BrowserWizard"</font>
+<p><font size=-1>style="background-color:rgb(192,192,192);"</font>
+<p><font size=-1>img="resource:/res/toolbar/TB_Wizard.gif"></font>
+<p><font size=-1>Wizard</font>
+<p><font size=-1>&lt;/button></font>
+<p><font size=-1>&lt;/xul:toolbar></font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+<font size=-1><i><u>Sample property file</u></i>: property.toolbar</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>8000: Random content data</font>
+<p><font size=-1>8001.img: resource:/res/toolbar/TB_Back.gif</font>
+<p><font size=-1>8001: Back to &amp;#37;s</font>
+<p><font size=-1>8002.img: resource:/res/toolbar/TB_Forward.gif</font>
+<p><font size=-1>8002: Forward</font>
+<p><font size=-1>8003.img: resource:/res/toolbar/TB_Wizard.gif</font>
+<p><font size=-1>8003: Wizard</font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+<i><u><font size=-1>Sample resource tag definitions</font></u></i>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>#define RES_TEXT 0x1234</font>
+<p><font size=-1>#define RES_IMG 0x1235</font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+<font size=-1>To get the text string for a "Back" button's label, we call</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>gettext(8001, RES_TEXT, "Back to &amp;#37;s")</font></dir>
+<font size=-1><i><u>Pros</u></i>:</font></dir>
+
+<ul>
+<li>
+<font size=-1>Core development work will not be blocked by gettext() implementation.
+However, we shall request the UI developers to put localization notes,
+and comments in the property file.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>The property file is a flat file in clear text; it is easy
+to localize and leverage.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Consistent with the scheme the rest of the client modules
+use; only one file format to deal with.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Resources are grouped by widgets. This also makes the property
+file more readable.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Easy to leverage. All resources are uniquely identified and
+ready for comparison.</font></li>
+</ul>
+
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1><i><u>Cons</u></i>:</font></dir>
+
+<ul>
+<li>
+<font size=-1>Need to treat content data as the text resource of a label
+widget so they can be identified and modified by application code.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Implementation work needed to automatically bind localizable
+resources to widgets. However we can reduce extra work by binding the resources
+during widget initialization. We need to bind the UI attributes specified
+in XUL to the real widgets anyway.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Need to ensure the uniqueness of the widget ID within and
+across XUL. However, the application developers need to have a way to uniquely
+identify a widget in chrome anyway.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Localizable resource strings are duplicated twice: once in
+XUL and again in property file.</font></li>
+</ul>
+
+<ul>
+<li>
+<b><font size=-1>Technical difficulty: once XUL has been converted to a
+DOM tree, the content can't be changed any more.</font></b></li>
+</ul>
+
+<br>&nbsp;
+<br>&nbsp;
+<ol TYPE="a">
+<li>
+<font size=-1><b>XPointer and XLink</b>.</font></li>
+</ol>
+
+<dir><font size=-1><i><u>Descriptions</u></i>:</font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>Use XLink &amp; Xpointer to specifically reference a text
+in a file that is separate from the base XUL file so that this text can
+be easily localized and displayed to the end user in a manner consistent
+with XPFE (Cross Platform Front End) requirements.</font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>Here is an example syntax needed for a button UI element.</font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1><i><u>Sample</u></i>: UI.XUL</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir>
+<dir><font size=-1>&lt;button</font>
+<p><font size=-1>href="&amp;locale/uilang.xml| id(1234).child(text)"></font>
+<p><font size=-1>&lt;content-info></font>
+<dir>
+<dir><font size=-1>Put comments on button functionality here</font></dir>
+</dir>
+<font size=-1>&lt;/content-info></font>
+<p><font size=-1>other xul markup</font>
+<p><font size=-1>&lt;/button></font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+</dir>
+<font size=-1><i><u>Sample</u></i>: UI.DTD</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir>
+<dir><font size=-1>&lt;!ENTITY % link-attributes</font>
+<p><font size=-1>"xlink:form CDATA #FIXED 'simple'</font>
+<p><font size=-1>href CDATA #REQUIRED</font>
+<p><font size=-1>content-info CDATA #IMPLIED</font>
+<p><font size=-1>show CDATA #FIXED 'embed'</font>
+<p><font size=-1>actuate CDATA #FIXED 'auto'"</font>
+<p><font size=-1>></font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>&lt;!ELEMENT button (#PCDATA)></font>
+<p><font size=-1>&lt;!ATTLIST button</font>
+<p><font size=-1>%link-attributes;</font>
+<p><font size=-1>other button specific attributes</font>
+<p><font size=-1>></font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+</dir>
+<font size=-1><i><u>Sample</u></i>: UILANG.XML</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir>
+<dir><font size=-1>&lt;loctext id = "1244"></font>
+<p><font size=-1>&lt;text></font>
+<p><font size=-1>Gallia est omnis divisa in partes tres,</font>
+<p><font size=-1>quarum unam incolunt Belgae,</font>
+<p><font size=-1>aliam Aquitani, tertiam qui ipsorum lingua</font>
+<p><font size=-1>Celtae, nostra Galli appellantur.</font>
+<p><font size=-1>&lt;/text></font>
+<p><font size=-1>&lt;note>These are Caesar’s first words on Gaul.</font>
+<p><font size=-1>This button should be centered on</font>
+<p><font size=-1>column 1 of the dialog</font>
+<p><font size=-1>&lt;/note></font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+</dir>
+<font size=-1><i><u>Sample</u></i>: UILANG.DTD</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir>
+<dir><font size=-1>&lt;!ELEMENT loctext (text, note?)></font>
+<p><font size=-1>&lt;!ATTLIST loctext id ID #REQUIRED></font>
+<p><font size=-1>&lt;!ELEMENT text (#PCDATA)></font>
+<p><font size=-1>&lt;!ELEMENT note (#PCDATA)></font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+</dir>
+<font size=-1><i><u>Pros</u></i>:</font></dir>
+
+<ul>
+<li>
+<font size=-1>Since it is all written in plain XML there is no need to
+create custom file types. Thus this system can accept anything the parser
+can handle. It maintains the name value paring essential for localization.
+It allows us to add localization and developer notes to the object (e.g.
+button) and the localized text separately, but maintain a direct link between
+the two. The text is pulled into the UI elements when the XUL file is parsed.
+This also addresses the goal of separating markup, style and content.</font></li>
+</ul>
+
+<dir><font size=-1><i><u>Cons</u></i>:</font></dir>
+
+<ul>
+<li>
+<font size=-1>This does not leave us with a flat file solution. However,
+the file containing the text to be localized is of such a simple format
+that writing a tool to parse it is a trivial exercise. We will need some
+form of tool to convert native encoding to Unicode character references.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>There are 4 files to track! Actually the language specific
+DTD is complete and valid as is, so it could easily be declared inline
+in the language specific XML file. The link-attributes have been entitized
+and could conceivably be inherited from a higher level DTD.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b>In reloading downloadable chrome, not all related files
+can be destroyed and rebuilt by the client</b>.</font></li>
+</ul>
+
+<br>&nbsp;
+<br>&nbsp;
+<ol TYPE="a">
+<li>
+<b><font size=-1>"@resourceID"</font></b></li>
+</ol>
+
+<dir><font size=-1><i><u>Description</u></i>:</font>
+<p><font size=-1>Assuming the "timely access" problem can be overcome,
+we could get around the "syntax constraint" problem by using an entity-like
+syntax of our own. That is, we invent something, say we use the "@" symbol
+like entities use the "&amp;" symbol. Then these things are used throughout
+the content just like entities would have been used to do localization.
+This still assumes we have some way to get at the language-specific-substitution
+text after parsing (so it can't be a parser directive; it may have to be
+some sort of special element that XUL will recognize and not display).
+If all this worked, we'd be free to add localizable text anywhere without
+constraining the element and attribute structure.</font>
+<p><font size=-1>For example</font>
+<br>&nbsp;
+<dir><font size=-1>&lt;element l10nID="100" text="english version"/></font></dir>
+<font size=-1>becomes</font>
+<br>&nbsp;
+<dir><font size=-1>&lt;element text="@100;"/></font></dir>
+
+<p><br><font size=-1>or</font>
+<br>&nbsp;
+<dir><font size=-1>&lt;element>@100;&lt;/element>, if that's more appropriate
+for the widget).</font></dir>
+<font size=-1>There just needs to be a central single routine that knows
+where to find the table of localized text strings. It finds "@.*;" sequences
+and substitutes them. We have to walk the content model after parsing and
+hand every string to this routine, and widgets have to pass all their text
+strings through it before they do anything with them.</font>
+<br>&nbsp;
+<p><font size=-1><i><u>Pros</u></i>:</font>
+<br>&nbsp;
+<br>&nbsp;</dir>
+
+<ul>
+<li>
+<font size=-1>If all this worked, we'd be free to add localizable text
+anywhere without constraining the element and attribute structure. Content
+data could be uniquely identified and externalized.</font></li>
+</ul>
+
+<dir><font size=-1><i><u>Cons</u></i>:</font></dir>
+
+<ul>
+<li>
+<font size=-1><b>The entity solution, "XUL + Language-specific DTD", is
+more XML compliant and less work to implement</b>.</font></li>
+</ul>
+<font face="Arial">5.2 The final decision - "XUL + Language-specific DTD".</font>
+<br>&nbsp;
+<p><font size=-1>All proposed solutions except (a), "<b>XUL + Language-specific
+DTD</b>", are filtered out due to the technical difficulties or drawbacks
+highlighted by bold face in their "cons" lists. It turns out that the DTD
+solution also satisfies the majority of our criteria. One obvious advantage
+of the DTD solution is that it is an application of the standard feature
+recommended in XML specification 1.0. It’s easy to convince the XML parser
+developers to support this feature. For the same reason, XUL writers are
+more likely to adopt this strategy due to its standard compliance.</font>
+<br>&nbsp;
+<p><b><i><font face="Arial">6.&nbsp;<a NAME="l12yres"></a>What resources
+are localizable?</font></i></b>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>Now that we have a solution for localizing XUL, the next
+step is to identify what resources are localizable. The rule of thumb is-
+"all resources that contribute to the appearance of the chrome are localizable".
+Let’s take a close look at them.</font>
+<br>&nbsp;
+<ul>
+<li>
+<i><font size=-1>Widget resources</font></i></li>
+</ul>
+
+<ul>
+<ul>
+<li>
+<font size=-1>All <b>texts</b> in the graphical user interface are localizable.
+Examples include menu label strings, dialog and windows title strings,
+tooltip strings, status text, etc.</font></li>
+</ul>
+</ul>
+
+<ul>
+<ul>
+<li>
+<font size=-1>URLs to localizable <b>images</b>. While some icon images
+in one culture are popularly used, they might not be appropriate in other
+cultures. We need the ability to customize them to fit local cultures.
+Note that it is the URL to the image that we will localize instead of the
+image data itself.</font></li>
+</ul>
+</ul>
+
+<ul>
+<li>
+<font size=-1><i>Content data</i>. This includes both plain text and HTML
+tagged data.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><i>Style information</i> such as font, size, and color, may
+need to be localized. For example, while color white is the symbol of purity
+in one culture, it is a color of sorrow and sadness in another.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>The <i>geometric layout</i>. We may (rarely we hope) need
+to modify the layout. For example, some English radio buttons are laid
+out horizontally, but their German version could make them too wide. Under
+such circumstance, we might want to arrange them vertically.</font></li>
+</ul>
+<b><i><font face="Arial">7.&nbsp;<a NAME="styleguide"></a>Ensuring the
+localizability - XUL Coding Style Guidelines</font></i></b>
+<br>&nbsp;
+<p><font size=-1>Now that we have the knowledge of how and what to localize,
+we need a set of XUL authoring guidelines to ensure that XUL files are
+localizable. Although, localizability is the main goal here, most of the
+guidelines are considered good XML authoring practices for ensuring portability
+and customizability.</font>
+<br>&nbsp;
+<ul>
+<li>
+<font size=-1><b>Convert HTML files to XUL files</b>. All UI descriptions
+written in HTML shall be converted into XUL. Currently, we do not have
+a clean way of localizing HTML files. XUL is our UI description language.
+In addition, there are certain XUL specific features, such as XUL fragments,
+which are supported in XUL content model only.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b>The XML declaration</b>. All XML declarations shall contain
+the following information:</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><i>Version number</i>. Version number indicates that this
+XML document conforms to a particular version of XML specification. It
+is provided as a means to allow the possibility of automatic version recognition,
+should it become necessary. Processors may signal an error if they receive
+documents labeled with versions they do not support [4].</font></li>
+</ul>
+
+<ul>
+<li>
+<b><font size=-1><i>UTF-8 </i>encoding</font></b><font size=-1>. Wherever
+applicable, the recommended encoding of the content data and attribute
+values is <b>UTF-8</b>. In Mozilla, when such information is not specified,
+UTF-8 is the default encoding of all XML, XUL, and RDF documents. There
+are a couple of reasons we adopt UTF-8:</font></li>
+</ul>
+
+<ul>
+<ul>
+<li>
+<font size=-1>According to XML specification 1.0, all XML parsers must
+support UTF-8 encoding. Using UTF-8 guarantees our document encoding is
+portable across user agents (parsers).</font></li>
+</ul>
+</ul>
+
+<ul>
+<ul>
+<li>
+<font size=-1>Multi-lingual display is a requirement of the Mozilla browser
+and Unicode encoding covers all the languages we support.</font></li>
+</ul>
+</ul>
+
+<dir>
+<dir><font size=-1>Note that since ASCII is a subset of UTF-8, ordinary
+ASCII entities do not strictly need an encoding declaration.</font></dir>
+</dir>
+
+<ul>
+<li>
+<font size=-1><i>Style sheet</i>. An XML file must have a style sheet associated
+with it, otherwise, it won't know how to display the document. Note that,
+as suggested below in "Configurable Chrome", chrome type URLs shall be
+used to reference the style sheet.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><i>Namespace</i>. In XUL documents, namespace shall default
+to "xul" and be declared in the root element. Other namespace referenced
+shall be declared before use and preferably in the root element of the
+document. See the sample XUL declaration below for illustration.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><i>Case sensitivity</i>. Be aware that XML is case sensitive.
+In compliance with XHTML working draft [5], all element and attribute names
+shall be in lower case.</font></li>
+</ul>
+
+<p><br><i><u><font size=-1>Sample XUL declaration</font></u></i>
+<br><i><u><font size=-1></font></u></i>&nbsp;
+<dir>
+<dir><font size=-1>&lt;?xml version="1.0" encoding='UTF-8' ?></font>
+<p><font size=-1>&lt;?xml-stylesheet href="xul.css" type="text/css"?></font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>&lt;!DOCTYPE window></font>
+<p><font size=-1>&lt;window xmlns:html="http://www.w3.org/1999/xhtml"</font>
+<p><font size=-1>xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"></font>
+<br>&nbsp;</dir>
+</dir>
+
+<ul>
+<li>
+<a NAME="chromify"></a><font size=-1><b>Chrome URLs</b>. All resource references
+in XUL shall use the chrome type URLs instead of hardwired URLs. The rules
+are:</font></li>
+</ul>
+
+<ul>
+<ul>
+<li>
+<font size=-1>Place all platform and language neutral files in content/
+and skin/ directories.</font></li>
+</ul>
+</ul>
+
+<ul>
+<ul>
+<li>
+<font size=-1>Place all locale and platform sensitive files under their
+specific sub-directories such as "navigator/locale/en" and "navigator/platform/unix".
+Note that all languages and platforms are treated equally and stored in
+their respective sub-directories. Candidates of such files are platform-specific
+style sheets and language-specific DTD files.</font></li>
+</ul>
+</ul>
+
+<dir><font size=-1>Why is it important to put language-specific files in
+locale-specific sub-directories? Because we want to be able to switch between
+languages on the same user machine. This is essential on UNIX and maybe
+on other Operating systems. It would also facilitate the implementation
+of downloadable chrome customized to a user's language and platform characteristics.</font></dir>
+
+<ul>
+<li>
+<a NAME="jsfuncs"></a><font size=-1><b>JavaScript functions</b>. JavaScript
+code shall be moved out of XUL. That is, instead of writing them inline
+as</font></li>
+</ul>
+
+<dir>
+<dir><font size=-1>&lt;html:script></font>
+<p><font size=-1>...</font>
+<p><font size=-1>...</font>
+<p><font size=-1>/* JavaScript code */</font>
+<p><font size=-1>...</font>
+<p><font size=-1>...</font>
+<p><font size=-1>&lt;/html:script></font>
+<br>&nbsp;</dir>
+</dir>
+<font size=-1>We move them into a foo.js file and declare its URI in this
+fashion:</font>
+<br>&nbsp;
+<br><font size=-1></font>&nbsp;
+<blockquote><font size=-1>&lt;html:script src="foo.js" encoding="UTF-8"
+/></font></blockquote>
+
+<p><br><font size=-1>(Refer to http://www.w3.org/TR/REC-html40/interact/scripts.html#edef-SCRIPT</font>
+<p><font size=-1>for the official specification of this syntax)</font>
+<br>&nbsp;
+<p><font size=-1>The advantages of this are:</font>
+<ul>
+<li>
+<font size=-1><i>Legibility</i>. The main purpose of the XUL is to describe
+the UI content. As style information shall be in style sheet, JavaScript
+code shall be in *.js as well to keep the main XUL file clean. In some
+XUL files, JavaScript code takes up 20-25% of the length of the file. Often
+times, we need to go to the very bottom of the file to find the UI descriptions.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><i>Maintainability</i>. By putting JavaScript code in external
+files, we can isolate the function declaration in a separate file. The
+developer does not need to touch the main XUL to change its runtime behavior.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><i>Flexibility</i>. Since the JavaScript code is in an external
+file, customization can be achieved by switching the JS file. With chrome
+registry, developers, content providers, or even the end users will be
+able to edit the registry table to use a customized JS code for their browser
+client.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1><b>Widget resources</b>. To make a widget attribute localizable,
+its value string must be declared as the value of a text entity and referenced
+by its entity name.</font></li>
+</ul>
+
+<dir><font size=-1>In addition, to increase the readability of the XUL
+file and make entity names self-explanatory, a hierarchical naming scheme
+is proposed:</font></dir>
+
+<ul>
+<ul>
+<li>
+<font size=-1>The entities to substitute attribute values of a widget shall
+be named after the widget ID (or widget element names if no ID is assigned.)</font></li>
+</ul>
+</ul>
+
+<dir><font size=-1>For example, if a command button is named "backCmd",
+then its label string resource shall be named as "backCmd.label" and defined
+as &lt;!ENTITY backCmd.label "Back" > in the external DTD. The general
+form is</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>e<i>lementName</i><b>.</b><i>attributeName</i>.</font></dir>
+<font size=-1>See the example below for illustration.</font></dir>
+
+<dir>
+<dir><font size=-1><i><u>Example</u></i>: a browser.xul and its browser.dtd:</font>
+<p><b><font size=-1>browser.xul</font></b>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>&lt;button id="backCmd"</font>
+<dir>
+<dir><font size=-1>img="&amp;backCmd.img;"</font>
+<p><font size=-1>tooltip="&amp;backCmd.tooltip;"</font>
+<p><font size=-1>status="&amp;backCmd.status;"></font>
+<p><font size=-1>&amp;backCmd.label;</font></dir>
+</dir>
+<font size=-1>&lt;/button></font></dir>
+<b><font size=-1></font></b>
+<p><br><b><font size=-1>browser.dtd</font></b>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>&lt;!ENTITY backCmd.label "Back"></font>
+<p><font size=-1>&lt;!ENTITY backCmd.tooltip "Back to previous page"></font>
+<p><font size=-1>&lt;!ENTITY backCmd.status "Back to the previous page"></font>
+<p><font size=-1>&lt;!ENTITY backCmd.img"TB_Back.gif"></font>
+<br>&nbsp;</dir>
+</dir>
+</dir>
+
+<ul>
+<li>
+<font size=-1><b>Content data. </b>Content data, either in plain text or
+HTML/XML tagged, need to be declared as general entities in the external
+DTD and referenced in XUL stream.</font></li>
+</ul>
+
+<dir><font size=-1>In addition, recommendation for grouping content data
+and HTML tagged data is provided below.</font></dir>
+
+<ul>
+<li>
+<font size=-1>Content containing markups shall be separated from plain
+text data. Localizing plain text is much easier (and cheaper) than localizing
+markup tagged data. See the example for illustrations.</font></li>
+</ul>
+
+<ul>
+<li>
+<font size=-1>Content text forming a complete sentence shall be declared
+in one single entity. We try to avoid placing markups in entity declaration;
+but the rule, "<i>forming a complete sentence</i>", takes precedence when
+there is a conflict. Translating broken sentences is not only painful but
+also error-prone. Here are examples of HTML tagged data which shall be
+declared as one entity:</font></li>
+</ul>
+
+<ul>
+<ul>
+<li>
+<font size=-1>A list item (as opposed to the whole list.)</font></li>
+
+<li>
+<font size=-1>A table cell (as opposed to the whole table.)</font></li>
+
+<li>
+<font size=-1>A paragraph (as opposed to the whole chapter).</font></li>
+
+<li>
+<font size=-1>And many others (such as framesets...).</font></li>
+</ul>
+</ul>
+
+<dir><font size=-1><i><u>Example</u></i>:</font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>A sample HTML tagged content data:</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>&lt;html:i></font>
+<dir>
+<dir><font size=-1>This document is modified but not saved. You will have
+choices about what to do with it:</font></dir>
+</dir>
+<font size=-1>&lt;/html:i></font>
+<p><font size=-1>&lt;html:ul></font>
+<dir>
+<dir><font size=-1>&lt;html:li>Save it and exit.&lt;/html:li></font>
+<p><font size=-1>&lt;html:li>Save it but do not exit.&lt;/html:li></font>
+<p><font size=-1>&lt;html:li>Exit without saving it&lt;/html:li></font>
+<p><font size=-1>&lt;html:li>&lt;html:b>Don't&lt;/html:b> exit.&lt;/html:li></font></dir>
+</dir>
+<font size=-1>&lt;/html:ul></font></dir>
+<font size=-1>Entities to be declared for the document:</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir>
+<dir>
+<dir>
+<dir>
+<dir>
+<dir>
+<dir><font size=-1>&lt;!ENTITY prompt "This document is modified but not
+saved. You will have choices about what to do with it:" ></font></dir>
+</dir>
+</dir>
+</dir>
+</dir>
+</dir>
+<font size=-1>&lt;!ENTITY saveNexit "Save it and exit." ></font>
+<p><font size=-1>&lt;!ENTITY saveNotExit "Save it but do not exit." ></font>
+<p><font size=-1>&lt;!ENTITY exit "Exit without saving it" ></font>
+<p><font size=-1>&lt;!ENTITY dontExit "&lt;html:b>Don't&lt;/html:b> exit."
+></font>
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;</dir>
+<font size=-1>The XUL will be sent to the parser:</font>
+<br>&nbsp;
+<br>&nbsp;
+<dir><font size=-1>&lt;html:i> &amp;prompt; &lt;/html:i></font>
+<p><font size=-1>&lt;html:ul></font>
+<dir>
+<dir><font size=-1>&lt;html:li>&amp;saveNexit;&lt;/html:li></font>
+<p><font size=-1>&lt;html:li>&amp;saveNotExit;&lt;/html:li></font>
+<p><font size=-1>&lt;html:li>&amp;exit;&lt;/html:li></font>
+<p><font size=-1>&lt;html:li>&amp;dontExit;&lt;/html:li></font></dir>
+</dir>
+<font size=-1>&lt;/html:ul></font></dir>
+</dir>
+
+<dir><font size=-1>Note that we try to avoid markups in entity values unless
+the markups are within a complete sentence.</font></dir>
+<b><i><font face="Arial">8.&nbsp;<a NAME="summary"></a>Summary</font></i></b>
+<p><font size=-1>In the past, localization enablement used to be considered
+as a downstream task in the process of software development. This is actually
+a misconception. Internationalization enablement must be taken into account
+in the early phase of product planning. Localizing a software product with
+no underlying internationalization support is nearly tantamount to rebuilding
+the whole product. It is both tedious and difficult if not impossible.</font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>Two important features of the XUL technology constitute
+the localizability of XUL-based UI:</font>
+<ul>
+<ul>
+<li>
+<font size=-1>the parser support of text entities in the external DTD subset;</font></li>
+
+<li>
+<font size=-1>the "Configurable Chrome" feature</font></li>
+</ul>
+</ul>
+<font size=-1>While the DTD features externalize the localizable resources,
+the "Configurable Chrome" feature allows the browser client to load language-specific
+files dynamically.</font>
+<p><font size=-1>Localization enabling is a collaborative effort. It demands
+an enormous amount of communication and co-operation from all component
+owners. At the same time, the quality of the whole product also improves
+since the adoption of Unicode as the standard data encoding makes the internal
+data exchange more consistent and reliable and thus reduces the chance
+of data loss and corruption.</font>
+<p><font size=-1>XUL style guidelines for externalizing text entities,
+style sheets, JavaScript functions, etc. are widely supported by the front-end
+developers. They have been adopted as a way of componentizing XUL files
+such that files are legible, maintainable, and customizable.</font>
+<p><b><i><font face="Arial">9. Acknowledgements</font></i></b>
+<p><font size=-1>The author would like to thank Bob Jung, Katsuhiko Momoi,
+Erik van der Poel, Montserrat Sanz, and Yung-Fong Tang for their tireless
+guidance in his exploration of the Internationalization and Localization
+world. His appreciation also goes to Tague Griffith who inspires the idea
+of writing down this paper. Finally, he would like to direct his appreciation
+to Shani Parrott and Katsuhiko Momoi for proofreading this paper.</font>
+<br>&nbsp;
+<p><b><i><font face="Arial">10.&nbsp;<a NAME="refs"></a>References</font></i></b>
+<ol>
+<li>
+<font size=-1>Erik van der Poel, "String resources",</font></li>
+
+<br><font size=-1>http://www.mozilla.org/projects/intl/string-resources.html</font>
+<li>
+<font size=-1>Daniel Matejka, "XUI Language Spec",</font></li>
+
+<br><font size=-1><a href="http://www.mozilla.org/xpfe/languageSpec.html">http://www.mozilla.org/xpfe/languageSpec.html</a>.</font>
+<li>
+<font size=-1>David Hyatt, "Configurable Chrome",</font></li>
+
+<br><font size=-1>http://www.mozilla.org/xpfe/ConfigChromeSpec.html</font>
+<li>
+<font size=-1>The World Wide Web Consortium, "Extensible Markup Language
+(XML) 1.0",</font></li>
+
+<br><font size=-1><a href="http://www.w3.org/TR/1998/REC-xml-19980210">http://www.w3.org/TR/1998/REC-xml-19980210</a></font>
+<li>
+<font size=-1>The World Wide Web Consortium, "XHTML&amp;trade; 1.0: The
+Extensible HyperText Markup Language, A Reformulation of HTML 4.0 in XML
+1.0", W3C Working Draft 5th May 1999,</font></li>
+
+<br><u><font color="#0000FF"><font size=-1>http://www.w3.org/TR/1999/xhtml1-19990505/</font></font></u>
+<li>
+<font size=-1>The Unicode Consortium, "The Unicode Standard, Version 2.0",
+Addison-Wesley Developers Press. July 1996.</font></li>
+</ol>
+<b><i><font face="Arial">Appendix</font></i></b>
+<br>&nbsp;
+<ol TYPE="A">
+<li>
+<font size=-1>sample XUL document: mozilla/xpfe/broswer/src/openLocation.xul</font></li>
+</ol>
+<font size=-1>1 &lt;?xml version="1.0"?></font>
+<p><font size=-1>2 &lt;?xml-stylesheet href="xul.css" type="text/css"?></font>
+<p><font size=-1>3</font>
+<p><font size=-1>4 &lt;!DOCTYPE window></font>
+<p><font size=-1>5</font>
+<p><font size=-1>6 &lt;window xmlns:html="http://www.w3.org/1999/xhtml"</font>
+<p><font size=-1>7 xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"</font>
+<p><font size=-1>8 onload="onLoad()"</font>
+<p><font size=-1>9 title="Open Location"</font>
+<p><font size=-1>10 width="420"</font>
+<p><font size=-1>11 height="190"></font>
+<p><font size=-1>12</font>
+<p><font size=-1>13 &lt;html:script language="javascript" src="openLocation.js"></font>
+<p><font size=-1>14 &lt;/html:script></font>
+<p><font size=-1>15</font>
+<p><font size=-1>16 &lt;broadcaster id="args" value=""/></font>
+<p><font size=-1>17</font>
+<p><font size=-1>18</font>
+<p><font size=-1>19</font>
+<p><font size=-1>20</font>
+<p><font size=-1>21 &lt;html:center></font>
+<p><font size=-1>22 &lt;html:p/></font>
+<p><font size=-1>23 &lt;html:table width="400" cellspacing="5"></font>
+<p><font size=-1>24 &lt;html:tr></font>
+<p><font size=-1>25 &lt;html:td></font>
+<p><font size=-1>26 Enter the World Wide Web location (URL) you would like
+to open. Use</font>
+<p><font size=-1>27 the Choose File... button to select a local file:</font>
+<p><font size=-1>28 &lt;/html:td></font>
+<p><font size=-1>29 &lt;/html:tr></font>
+<p><font size=-1>30 &lt;html:tr></font>
+<p><font size=-1>31 &lt;html:td></font>
+<ol START=32>
+<li>
+<font size=-1>&lt;html:table cellspacing="5"></font></li>
+
+<li>
+<font size=-1>&lt;html:tr></font></li>
+
+<li>
+<font size=-1>&lt;html:td width="275"></font></li>
+
+<li>
+<font size=-1>&lt;html:input id="dialog.input" style="width:275;"</font></li>
+
+<li>
+<font size=-1>onkeyup="onTyping(event.which)"/></font></li>
+</ol>
+<font size=-1>37 &lt;/html:td></font>
+<p><font size=-1>38 &lt;html:td width="100"></font>
+<p><font size=-1>39 &lt;html:button onclick="choose()">Select File...&lt;/html:button></font>
+<p><font size=-1>40 &lt;/html:td></font>
+<p><font size=-1>41 &lt;/html:tr></font>
+<p><font size=-1>42 &lt;/html:table></font>
+<p><font size=-1>43 &lt;/html:td></font>
+<p><font size=-1>44 &lt;/html:tr></font>
+<p><font size=-1>45 &lt;html:tr></font>
+<p><font size=-1>46 &lt;html:td></font>
+<p><font size=-1>47 &lt;html:table cellspacing="5"></font>
+<p><font size=-1>48 &lt;html:tr></font>
+<p><font size=-1>49 &lt;html:td width="165"></font>
+<ol START=50>
+<li>
+<font size=-1>&lt;html:input id="dialog.newWindow" type="checkbox"/></font></li>
+</ol>
+
+<dir>
+<dir>
+<dir>
+<dir><font size=-1>Open in new window</font></dir>
+</dir>
+</dir>
+</dir>
+<font size=-1>51 &lt;/html:td></font>
+<p><font size=-1>52 &lt;html:td width="70"></font>
+<ol START=53>
+<li>
+<font size=-1>&lt;html:button id="dialog.ok" onclick="open()"</font></li>
+</ol>
+
+<dir>
+<dir>
+<dir>
+<dir><font size=-1>disabled="">Open&lt;/html:button></font></dir>
+</dir>
+</dir>
+</dir>
+<font size=-1>54 &lt;/html:td></font>
+<ol START=55>
+<li>
+<font size=-1>&lt;html:td width="70"></font></li>
+
+<li>
+<font size=-1>&lt;html:button id="dialog.cancel" onclick="cancel()"</font></li>
+
+<li>
+<font size=-1>disabled="">Cancel&lt;/html:button></font></li>
+
+<br>&nbsp;
+<p>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>58 &lt;/html:td></font>
+<li>
+<font size=-1>&lt;html:td width="70"></font></li>
+
+<li>
+<font size=-1>&lt;html:button id="dialog.help" onclick="help()"</font></li>
+
+<li>
+<font size=-1>disabled="">Help&lt;/html:button></font></li>
+</ol>
+<font size=-1>61 &lt;/html:td></font>
+<p><font size=-1>62 &lt;/html:tr></font>
+<p><font size=-1>63 &lt;/html:table></font>
+<p><font size=-1>64 &lt;/html:td></font>
+<p><font size=-1>65 &lt;/html:tr></font>
+<p><font size=-1>66 &lt;/html:table></font>
+<p><font size=-1>67 &lt;html:p/></font>
+<p><font size=-1>68 &lt;/html:center></font>
+<p><font size=-1>69</font>
+<p><font size=-1>70 &lt;/window></font>
+<br>&nbsp;
+<br>&nbsp;
+<p><font size=-1>B. Sample JavaScript file, openLocation.js, associated
+with the XUL document in Appendix A.</font>
+<p><font size=-1>21 var toolkit;</font>
+<p><font size=-1>22 var browser;</font>
+<p><font size=-1>23 var dialog;</font>
+<p><font size=-1>24</font>
+<p><font size=-1>25 function onLoad() {</font>
+<p><font size=-1>26 dialog = new Object;</font>
+<p><font size=-1>27 dialog.input = document.getElementById( "dialog.input"
+);</font>
+<p><font size=-1>28 dialog.ok = document.getElementById( "dialog.ok" );</font>
+<p><font size=-1>29 dialog.cancel = document.getElementById( "dialog.cancel"
+);</font>
+<p><font size=-1>30 dialog.help = document.getElementById( "dialog.help"
+);</font>
+<p><font size=-1>31 dialog.newWindow = document.getElementById( "dialog.newWindow"
+);</font>
+<p><font size=-1>32 dialog.args = document.getElementById( "args" );</font>
+<p><font size=-1>33</font>
+<p><font size=-1>34 toolkit = XPAppCoresManager.Find( "toolkitCore" );</font>
+<p><font size=-1>35 if ( !toolkit ) {</font>
+<p><font size=-1>36 toolkit = new ToolkitCore();</font>
+<p><font size=-1>37 toolkit.Init( "toolkitCore" );</font>
+<p><font size=-1>38 }</font>
+<p><font size=-1>39</font>
+<p><font size=-1>40 browser = XPAppCoresManager.Find( dialog.args.getAttribute(
+"value" ) );</font>
+<p><font size=-1>41 if ( !browser ) {</font>
+<p><font size=-1>42 dump( "unable to get browser app core\n" );</font>
+<p><font size=-1>43 //toolkit.CloseWindow( window );</font>
+<p><font size=-1>44 }</font>
+<p><font size=-1>45</font>
+<p><font size=-1>46 /* Give input field the focus. */</font>
+<p><font size=-1>47 dialog.input.focus();</font>
+<p><font size=-1>48 }</font>
+<p><font size=-1>49</font>
+<p><font size=-1>50 function onTyping( key ) {</font>
+<p><font size=-1>51 // Look for enter key...</font>
+<p><font size=-1>52 if ( key == 13 ) {</font>
+<p><font size=-1>53 // If ok button not disabled, go for it.</font>
+<p><font size=-1>54 if ( !dialog.ok.disabled ) {</font>
+<p><font size=-1>55 open();</font>
+<p><font size=-1>56 }</font>
+<p><font size=-1>57 } else {</font>
+<p><font size=-1>58 // Check for valid input.</font>
+<p><font size=-1>59 if ( dialog.input.value == "" ) {</font>
+<p><font size=-1>60 // No input, disable ok button if enabled.</font>
+<p><font size=-1>61 if ( !dialog.ok.disabled ) {</font>
+<p><font size=-1>62 dialog.ok.setAttribute( "disabled", "" );</font>
+<p><font size=-1>63 }</font>
+<p><font size=-1>64 } else {</font>
+<p><font size=-1>65 // Input, enable ok button if disabled.</font>
+<p><font size=-1>66 if ( dialog.ok.disabled ) {</font>
+<p><font size=-1>67 dialog.ok.removeAttribute( "disabled" );</font>
+<p><font size=-1>68 }</font>
+<p><font size=-1>69 }</font>
+<p><font size=-1>70 }</font>
+<p><font size=-1>71 }</font>
+<p><font size=-1>72</font>
+<p><font size=-1>73 function open() {</font>
+<p><font size=-1>74 if ( dialog.ok.disabled ) {</font>
+<p><font size=-1>75 return;</font>
+<p><font size=-1>76 }</font>
+<p><font size=-1>77</font>
+<p><font size=-1>78 var url = dialog.input.value;</font>
+<p><font size=-1>79</font>
+<p><font size=-1>80 if ( !dialog.newWindow.checked ) {</font>
+<p><font size=-1>81 /* Load url in opener. */</font>
+<p><font size=-1>82 browser.loadUrl( url );</font>
+<p><font size=-1>83 } else {</font>
+<p><font size=-1>84 /* User wants new window. */</font>
+<ol START=85>
+<li>
+<font size=-1>toolkit.ShowWindowWithArgs( "resource:/res/samples/navigator.xul",</font></li>
+</ol>
+
+<dir>
+<dir>
+<dir>
+<dir>
+<dir>
+<dir>
+<dir>
+<dir>
+<dir>
+<dir><font size=-1>window.opener, url );</font></dir>
+</dir>
+</dir>
+</dir>
+</dir>
+</dir>
+</dir>
+</dir>
+</dir>
+</dir>
+<font size=-1>86 }</font>
+<p><font size=-1>87</font>
+<p><font size=-1>88 /* Close dialog. */</font>
+<p><font size=-1>89 //toolkit.CloseWindow( window );</font>
+<p><font size=-1>90 }</font>
+<p><font size=-1>91</font>
+<p><font size=-1>92 function choose() {</font>
+<p><font size=-1>93 /* Use existing browser "open" logic. */</font>
+<p><font size=-1>94 browser.openWindow();</font>
+<p><font size=-1>95 //toolkit.CloseWindow( window );</font>
+<p><font size=-1>96 }</font>
+<p><font size=-1>97</font>
+<p><font size=-1>98 function cancel() {</font>
+<p><font size=-1>99 if ( dialog.cancel.disabled ) {</font>
+<p><font size=-1>100 return;</font>
+<p><font size=-1>101 }</font>
+<p><font size=-1>102 //toolkit.CloseWindow( window );</font>
+<p><font size=-1>103 }</font>
+<p><font size=-1>104</font>
+<p><font size=-1>105 function help() {</font>
+<p><font size=-1>106 if ( dialog.help.disabled ) {</font>
+<p><font size=-1>107 return;</font>
+<p><font size=-1>108 }</font>
+<p><font size=-1>109 dump( "openLocation::help() not implemented\n" );</font>
+<p><font size=-1>110 }</font>
+</body>
+</html>

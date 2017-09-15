@@ -1,0 +1,210 @@
+<HTML>
+<HEAD>
+   <TITLE>NETLIB II Net Context Interface</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+NETLIB II</H1>
+
+<H2>
+<TT>NC</TT>: the Net Context</H2>
+The protocol handler code at times requires resources that may vary from
+connection to connection. For example, access to a password-protected ftp
+site may require the ftp protocol module to prompt for a password; most
+protocol modules will notify observers of significant events; and so on.
+
+<P>These can be seen as a set of callbacks that the caller must provide
+to the URL Connection. We have grouped these callbacks together as methods
+in an interface, called the Net Context. This interface provides the per-connection
+context required for the netlib to work.
+
+<P>We imagine that there will be several types that implement this interface:
+one for each front-end, perhaps one for each front-end for mail/news windows,
+a ``null'' context used internally (by, e.g., the image library), and one
+or more used in server situations. I would guess that there would be one
+instance per window, but the details of this are up to the callers.
+
+<P>Note that there is no such thing as a Net Context Group. Never was,
+never will be.
+<H3>
+Definition</H3>
+This interface is defined in java, and is compiled with JMC. The C syntax
+is included in each method description, and is summarised below.
+<BR>
+<CENTER><TABLE BORDER CELLSPACING=0 CELLPADDING=0 >
+<TR>
+<TD>
+<PRE>package netscape.net;
+
+import netscape.jmc.*;
+import netscape.types.*;
+import netscape.url.URL;
+
+public abstract interface NC {
+  // popups
+  public abstract boolean <A HREF="#confirm">confirm</A>(TextMessage m) throws Exception;
+  public abstract String <A HREF="#prompt">prompt</A>(TextMessage m, String d) throws Exception;
+  public abstract String <A HREF="#getPassword">getPassword</A>(TextMessage m) throws Exception;
+
+  // registerCallback is needed for multithreading
+  // public abstract void <A HREF="#registerCallback">registerCallback</A>(PREventQueue queue, Callback callback, Object arg) throws Exception;
+
+  // Instructions to the front end to go do something.  Legacy.
+  public abstract void <A HREF="#doRemoteHost">doRemoteHost</A>(int url_type, String host, String port, String username) throws Exception;
+  public abstract void <A HREF="#setRefreshURLTimer">setRefreshURLTimer</A>(int seconds, <A HREF="URL.html">URL</A> url) throws Exception;
+
+  // Dynamic observation points
+  public abstract void <A HREF="#observe">observe</A>(String name, Observer proc, Object addArg) throws Exception;
+  public abstract void <A HREF="#notify">notify</A>(String name, int message, Object notifyArg) throws Exception;
+}</PRE>
+</TD>
+</TR>
+
+<CAPTION ALIGN=BOTTOM><I><TT><A HREF="NC.java"></A></TT></I> </CAPTION>
+</TABLE></CENTER>
+
+<H3>
+Interface Methods</H3>
+
+<UL>
+<LI>
+There is no creation method. This is an interface. Each type that implements
+this interface, however, has some sort of creation method or factory type;
+see the actual implementations for descriptions.</LI>
+
+<LI>
+<A NAME="confirm"></A><TT>confirm</TT></LI>
+
+<BR>This method takes a text message, uses it to prompt the luser in some
+appropriate way, and returns the yes/no response as a boolean. Note that
+a server without some way of finding or deriving the answer may choose
+to throw an exception to abort the operation.
+
+<P>The C signature of this method is:
+<CENTER><TT>jbool NC_confirm(NC *self, struct TextMessage a, JMCException
+**e);</TT></CENTER>
+
+<LI>
+<A NAME="prompt"></A><TT>prompt</TT></LI>
+
+<BR>This method takes a text message and default response, and prompts
+the luser. The response is returned as a string.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *NC_prompt(NC *self, struct TextMessage a, const
+char *b, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="getPassword"></A><TT>getPassword</TT></LI>
+
+<BR>This method also prompts the luser for a response, but the user dialogue
+does not display the luser's data. Further, there is no default.
+
+<P>The C signature of this method is:
+<CENTER><TT>const char *NC_getPassword(NC *self, struct TextMessage a,
+JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="registerCallback"></A><TT>registerCallback</TT></LI>
+
+<BR>This method, elided for the moment, will be used if a protocol handler
+has to create another thread that must interact with the front-end event
+loop. This method registers with the front end some sort of NSPR event
+object, and a callback to be called when the event has occurred. The primary
+need for this was the synchronous/asynchronous netlib gateway, which wrapped
+the new threaded netlib in the old asynchronous API.
+
+<P>As this method can be troublesome, and as the now-forseen clients of
+the netlib do not necessarily need the old asynchronous semantics, this
+method has been elided for now.
+<LI>
+<A NAME="doRemoteHost"></A><TT>doRemoteHost</TT></LI>
+
+<BR>This legacy callback is used when a protocol handler wishes to ask
+the front end to start up a telnet, rlogin, or tn3270 session. The ``<I><TT>url_type</TT></I>''
+argument is defined in <TT>purl.h</TT>. The ``<I><TT>host</TT></I>,'' ``<I><TT>port</TT></I>,''
+and ``<I><TT>username</TT></I>'' arguments are strings, the latter of which
+may contain a password using usual URL syntax.
+
+<P>The C signature of this method is:
+<CENTER><TT>void NC_doRemoteHost(NC *self, jint url_type, const char *host,
+const char *port, const char *username, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="setRefreshURLTimer"></A><TT>setRefreshURLTimer</TT></LI>
+
+<BR>This legacy callback is used when the protocol handler itself wishes
+to have the front-end refresh (or redirect) the current document to a specific
+URL after some interval. This is how the HTTP protocol refresh directive
+is handled.
+
+<P>The C signature of this method is:
+<CENTER><TT>void NC_setRefreshURLTimer(NC *self, jint seconds, <A HREF="URL.html">URL</A>
+*url, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="observe"></A><TT>observe</TT></LI>
+
+<BR>This method is used to register event observers. I would expect that,
+typically, the front end that creates an object implementing <TT>NC</TT>
+will ``pre-register'' several observers for various named events. Perhaps
+this method is used to do that. However, this method allows any other code
+that gets ahold of this net context to also register observers.
+
+<P>The C signature of this method is:
+<CENTER><TT>void NC_observe(NC *self, const char *name, XP_ObserverProc
+proc, void *addArg, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="notify"></A><TT>notify</TT></LI>
+
+<BR>This method is called by the protocol handlers to notify observers
+that certain named events have taken place. As this observation/notification
+system was, by request, based upon the one defined in <TT>xp_obs.h</TT>,
+it inherits that system's inherent synchronous semantics.
+
+<P>The C signature of this method is:
+<CENTER><TT>void NC_notify(NC *self, const char *name, jint message, void
+*notifyArg, JMCException **e);</TT></CENTER>
+</UL>
+
+<H3>
+Inherited Methods</H3>
+Although this interface does not inherit anything, note that all objects
+implementing this interface will inherit the usual <A HREF="JMCObject.html">JMC
+base methods</A>.
+<H3>
+C interface</H3>
+
+<CENTER><TABLE BORDER CELLSPACING=0 CELLPADDING=0 >
+<TR>
+<TD>
+<PRE><TT>#include "NC.h"
+
+jbool <A HREF="#confirm">NC_confirm</A>(NC *self, struct TextMessage a, JMCException **e);
+const char *<A HREF="#prompt">NC_prompt</A>(NC *self, struct TextMessage a, const char *b, JMCException **e);
+const char *<A HREF="#getPassword">NC_getPassword</A>(NC *self, struct TextMessage a, JMCException **e);
+void <A HREF="#doRemoteHost">NC_doRemoteHost</A>(NC *self, jint url_type, const char *host, const char *port, const char *username, JMCException **e);
+void <A HREF="#setRefreshURLTimer">NC_setRefreshURLTimer</A>(NC *self, jint seconds, <A HREF="URL.html">URL</A> *url, JMCException **e);
+void <A HREF="#observe">NC_observe</A>(NC *self, const char *name, XP_ObserverProc proc, void *addArg, JMCException **e);
+void <A HREF="#notify">NC_notify</A>(NC *self, const char *name, jint message, void *notifyArg, JMCException **e);
+
+/* methods inherited from base JMC object interface */
+void *<A HREF="JMCObject.html#getInterface">NC_getInterface</A>(NC *self, JMCInterfaceID id, JMCException **e);
+void <A HREF="JMCObject.html#addRef">NC_addRef</A>(NC *self, JMCException **e);
+void <A HREF="JMCObject.html#release">NC_release</A>(NC *self, JMCException **e);
+jint <A HREF="JMCObject.html#hashCode">NC_hashCode</A>(NC *self, JMCException **e);
+void *<A HREF="JMCObject.html#clone">NC_clone</A>(NC *self, JMCException **e);
+const char *<A HREF="JMCObject.html#toString">NC_toString</A>(NC *self, JMCException **e);
+void <A HREF="JMCObject.html#finalize">NC_finalize</A>(NC *self, JMCException **e);</TT></PRE>
+</TD>
+</TR>
+</TABLE></CENTER>
+
+<HR WIDTH="100%">
+<ADDRESS>
+Written by <A HREF="about:roeber">Frederick</A> at 18:32 17.03.1997.</ADDRESS>
+
+</BODY>
+</HTML>

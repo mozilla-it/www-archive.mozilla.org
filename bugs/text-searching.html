@@ -1,0 +1,2173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+    <title>Text Searching in Bugzilla</title>
+
+<meta name="DC.author" content="Sean Richardson">
+<meta name="DC.title" content="Text Searching in Bugzilla">
+<meta name="DC.subject" content="Text Searching in Bugzilla">
+<meta name="DC.description" content="Text Searching in Bugzilla">
+<meta name="DC.date.created" content="2000-08-11T09:54:03+11:00" scheme="W3CDTF">
+<meta name="DC.date.modified" content="2006-08-21T09:54:03+11:00" scheme="W3CDTF">
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+    <form method="get" action="">
+        <h1 style="text-align: center;">Text Searching in Bugzilla</h1>
+
+
+        <p class="author"><strong>By</strong> <a href=
+        "mailto:sidr@albedo.net?subject=Bugzilla Text Searching"><strong>Sean
+        Richardson</strong></a></p>
+
+
+        <p>Often a query including a well chosen text search pattern can result
+        in a list of bugs that has both more relevant and fewer irrelevant bugs
+        than would be listed if a simple substring was used. That translates
+        directly to less time wasted repeating similar queries or looking
+        through long bug lists.</p>
+
+
+        <p>With experience, and some background knowledge about how the various
+        text search types available in Bugzilla work, you can make Bugzilla
+        queries that are faster and better targeted. This guide is designed to
+        provide you with enough background knowledge and real-life examples to
+        be able use the other text matching types mozilla offers (especially
+        <a href="#regex">regular expressions</a>) -- and that's how
+        you'll get the experience.</p>
+
+        <h2><a name="search types">Search Types</a></h2>
+
+        <div style="margin-left: 2em;">
+            <p>Bugzilla provides six types of text searches within the Summary,
+            the description and comments, and the status whiteboard. Often
+            there is more than one way to do a text search, but each search
+            type is best for some purposes:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="3">
+                    <tr>
+                        <td> <select name=
+                        "short_desc_type_01">
+                            <option value="substring" selected>
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select></td>
+
+                        <td>Good for matching single words (no variations) or
+                        exact phrases </td>
+                    </tr>
+
+
+                    <tr>
+                        <td> <select name=
+                        "short_desc_type_02">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring" selected>
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select></td>
+
+                        <td>Good for the rare searches where case must match
+                        exactly. </td>
+                    </tr>
+
+
+                    <tr>
+                        <td> <select name=
+                        "short_desc_type_02">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords" selected>
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select></td>
+
+                        <td>Good for requiring that two or more words (no
+                        variations) must appear. </td>
+                    </tr>
+
+
+                    <tr>
+                        <td> <select name=
+                        "short_desc_type_02">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords" selected>
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select></td>
+
+                        <td>Good for matching if any of a list of synonyms
+                        match; no variations. </td>
+                    </tr>
+
+
+                    <tr>
+                        <td> <select name=
+                        "short_desc_type_02">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select></td>
+
+                        <td>Good for matching variations on a text
+                        pattern. </td>
+                    </tr>
+
+
+                    <tr>
+                        <td> <select name=
+                        "short_desc_type_02">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp" selected>
+                                not ( regular expression )
+                            </option>
+                        </select></td>
+
+                        <td>Good for excluding matches of a text pattern with
+                        variations. </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Substring searches match exactly within the text, but word
+            boundaries do not matter. That's good if you want to match widely
+            -- "<tt>color</tt>" will match any of "<tt>color</tt>",
+            "<tt>bgcolor</tt>", "<tt>colored</tt>", and more -- but it is not
+            so good if you want to match more specifically. As an example,
+            using <strong>case-insensitive substring</strong> matching,
+            "<tt>scroll</tt>" will match text including "<tt>scrollbar</tt>" or
+            "<tt>Scroll Bar</tt>", but it will also match text including
+            "<tt>autoscroll</tt>" or "<tt>scrolling</tt>".</p>
+
+
+            <p><strong>Case-sensitive substring</strong> matching is the best
+            choice when searching for an acronym whose letters can also be
+            found in the middle of words, especially if you end up with many
+            irrelevant bugs on the list otherwise. Be aware though, that very
+            common acronyms ( e.g., html, css) may not be capitalized in bug
+            summaries.</p>
+
+
+            <p>If you use the <strong>all words</strong> search type, each word
+            you list must appear in the text to get a match. There can be no
+            variations, but the search is case insensitive. For example,
+            "<tt>cell border</tt>" will match text that contains both
+            "<tt>cell</tt>" and "<tt>border</tt>", no matter what case, but if
+            "<tt>cells</tt>" appears instead of "<tt>cell</tt>" or
+            "<tt>bordering</tt>" instead of "<tt>border</tt>", no match will be
+            found. If you find yourself scanning a long bug list for a second
+            search word, the <strong>all words</strong> search type might work
+            better.</p>
+
+
+            <p>The <strong>any words</strong> search type is good for synonyms.
+            Again, only exact word-for-word matches are found, and the search
+            is case-insensitive. So "<tt>center middle</tt>" will match any
+            text containing any of "<tt>center</tt>", "<tt>Middle</tt>",
+            "<tt>CENTER</tt>", etc., but not text containing
+            "<tt>centered</tt>".</p>
+
+
+            <p>The <strong>regular expression</strong> search type is the most
+            versatile. As an example, "<tt>[Ss]croll.?[Bb]ar</tt>" will match
+            variations on "<tt>scrollbar</tt>" without matching other text that
+            happens to have the substring "<tt>scroll</tt>" in it.</p>
+
+
+            <p>Finally, the <strong>not (regular expression)</strong> search
+            type allows you to specify that matching bugs cannot contain
+            certain text.</p>
+
+
+            <p>The focus in the rest of this guide is on regular expression
+            (regex) text searching because they give the most versatility and
+            precision, so, for those who aren't familiar, this guide includes a
+            <a href="#regex">tutorial</a>. If you are already familiar
+            with regex searching, skip to the <a href=
+            "#real-life">Real-life Examples</a> section. It explains
+            which search types work best for common text searching
+            scenarios.</p>
+        </div>
+
+        <h2><a name="regex">Regex Basics</a></h2>
+
+        <div style="margin-left: 2em;">
+            <p>To use regular expressions you create a <em>pattern</em>, which
+            is a combination of literal characters, as in substring matching,
+            and operators. The operators let you create constraints for the
+            match that would be impossible with substring matching. This lets
+            you create patterns that will match variations you want without
+            widening the search to the point that you get many unuseful matches
+            to get the matches you wanted.</p>
+
+
+            <h3>Character and Position Matching</h3>
+            <p>All alphanumeric characters, and some others, match themselves
+            literally. Other characters and sequences of characters are
+            <em>operators</em>, and do not match literally. To match a
+            character used as an operator literally, precede it with
+            "<tt>\</tt>". This applies to <em>all</em> characters, so if in
+            doubt, use the backslash. For example, "<tt>\^</tt>" matches
+            "<tt>^</tt>", and "<tt>\\</tt>", of course, matches
+            "<tt>\</tt>".</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>a</strong></tt> </td>
+
+                        <td>matches the single character "<tt>a</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>.</strong></tt> </td>
+
+                        <td>matches any character</td>
+                    </tr>
+
+
+                    <tr>
+                        <td> <tt><strong>\.</strong></tt> </td>
+
+                        <td>matches <em>only</em> "<tt>.</tt>" and no other
+                        character</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>The first set of operators match specific positions in the
+            text:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>^</strong></tt> </td>
+
+                        <td>matches the beginning of the text</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>$</strong></tt> </td>
+
+                        <td>matches the end of the text</td>
+                    </tr>
+
+
+                    <tr>
+                        <td> <tt><strong>[[:&lt;:]]</strong></tt> </td>
+
+                        <td>matches the point between the last non-word
+                        character and the beginning of a word</td>
+                    </tr>
+
+
+                    <tr>
+                        <td> <tt><strong>[[:&gt;:]]</strong></tt> </td>
+
+                        <td>matches the point between the last character of a
+                        word and the following non-word character</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>The last two look odd but are very powerful.
+            "<tt>[[:&lt;:]]a</tt>" will match any "<tt>a</tt>" that is at the
+            beginning of a word (defined as a contiguous sequence of alphabetic
+            characters and underscore), but no other "<tt>a</tt>". Similarly,
+            "<tt>z[[:&gt;:]]</tt>" will match any "<tt>z</tt>" at the end of a
+            word, but no other "<tt>z</tt>".<br>
+            Examples:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>zilla</strong></tt> </td>
+
+                        <td>matches the "<tt>zilla</tt>" in any text containing
+                        it, including "<tt>Bugzilla</tt>" or
+                        "<tt>mozilla.org</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>^bar</strong></tt> </td>
+
+                        <td>matches "<tt>bar</tt>" but not "<tt>foobar</tt>" or
+                        "<tt>button bar</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>foo$</strong></tt> </td>
+
+                        <td>matches "<tt>foo</tt>" or "<tt>bugzap foo</tt>" but
+                        not "<tt>foobar</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>.</strong></tt> </td>
+
+                        <td>matches any single character (and thus the first
+                        character of any text with at least one)</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>.n</strong></tt> </td>
+
+                        <td>matches "<tt>an</tt>", "<tt>on</tt>",
+                        "<tt>3n</tt>", etc.</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>[[:&lt;:]]tip</strong></tt> </td>
+
+                        <td>matches "<tt>tip</tt>" but not "<tt>tooltip</tt>"
+                        (no alpha characters before "<tt>tip</tt>")</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>tip[[:&gt;:]]</strong></tt> </td>
+
+                        <td>matches "<tt>tip</tt>" but not "<tt>multiple</tt>"
+                        (no alpha characters after "<tt>tip</tt>")</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>[[:&lt;:]]tip[[:&gt;:]]</strong></tt> </td>
+
+                        <td>matches "<tt>tip</tt>" but not "<tt>tooltip</tt>"
+                        or "<tt>multiple</tt>"</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <h3>Character Classes</h3>
+            <p>A sequence of ordinary characters placed inside square brackets
+            will match a single character if any of them match. A character
+            class can be negated by prepending "<tt>^</tt>" inside the
+            beginning square bracket. A range can be specified using
+            "<tt>-</tt>" between the beginning and end of the range.</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>[</strong></tt> </td>
+
+                        <td>begins a character class</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>]</strong></tt> </td>
+
+                        <td>ends a character class</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>^</strong></tt> </td>
+
+                        <td>used <em>inside</em> square brackets, it negates
+                        the character class</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>-</strong></tt> </td>
+
+                        <td>used <em>inside</em> square brackets, it separates
+                        the beginning and end of a range</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Regex patterns are case sensitive, so one of the uses of
+            character classes is to match either upper or lower case for a
+            letter. Examples:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>[abc]</strong></tt> </td>
+
+                        <td>matches <em>one of</em> "<tt>a</tt>", "<tt>b</tt>",
+                        or "<tt>c</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>[abc][abc]</strong></tt> </td>
+
+                        <td>matches the "<tt>ac</tt>" in "<tt>action</tt>", but
+                        not any part of "<tt>auction</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>[Mm]ozilla</strong></tt> </td>
+
+                        <td>matches "<tt>Mozilla</tt>" or
+                        "<tt>mozilla</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center"> <tt><strong>Windows
+                        [^N2]</strong></tt> </td>
+
+                        <td>matches "<tt>Windows 95</tt>" or
+                        "<tt>Windows 98</tt>" or "<tt>Windows ME</tt>", but not
+                        "<tt>Windows NT</tt>" or "<tt>Windows 2000</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>[x-zX-Z]</strong></tt> </td>
+
+                        <td>matches <em>one of</em> "<tt>x</tt>", "<tt>y</tt>",
+                        "<tt>z</tt>", "<tt>X</tt>", "<tt>Y</tt>" or
+                        "<tt>Z</tt>"</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <h3>Alternation</h3>
+            <p>A "<tt>|</tt>" between any sequence of matching characters and
+            another is a logical OR: if either part matches, the regex has
+            matched.</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>|</strong></tt> </td>
+
+                        <td>matches nothing on its own, but lets the regex
+                        match if either the pattern before or after
+                        matches</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Examples:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>slider|thumb</strong></tt> </td>
+
+                        <td>matches any string containing either
+                        "<tt>slider</tt>" or "<tt>thumb</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>DULL|dull</strong></tt> </td>
+
+                        <td>matches "<tt>DULL</tt>" or "<tt>dull</tt>", but not
+                        "<tt>Dull</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>DULL|dull|Dull</strong></tt> </td>
+
+                        <td>matches any of "<tt>DULL</tt>", "<tt>dull</tt>", or
+                        "<tt>Dull</tt>"</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <h3>Repetition Operators</h3>
+            <p>The repetition operators give regex patterns much of their
+            flexibility, by letting you specify that some parts of the pattern
+            may or may not appear, or can appear more than once, while other
+            parts of the pattern must appear exactly as specified.</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>?</strong></tt> </td>
+
+                        <td>matches zero or one of the preceding character or
+                        sequence</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>*</strong></tt> </td>
+
+                        <td>matches zero or more (any number) of the preceding
+                        character or sequence</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>+</strong></tt> </td>
+
+                        <td>matches one or more of the preceding character or
+                        sequence</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Examples:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>colou?r</strong></tt> </td>
+
+                        <td> matches "<tt>color</tt>" or "<tt>colour</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center"> <tt><strong>[Ww]in
+                        ?32</strong></tt> </td>
+
+                        <td> matches "<tt>Win32</tt>", "<tt>Win 32</tt>",
+                        "<tt>win32</tt>", or "<tt>win 32</tt>"</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>app.*s</strong></tt> </td>
+
+                        <td> matches "<tt>apps</tt>", "<tt>apples</tt>",
+                        "<tt>applications</tt>" , "<tt>application forms</tt>",
+                        etc. </td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>cho+se</strong></tt> </td>
+
+                        <td> matches "<tt>chose</tt>" or "<tt>choose</tt>" (or
+                        "<tt>choooooose</tt>") </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <h3>Sequence Grouping</h3>
+            <p>Any sequence of matching characters can be surrounded with
+            parentheses to group it as a single unit. On its own this does
+            little except force you to use "<tt>\(</tt>" to match "<tt>(</tt>",
+            but combined with the repetition and alternation operators, and
+            character classes, it can be very powerful.</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>(</strong></tt> </td>
+
+                        <td>matches nothing on its own; delimits the beginning
+                        of a sequence</td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>)</strong></tt> </td>
+
+                        <td>matches nothing on its own; delimits the end of a
+                        sequence</td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Examples:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="1" cellpadding="5">
+                    <tr>
+                        <td valign="top" align="center">
+                         <tt><strong>win(dow)?</strong></tt> </td>
+
+                        <td>matches "<tt>win</tt>" or "<tt>window</tt>" but not
+                        "<tt>windscreen</tt>" </td>
+                    </tr>
+
+
+                    <tr>
+                        <td valign="top" align="center"> <tt><strong>(MacOS|Mac
+                        OS) ?8\.[^0]</strong></tt> </td>
+
+                        <td>matches "<tt>MacOS8.1</tt>" or
+                        "<tt>Mac OS 8.5</tt>", but not "<tt>Mac OS 8.0 or
+                        "</tt>Mac OS 8" </td>
+                    </tr>
+
+
+                    <tr>
+                        <td>
+                         <tt><strong>(MSVC.*|msvc.*).(DLL|dll)</strong></tt> </td>
+
+                        <td valign="top">"matches "<tt>MSVCRT.DLL</tt>" or
+                        "<tt>msvc40rt.dll</tt>", among others </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>One final note: regex patterns are tried in every position of
+            the text until they match or there is no more text. That means that
+            "<tt>abc</tt>" will match anywhere in the text, just as if it were
+            "<tt>.*abc.*</tt>", so there is never any need to use "<tt>.*</tt>"
+            at the beginning or end of a pattern.</p>
+        </div>
+
+        <h2><a name="real-life">Real-life Examples</a></h2>
+
+
+        <div style="margin-left: 2em;">
+            <p>Following are a number of types of text searches where substring
+            matching on its own cannot give the best results. For each type,
+            examples of possible searches are given exactly as they would be
+            entered into the Bugzilla query page.</p>
+
+
+            <h3>Synonyms</h3>
+            <p>Often there are technical and non-technical names for the same UI
+            elements. If you want to find bugs using any of them and no other
+            limitations are needed, it is easiest to just use the <tt>Any
+            Words</tt> search type. For example:</p>
+            <!--  Maintenance Note:
+                Make sure if any INPUT or SELECT elements are added for additional
+                examples, that their names are unique, or you'll be wondering
+                why the wrong contents are displayed in some of the widgets.
+                (Workaround: disable the caches or shift-reload).              -->
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_aa" size="30" value=
+                        "cursor pointer">
+                        </td>
+
+                        <td><select name="short_desc_type_aa">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords" selected>
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Other times, the search needs to be more specific. For example,
+            the scrollbar thumb is also knows as a slider. The example below
+            will match either "<tt>scrollbar thumb</tt>" or "<tt>scrollbar
+            slider</tt>":</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_a" size="30" value=
+                        "scroll.?bar (thumb|slider)">
+                        </td>
+
+                        <td><select name="short_desc_type_a">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Another way to do that search would be to search in both the
+            summary and the description, on the assumption that key words
+            mentioned in the summary will also appear in the description. The
+            example below will match either "<tt>scrollbar thumb</tt>" or
+            "<tt>scrollbar slider</tt>", and also text like "<tt>the thumb of
+            the scrollbar</tt>": :</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_b" size="30" value=
+                        "thumb slider">
+                        </td>
+
+                        <td><select name="short_desc_type_b">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords" selected>
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+
+
+                    <tr>
+                        <td align="right">Description:</td>
+
+                        <td><input name="short_desc_c" size="30" value=
+                        "scroll.?bar">
+                        </td>
+
+                        <td><select name="short_desc_type_c">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>For a more complex example, consider searching for bugs about
+            the middle mouse button, which some know by other names:
+            "<tt>((center|centre|middle) (mouse|button))|button 2</tt>" will
+            match text containing any of: "<tt>center mouse button</tt>",
+            "<tt>button 2</tt>" "<tt>middle button</tt>", "<tt>centre
+            mouse</tt>", among other variations:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_d" size="50" value=
+                        "((center|centre|middle) (mouse|button))|button 2">
+                        </td>
+
+                        <td><select name="short_desc_type_d">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <h3>Compound words</h3>
+            <p>Rather than making up to three substring or word searches for
+            compound words, it is easier to do a regex search that covers all
+            of the possibilities. "<tt>mouse.?over</tt>" will match "<tt>mouse
+            over</tt>", "<tt>mouse-over</tt>", or "<tt>mouseover</tt>":</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_e" size="30" value=
+                        "mouse.?over">
+                        </td>
+
+                        <td><select name="short_desc_type_e">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <h3>Similar words</h3>
+            <p>Suppose you were looking for bugs about mousing actions. You might
+            use the following regex pattern:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_f" size="30" value=
+                        "mouse.?(down|up|over|out)">
+                        </td>
+
+                        <td><select name="short_desc_type_f">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Some words, like "<tt>colour</tt>" or "<tt>grey</tt>" are
+            spelled differently by English speakers outside the U.S., many of
+            whom enter bug reports using their native spelling. Simple regex
+            patterns will match the spelling variants:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_g" size="35" value=
+                        "background colou?r|BGCOLOR|bgcolor">
+                        </td>
+
+                        <td><select name="short_desc_type_g">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+                 
+
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_h" size="30" value=
+                        "gr[ae]y">
+                        </td>
+
+                        <td><select name="short_desc_type_h">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+
+                        <td style="background-color: white;"><em>or</em></td>
+                    </tr>
+
+
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_h" size="30" value="gr.y">
+                        </td>
+
+                        <td><select name="short_desc_type_h">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <h3>Varied compound words</h3>
+            <p>The pattern "<tt>(left|right).?click</tt>" will match
+            "<tt>left-click</tt>", "<tt>right click</tt>",
+            "<tt>rightclick</tt>" or "<tt>left-clicked</tt>", among other
+            variations:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_i" size="30" value=
+                        "(left|right).?click">
+                        </td>
+
+                        <td><select name="short_desc_type_i">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <h3>Varied phrases</h3>
+            <p>If a a query using a specific phrase results in a short bug list,
+            try using a regex pattern that allows for other wordings --
+            particularly if you found variants of that phrase in the comments
+            added to the bugs on the list.</p>
+
+
+            <p>As an example, the pattern "<tt>[Ff]ind .n .*[Pp]age</tt>" will
+            match "<tt>Find in this Page</tt>", "<tt>find on page</tt>", or
+            "<tt>Find On The Page</tt>", among other variations.</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_j" size="30" value=
+                        "[Ff]ind .n .*[Pp]age">
+                        </td>
+
+                        <td><select name="short_desc_type_j">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>The pattern "<tt>horiz.*scroll</tt>" will match "<tt>horizontal
+            scrollbar</tt>", "<tt>horiz. scroll</tt>", or "<tt>horizontal
+            scrolling</tt>", among other variations:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_k" size="30" value=
+                        "horiz.*scroll">
+                        </td>
+
+                        <td><select name="short_desc_type_k">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <h2><a name="case-insensitive">Case-insensitive Searching</a></h2>
+
+        <div style="margin-left: 2em;">
+            <p>There is no case-insensitive regex matching in any Bugzilla
+            implementation that uses MySQL as its database engine. This isn't
+            as much of a limitation as it might seem, as there is almost always
+            another approach that can be used.</p>
+
+
+            <p>Although the form does not say so, both the "<tt>all words</tt>"
+            and "<tt>any words</tt>" search types are case-insensitive, so the
+            following example will find all bugs with both "<tt>table</tt>" and
+            "<tt>border</tt>" in the summary, no matter what case or what order
+            they appear in:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_l" size="30" value=
+                        "table border">
+                        </td>
+
+                        <td><select name="short_desc_type_l">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords" selected>
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>You can also do a case-insensitive search in the summary for the
+            word that may be in upper, lower, or mixed case, and search in the
+            description for the other search words, like so:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_m" size="30" value="table">
+                        </td>
+
+                        <td><select name="short_desc_type_m">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords" selected>
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+
+
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Description: </td>
+
+                        <td><input name="long_desc_b" size="30" value=
+                        "embedded nested">
+                        </td>
+
+                        <td><select name="long_desc_type_b">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords" selected>
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>Note that the previous example will find bugs with either
+            "<tt>embed</tt>" or "<tt>nest</tt>" in the description, but will
+            not match variations like "<tt>embedding</tt>" or
+            "<tt>nesting</tt>". To match those as well, use a regex pattern
+            instead:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_n" size="30" value="TR TD">
+                        </td>
+
+                        <td><select name="short_desc_type_n">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords" selected>
+                                any words
+                            </option>
+
+                            <option value="regexp">
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+
+
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Description: </td>
+
+                        <td><input name="long_desc_c" size="30" value=
+                        "EMBED|[Ee]mbed|NEST|[Nn]est">
+                        </td>
+
+                        <td><select name="long_desc_type_c">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <p>If all the search words <em>must</em> appear in the summary, you
+            can use the boolean charts to match a case-insensitive substring,
+            as shown in the next section.</p>
+
+
+            <p>Finally, if you want to be sure, and you need to use regex
+            patterns, you can always use character classes for every character,
+            like so:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_o" size="30" value=
+                        "[Hh][Tt][Mm][Ll].?4.*">
+                        </td>
+
+                        <td><select name="short_desc_type_o">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <h3><a name="boolean">Using the Boolean Charts</a></h3>
+
+
+        <div style="margin-left: 2em;">
+            <p>By using the <a href=
+            "http://bugzilla.mozilla.org/booleanchart.html">Boolean charts</a>
+            feature of the query page, you can <strong>AND</strong> together
+            more than one regex pattern: useful when you can't predict what
+            order two regex expressions might appear in.</p>
+
+
+            <p>For example, to find bugs about context menus on the scrollbar,
+            not knowing whether the scrollbar will be mentioned first or not,
+            specify one regex pattern in the Summary field and the other in the
+            Boolean Chart:</p>
+
+
+            <div style="margin-left: 2em;">
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td align="right"> Summary: </td>
+
+                        <td><input name="short_desc_p" size="30" value=
+                        "context|right.?click">
+                        </td>
+
+                        <td><select name="short_desc_type_p">
+                            <option value="substring">
+                                case-insensitive substring
+                            </option>
+
+                            <option value="casesubstring">
+                                case-sensitive substring
+                            </option>
+
+                            <option value="allwords">
+                                all words
+                            </option>
+
+                            <option value="anywords">
+                                any words
+                            </option>
+
+                            <option value="regexp" selected>
+                                regular expression
+                            </option>
+
+                            <option value="notregexp">
+                                not ( regular expression )
+                            </option>
+                        </select>
+                        </td>
+                    </tr>
+                </table>
+
+
+                <table border="0" style="background-color: #FC9; color: black;"
+                cellspacing="3" cellpadding="2">
+                    <tr>
+                        <td><select name="field0-0-0">
+                            <option value="noop">
+                                ---
+                            </option>
+
+                            <option value="groupset">
+                                groupset
+                            </option>
+
+                            <option value="everconfirmed">
+                                everconfirmed
+                            </option>
+
+                            <option value="bug_id">
+                                Bug #
+                            </option>
+
+                            <option value="short_desc" selected>
+                                Summary
+                            </option>
+                        </select><select name="type0-0-0">
+                            <option value="noop">
+                                ---
+                            </option>
+
+                            <option value="regexp" selected>
+                                contains regexp
+                            </option>
+
+                            <option value="lessthan">
+                                less than
+                            </option>
+
+                            <option value="greaterthan">
+                                greater than
+                            </option>
+                        </select><input name="value0-0-0" size="25" value=
+                        "scroll.?bar|Scroll.?bar">
+                        </td>
+
+                        <td><input type="submit" value="Or" name="cmd-add0-0-1"
+                        onclick=
+                        "document.forms[0].action='query.cgi#chart' ; document.forms[0].method='POST' ; return 1;">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <h3><a name="part_of_query">Text searching as part of a query</a></h3>
+
+        <div style="margin-left: 2em;">
+            <p>As powerful as regex pattern matching and boolean charts are,
+            neither one is the only tool you'll use. Text searching will
+            normally be done as part of a query that includes other
+            constraints, and it is easier and more efficient to constrain your
+            search using other fields when you can, rather than trying to
+            specify multiple constraints using only text matching.</p>
+
+
+            <p>For example, rather than creating a regex pattern to match
+            variations on Windows operating system names, select each of them
+            from the Operating System field, using ctrl-click or cmd-click, to
+            constrain your search to bugs that afflict Windows. Or, to use a
+            Mozilla example, rather than matching "<tt>table</tt>" as text, it
+            is easier to constrain the Component to "<tt>HTMLTables</tt>".
+            Setting the Product or Version may also help.</p>
+
+
+            <p>If you remember seeing a bug before and you are searching for it
+            again, you might be able to narrow down a date range for its
+            creation, and reduce the bug list to only those entered in that
+            period:</p>
+
+
+            <table border="0" style="background-color: #FC9; color: black;"
+            cellpadding="2">
+                <tr>
+                    <td rowspan="2" align="right">Where the field(s)</td>
+
+                    <td rowspan="2"><select name="chfield" multiple="multiple" size="4">
+                        <option value="[Bug creation]" selected>
+                            [Bug creation]
+                        </option>
+
+                        <option value="assigned_to">
+                            assigned_to
+                        </option>
+
+                        <option value="bug_file_loc">
+                            bug_file_loc
+                        </option>
+
+                        <option value="bug_severity">
+                            bug_severity
+                        </option>
+
+                        <option value="bug_status">
+                            bug_status
+                        </option>
+
+                        <option value="component">
+                            component
+                        </option>
+
+                        <option value="everconfirmed">
+                            everconfirmed
+                        </option>
+
+                        <option value="groupset">
+                            groupset
+                        </option>
+
+                        <option value="keywords">
+                            keywords
+                        </option>
+
+                        <option value="op_sys">
+                            op_sys
+                        </option>
+
+                        <option value="priority">
+                            priority
+                        </option>
+
+                        <option value="product">
+                            product
+                        </option>
+
+                        <option value="qa_contact">
+                            qa_contact
+                        </option>
+
+                        <option value="rep_platform">
+                            rep_platform
+                        </option>
+
+                        <option value="reporter">
+                            reporter
+                        </option>
+
+                        <option value="resolution">
+                            resolution
+                        </option>
+
+                        <option value="short_desc">
+                            short_desc
+                        </option>
+
+                        <option value="status_whiteboard">
+                            status_whiteboard
+                        </option>
+
+                        <option value="target_milestone">
+                            target_milestone
+                        </option>
+
+                        <option value="version">
+                            version
+                        </option>
+
+                        <option value="votes">
+                            votes
+                        </option>
+                    </select>
+                    </td>
+
+                    <td rowspan="2">changed.</td>
+
+                    <td style="white-space: nowrap;">dates
+                    <input name="chfieldfrom" size="10" value=
+                    "2000-06-01"> to <input name="chfieldto" size=
+                    "10" value="Now"></td>
+                </tr>
+
+
+                <tr>
+                    <td style="white-space: nowrap;">changed to value
+                    <input name="chfieldvalue" size=
+                    "10"> (optional)</td>
+                </tr>
+            </table>
+
+
+            <p>If you know that you added a comment to a bug or receive mail
+            about it for any reason, specifying your e-mail address and role
+            can dramatically shorten the bug list:</p>
+
+
+            <table border="1" style="background-color: #FC9; color: black;"
+            cellspacing="0" cellpadding="0">
+                <tr>
+                    <td>
+                        <table cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td rowspan="2" valign="top"><a href=
+                                "http://bugzilla.mozilla.org/helpemailquery.html">
+                                Email:</a> <input name="email1" size="30"
+                                value=""> matching as <select name=
+                                "emailtype1">
+                                    <option value="regexp">
+                                        regexp
+                                    </option>
+
+                                    <option value="notregexp">
+                                        not regexp
+                                    </option>
+
+                                    <option selected value="substring">
+                                        substring
+                                    </option>
+
+                                    <option value="exact">
+                                        exact
+                                    </option>
+                                </select></td>
+
+                                <td><input type="checkbox" name=
+                                "emailassigned_to1" value="1">Assigned To</td>
+                            </tr>
+
+
+                            <tr>
+                                <td><input type="checkbox" name=
+                                "emailreporter1" value="1">Reporter</td>
+                            </tr>
+
+
+                            <tr>
+                                <td>
+                                </td>
+
+                                <td><input type="checkbox" name=
+                                "emailqa_contact1" value="1">QA Contact</td>
+                            </tr>
+
+
+                            <tr>
+                                <td align="right">(Will match any of the
+                                selected fields)  </td>
+
+                                <td><input type="checkbox" name="emailcc1"
+                                value="1" checked>CC</td>
+                            </tr>
+
+
+                            <tr>
+                                <td>
+                                </td>
+
+                                <td><input type="checkbox" name=
+                                "emaillongdesc1" value="1" checked>Added
+                                comment</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <h3><a name="limitations" id="limitations">Limitations</a></h3>
+
+        <div style="margin-left: 2em;">
+            <h3>No GNU regex extensions</h3><p>
+            Bugzilla uses the matching facilities provided by the underlying
+            database engine. <a href=
+            "http://bugzilla.mozilla.org">bugzilla.mozilla.org</a> and most
+            other installations use <a href="http://www.mysql.com">MySQL</a>,
+            which implements POSIX-compatible regex -- GNU extensions such as
+            "<tt>\w</tt>" for word characters are not available. PERL-only
+            extensions are also not available. Regex searching may work
+            differently at Bugzilla installations that use another database
+            engine.</p>
+
+
+            <h3>Database-specific (MySQL)</h3><p>
+            The information on regex matching in this guide is specific to
+            Bugzilla installations using MySQL; some of it may not apply to
+            Bugzilla installations using other database engines.</p>
+
+
+            <h3>Regex * is not a wildcard</h3><p>
+            "<strong><tt>*</tt></strong>" matches nothing on its own. If you
+            are used to searching on Windows with patterns like
+            "<tt>*.html</tt>", you need to know that in regex patterns,
+            "<tt>*</tt>" matches zero or more occurrences of <em>the preceding
+            character</em>. The equivalent regex pattern would be
+            "<tt>.*\.html</tt>", although "<tt>\.html</tt>" will work just as
+            well. (Using "<tt>.html</tt>" would <em>not</em>, because the
+            "<tt><strong>.</strong></tt>" would match any character, including
+            a space character). Similarly, "<tt>inter*n</tt>" would not match
+            "<tt>internationalization</tt>"; the "<tt>*</tt>" would match any
+            number of "<tt>r</tt>" characters. The equivalent regex pattern
+            would be "<tt>inter.*n</tt>".</p>
+
+
+            <h3>Incomplete</h3><p>
+            Finally, this guide itself is limited; regex searching can get much
+            more involved and powerful. Specifically, character classes like
+            "<tt>[[:alnum:]]</tt>" can be very useful for some purposes. If you
+            want to know more, consult the <a href=
+            "http://bonsai.mozilla.org/cvsregexp.html">quick</a> reference or a
+            <a href=
+            "http://www.ugcs.caltech.edu/info/regex/regex_toc.html">complete</a>
+            reference.</p>
+        </div>
+    </form>
+
+
+    <p>(Thanks to Terry Weissman for contributing to this document, and to Jon
+    Robertson and Jesse Ruderman for reviewing it. Additional <a href=
+    "news://news.mozilla.org/netscape.public.mozilla.qa.general">suggestions</a>
+    welcome.)</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified August 21,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/bugs/text-searching.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

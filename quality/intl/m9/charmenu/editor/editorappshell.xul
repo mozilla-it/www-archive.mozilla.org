@@ -1,0 +1,840 @@
+<?xml version="1.0"?> 
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?> 
+<?xml-stylesheet href="chrome://navigator/skin/" type="text/css"?> 
+<?xml-stylesheet href="chrome://editor/skin/" type="text/css"?> 
+
+<!DOCTYPE window SYSTEM "chrome://editor/locale/EditorAppShell.dtd"> 
+
+<window id="main-window" xmlns:html="http://www.w3.org/TR/REC-html40"
+			  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+			  onunload="EditorShutdown()" title="&editorWindow.title;" align="vertical"
+			  width="640" height="480">
+
+  <html:script language="JavaScript" src="chrome://editor/content/EditorCommands.js">
+  </html:script>
+  <script language="JavaScript" src="chrome://editor/content/EdDialogCommon.js">
+  </script>
+
+  <keyset id="defaultKeySet">
+    <key id="selectallkb" disabled="false" shift="false" command="true" alt="false" key="a" onkeypress="EditorSelectAll()" />
+    <key id="boldkb" disabled="false" shift="false" command="true" alt="false" key="b" onkeypress="EditorToggleStyle('bold')"/>
+    <key id="copykb" disabled="false" shift="false" command="true" alt="false" key="c" onkeypress="EditorCopy()" />
+    <key id="findkb" disabled="false" shift="false" command="true" alt="false" key="f" onkeypress="EditorFind()" />
+    <key id="findnextkb" disabled="false" shift="false" command="true" alt="false" key="g" onkeypress="EditorFindNext()" />
+    <key id="italickb" disabled="false" shift="false" command="true" alt="false" key="i" onkeypress="EditorToggleStyle('italic')"/>
+    <key id="checkspellingkb" disabled="false" shift="false" command="true" alt="false" key="k" onkeypress="CheckSpelling()" />
+    <key id="newmessagekb" disabled="false" shift="false" command="true" alt="false" key="m" onkeypress="NewMessage()" />
+    <key id="neweditorkb" disabled="false" shift="false" command="true" alt="false" key="n" onkeypress="EditorNew()" />
+    <key id="openeditorkb" disabled="false" shift="false" command="true" alt="false" key="o" onkeypress="EditorOpen()" />
+    <key id="printkb" disabled="false" shift="false" command="true" alt="false" key="p" onkeypress="EditorPrint()" />
+    <key id="quitkb" disabled="false" shift="false" command="true" alt="false" key="q" onkeypress="EditorExit()" />
+    <key id="savekb" disabled="false" shift="false" command="true" alt="false" key="s" onkeypress="EditorSave()"/>
+    <key id="underlinekb" disabled="false" shift="false" command="true" alt="false" key="u" onkeypress="EditorToggleStyle('underline')"/>
+    <key id="pastekb" disabled="false" shift="false" command="true" alt="false" key="v" onkeypress="EditorPaste()" />
+    <key id="closekb" disabled="false" shift="false" command="true" alt="false" key="w" onkeypress="EditorClose()" />
+    <key id="cutkb" disabled="false" shift="false" command="true" alt="false" key="x" onkeypress="EditorCut()" />
+    <key id="redokb" disabled="false" shift="false" command="true" alt="false" key="y" onkeypress="EditorRedo()" />
+    <key id="undokb" disabled="false" shift="false" command="true" alt="false" key="z" onkeypress="EditorUndo()" />
+    <key id="navigatorkb" disabled="false" shift="false" command="true" alt="false" key="1" onkeypress="Navigator()" />
+    <key id="messengerkb" disabled="false" shift="false" command="true" alt="false" key="2" onkeypress="Messenger()" />
+    <key id="composerkb" disabled="false" shift="false" command="true" alt="false" key="3" onkeypress="Composer()" />
+    <key id="calendarkb" disabled="false" shift="false" command="true" alt="false" key="4" onkeypress="Calendar()" />
+    <key id="indentkb" disabled="false" shift="false" command="true" alt="false" key="=" onkeypress="EditorIndent('indent')" />
+    <key id="outdentkb" disabled="false" shift="false" command="true" alt="false" key="-" onkeypress="EditorIndent('outdent')" />
+
+    <key id="inserthtmlkb" disabled="false" shift="false" command="true" alt="true" key="i" onkeypress="EditorInsertHTML()"/>
+    <key id="pastequotationkb" disabled="false" shift="false" command="true" alt="true" key="v" onkeypress="EditorPasteAsQuotation()" />
+
+    <key id="removestyleskb" disabled="false" shift="true" command="true" alt="false" key="k" onkeypress="EditorRemoveStyle('all')" />
+    <key id="decreasefontsizekb" disabled="false" shift="true" command="true" alt="false" key="[" onkeypress="DecreaseFontSize()" />
+    <key id="increasefontsizekb" disabled="false" shift="true" command="true" alt="false" key="]" onkeypress="IncreaseFontSize()" />
+
+<!-- how to handle return, enter, tab, function keys, arrow keys, others? saari working on solution -->
+  </keyset>
+
+  <broadcaster id="args" value="chrome://editor/content/EditorInitPage.html"/>
+  <broadcaster id="canPrint"/>
+  
+  <!-- Interim hack to transition from nsIXULWindowCallbacks/ShowWindowWithArgs -->
+  <broadcaster id="dialog.start" ready="false"/>
+  <observes element="dialog.start" attribute="ready" onchange="EditorStartup('html')"/>
+    
+  <broadcaster id="Editor:Document:Dirty" dirty="false"/>
+
+  <broadcaster id="Editor:Style:IsBold" bold="false"/>
+  <broadcaster id="Editor:Style:IsItalic" italic="false"/>
+  <broadcaster id="Editor:Style:IsUnderline" underline="false"/>
+  <broadcaster id="Editor:Paragraph:Format" format=""/>
+  <broadcaster id="Editor:Paragraph:ListType" format=""/>
+  <broadcaster id="Editor:Font:Face" font=""/>
+  <broadcaster id="Editor:Font:Size" size=""/>
+
+  <toolbox id="EditorToolbars">
+    <menubar>
+    <menu value="&fileMenu.label;" accesskey="&filemenu.accesskey;">
+	  <menupopup>
+		  <menuitem value="&newCmd.label;" 
+          accesskey="&filenew.accesskey;" key="neweditorkb" 
+		      onaction="EditorNew()"/>
+		  <menuitem value="&openCmd.label;" 
+          accesskey="&fileopen.accesskey;" key="openeditorkb" 
+		      onaction="EditorOpen()"/>
+		  <menuseparator />
+		  <menuitem value="&saveCmd.label;" 
+          accesskey="&filesave.accesskey;" key="savekb" 
+		      onaction="EditorSave()"/>
+		  <menuitem value="&saveAsCmd.label;" 
+          accesskey="&filesaveas.accesskey;" 
+		      onaction="EditorSaveAs()"/>
+		  <menuseparator />
+		  <menuitem value="&printSetupCmd.label;" 
+          accesskey="&fileprintsetup.accesskey;"
+		      onaction=""/>
+		  <menuitem value="&printPreviewCmd.label;" 
+          accesskey="&fileprintpreview.accesskey;" 
+		      onaction="EditorPrintPreview()"/>
+		  <menuitem value="&printCmd.label;" 
+          accesskey="&fileprint.accesskey;" key="printkb" 
+		      onaction="EditorPrint()"/>
+		  <menuseparator />
+		  <menuitem value="&closeCmd.label;" 
+          accesskey="&fileclose.accesskey;" key="closekb" 
+		      onaction="EditorClose()"/>
+		  <menuitem value="&quitCmd.label;" 
+          accesskey="&filequit.accesskey;" key="quitkb" 
+		      onaction="EditorExit()"/>
+	  </menupopup>
+    </menu>
+
+    <menu value="&editMenu.label;" accesskey="&editmenu.accesskey;">
+	  <menupopup>
+		  <menuitem value="&undoCmd.label;"
+          accesskey="&editundo.accesskey;" key="undokb" 
+		      onaction="EditorUndo()"/>
+		  <menuitem value="&redoCmd.label;"
+          accesskey="&editredo.accesskey;" key="redokb" 
+		      onaction="EditorRedo()"/>
+		  <menuseparator />
+		  <menuitem value="&cutCmd.label;"
+          accesskey="&editcut.accesskey;" key="cutkb" 
+		      onaction="EditorCut()"/>
+		  <menuitem value="&copyCmd.label;"
+          accesskey="&editcopy.accesskey;" key="copykb" 
+		      onaction="EditorCopy()"/>
+		  <menuitem value="&pasteCmd.label;" 
+          accesskey="&editpaste.accesskey;" key="pastekb" 
+		      onaction="EditorPaste()"/>
+		  <menuitem value="&pasteAsQuotationCmd.label;" 
+          accesskey="&editpastequotation.accesskey;" key="pastequotationkb" 
+		      onaction="EditorPasteAsQuotation()"/>
+		  <menuitem value="&clearCmd.label;" 
+          accesskey="&editclear.accesskey;" 
+		      onaction=""/>
+		  <menuseparator />
+		  <menuitem value="&selectAllCmd.label;"
+          accesskey="&editselectall.accesskey;" key="selectallkb" 
+		      onaction="EditorSelectAll()"/>
+		  <menuseparator />
+		  <menuitem value="&findCmd.label;"
+          accesskey="&editfind.accesskey;" key="findkb" 
+		      onaction="EditorFind()"/>
+		  <menuitem value="&findAgainCmd.label;"
+          accesskey="&editfindnext.accesskey;" key="findnextkb" 
+		      onaction="EditorFindNext()"/>
+	  </menupopup>
+    </menu>
+
+    <menu value="&viewMenu.label;" accesskey="&viewmenu.accesskey;">
+	  <menupopup>
+		  <menuitem value="&hideCompositionToolbarCmd.label;"
+          accesskey="&viewcompositiontb.accesskey;" 
+		      onaction=""/>
+		  <menuitem value="&hideFormattingToolbarCmd.label;"
+          accesskey="&viewformattingtb.accesskey;" 
+		      onaction="" />
+		  <menuseparator />
+		<menu value="&dcharMenu.label;" accesskey="&viewcharsetmenu.accesskey;">
+		     <menupopup>
+				 <menuitem value="&dcharIso1Cmd.label;" accesskey="&charsetLatin1.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-1');"/>
+				 <menuitem value="&dcharIso15Cmd.label;" accesskey="&charsetLatin9.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-15');"/>
+				 <menuitem value="&dcharIso2Cmd.label;" accesskey="&charsetLatin2.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-2');"/>
+				 <menuitem value="&dcharIso3Cmd.label;" accesskey="&charsetLatin3.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-3');"/>
+				 <menuitem value="&dcharIso4Cmd.label;" accesskey="&charsetLatin4.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-4');"/>
+				 <menuitem value="&dcharIsoGreekCmd.label;" accesskey="&charsetGreek.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-7');"/>
+				 <menuitem value="&dcharIso9Cmd.label;" accesskey="&charsetLatin5.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-9');"/>
+				 <menuitem value="&dcharIso10Cmd.label;" accesskey="&charsetLatin6.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-10');"/>
+				 <menuitem value="&dcharIso13Cmd.label;" accesskey="&charsetLatin7.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-13');"/>
+				 <menuitem value="&dcharIso14Cmd.label;" accesskey="&charsetLatin8.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-14');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu1.label;" accesskey="&viewcharsetmenu1.accesskey;">
+		     <menupopup>
+				 <menuitem value="&dcharJapanCmd.label;" accesskey="&charsetJIS.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-2022-JP');"/>
+				 <menuitem value="&dcharJapanShiftjsCmd.label;" accesskey="&charsetshiftJIS.accesskey;" onaction="EditorSetDocumentCharacterSet('Shift_JIS');"/>
+				 <menuitem value="&dcharJapanEucCmd.label;" accesskey="&charsetJapaneseEUC.accesskey;" onaction="EditorSetDocumentCharacterSet('EUC-JP');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharTradChiBigCmd.label;" accesskey="&charsetChineseBig5.accesskey;" onaction="EditorSetDocumentCharacterSet('Big5');"/>
+				 <menuitem value="&dcharTriChiEucCmd.label;" accesskey="&charsetChineseEUC.accesskey;" onaction="EditorSetDocumentCharacterSet('x-euc-tw');"/>
+				 <menuitem value="&dcharSimpChiGbCmd.label;" accesskey="&charsetChineseSimplified.accesskey;" onaction="EditorSetDocumentCharacterSet('GB2312');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharKoreanCmd.label;" accesskey="&charsetKorean.accesskey;" onaction="EditorSetDocumentCharacterSet('EUC-KR');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharUtf7Cmd.label;" accesskey="&charsetUTF7.accesskey;" onaction="EditorSetDocumentCharacterSet('UTF-7');"/>
+				 <menuitem value="&dcharUtf8Cmd.label;" accesskey="&charsetUTF8.accesskey;" onaction="EditorSetDocumentCharacterSet('UTF-8');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu2.label;" accesskey="&viewcharsetmenu2.accesskey;">
+		     <menupopup>
+				 <menuitem value="&dcharRusCmd.label;" accesskey="&charsetRussian.accesskey;" onaction="EditorSetDocumentCharacterSet('KOI8-R');"/>
+				 <menuitem value="&dcharIsoCyrCmd.label;" accesskey="&charsetISOCyrillic.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-5');"/>
+				 <menuitem value="&dcharWinCyrCmd.label;" accesskey="&charsetWinCyrillic.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1251');"/>
+				 <menuitem value="&dcharEcmaCyrCmd.label;" accesskey="&charsetECMACyrillic.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-IR-111');"/>
+				 <menuitem value="&dcharDosCyrCmd.label;" accesskey="&charsetDOSCyrillic.accesskey;" onaction="EditorSetDocumentCharacterSet('IBM866');"/>
+				 <menuitem value="&dcharMacCyrCmd.label;" accesskey="&charsetMacCyrillic.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-cyrillic');"/>
+				 <menuitem value="&dcharUkrCmd.label;" accesskey="&charsetUkrainian.accesskey;" onaction="EditorSetDocumentCharacterSet('KOI8-U');"/>
+				 <menuitem value="&dcharMacUkrCmd.label;" accesskey="&charsetMacUkrainian.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-ukrainian');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu3.label;" accesskey="&viewcharsetmenu3.accesskey;">
+		     <menupopup>
+				 <menuitem value="&dcharWinVietCmd.label;" accesskey="&charsetWinVietnamese.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1258');"/>
+				 <menuitem value="&dcharVietTcnCmd.label;" accesskey="&charsetVietnameseTCN.accesskey;" onaction="EditorSetDocumentCharacterSet('x-viet-tcvn5712');"/>
+				 <menuitem value="&dcharVietViCmd.label;" accesskey="&charsetVietnameseVIS.accesskey;" onaction="EditorSetDocumentCharacterSet('VISCII');"/>
+				 <menuitem value="&dcharVieVpCmd.label;" accesskey="&charsetVietnameseVPS.accesskey;" onaction="EditorSetDocumentCharacterSet('x-viet-vps');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharThaiCmd.label;" accesskey="&charsetThai.accesskey;" onaction="EditorSetDocumentCharacterSet('TIS-620');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharArmCmd.label;" accesskey="&charsetArmenian.accesskey;" onaction="EditorSetDocumentCharacterSet('ARMSCII-8');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharIso6Cmd.label;" accesskey="&charsetArabic.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-6');"/>
+				 <menuitem value="&dcharCp1256Cmd.label;" accesskey="&charsetWinArabic.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1256');"/>
+					 <menuseparator />
+				 <menuitem value="&dcharIso8Cmd.label;" accesskey="&charsetHebrew.accesskey;" onaction="EditorSetDocumentCharacterSet('ISO-8859-8');"/>
+				 <menuitem value="&dcharCp1255Cmd.label;" accesskey="&charsetWinHebrew.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1255');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu4.label;" accesskey="&viewcharsetmenu4.accesskey;">
+		     <menupopup>
+				 <menuitem value="&dcharMacRomCmd.label;" accesskey="&charsetMacRoman.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-roman');"/>
+				 <menuitem value="&dcharMacCenEuroCmd.label;" accesskey="&charsetMacCentralEurope.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-ce');"/>
+				 <menuitem value="&dcharMacTurCmd.label;" accesskey="&charsetMacTurkish.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-turkish');"/>
+				 <menuitem value="&dcharMacCroaCmd.label;" accesskey="&charsetMacCroatian.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-croatian');"/>
+				 <menuitem value="&dcharMacRomanianCmd.label;" accesskey="&charsetMacRomanian.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-romanian');"/>
+				 <menuitem value="&dcharMacIceCmd.label;" accesskey="&charsetMacIcelandic.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-icelandic');"/>
+				 <menuitem value="&dcharMacGreekCmd.label;" accesskey="&charsetMacGreek.accesskey;" onaction="EditorSetDocumentCharacterSet('x-mac-greek');"/>
+			</menupopup>
+		 </menu>
+		 <menu value="&dcharMenu5.label;" accesskey="&viewcharsetmenu4.accesskey;">
+		     <menupopup>
+				 <menuitem value="&dcharWinLat1Cmd.label;" accesskey="&charsetWinLatin1.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1252');"/>
+				 <menuitem value="&dcharWinLat2Cmd.label;" accesskey="&charsetWinLatin2.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1250');"/>
+				 <menuitem value="&dcharWinLat5Cmd.label;" accesskey="&charsetWinLatin5.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1254');"/>
+				 <menuitem value="&dcharWinBalRimCmd.label;" accesskey="&charsetWinBaltic.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1257');"/>
+				 <menuitem value="&dcharWinGreekCmd.label;" accesskey="&charsetWinGreek.accesskey;" onaction="EditorSetDocumentCharacterSet('windows-1253');"/>
+			</menupopup>
+		 </menu>
+	  </menupopup>
+    </menu>
+ 
+    <menu value="&insertMenu.label;" accesskey="&insertmenu.accesskey;">
+	  <menupopup>
+		  <menuitem value="&insertLinkCmd.label;"
+             accesskey="&insertlink.accesskey;"
+				     onaction="EditorInsertLink()"/>
+		  <menuitem value="&insertTargetCmd.label;"
+             accesskey="&inserttarget.accesskey;"
+				     onaction=""/>
+		  <menuitem value="&insertImageCmd.label;"
+             accesskey="&insertimage.accesskey;"
+				     onaction="EditorInsertImage()"/>
+		  <menuitem value="&insertHLineCmd.label;"
+             accesskey="&inserthline.accesskey;"
+				     onaction="EditorInsertHLine()"/>
+		  <menuitem value="&insertTableCmd.label;"
+             accesskey="&inserttable.accesskey;"
+				     onaction="EditorInsertTable()"/>
+		  <menuitem value="&insertHTMLSourceCmd.label;"
+             accesskey="&insertsource.accesskey;" key="inserthtmlkb"
+				     onaction="EditorInsertHTML()"/>
+		  <menuseparator />
+		  <menuitem value="&insertLineBreakCmd.label;"
+             accesskey="&insertlinebreak.accesskey;"
+				     onaction=""/>
+		  <menuitem value="&insertBreakBelowImagesCmd.label;"
+             accesskey="&insertbreak.accesskey;"
+				     onaction=""/>
+	  </menupopup>
+    </menu>
+
+    <menu value="&formatMenu.label;" accesskey="&formatmenu.accesskey;">
+	  <menupopup>
+      <menu value="&fontfaceMenu.label;" accesskey="&formatfontmenu.accesskey;">
+		   <menupopup>
+			<menuitem value="&defaultVariableWidthCmd.label;"
+             accesskey="&fontvarwidth.accesskey;"
+				     onaction="EditorSetFontFace('')"/>
+			<menuitem value="&defaultFixedWidthCmd.label;"
+             accesskey="&fontfixedwidth.accesskey;"
+				     onaction="EditorSetFontFace('tt')"/>
+			<menuseparator/>
+			<menuitem value="&arialHelveticaFont.label;"
+             accesskey="&fonthelvetica.accesskey;"
+				     onaction="EditorSetFontFace('Arial, Helvetica, sans-serif')"/>
+			<menuitem value="&timesFont.label;"
+             accesskey="&fonttimes.accesskey;"
+				     onaction="EditorSetFontFace('Times New Roman, Times, serif')"/>
+			<menuitem value="&courierFont.label;"
+             accesskey="&fontcourier.accesskey;"
+				     onaction="EditorSetFontFace('Courier New, Courier, mono')"/>
+		   </menupopup>
+		  </menu>
+      <menu value="&fontsizeMenu.label;" accesskey="&formatsizemenu.accesskey;">
+		   <menupopup>
+			<menuitem value="&sizeMinusTwoCmd.label;"
+             accesskey="&sizeminus2.accesskey;"
+				     onaction="EditorSetFontSize('-2')"/>
+			<menuitem value="&sizeMinusOneCmd.label;"
+             accesskey="&sizeminus1.accesskey;"
+				     onaction="EditorSetFontSize('-1')"/>
+			<menuitem value="&sizeNormalCmd.label;"
+             accesskey="&sizenormal.accesskey;"
+				     onaction="EditorSetFontSize('0')"/>
+			<menuitem value="&sizePlusOneCmd.label;"
+             accesskey="&size1.accesskey;"
+				     onaction="EditorSetFontSize('+1')"/>
+			<menuitem value="&sizePlusTwoCmd.label;"
+             accesskey="&size2.accesskey;"
+				     onaction="EditorSetFontSize('+2')"/>
+			<menuitem value="&sizePlusThreeCmd.label;"
+             accesskey="&size3.accesskey;"
+				     onaction="EditorSetFontSize('+3')"/>
+			<menuitem value="&sizePlusFourCmd.label;"
+             accesskey="&size4.accesskey;"
+				     onaction="EditorSetFontSize('+4')"/>
+		   </menupopup>
+		  </menu>
+      <menu value="&fontStyleMenu.label;" accesskey="&formatstylemenu.accesskey;">
+			<menupopup>
+			<menuitem value="&styleBoldCmd.label;"
+             accesskey="&stylebold.accesskey;" key="boldkb"
+				     onaction="EditorApplyStyle('b')"/>
+			<menuitem value="&styleItalicCmd.label;"
+             accesskey="&styleitalic.accesskey;" key="italickb"
+				     onaction="EditorApplyStyle('i')"/>
+			<menuitem value="&styleUnderlineCmd.label;"
+             accesskey="&styleunderline.accesskey;" key="underlinekb"
+				     onaction="EditorApplyStyle('u')"/>
+			<menuitem value="&styleStrikeThruCmd.label;"
+             accesskey="&stylestrikethru.accesskey;"
+				     onaction="EditorApplyStyle('strike')"/>
+			<menuitem value="&styleSuperscriptCmd.label;"
+             accesskey="&stylesuperscript.accesskey;"
+				     onaction="EditorApplyStyle('sup')"/>
+			<menuitem value="&styleSubscriptCmd.label;"
+             accesskey="&stylesubscript.accesskey;"
+				     onaction="EditorApplyStyle('sub')"/>
+			<menuitem value="&styleBlinkCmd.label;"
+             accesskey="&styleblink.accesskey;"
+				     onaction="EditorApplyStyle('blink')"/>
+			<menuitem value="&styleNonbreakingCmd.label;"
+             accesskey="&stylenonbreaking.accesskey;"
+				     onaction="EditorApplyStyle('nobr')"/>
+			</menupopup>
+		  </menu>
+      <menu value="&fontColorMenu.label;" accesskey="&formatcolormenu.accesskey;">
+				<menupopup>
+					<menuitem value="&colorBlackCmd.label;"
+             accesskey="&colorblack.accesskey;"
+				     onaction="EditorSetFontColor('black')"/>
+					<menuitem value="&colorGrayCmd.label;"
+             accesskey="&colorgray.accesskey;"
+				     onaction="EditorSetFontColor('gray')"/>
+					<menuitem value="&colorSilverCmd.label;"
+             accesskey="&colorsilver.accesskey;"
+				     onaction="EditorSetFontColor('silver')"/>
+					<menuitem value="&colorWhiteCmd.label;"
+             accesskey="&colorwhite.accesskey;"
+				     onaction="EditorSetFontColor('white')"/>
+					<menuitem value="&colorRedCmd.label;"
+             accesskey="&colorred.accesskey;"
+				     onaction="EditorSetFontColor('red')"/>
+					<menuitem value="&colorBlueCmd.label;"
+             accesskey="&colorblue.accesskey;"
+				     onaction="EditorSetFontColor('blue')"/>
+					<menuitem value="&colorGreenCmd.label;"
+             accesskey="&colorgreen.accesskey;"
+				     onaction="EditorSetFontColor('green')"/>
+					<menuitem value="&colorCyanCmd.label;"
+             accesskey="&colorcyan.accesskey;"
+				     onaction="EditorSetFontColor('cyan')"/>
+					<menuitem value="&colorYellowCmd.label;"
+             accesskey="&coloryellow.accesskey;"
+				     onaction="EditorSetFontColor('yellow')"/>
+					<menuitem value="&colorMagentaCmd.label;"
+             accesskey="&colormagenta.accesskey;"
+				     onaction="EditorSetFontColor('magenta')"/>
+				</menupopup>
+		  </menu>
+      <menu value="&backgroundColorMenu.label;" accesskey="&formatbkgdcolormenu.accesskey;">
+			<menupopup>
+			<menuitem value="&colorBlackCmd.label;"
+             accesskey="&colorblack.accesskey;"
+				     onaction="EditorSetBackgroundColor('black')"/>
+			<menuitem value="&colorGrayCmd.label;"
+             accesskey="&colorgray.accesskey;"
+				     onaction="EditorSetBackgroundColor('gray')"/>
+			<menuitem value="&colorSilverCmd.label;"
+             accesskey="&colorsilver.accesskey;"
+				     onaction="EditorSetBackgroundColor('silver')"/>
+			<menuitem value="&colorWhiteCmd.label;"
+             accesskey="&colorwhite.accesskey;"
+				     onaction="EditorSetBackgroundColor('white')"/>
+			<menuitem value="&colorRedCmd.label;"
+             accesskey="&colorred.accesskey;"
+				     onaction="EditorSetBackgroundColor('red')"/>
+			<menuitem value="&colorBlueCmd.label;"
+             accesskey="&colorblue.accesskey;"
+				     onaction="EditorSetBackgroundColor('blue')"/>
+			<menuitem value="&colorGreenCmd.label;"
+             accesskey="&colorgreen.accesskey;"
+				     onaction="EditorSetBackgroundColor('green')"/>
+			<menuitem value="&colorCyanCmd.label;"
+             accesskey="&colorcyan.accesskey;"
+				     onaction="EditorSetBackgroundColor('cyan')"/>
+			<menuitem value="&colorYellowCmd.label;"
+             accesskey="&coloryellow.accesskey;"
+				     onaction="EditorSetBackgroundColor('yellow')"/>
+			<menuitem value="&colorMagentaCmd.label;"
+             accesskey="&colormagenta.accesskey;"
+				     onaction="EditorSetBackgroundColor('magenta')"/>
+			</menupopup>
+		  </menu>
+		  <menuitem value="&removeAllStylesCmd.label;"
+             accesskey="&formatremovestyles.accesskey;" key="removestyleskb"
+				     onaction="EditorRemoveStyle('all')"/>
+		  <menuitem value="&removeLinksCmd.label;"
+             accesskey="&formatremovelinks.accesskey;"
+				     onaction="EditorRemoveLinks()"/>
+		  <menuseparator />
+      <menu value="&headingMenu.label;" accesskey="&formatheadingmenu.accesskey;">
+			<menupopup>
+			<menuitem value="&headingNormalCmd.label;"   
+             accesskey="&headingnone.accesskey;"
+				     onaction="EditorSetParagraphFormat('normal')"/>
+			<menuitem value="&headingOneCmd.label;"
+             accesskey="&heading1.accesskey;"
+				     onaction="EditorSetParagraphFormat('h1')"/>
+			<menuitem value="&headingTwoCmd.label;"
+             accesskey="&heading2.accesskey;"
+				     onaction="EditorSetParagraphFormat('h2')"/>
+			<menuitem value="&headingThreeCmd.label;"
+             accesskey="&heading3.accesskey;"
+				     onaction="EditorSetParagraphFormat('h3')"/>
+			<menuitem value="&headingFourCmd.label;"
+             accesskey="&heading4.accesskey;"
+				     onaction="EditorSetParagraphFormat('h4')"/>
+			<menuitem value="&headingFiveCmd.label;"
+             accesskey="&heading5.accesskey;"
+				     onaction="EditorSetParagraphFormat('h5')"/>
+			<menuitem value="&headingSixCmd.label;"
+             accesskey="&heading6.accesskey;"
+				     onaction="EditorSetParagraphFormat('h6')"/>
+			</menupopup>
+		  </menu>
+      <menu value="&paragraphMenu.label;" accesskey="&formatparagraphmenu.accesskey;">
+			<menupopup>
+			<menuitem value="&paragraphNormalCmd.label;"     
+             accesskey="&paragraphnormal.accesskey;"
+				     onaction="EditorSetParagraphFormat('normal')"/>
+			<menuitem value="&paragraphBlockquoteCmd.label;" 
+             accesskey="&paragraphblockquote.accesskey;"
+				     onaction="EditorSetParagraphFormat('blockquote')"/>
+			<menuitem value="&paragraphAddressCmd.label;"    
+             accesskey="&paragraphaddress.accesskey;"
+				     onaction="EditorSetParagraphFormat('address')"/>
+			<menuitem value="&paragraphPreformatCmd.label;"  
+             accesskey="&paragraphpreformat.accesskey;"
+				     onaction="EditorSetParagraphFormat('pre')"/>
+			<menuitem value="&paragraphListCmd.label;"       
+             accesskey="&paragraphlist.accesskey;"
+				     onaction="EditorSetParagraphFormat('li')"/>
+			<menuitem value="&paragraphDfnTermCmd.label;"    
+             accesskey="&paragraphterm.accesskey;"
+				     onaction="EditorSetParagraphFormat('dt')"/>
+			<menuitem value="&paragraphDfnDescCmd.label;"    
+             accesskey="&paragraphdesc.accesskey;"
+				     onaction="EditorSetParagraphFormat('dd')"/>
+			</menupopup>
+		  </menu>
+		  <menuseparator />
+      <menu value="&stylesheetMenu.label;" accesskey="&formatstylesheetmenu.accesskey;">
+			<menupopup>
+			<menuitem value="EditorContent Sheet"    
+             accesskey="&sseditorcontent.accesskey;"
+				     onaction="EditorApplyStyleSheet('chrome://editor/content/EditorContent.css')"/>
+			<menuitem value="EditorContent Sheet"    
+             accesskey="&sseditorcontentua.accesskey;"
+				     onaction="EditorApplyStyleSheet('resource:/res/ua.css')"/>
+			<menuseparator />
+			<menuitem value="&stylesheetEditorOneCmd.label;"    
+             accesskey="&sseditor1.accesskey;"
+				     onaction="EditorApplyStyleSheet('chrome://editor/content/EditorStyles1.css')"/>
+			<menuseparator />
+			<menuitem value="&stylesheetOldstyleCmd.label;"     
+             accesskey="&ssoldstyle.accesskey;"
+				     onaction="EditorApplyStyleSheet('http://www.w3.org/StyleSheets/Core/Oldstyle')"/>
+			<menuitem value="&stylesheetModernistCmd.label;"    
+             accesskey="&ssmodernist.accesskey;"
+				     onaction="EditorApplyStyleSheet('http://www.w3.org/StyleSheets/Core/Modernist')"/>
+			<menuitem value="&stylesheetMidnightCmd.label;"     
+             accesskey="&ssmidnight.accesskey;"
+				     onaction="EditorApplyStyleSheet('http://www.w3.org/StyleSheets/Core/Midnight')"/>
+			<menuitem value="&stylesheetUltramarineCmd.label;"  
+             accesskey="&ssultramarine.accesskey;"
+				     onaction="EditorApplyStyleSheet('http://www.w3.org/StyleSheets/Core/Ultramarine')"/>
+			<menuitem value="&stylesheetChocolateCmd.label;"    
+             accesskey="&sschocolate.accesskey;"
+				     onaction="EditorApplyStyleSheet('http://www.w3.org/StyleSheets/Core/Chocolate')"/>
+			<menuitem value="&stylesheetSteelyCmd.label;"       
+             accesskey="&sssteely.accesskey;"
+				     onaction="EditorApplyStyleSheet('http://www.w3.org/StyleSheets/Core/Steely')"/>
+			</menupopup>
+		  </menu>
+		</menupopup>
+    </menu>
+
+    <!-- PUT THESE SUBMENUS IN AN OVERLAY FOR RESUSE IN CONTEXT MENUS -->
+    <menu value="&tableMenu.label;" accesskey="&tablemenu.accesskey;">
+      <menupopup>
+        <menu value="&tableInsertMenu.label;" accesskey="&tableinsertmenu.accesskey;">
+          <menupopup>
+            <menuitem value="&tableTable.label;"
+              accesskey="&tabletable.accesskey;"
+				      onaction="EditorInsertTable()"/>
+            <menuitem value="&tableRow.label;"
+              accesskey="&tablerow.accesskey;"
+				      onaction="EditorInsertTableRow()"/>
+            <menuitem value="&tableColumn.label;"
+              accesskey="&tablecolumn.accesskey;"
+				      onaction="EditorInsertTableColumn()"/>
+            <menuitem value="&tableCell.label;"
+              accesskey="&tablecell.accesskey;"
+				      onaction="EditorInsertTableCell(false)"/>
+          </menupopup>
+        </menu>
+        <menu value="&tableDeleteMenu.label;" accesskey="&tabledeletemenu.accesskey;">
+          <menupopup>
+            <menuitem value="&tableTable.label;"
+              accesskey="&tabletable.accesskey;"
+				      onaction="EditorDeleteTable()"/>
+            <menuitem value="&tableRow.label;"
+              accesskey="&tablerow.accesskey;"
+				      onaction="EditorDeleteTableRow()"/>
+            <menuitem value="&tableColumn.label;"
+              accesskey="&tablecolumn.accesskey;"
+				      onaction="EditorDeleteTableColumn()"/>
+            <menuitem value="&tableCell.label;"
+              accesskey="&tablecell.accesskey;"
+				      onaction="EditorDeleteTableCell()"/>
+          </menupopup>
+        </menu>
+        <menuseparator />
+        <menuitem value="&tableJoinCells.label;"
+              accesskey="&tablejoin.accesskey;"
+				      onaction="EditorJoinTableCells()"/>
+        <menuitem value="&properties.label;"
+              accesskey="&tableproperties.accesskey;"
+				      onaction="EditorInsertOrEditTable(false)"/>
+      </menupopup>
+    </menu>
+
+    <menu value="&toolsMenu.label;" accesskey="&toolsmenu.accesskey;">
+    <menupopup>
+      <menuitem value="&newBrowserCmd.label;"
+              accesskey="&toolbrowser.accesskey;"
+				      onaction="EditorNewBrowser()"/>
+      <menuitem value="&newPlaintextEditorCmd.label;"
+              accesskey="&toolplaineditor.accesskey;"
+				      onaction="EditorNewPlaintext()"/>
+      <menuseparator />
+      <menuitem value="&checkSpellingCmd.label;"
+              accesskey="&toolspellcheck.accesskey;" key="checkspellingkb"
+				      onaction="CheckSpelling()"/>
+      <menuitem value="&setFocusCmd.label;"
+              accesskey="&toolsetfocus.accesskey;"
+				      onaction="window.focus()"/>
+	  </menupopup>
+	</menu>
+    <menu value="&debugMenu.label;">
+      <menupopup>
+	  <menuitem value="&outputTextCmd.label;"
+				     onaction="EditorGetText()"/>
+      <menuitem value="&outputHTMLCmd.label;"
+				     onaction="EditorGetHTML()"/>
+      <menuitem value="&outputXIFCmd.label;"
+				     onaction="EditorGetXIF()"/>
+      <menuseparator />
+      <menuitem value="&insertTextCmd.label;"
+				     onaction="EditorInsertText('All good things come to those who wait. ')"/>
+      <menuseparator />
+      <menuitem value="&testSelectionCmd.label;"
+				     onaction="EditorTestSelection()"/>
+      <menuitem value="&testTableLayoutCmd.label;"
+				     onaction="EditorTestTableLayout()"/>
+      <menuitem value="&showEmbeddedCmd.label;"
+				     onaction="EditorShowEmbeddedObjects()"/>
+      <menuitem value="&dumpContentCmd.label;"
+				     onaction="EditorDumpContent()"/>
+      <menuitem value="&testDocumentCmd.label;"
+				     onaction="EditorTestDocument()"/>
+      <menuitem value="&runUnitTestsCmd.label;"
+				     onaction="EditorUnitTests()"/>
+      <menuseparator />
+      <menuitem value="&startLogCmd.label;"
+				     onaction="EditorStartLog()"/>
+      <menuitem value="&stopLogCmd.label;"
+				     onaction="EditorStopLog()"/>
+      <menuitem value="&runLogCmd.label;"
+				     onaction="EditorRunLog()"/>
+	  </menupopup>
+    </menu>
+    <menu value="&helpMenu.label;">
+	  <menupopup>
+      <menuitem value="&aboutCmd.label;"
+				     onaction=""/>
+	  </menupopup>
+    </menu>
+	<spring flex="100%"/>
+  </menubar>
+
+      <toolbar id="EditToolbar">
+	      <titledbutton src="&newEditorIcon.url;" value="&newToolbarCmd.label;" class="popup" onclick="EditorNew()"/>
+	      <titledbutton src="&openEditorIcon.url;" value="&openToolbarCmd.label;" class="popup" onclick="EditorOpen()"/>
+
+	      <titledbutton id="SaveButton" src="&saveIcon.url;" value="&saveCmd.label;" class="popup" onclick="EditorSave()">
+	        <observes element="Editor:Document:Dirty" attribute="dirty" onchange="onDirtyChange()"/>
+	      </titledbutton>
+<!-- Not supporting publishing (yet?) -->
+<!--      <titledbutton src="&publishIcon.url;" value="&publishToolbarCmd.label;" class="popup"/> -->
+	      <titledbutton src="&printIcon.url;" value="&printToolbarCmd.label;" class="popup"/>
+	      <titledbutton src="&findIcon.url;" value="&findToolbarCmd.label;" onclick="EditorFind()"/>
+	      <titledbutton src="&linkIcon.url;" value="&linkToolbarCmd.label;" onclick="EditorInsertLink()"/>
+	      <titledbutton src="&imageIcon.url;" value="&imageToolbarCmd.label;" onclick="EditorInsertImage()"/>
+	      <titledbutton src="&targetIcon.url;" value="&anchorToolbarCmd.label;" onclick="EditorInsertNamedAnchor()"/>
+	      <titledbutton src="&hlineIcon.url;" value="&hruleToolbarCmd.label;" onclick="EditorInsertHLine()"/>
+	      <titledbutton src="&tableIcon.url;" value="&tableToolbarCmd.label;" onclick="EditorInsertOrEditTable(true)"/>
+	      <titledbutton src="&spellingIcon.url;" value="&spellToolbarCmd.label;" onclick="CheckSpelling()"/>
+  		  <spring flex="100%"/>
+	      <titledbutton id="DisplayStyleButton" src="&previewIcon.url;" value="&previewToolbarCmd.label;" class="popup" onclick="EditorToggleDisplayStyle()"/>
+	  </toolbar>
+      <toolbar id="FormatToolbar">
+        <titledbutton style="width:68pt" id="ParagraphPopup" value="&paragraphToolbarMenu.label;" class="popup" align="left" popup="ParagraphMenu" popupanchor="bottomleft">
+          <observes element="Editor:Paragraph:Format" attribute="format" onchange="onParagraphFormatChange()"/>
+        </titledbutton>
+		    <titledbutton id="FontFacePopup" value="&fontToolbarMenu.label;" class="popup" align="right" popup="FontFaceMenu" popupanchor="bottomleft"/>
+		    <titledbutton id="FontSizePopup" value="&sizeToolbarMenu.label;" class="popup" align="right" popup="FontSizeMenu" popupanchor="bottomleft"/>
+		    <titledbutton id="TextColorPopup" src="chrome://editor/skin/images/ED_TextColor.gif" class="popup" popup="TextColorMenu" popupanchor="bottomleft"/>
+		    <titledbutton id="BackColorPopup" src="chrome://editor/skin/images/ED_BackColor.gif" class="popup" popup="BackColorMenu" popupanchor="bottomleft"/>
+
+		    <titledbutton id="boldButton" value="&formatToolbar.boldChar;" onclick="EditorToggleStyle('bold')">
+		      <observes element="Editor:Style:IsBold" attribute="bold" onchange="onStyleChange('bold')"/>
+		    </titledbutton>
+		    <titledbutton id="italicButton" value="&formatToolbar.italicChar;" onclick="EditorToggleStyle('italic')">
+		      <observes element="Editor:Style:IsItalic" attribute="italic" onchange="onStyleChange('italic')"/>
+		    </titledbutton>
+		    <titledbutton id="underlineButton" value="&formatToolbar.underlineChar;" onclick="EditorToggleStyle('underline')">
+		      <observes element="Editor:Style:IsUnderline" attribute="underline" onchange="onStyleChange('underline')"/>
+		    </titledbutton>
+<!--
+        <titledbutton id="BoldButton" src="chrome://editor/skin/images/ED_Bold.gif" align="bottom" onclick="EditorApplyStyle('b')">
+		      <observes element="Editor:Style:IsBold" attribute="bold" onchange="onBoldChange()"/>
+        </titledbutton>
+	      <titledbutton id="ItalicButton" src="chrome://editor/skin/images/ED_Italic.gif" align="bottom" onclick="EditorApplyStyle('i')"/>
+	      <titledbutton id="UnderlineButton" src="chrome://editor/skin/images/ED_Underline.gif" align="bottom" onclick="EditorApplyStyle('u')"/>
+-->
+	      <titledbutton id="ulButton" src="&bulletListIcon.url;" align="bottom" onclick="EditorInsertList('ul')">
+            <observes element="Editor:Paragraph:ListType" attribute="format" onchange="onListFormatChange('ul')"/>
+	      </titledbutton>
+
+	      <titledbutton id="olButton" src="&numberListIcon.url;" align="bottom" onclick="EditorInsertList('ol')">
+            <observes element="Editor:Paragraph:ListType" attribute="format" onchange="onListFormatChange('ol')"/>
+	      </titledbutton>
+
+	      <titledbutton src="&outdentIcon.url;" align="bottom" onclick="EditorIndent('outdent')"/>
+	      <titledbutton src="&indentIcon.url;" align="bottom" onclick="EditorIndent('indent')"/>
+	      <titledbutton src="&alignpopupIcon.url;" align="bottom" class="popup" popup="AlignmentWindow" popupanchor="bottomleft"/>
+		  <spring flex="100%"/>
+	  </toolbar>
+    </toolbox>
+
+    <html:iframe type="content-primary" id="content-frame" src="about:blank" flex="100%"/>
+
+    <!-- Ripped off from navigator.xul; this should be a XUL fragment! -->
+    <box align="horizontal" id="EditorStatusBar">
+      <titledbutton value="&tempNotification.label;" onclick="doTests()"/>
+	    <box id="EditorProgressBox" align="vertical" flex="100%">
+		    <spring flex="100%"/>
+		    <progressmeter mode="normal" value="0">
+		    </progressmeter>
+		    <spring flex="100%"/>
+  	  </box>
+      <titledbutton id="statusText" align="right" flex="100%" value="&tempDoneLoading.label;" style="font-family:sans-serif;font-size:2.5mm">
+	    </titledbutton>
+    </box>
+
+<!-- Popup Menus and Windows - Not displayed in primary chrome -->
+<popup id="ParagraphMenu">
+  <menu>
+    <menuitem value="&headingNormalCmd.label;"   
+				     onaction="EditorSetParagraphFormat('normal')"/>
+    <menuitem value="&headingOneCmd.label;"
+				     onaction="EditorSetParagraphFormat('h1')"/>
+    <menuitem value="&headingTwoCmd.label;"
+				     onaction="EditorSetParagraphFormat('h2')"/>
+    <menuitem value="&headingThreeCmd.label;"
+				     onaction="EditorSetParagraphFormat('h3')"/>
+    <menuitem value="&headingFourCmd.label;"
+				     onaction="EditorSetParagraphFormat('h4')"/>
+    <menuitem value="&headingFiveCmd.label;"
+				     onaction="EditorSetParagraphFormat('h5')"/>
+    <menuitem value="&headingSixCmd.label;"
+				     onaction="EditorSetParagraphFormat('h6')"/>
+    <menuitem value="&paragraphAddressCmd.label;"  
+				     onaction="EditorSetParagraphFormat('address')"/>
+    <menuitem value="&paragraphPreformatCmd.label;"
+				     onaction="EditorSetParagraphFormat('pre')"/>
+    <menuitem value="&paragraphListCmd.label;"
+				     onaction="EditorSetParagraphFormat('li')"/>
+    <menuitem value="&paragraphDfnTermCmd.label;"
+				     onaction="EditorSetParagraphFormat('dt')"/>
+    <menuitem value="&paragraphDfnDescCmd.label;"
+				     onaction="EditorSetParagraphFormat('dd')"/>
+  </menu>
+</popup>
+
+<popup id="FontFaceMenu">
+  <menu>
+    <menuitem value="&defaultVariableWidthCmd.label;"
+				     onaction="EditorSetFontFace('')"/>
+    <menuitem value="&defaultFixedWidthCmd.label;"
+				     onaction="EditorSetFontFace('tt')"/>
+    <menuseparator/>
+    <menuitem value="&arialHelveticaFont.label;"
+				     onaction="EditorSetFontFace('Arial, Helvetica, sans-serif')"/>
+    <menuitem value="&timesFont.label;"
+				     onaction="EditorSetFontFace('Times New Roman, Times, serif')"/>
+    <menuitem value="&courierFont.label;"
+				     onaction="EditorSetFontFace('Courier New, Courier, mono')"/>
+  </menu>
+</popup>
+
+<popup id="FontSizeMenu">
+  <menu>
+    <menuitem value="&sizeMinusTwoCmd.label;"
+				     onaction="EditorSetFontSize('-2')"/>
+    <menuitem value="&sizeMinusOneCmd.label;"
+				     onaction="EditorSetFontSize('-1')"/>
+    <menuitem value="&sizeNormalCmd.label;"
+				     onaction="EditorSetFontSize('0')"/>
+    <menuitem value="&sizePlusOneCmd.label;"
+				     onaction="EditorSetFontSize('+1')"/>
+    <menuitem value="&sizePlusTwoCmd.label;"
+				     onaction="EditorSetFontSize('+2')"/>
+    <menuitem value="&sizePlusThreeCmd.label;"
+				     onaction="EditorSetFontSize('+3')"/>
+    <menuitem value="&sizePlusFourCmd.label;"
+				     onaction="EditorSetFontSize('+4')"/>
+  </menu>
+</popup>
+
+<popup id="BackColorMenu">
+  <menu>
+    <menuitem value="&colorBlackCmd.label;"
+				     onaction="EditorSetBackgroundColor('black')"/>
+    <menuitem value="&colorGrayCmd.label;"
+				     onaction="EditorSetBackgroundColor('gray')"/>
+    <menuitem value="&colorSilverCmd.label;"
+				     onaction="EditorSetBackgroundColor('silver')"/>
+    <menuitem value="&colorWhiteCmd.label;"
+				     onaction="EditorSetBackgroundColor('white')"/>
+    <menuitem value="&colorRedCmd.label;"
+				     onaction="EditorSetBackgroundColor('red')"/>
+    <menuitem value="&colorBlueCmd.label;"
+				     onaction="EditorSetBackgroundColor('blue')"/>
+    <menuitem value="&colorGreenCmd.label;"
+				     onaction="EditorSetBackgroundColor('green')"/>
+    <menuitem value="&colorCyanCmd.label;"
+				     onaction="EditorSetBackgroundColor('cyan')"/>
+    <menuitem value="&colorYellowCmd.label;"
+				     onaction="EditorSetBackgroundColor('yellow')"/>
+    <menuitem value="&colorMagentaCmd.label;"
+				     onaction="EditorSetBackgroundColor('magenta')"/>
+  </menu>
+</popup>
+
+<popup id="TextColorMenu">
+  <menu class="popup">
+    <menuitem value="&colorBlackCmd.label;"
+				     onaction="EditorSetFontColor('black')"/>
+    <menuitem value="&colorGrayCmd.label;"
+				     onaction="EditorSetFontColor('gray')"/>
+    <menuitem value="&colorSilverCmd.label;"
+				     onaction="EditorSetFontColor('silver')"/>
+    <menuitem value="&colorWhiteCmd.label;"
+				     onaction="EditorSetFontColor('white')"/>
+    <menuitem value="&colorRedCmd.label;"
+				     onaction="EditorSetFontColor('red')"/>
+    <menuitem value="&colorBlueCmd.label;"
+				     onaction="EditorSetFontColor('blue')"/>
+    <menuitem value="&colorGreenCmd.label;"
+				     onaction="EditorSetFontColor('green')"/>
+    <menuitem value="&colorCyanCmd.label;"
+				     onaction="EditorSetFontColor('cyan')"/>
+    <menuitem value="&colorYellowCmd.label;"
+				     onaction="EditorSetFontColor('yellow')"/>
+    <menuitem value="&colorMagentaCmd.label;"
+				     onaction="EditorSetFontColor('magenta')"/>
+  </menu>
+</popup>
+
+<!-- This should have a select element so we have a scrolled list when too many fonts are added -->
+<popup id="FontFaceWindow">
+   <window class="popup" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" width="40" height="40">
+     <titledbutton value="&defaultVariableWidthCmd.label;" onclick="opener.EditorSetFontFace(''); window.close();"/><html:br/>
+     <titledbutton value="&defaultFixedWidthCmd.label;"    onclick="opener.EditorSetFontFace('tt'); window.close();"/><html:br/>
+     <titledbutton value="&arialHelveticaFont.label;"      onclick="opener.EditorSetFontFace('Arial, Helvetica, sans-serif'); window.close();"/><html:br/>
+     <titledbutton value="&timesFont.label;"               onclick="opener.EditorSetFontFace('Times New Roman, Times, serif'); window.close();"/><html:br/>
+     <titledbutton value="&courierFont.label;"             onclick="opener.EditorSetFontFace('Courier New, Courier, mono'); window.close();"/><html:br/>
+   </window>
+</popup>
+
+<popup id="AlignmentWindow" oncreate="OnCreateAlignmentPopup()">
+   <window class="popup" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" align="vertical" flex="100%" 
+    width="70" height="110">
+     <html:div flex="100%">
+     <html:button class="PopupButton" onclick="opener.EditorAlign('left'); window.close();">
+       <html:img align="middle" src="chrome://editor/skin/images/ED_Left.gif"/>
+       <html:span>&alignLeft.label;</html:span>
+     </html:button>
+     <html:button class="PopupButton" onclick="opener.EditorAlign('center'); window.close();">
+       <html:img align="middle" src="chrome://editor/skin/images/ED_Center.gif"/>
+       <html:span>&alignCenter.label;</html:span>
+     </html:button>
+     <html:button class="PopupButton" onclick="opener.EditorAlign('right'); window.close();">
+       <html:img align="middle" src="chrome://editor/skin/images/ED_Right.gif"/>
+       <html:span>&alignRight.label;</html:span> 
+     </html:button>
+     <html:button class="PopupButton" onclick="opener.EditorAlign('justify'); window.close();">
+       <html:img align="middle" src="chrome://editor/skin/images/ED_Justify.gif"/>
+       <html:span>&alignJustify.label;</html:span>
+     </html:button>
+     </html:div>
+<!--  Trying to use autosizing and boxes
+    <titledbutton class="PopupButton" value="&alignLeft.label;"   style="min-width: 40px" onclick="opener.EditorAlign('left'); window.close();"/>
+    <titledbutton class="PopupButton" value="&alignCenter.label;" style="min-width: 40px" onclick="opener.EditorAlign('center'); window.close();"/>
+    <titledbutton class="PopupButton" value="&alignRight.label;"  style="min-width: 40px" onclick="opener.EditorAlign('right'); window.close();"/>
+ -->
+   </window>
+</popup>
+
+</window>

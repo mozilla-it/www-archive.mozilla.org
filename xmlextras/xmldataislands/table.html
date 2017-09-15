@@ -1,0 +1,186 @@
+<!-- ***** BEGIN LICENSE BLOCK *****
+   - Version: MPL 1.1/GPL 2.0/LGPL 2.1
+   -
+   - The contents of this file are subject to the Mozilla Public License Version
+   - 1.1 (the "License"); you may not use this file except in compliance with
+   - the License. You may obtain a copy of the License at
+   - http://www.mozilla.org/MPL/
+   -
+   - Software distributed under the License is distributed on an "AS IS" basis,
+   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+   - for the specific language governing rights and limitations under the
+   - License.
+   -
+   - The Original Code is Using XML Data Islands in Mozilla Table Sample.
+   -
+   - The Initial Developer of the Original Code is
+   - Heikki Toivonen.
+   - Portions created by the Initial Developer are Copyright (C) 2003
+   - the Initial Developer. All Rights Reserved.
+   -
+   - Contributor(s):
+   -
+   - Alternatively, the contents of this file may be used under the terms of
+   - either the GNU General Public License Version 2 or later (the "GPL"), or
+   - the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+   - in which case the provisions of the GPL or the LGPL are applicable instead
+   - of those above. If you wish to allow use of your version of this file only
+   - under the terms of either the GPL or the LGPL, and not to allow others to
+   - use your version of this file under the terms of the MPL, indicate your
+   - decision by deleting the provisions above and replace them with the notice
+   - and other provisions required by the LGPL or the GPL. If you do not delete
+   - the provisions above, a recipient may use your version of this file under
+   - the terms of any one of the MPL, the GPL or the LGPL.
+   -
+   - ***** END LICENSE BLOCK ***** -->
+
+<html>
+<head>
+<title>Table Sample</title>
+
+<style type="text/css">
+xml {display: none;}
+</style>
+
+<script>
+function findTable(id)
+{
+  id = "#" + id;
+  var tables = document.getElementsByTagName("table");
+  var i;
+  for (i=0; i < tables.length; i++) {
+    var table = tables[i];
+    if (table.getAttribute("datasrc") == id)
+      return table;
+  }
+  return null;
+}
+
+function getDataFieldNames(table)
+{
+  var array = new Array();
+  var divs = table.getElementsByTagName("div");
+  var i;
+  for (i=0; i < divs.length; i++) {
+    var div = divs[i];
+    var datafld = div.getAttribute("datafld");
+    if (datafld != null && datafld != "") {
+      array[i] = datafld;
+    }
+  }
+
+  if (array.length < 1) {
+    return null;
+  }
+
+  return array;
+}
+
+function getSrcFieldValues(xml, fieldNames)
+{
+  var srcs = new Array();
+  var i;
+  for (i=0; i < fieldNames.length; i++) {
+    var field = fieldNames[i];
+    srcs[field] = xml.getElementsByTagName(field);
+  }
+
+  return srcs;
+}
+
+function fillTable(table, srcs)
+{
+  var trtemplate = table.firstChild.removeChild(table.firstChild.firstChild);
+  var tdtemplate = trtemplate.removeChild(trtemplate.firstChild);
+
+  while (trtemplate.firstChild) {
+    trtemplate.removeChild(trtemplate.firstChild);
+  }
+
+  table = table.firstChild; // tbody, really
+
+  var cols = 0;
+  for (field in srcs) {
+    srcs[cols++] = field;
+  }  
+
+  var row;
+  for (row = 0; row < srcs[srcs[0]].length; row++) {
+    var tr = trtemplate.cloneNode(true);
+    var col;
+    for (col=0; col < cols; col++ ) {
+      var td = tdtemplate.cloneNode(true);
+      var div = td.firstChild;     
+      div.setAttribute("datafld", srcs[col]);
+      var textNode = document.createTextNode(srcs[srcs[col]][row].firstChild.nodeValue);
+      div.appendChild(textNode);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+}
+
+
+function loadTableData()
+{
+  if (!document.all) {
+    var i;
+    var xmlNodes = document.getElementsByTagName("xml");
+    for (i=0; i< xmlNodes.length; i++) {
+      var xml = xmlNodes[i];
+      var id = xml.getAttribute("id");
+      var table = findTable(id);
+      var fields = getDataFieldNames(table);
+      var srcs = getSrcFieldValues(xml, fields);
+      fillTable(table, srcs);
+    }
+  }
+}
+</script>
+
+</head>
+
+<body onload="loadTableData();">
+
+<xml id="xmlNames">
+<names>
+<name>
+<first>Heikki</first>
+<mi>J</mi>
+<last>Toivonen</last>
+</name>
+<name>
+<first>Thad</first>
+<mi>?</mi>
+<last>Hoffman</last>
+</name>
+</names>
+</xml>
+
+<xml id="xmlMovies">
+<movies>
+<movie>
+<moviename>The Matrix</moviename>
+</movie>
+<movie>
+<moviename>The Lord of the Rings: The Two Towers</moviename>
+</movie>
+</movies>
+</xml>
+
+<h1>Table Samples</h1>
+
+<p>This sample shows how to mimic XML Data Islands in Mozilla with tables. This sample
+code is not meant for production use as it is very fragile as it stands here (very
+primitive browser capability test, requires certain template table layout and so on).</p>
+
+<h2>Names</h2>
+
+<table datasrc="#xmlNames" border="1"><tr><td><div datafld="first"></div></td><td><div datafld="mi"></div></td><td><div datafld="last"></div></td></tr></table>
+
+<h2>Movies</h2>
+
+<table datasrc="#xmlMovies" border="1"><tr><td><div datafld="moviename"></div></td></tr></table>
+
+</body>
+</html>

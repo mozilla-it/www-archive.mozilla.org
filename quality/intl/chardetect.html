@@ -1,0 +1,523 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="Author" content="Katsuhiko Momoi">
+   <meta name="GENERATOR" content="Mozilla/4.7 [en] (WinNT; U) [Netscape]">
+   <title>Charset Detection Algorithms</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<center>
+<h2>
+Usage Notes for Charset Auto-detection modules</h2></center>
+
+<p><br>Document prepared by: <a href="mailto:momoi@netscape.com">Katsuhiko
+Momoi</a>
+<br>Direct all technical comments to: <a href="mailto:ftang@netscape.com">Frank
+Tang</a>
+<br>Last Update: 10/11/99
+<p><b>At M10</b> the Charset Detection modules mentioned in this document
+have become available via an <b>Auto-Detect</b> Menu which is seen right
+below the Character set menu in the Browser window. Thus it is no longer
+necessary to directly edit the <b>prefs.js </b>file to enable a charset
+detector. Note that the menu enables one charset detector at a time. (This
+is the same as in M9).&nbsp; The menu can also disables its use.
+<p>There is one new additional charset detector setting for M10, which
+provides a workaround for EUC-JP mail file attachment display failure.
+Until the EUC-JP display bug is fixed for Japanese mail attachments, we
+recommend that those interested in viewing Japanese mail files use the
+following <b>prefs.js </b>setting:
+<p>user_pref("mail.charset.detector", "jaclassic");
+<p>This enables the use of Communicator 4.x Japanese detector and it only
+affects mail attachment viewing. This setting can co-exist with the Browser
+charset detector setting. If this line does not exist, and if the Browser's
+charset detector is enabled, then that detector will be used for mail attachments
+also.
+<p>The following usage notes may be still useful for historical reasons
+and to those who want to manipulate <b>prefs.js</b> settings directly or
+those who would like to use the <b>DetectCharset.exe </b>directly for bulk
+testing.
+<p>==================== Below this line is the Usage notes written for
+M9 ===========================<b></b>
+<p><b>At M9 and later, we now have two ways to use the auto-charset modules:</b>
+<ul>
+<li>
+<b>Method 1 (available in M9 builds only starting 7/15/99) :</b> Insert
+the following line into <b>prefs.js </b>(prefs50.js if you're using a pre-M9
+build) file. Mozilla will use the auto-detector at all times regardless
+of the encoding menu choice.</li>
+
+<p><br>user_pref("intl.charset.detector", "<b>chardet_name</b>");
+<p>where <b>chardet_name</b> is one of {japsm, kopsm, cjkpsm, zhpsm, zhtwpsm,
+zhcnpsm, ruprob, ukprob} -- (see also <a href="#detectormodules">below</a>
+for what they detect.)
+<li>
+<b>Method 2:</b> Use the "Detectch" or "Detectcharset" utility which is
+found in the same directory as your "apprunner" file.</li>
+
+<ul>
+<li>
+<b>Purpose of the utility: </b>To test charset detection modules Frank
+Tang has checked in for <b>M8 and later</b>. These detection modules are
+not meant for all charsets but rather for useful groups of encodings, e.g.
+Japanese encodings, Traditional Chinese encodings, etc.</li>
+
+<li>
+<b>Where: </b>The utility is called <b>DetectCh.exe or DetectCharset.exe
+</b>and distributed with the Windows build. On Unix, it won't build by
+default, but you build it by (1) add "intl/chardet/tests/" to mozilla/allmakefiles.sh
+file and (2) cd intl/chardet/tests and gmake to build it).</li>
+
+<li>
+<b>How:</b></li>
+
+<ul>
+<li>
+Please test against REAL language pages - which do not have undefined code
+point (for example, undefined Shift_JIS). For example,</li>
+
+<ul>
+<li>
+First, download a web page into the same directory as your <b>apprunner.exe</b>
+file, and</li>
+
+<li>
+Type the following line:</li>
+
+<ul>
+<li>
+type file_name | DetectCh(arset) japsm1024</li>
+
+<ul>
+<li>
+... where file_name is the name of the file you downloaded for testing
+, japsm is the <a href="#detectormodules">detector name</a>, and the 1024
+is the size of the block.</li>
+</ul>
+</ul>
+
+<li>
+Sometime, the detector won't report any charset, which&nbsp; means it cannot
+figure out the charset.</li>
+
+<ul>
+<li>
+For example, it cannot figure out what charset is for <a href="http://home.netscape.com/index.html">http://home.netscape.com/index.html</a>.&nbsp;
+However it can figure out it is windows-1252 in <a href="http://home.netscape.com/da/index.html">http://home.netscape.com/da/index.html</a>
+(or sv)</li>
+</ul>
+</ul>
+
+<li>
+If you don't want to download pages to test, then you can use a Perl Script
+to fetch URLs to test.</li>
+
+<ul>
+<li>
+First, install Perl 5.004 w/ LWP- for example - ActivePerl -&nbsp; <a href="http://www.ActiveState.com/ActivePerl/">ActiveState
+Tool Corp. - ActivePerl</a></li>
+
+<li>
+Then, type the following line- (in the directory which have DetectCh(arset))</li>
+
+<ul>
+<li>
+<tt><font color="#000000">perl -MLWP::Simple -e "getprint '<u><a href="http://home.netscape.com/it/index.html">http://home.netscape.com/it/index.html</a></u>'"
+|DetectCh(arset) japsm 1024</font></tt></li>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<b><font color="#000000">Sample output -- illustration of Method 2:</font></b>
+<blockquote>
+<li>
+<font color="#000000">Here are some sample output using the Perl Script
+method:</font></li>
+
+<blockquote>
+<li>
+<font color="#FF0000">Z:\mozilla\dist\WIN32_D.OBJ\bin>perl -MLWP::Simple
+-e "getprint '<a href="http://home.netscape.com/it/index.html">http://home.netscape.com/it/index.html</a>'"|DetectCh
+japsm 1024</font></li>
+
+<p><br><font color="#000000">It cannot find the charset.</font>
+<br>&nbsp;
+<li>
+<font color="#000000">Z:\mozilla\dist\WIN32_D.OBJ\bin>perl -MLWP::Simple
+-e "getprint '<a href="http://home.netscape.com/da/index.html">http://home.netscape.com/da/index.html</a>'"|DetectCh
+japsm 1024</font></li>
+
+<p><br><font color="#000000">It's NOT ISO-2022-JP- byte 4021</font>
+<br><font color="#000000">It's NOT EUC-JP- byte 4022</font>
+<br><font color="#000000">It's NOT UTF-8- byte 4022</font>
+<br><font color="#000000">It's NOT Shift_JIS- byte 4026</font>
+<br><font color="#000000">It's windows-1252- byte 4026. The only left</font>
+<br><font color="#000000">windows-1252</font></blockquote>
+</blockquote>
+<a NAME="detectormodules"></a><b>Available detectors:</b> <font color="#FF0000">Red</font><font color="#000000">
+indicates that the charset was not&nbsp; implemented in the module at <b>M8</b>.
+</font><font color="#FF0000">On M9 builds starting with 7/15/99, all the
+red-marked charsets below are working. </font><font color="#000000">Though
+they are checked in, </font><b>zhpsm</b> and <b>cjkpsm</b> are not yet
+finished. Please don't use them at this time.
+<ul>
+<li>
+japsm - detect charset among</li>
+
+<ul>
+<li>
+ISO-2022-JP</li>
+
+<li>
+EUC-JP</li>
+
+<li>
+Shift_JIS</li>
+
+<li>
+UTF-8</li>
+
+<li>
+Windows-1252</li>
+
+<li>
+UCS2 (Big Endian and Little Endian)</li>
+</ul>
+
+<li>
+kopsm - detect charset among</li>
+
+<ul>
+<li>
+EUC-KR</li>
+
+<li>
+<font color="#FF0000">ISO-2022-KR</font></li>
+
+<li>
+UTF-8</li>
+
+<li>
+windows-1252</li>
+
+<li>
+UCS2 (Big Endian and Little Endian)</li>
+</ul>
+
+<li>
+zhtwpsm - detect charset among</li>
+
+<ul>
+<li>
+BIG5</li>
+
+<li>
+x-euc-tw</li>
+
+<li>
+<font color="#FF0000">ISO-2022-CN</font></li>
+
+<li>
+UTF-8</li>
+
+<li>
+windows-1252</li>
+
+<li>
+UCS2 (Big Endian and Little Endian)</li>
+</ul>
+
+<li>
+zhcnpsm - detect charset among</li>
+
+<ul>
+<li>
+GB2312</li>
+
+<li>
+<font color="#FF0000">HZ</font></li>
+
+<li>
+<font color="#FF0000">ISO-2022-CN</font></li>
+
+<li>
+UTF-8</li>
+
+<li>
+windows-1252</li>
+
+<li>
+UCS2 (Big Endian and Little Endian)</li>
+</ul>
+
+<li>
+zhpsm <font color="#FF0000">(Not fully ready yet)</font> - detect charset
+among</li>
+
+<ul>
+<li>
+BIG5</li>
+
+<li>
+x-euc-twGB2312</li>
+
+<li>
+<font color="#FF0000">HZ</font></li>
+
+<li>
+<font color="#FF0000">ISO-2022-CN</font></li>
+
+<li>
+UTF-8</li>
+
+<li>
+windows-1252</li>
+
+<li>
+UCS2 (Big Endian and Little Endian)</li>
+</ul>
+
+<li>
+cjkpsm <font color="#FF0000">(Not fully ready yet)</font>&nbsp; - detect
+charset among</li>
+
+<ul>
+<li>
+Shift_JIS</li>
+
+<li>
+EUC-JP</li>
+
+<li>
+ISO-2022-JP</li>
+
+<li>
+EUC-KR</li>
+
+<li>
+<font color="#FF0000">ISO-2022-KR</font></li>
+
+<li>
+BIG5</li>
+
+<li>
+x-euc-twGB2312</li>
+
+<li>
+<font color="#CC0000">HZ</font></li>
+
+<li>
+<font color="#CC0000">ISO-2022-CN</font></li>
+
+<li>
+UTF-8</li>
+
+<li>
+windows-1252</li>
+
+<li>
+UCS2 (Big Endian and Little Endian)</li>
+</ul>
+</ul>
+<b><font color="#FF0000">[The following modules are available only for
+M9 or later builds starting on 7/15/99]</font></b>
+<ul>
+<li>
+<b><font color="#FF0000">&nbsp;</font><font color="#000000">Based on "<a href="http://www.neystadt.org/cyrillic/">The
+Cyrillic Software Suite</a>" perl package developed by <a href="mailto:John_Neystadt@icomverse.com">John
+Neystadt</a></font></b>. Read more about this in <a href="news://news.mozilla.org/378CD639.CD614A16%40netscape.com">this
+news article</a> posted by Frank Tang: 7/14/99.</li>
+
+<ul>
+<li>
+ruprob -- detects among</li>
+
+<ul>
+<li>
+KOI8-R</li>
+
+<li>
+windows-1251</li>
+
+<li>
+ISO-8859-5</li>
+
+<li>
+x-mac-cyrillic</li>
+
+<li>
+IBM866</li>
+</ul>
+
+<li>
+ukprob - detects among</li>
+
+<ul>
+<li>
+KOI8-U</li>
+
+<li>
+windows-1251</li>
+
+<li>
+ISO-8859-5</li>
+
+<li>
+x-mac-ukrainian</li>
+
+<li>
+IBM866</li>
+</ul>
+</ul>
+</ul>
+<b>Unfinished Work at M8 but were completed for M9: </b><font color="#FF0000">[All
+of the tasks below were completed and checked in on 7/14/99 after M8. Use
+7/15/99 or later M9 builds to see the fixes.]</font>
+<p>1. Need to add verifier for ISO-2022-KR, ISO-2022-CN and HZ:
+<br>&nbsp;(Note- although we can detect these three charset now (M9: starting
+with 7/15/99 build), we have not implemented the Unicode converters for
+them yet.) Any one want to help? Write to: <a href="mailto:ftang@netscape.com">Frank
+Tang</a>.
+<br>2. Need to add ISO-2022-KR verifier to kopsm, cjkpsm
+<br>3. Need to add ISO-2022-CN verifier to zhtwpsm, zhpsm and cjkpsm
+<br>4. Need to add HZ verifier to zhpsm, zhcnpsm and cjkpsm
+<br>5. Need to rewrite ISO-2022-JP Verifier to make it work properly w/
+ISO-2022-CN and ISO-2022-KR
+<p><b>Known problems/requests:</b>
+<p>1. The UTF-8 verifier has some problem. It might non-UTF-8 pages as
+UTF-8 sometimes. Investigating this problem .... <font color="#FF0000">[Fix
+checked in on 7/14/99. Use 7/15/99 or later M9 builds to see the fix.]</font>
+<br>2. zhtwpsm will only&nbsp; work as an x-euc-tw detector if it contains
+characters from&nbsp; CNS 11643 plane 2
+<br>3. zhpsm and cjkpsm won't detect correctly due to similar code ranges
+among EUC-KR, GB2312, x-euc-tw, Big5, EUC-JP, and Shift_JIS. We may eventually
+remove these two detectors. But for now, we've included them in the builds
+so that we can learn how good/bad they are.&nbsp; <font color="#FF0000">It
+is a known issue that detector 'cjkpsm' and 'zhpsm' won't report in some
+cases. And 'zhtwpsm' won't report "x-euc-tw' correctly. We need a 2nd path
+probability analysis for 'cjkpsm', 'zhpsm' and 'zhtwpsm'. Don't report
+bug for them please. They are incomplete for now</font>.
+<br>4. Is there some Vietnamese software which can detect charset between
+VIQR, VNI, VPS, and VISCII ?&nbsp; Write to: <a href="mailto:ftang@netscape.com">Frank
+Tang</a>.
+<p><b>Bug reporting procedures: </b>File your bug at <a href="http://bugzilla.mozilla.org/">this
+web page (Bugzilla)</a>. File it against the <b>Browser</b>. Assign the
+bug to <b>ftang@netscape.com</b>, and choose the <b>Component</b> to be
+"<b>International</b>".
+<p>1. Please test against japsm, kopsm, zhcnpsm and zhtwpsm, but not zhpsm
+and cjkpsm. These two detectors are not finished yet and need additional
+work. <font color="#FF0000">[If you use M9 build later than 7/14/99, then
+you can also use ruprob and ukprob. ]</font>
+<br>2. When you report a bug, please include the DOS/prompt window output.
+You can attach it by
+<br>&nbsp;&nbsp; a. click the upper-left DOS icon in the dos window, and
+click control-k control-e
+<br>&nbsp;&nbsp; b. high light the portion of output text by using mouse
+to click and click again
+<br>&nbsp;&nbsp; c. click the upper-left DOS icon in the dos window, and
+click control-k control-y
+<br>&nbsp;&nbsp; d. Paste into your Bugzilla report.
+<br>&nbsp;&nbsp; e. That will help us a lot since the dos output tell me
+which byte it go into error states for a particular charset.
+<br>&nbsp;
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified October 11,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/quality/intl/chardetect.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

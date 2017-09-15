@@ -1,0 +1,225 @@
+From edburns Mon Oct 11 17:35:37 1999
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+Message-ID: <14338.33369.556790.679205@eng.sun.com>
+Date: Mon, 11 Oct 1999 17:35:37 -0700 (PDT)
+From: Ed Burns <ed.burns@sun.com>
+To: blackwood
+Cc: mi@stardivision.de
+Subject: "Re: Call for Review: webclient design spec"
+X-Mailer: VM 6.71 under 21.1 (patch 3) "Acadia" XEmacs Lucid
+Reply-To: Ed Burns <ed.burns@sun.com>
+
+Hi Folks,
+
+While Michael Hoennig didn't participate in the formal document review
+process, I'm annotating his comments for completenes.
+
+Michael, you can look at the outline for our document review process at=
+
+http://javahouse.eng/vertigo/engineering/process/DocumentReview.html if=
+
+you like.
+
+I've translated the German where necessary into the bracketed sections.=
+
+
+On 6 October 10:57:48, Michael H=F6nnig wrote:
+> Doch vorab ein allgemeiner Hinweis. Aus juristischen Gr=FCnden musste=
+n=20
+> wir den Namen StarOne aufgeben. Das Produkt heisst nun "StarOffice=20=
+
+> API". Die Firma heisst "Star Office ... GmbH". Ja, in beiden F=E4llen=
+=20
+> hat der verantwortliche Manager "geschlafen".
+
+ACCEPT:  We'll change all the references to Star1 API to StarOffice API=
+
+
+> Ich weiss, dass die Webclient API nicht nur f=FCr Mozilla ist, aber w=
+ir=20
+> w=FCrden bei der Integration von Mozilla gerne gegen=FCber der Integr=
+ation=20
+> des MSIE einen Mehrwert anbieten, um den Netscape Browser besser=20
+> darzustellen. Wir stellen uns dabei die folgenden Features vor:
+>=20
+> f1) weitere Datenquellen/Protokolle, z.B. StarOffice-internen=20
+> Sonderprotokolle, oder neue kommende Entwicklungen.
+>=20
+> f2) automatisches Bookmark-Verwaltung, z.B. einsortieren nach=20
+> Stichworten oder =FCberwachung von =C4nderungen und Verf=FCgbarkeit.
+>=20
+> [Monitoring of changes and availability of bookmarks]
+>=20
+> f3) URL-spezifische Einstellungen, z.B. JavaScript aus, eigene Fonts =
+/=20
+> eigenen Hintergrund / besonderen Proxy verwenden.
+>=20
+> [URL-specific settings, private fonts, private background, setting of=
+
+> special proxies.]
+>=20
+> f4) UI-Integration in StarOffce Desktop, z.B. eine in einem=20
+> Browser-Frame dargestellte StarOffice-Componente mit ihrer Umgebung=20=
+
+> Toolboxen etc. teilen.
+>=20
+> [UI-Integration in the StarOffice Desktop, for example, having a
+> StarOfficeComponent in one browser frame with its own environment,
+> toolbox, etc.]
+
+ACCEPT: We'll break the API into a browser neutral part, and a browser
+specific part.  In particular, we'll include wrapping of: network
+protocol handlers, bookmarks, URL specific callback settings, and
+StarOffice UI integration.
+
+> s2) Cache as an external Component:
+> Es w=E4re gro=DFartig, wenn der Cache  mit den anderen StarOffice=20
+> Components gemeinsam benutzt werden k=F6nnte, auch von anderen=20
+> Datenquellen (UCB - Universal Conent Broker).=20
+>=20
+> [It would be really cool if other Star Office components, and the UCB=
+
+> could use the cache]
+
+DEFER: The cache is exposed as a separate API, but it must currently ru=
+n
+with the rest of mozilla.
+
+> s4) Bookmark-store as an external component:
+> Es =F6ffnet viele M=F6glichkeiten, wenn die Bookmarks voneiner extern=
+en=20
+> Komponente verwaltet werden k=F6nnen.
+>=20
+> [Making the bookmarks an external component offers many possibilities=
+]
+
+DEFER: We'll expose the bookmarks with a separate API, but it must
+currently run with the rest of mozilla.
+
+> s5) Frameset und Text-Viewer as separate, exchangeable components:=20=
+
+> Wir w=FCrden gerne unsere eigenen Framesets verwenden, um StarOffice=20=
+
+> Komponenten eine weitergehende UI Integration zu erm=F6glichen.
+>=20
+> [We would like our own, private Framesets to use, to enable StarOffic=
+e
+> components to have better UI integration.]
+
+ACCEPT: We'll put this in the spec:
+
+> In general, just as an idea: we don't put methods in interfaces which=
+=20
+> are not necessary. Especially for optional structural members we use=20=
+
+> X...Supplier interfaces (all our interfaces start with an "X") with a=
+=20
+> single method get...(). Examples could be=20
+> webclient.BrowserControl.getHistory(), ...getFileMenu() and ...=20
+> getEditMenu() or getBookmarks(). This additionally makes it easier to=
+=20
+> have exchangeable implementations for these sub components.
+
+DISCUSS: Michael had this to say when asked about the above comment:
+
+    No, I was not talking about the name. I was suggesting to apply one=
+
+    of our design rules: Each interface does only specifiy exactly one
+    aspect of a component. But BrowserControl and especially FileMenu
+    and EditMenu obviously specified several aspects each. Actually it
+    is nothing but the good old rule: high cohesion and low
+    coupling. Yes in an extreme we do have several interfaces with only=
+
+    a single method, but that is not the normal case.
+
+> webclient.BrowserControl.getFileMenu()/...getEditMenu() have confisin=
+g=20
+> names because that are not actually menus, that are the functions for=
+=20
+> the menus.=20
+
+ACCEPT: We'll revisit the partitioning of functionality.
+
+> webclient.BrowserControl.getPrint() we would have designed using an=20=
+
+> XPrintable interface which can be (and should be) supported. Please=20=
+
+> take a look at our convenience printing API currently in=20
+> stardiv.one.frame.XPrintable. We split it into formatting and layout=20=
+
+> relevant stuff (i.e. the printer driver, which I miss at all in your=20=
+
+> interface).=20
+
+ACCEPT: We'll revisit printing, or at least mark that part of the API a=
+s=20
+incomplete.
+
+> webclient.WindowControl is a quite wild mixture of functionality. We=20=
+
+> think at least the search stuff could be separated at least.=20
+
+ACCEPT: We'll revisit the WindowControl interface
+=20
+> The meaning of webclient.Acessibility.focusNext()/...focusPrev() is=20=
+
+> not clear to us. The other stuff in webclient.Acessibility would be=20=
+
+> nice to be able to control depending on the URL.
+
+REJECT: focusNext() moves the keyboard focus to the next thing on the
+page.  You know how in IE you can not use the mouse at all if you like?=
+
+You can select links using the TAB key and press enter to follow the
+link.  The focus* methods are intended to expose that feature.
+
+> Despite of the confusing name of webclient.EditMenu, I don't see the=20=
+
+> sense of cut(). Or if cut() makes sense, paste() would make sense too=
+=20
+> because both need to modify the document. What about form controls?=20=
+
+> And I miss access to the selection without copying it into the=20
+> clipboard.
+
+ACCEPT: we'll remove cut, and rename copy to something like
+copyCurrentSelectionToClipboard().
+
+> In webclient.Preferences are many things which should depend on the=20=
+
+> URL. Others, like the homepage, don't belong here at all. Maybe it=20=
+
+> needs to get split into a general and a URL specific part, where the=20=
+
+> URL specific settings are requested by a callback. And for=20
+> webclient.Preferences.getDiskCache we would prefer an external=20
+> component.
+
+DISCUSS: Michael's hangup here is that he's seeing webclient only as an=
+
+embedded browser in a larger application, not as an API to writing your=
+
+own browser chrome.  His "URL specific" request is being addressed
+elsewhere.
+
+> Just for clarification: Is it possible to exchange popup menus using=20=
+
+> the webclient.DOMEvents.
+
+DISCUSS: Not sure what he means here.
+
+> And just for curiosity: Why haven't you used Java AWT interfaces for=20=
+
+> key- and mouse-event and some other windowing stuff?
+
+DISCUSS: We are using the Java AWT interfaces for key and mouse, but we=
+
+need to also announce that we'll be supporting "WindowClosing" and such=
+
+events.
+
+
+
+

@@ -1,0 +1,23 @@
+When URI's are loaded, your registered nsIWebProgressListener's methods will be called to provide you with status/progress...
+<pre>
+  NS_IMETHODIMP 
+  CBrowserImpl::OnStateChange(nsIWebProgress *progress, nsIRequest *request,
+    PRInt32 state, PRUint32 status) {
+   
+   if ((state & STATE_START) && (state & STATE_IS_DOCUMENT))
+   {
+     // Navigation has begun
+     if(m_pBrowserFrameGlue)
+       m_pBrowserFrameGlue->UpdateBusyState(PR_TRUE);
+   }
+
+   if ((state & STATE_STOP) && (state & STATE_IS_DOCUMENT))
+   {
+     // We've completed the navigation
+     m_pBrowserFrameGlue->UpdateBusyState(PR_FALSE);
+     m_pBrowserFrameGlue->UpdateProgress(0, 100);       // Clear the prog bar
+     m_pBrowserFrameGlue->UpdateStatusBarText(nsnull);  // Clear the status bar
+   }
+   return NS_OK;
+  }
+</pre>

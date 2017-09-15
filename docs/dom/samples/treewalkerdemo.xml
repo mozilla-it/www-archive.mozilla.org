@@ -1,0 +1,630 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Treewalker example</title>
+
+    <!-- CSS to show the created output tree -->
+    <style><![CDATA[
+
+      div#data { display: none; }
+
+      tag {
+        display: block;
+        color: black;
+        margin-left: 1em;
+        font-weight: bold;
+      }
+      tag:before { content: '<' attr(name) '>'; }
+      tag:after { content: '</' attr(name) '>'; }
+
+      text {
+        display: block;
+        margin-left: 1em;
+        font-weight: normal;
+      }
+      text:before { content: "#text : \"" attr(value) "\""}
+
+    ]]></style>
+    <script><![CDATA[
+    /*
+     * Function that runs a specific example
+     */
+    function testFilter(filter) {
+
+      // Create a TreeWalker and NodeFilter
+      var walker;
+      switch(filter) {
+        case 1:
+          walker = document.createTreeWalker(document.getElementById('data'),
+                                             NodeFilter.SHOW_ALL,
+                                             null,
+                                             true);
+          break;
+
+        case 2:
+          walker = document.createTreeWalker(document.getElementById('data'),
+                                             NodeFilter.SHOW_ALL,
+                                             {
+                                                acceptNode : function(node) {
+                                                  if (node.nodeType == Node.TEXT_NODE &&
+                                                      !(/[^\t\n\r ]/.test(node.nodeValue)))
+                                                    return NodeFilter.FILTER_REJECT;
+                                                  return NodeFilter.FILTER_ACCEPT;
+                                                }
+                                             },
+                                             true);
+          break;
+
+        case 3:
+          walker = document.createTreeWalker(document.getElementById('data'),
+                                             NodeFilter.SHOW_ELEMENT,
+                                             null,
+                                             true);
+          break;
+
+        case 4:
+          walker = document.createTreeWalker(document.getElementById('data'),
+                                             NodeFilter.SHOW_ALL,
+                                             {
+                                                acceptNode : function(node) {
+                                                  if (node.nodeType == Node.TEXT_NODE &&
+                                                      !(/[^\t\n\r ]/.test(node.nodeValue)))
+                                                    return NodeFilter.FILTER_REJECT;
+
+                                                  while (node) {
+                                                    if (node.nodeName == "attr")
+                                                      return NodeFilter.FILTER_ACCEPT;
+                                                    node = node.parentNode;
+                                                  }
+                                                  return NodeFilter.FILTER_SKIP;
+                                                }
+                                             },
+                                             true);
+
+          break;
+
+        case 5:
+          walker = document.createTreeWalker(document.getElementById('data'),
+                                             NodeFilter.SHOW_ALL,
+                                             {
+                                                acceptNode : function(node) {
+
+                                                  if (node.nodeName == "type" ||
+                                                      (node.parentNode &&
+                                                       node.parentNode.nodeName == "type"))
+                                                    return NodeFilter.FILTER_ACCEPT;
+                                                  return NodeFilter.FILTER_SKIP;
+                                                }
+                                             },
+                                             true);
+
+          break;
+
+
+      }
+
+      // find node to create the displayed tree in
+      var outRoot = document.getElementById('output');
+
+      // remove any tree from a previous run
+      while(outRoot.hasChildNodes())
+        outRoot.removeChild(outRoot.lastChild);
+
+      // start copying the tree
+      addTree(walker, outRoot);
+    }
+
+    /*
+     * Function that is called recursivly to create the output tree
+     * Note how this function is exactly the same independingly on what
+     * filter we use, the TreeWalker handles the filtering for us
+     */
+    function addTree(walker, destNode) {
+
+      // walk the TreeWalker tree...
+      if(walker.firstChild()) {
+
+        do {
+        
+          // ...and create an output node for every node we find
+          var newNode;
+          switch (walker.currentNode.nodeType) {
+            case Node.ELEMENT_NODE:
+              newNode = document.createElementNS(null, "tag");
+              newNode.setAttribute("name", walker.currentNode.nodeName);
+              break;
+
+            default:
+              newNode = document.createElementNS(null, "text");
+              newNode.setAttribute("value", walker.currentNode.nodeValue);
+              break;
+
+          }
+
+          // insert the output node and recursivly walk the children
+          // of every node
+          destNode.appendChild(newNode);
+          addTree(walker, newNode);
+
+        } while(walker.nextSibling());
+
+        // don't forget to return the treewalker to it's previous state
+        // before exiting the function
+        walker.parentNode();
+      }
+    }
+
+    ]]></script>
+  </head>
+  <body>
+
+    <p>
+      This is a demonstration of the use of the TreeWalker interface (part of the DOM
+      Level 2 Traversal specification) in conjunction with the NodeFilter interface
+      (part of the same specification). It uses a raw XML datasource, and displays
+      the DOM tree with defined criterions:
+      <ul>
+        <li>Show the whole tree, without any modification</li>
+        <li>Show the whole tree, without the empty (whitespace) text nodes</li>
+        <li>Show only the XML elements of the tree</li>
+        <li>Show only subtrees below &lt;attr&gt; elements</li>
+        <li>Show all datatypes</li>
+      </ul>
+    </p>
+    <p>
+      <button onclick="testFilter(1);">Entire tree</button>
+      <button onclick="testFilter(2);">No whitespace</button>
+      <button onclick="testFilter(3);">Only elements</button>
+      <button onclick="testFilter(4);">All attributes</button>
+      <button onclick="testFilter(5);">All datatypes</button>
+    </p>
+    <div id="output"/>
+    <div id="data">
+
+      <traversal xmlns="">
+        <interface>
+          <name>NodeIterator</name>
+          <desc>Iterators are used to step through a set of nodes, e.g. the set of
+                nodes in a NodeList, the document subtree governed by a particular
+                Node, the results of a query, or any other set of nodes. The set of
+                nodes to be iterated is determined by the implementation of the
+                NodeIterator. DOM Level 2 specifies a single NodeIterator
+                implementation for document-order traversal of a document subtree.
+                Instances of these iterator are created by calling DocumentTraversal
+                .createNodeIterator().
+          </desc>
+          <idl>
+            <attributes>
+              <attr readonly="true">
+                <name>expandEntityReferences</name>
+                <type>boolean</type>
+                <desc>The value of this flag determines whether the children of
+                      entity reference nodes are visible to the iterator. This
+                      attribute takes precedence over whatToShow and the filter.
+                </desc>
+              </attr>
+              <attr readonly="true">
+                <name>filter</name>
+                <type>NodeFilter</type>
+                <desc>The NodeFilter used to screen nodes.</desc>
+              </attr>
+              <attr readonly="true">
+                <name>root</name>
+                <type>Node</type>
+                <desc>The root node of the NodeIterator, as specified when it was
+                      created.
+                </desc>
+              </attr>
+              <attr readonly="true">
+                <name>whatToShow</name>
+                <type>unsigned long</type>
+                <desc>This attribute determines which node types are presented via
+                      the iterator. The available set of constants is defined in the
+                      NodeFilter interface. Nodes not accepted by whatToShow will be
+                      skipped, but their children may still be considered. Not that
+                      this skip takes precedence over the filter, if any.
+                </desc>
+              </attr>
+            </attributes>
+            <methods>
+              <method>
+                <name>detach</name>
+                <desc>Detaches the NodeIterator from the set which it iterator over,
+                      releasing any computational resources and placing the iterator
+                      in the INVALID state. After detach has been invoked, calls to
+                      nextNode() or previousNode() will raise the exception
+                      INVALID_STATE_ERR.
+                </desc>
+                <parameters/>
+                <return/>
+                <exceptions/>
+              </method>
+              <method>
+                <name>nextNode</name>
+                <desc>Returns the next node in the set and advances the position of
+                      the iterator in the set. After a NodeIterator is created, the
+                      first call to nextNode() returns the first in the set.
+                </desc>
+                <parameters/>
+                <return>
+                  <type>Node</type>
+                  <desc>The next Node in the set being iterator over, or null if there
+                        are no more members in that set.
+                  </desc>
+                </return>
+                <exceptions>
+                  <exc>
+                    <type>INVALID_STATE_ERR</type>
+                    <when>Raised if this method is called after the detach method.
+                    </when>
+                  </exc>
+                </exceptions>
+              </method>
+              <method>
+                <name>previousNode</name>
+                <desc>Returns the previous node in the set and moves the position of
+                      the NodeIterator backwards in the set.
+                </desc>
+                <parameters/>
+                <return>
+                  <type>Node</type>
+                  <desc>The previous Node in the set being iterated over, or null if
+                        there are no more members in that set.
+                  </desc>
+                </return>
+                <exceptions>
+                  <exc>
+                    <type>INVALID_STATE_ERR</type>
+                    <when>Raised if this method is called after the detach method.
+                    </when>
+                  </exc>
+                </exceptions>
+              </method>
+            </methods>
+          </idl>
+        </interface>
+        <interface>
+          <name>NodeFilter</name>
+          <desc>Filters are objects that know how to "filter out" nodes. If a
+                NodeIterator or TreeWalker is given a NodeFilter, it applies the
+                filter before it returns the text node.
+          </desc>
+          <idl>
+            <attributes/>
+            <methods>
+              <method>
+                <name>acceptNode</name>
+                <desc>Test whether a specified node is visible in the logical view
+                      of a TreeWalker or NodeIterator. This function will be called
+                      by the implementation of TreeWalker or NodeIterator;
+                </desc>
+                <parameters>
+            <name>n</name>
+                  <type>Node</type>
+                  <desc>The node to check to see if it passes the filter or not.
+                  </desc>
+                </parameters>
+                <return>
+                  <type>short</type>
+                  <desc>Constant to determine whether the node is accepted, rejected,
+                        or skipped, one of the three constants below.
+                  </desc>
+                </return>
+                <exceptions/>
+              </method>
+            </methods>
+            <constants>
+              <const>
+                <name>FILTER_ACCEPT</name>
+                <desc>Accept the node. Navigation methods defined for NodeIterator or
+                      TreeWalker will return this node.
+                </desc>
+              </const>
+              <const>
+                <name>FILTER_REJECT</name>
+                <desc>Reject the node. Navigation methods defined for NodeIterator or
+                      TreeWalker will not return this node. For TreeWalker, the
+                      children of this node will also be rejected. NodeIterators
+                      treat this as a synonym for FILTER_SKIP.
+                </desc>
+              </const>
+              <const>
+                <name>FILTER_SKIP</name>
+                <desc>Skip this single node. Navigation methods defined for
+                      NodeIterator or TreeWalker will not return this node. For both
+                      NodeIterator and TreeWalker, the children of this node will
+                      still be considered.
+                </desc>
+              </const>
+            </constants>
+          </idl>
+        </interface>
+        <interface>
+          <name>TreeWalker</name>
+          <desc>TreeWalker objects are used to navigate a document tree or subtree
+                using the view of the document defined by their whatToShow flags
+                and filter (if any). Any function which performs navigation using
+                a TreeWalker will automatically support any view defined by a
+                TreeWalker.
+          </desc>
+          <idl>
+            <attributes>
+              <attr readonly="true">
+                <name>root</name>
+                <type>Node</type>
+                <desc>The root node of the TreeWalker, as specified when it was
+                      created.
+                </desc>
+              </attr>
+              <attr readonly="true">
+                <name>whatToShow</name>
+                <type>unsigned long</type>
+                <desc>This attribute determines which node types are presented via
+                      the TreeWalker. The available set of constants is defined
+                      in the NodeFilter interface.
+                </desc>
+              </attr>
+              <attr readonly="true">
+                <name>filter</name>
+                <type>NodeFilter</type>
+                <desc>The filter used to screen nodes.
+                </desc>
+              </attr>
+              <attr readonly="true">
+                <name>expandEntityReferences</name>
+                <type>boolean</type>
+                <desc>The value of this flag determines whether the children of
+                      entity reference nodes are visible to the TreeWalker.
+                </desc>
+              </attr>
+              <attr>
+                <name>currentNode</name>
+                <type>Node</type>
+                <desc>The node at which the TreeWalker is currently positioned.
+                      Alterations to the DOM tree may cause the current node to no
+                      longer be accepted by the TreeWalker's associated filter.
+                      currentNode may also be explicitly set to any node, whether or
+                      not it is within the subtree specified by the root node or
+                      would be accepted by the filter and whatToShow flags.
+                </desc>
+              </attr>
+            </attributes>
+            <methods>
+              <method>
+                <name>firstChild</name>
+                <desc>Moves the TreeWalker to the first visible child of the current
+                      node, and returns the new node. If the current node has no
+                      visible children, returns null, and retains the current node.
+                </desc>
+                <parameters/>
+                <return>
+                  <type>Node</type>
+                  <desc>The new node, or null if the current node has no visible
+                        children in the TreeWalker's logical view.
+                  </desc>
+                </return>
+                <exceptions/>
+              </method>
+              <method>
+                <name>lastChild</name>
+                <desc>Moves the TreeWalker to the last visible child of the current
+                      node, and returns the new node. If the current node has no
+                      visible children, returns null, and reatins the current node.
+                </desc>
+                <parameters/>
+                <return>
+                  <type>Node</type>
+                  <desc>The new node, or null if the current node has no children
+                        in the TreeWalker's logical view.
+                  </desc>
+                </return>
+                <exceptions/>
+              </method>
+              <method>
+                <name>nextNode</name>
+                <desc>Moves the TreeWalker to the next visible node in document
+                      order relative to the current node, and returns the new node.
+                      If the current node has no text node, or if the search for
+                      nextNode attempts to step upward from the TreeWalker's root
+                      node, returns null, and retains the current node.
+                </desc>
+                <parameters/>
+                <return>
+                  <name>Node</name>
+                  <desc>The new node, or null if the current node has no next node in
+                        the TreeWalker's logical view.
+                  </desc>
+                </return>
+                <exceptions/>
+              </method>
+              <method>
+                <name>nextSibling</name>
+                <desc>Moves the TreeWalker to the next sibling of the current node,
+                      and returns the new node. If the current node has no visible
+                      next sibling, returns null, and retains the current node.
+                </desc>
+                <parameters/>
+                <return>
+                  <type>Node</type>
+                  <desc>The new node, or null if the current node has no next
+                        sibling in the TreeWalker's logical view.
+                  </desc>
+                </return>
+                <exceptions/>
+              </method>
+              <method>
+                <name>parentNode</name>
+                <desc>Moves to and returns the closest visible ancestor node of the
+                      current node. If the search for parentNode attempts to step
+                      upward from the TreeWalker's root node, or if it fails to find
+                      a visible ancestor node, this method retains the current
+                      position and returns null.
+                </desc>
+                <parameters/>
+                <return>
+                  <type>Node</type>
+                  <desc>The new parent node, or null if the current node has no
+                        parent in the TreeWalker's logical view.
+                  </desc>
+                </return>
+                <exceptions/>
+              </method>
+              <method>
+                <name>previousNode</name>
+                <desc>Moves the TreeWalker to the previous visible node in document
+                      order relative to the current node, and returns the new node.
+                      If the current node has no previous node, or if the search
+                      for previousNode attempts to step upward from the TreeWalker's
+                      root node, returns null, and retains the current node.
+                </desc>
+                <parameters/>
+                <return>
+                  <type>Node</type>
+                  <desc>The new node, or null if the current node has no previous
+                        node in the TreeWalker's logical view.
+                  </desc>
+                </return>
+                <exceptions/>
+              </method>
+              <method>
+                <name>previousSibling</name>
+                <desc>Moves the TreeWalker to the previous sibling of the current
+                      node, and returns the new node. If the current node has no
+                      visible previous sibling, returns null, and retains the current
+                      node.
+                </desc>
+                <parameters/>
+                <return>
+                  <type>Node</type>
+                  <desc>The new node, or null if the current node has no previous
+                        sibling in the TreeWalker's logical view.
+                  </desc>
+                </return>
+                <exceptions/>
+              </method>
+            </methods>
+          </idl>
+        </interface>
+        <interface>
+          <name>DocumentTraversal</name>
+          <desc>DocumentTraversal contains methods that create iterators and
+                tree-walkers to traverse a node and its children in document order.
+          </desc>
+          <idl>
+            <attributes/>
+            <methods>
+              <method>
+                <name>createNodeIterator</name>
+                <desc>Create a new NodeIterator over the subtree rooted at the
+                      specified node.
+                </desc>
+                <parameters>
+                  <param>
+                    <name>root</name>
+                    <type>Node</type>
+                    <desc>The node which will be iterated together with its children.
+                          The iterator is initially positioned just before this node.
+                          The whatToShow flags and the filter, if any, are considered
+                          when setting this position. The root must not be null.
+                    </desc>
+                  </param>
+                  <param>
+                    <name>whatToShow</name>
+                    <type>unsigned long</type>
+                    <desc>This flag specifies which node types may appear in the
+                          logical view of the tree presented by the iterator. See the
+                          description of NodeFilter for the set of possible
+                          SHOW_ values. These flags can be combined using OR.
+                    </desc>
+                  </param>
+                  <param>
+                    <name>filter</name>
+                    <type>NodeFilter</type>
+                    <desc>The NodeFilter to be used with this NodeIterator, or null to
+                          indicate no filter.
+                    </desc>
+                  </param>
+                  <param>
+                    <name>entityReferenceExpansion</name>
+                    <type>boolean</type>
+                    <desc>The value of this flag determines whether entity reference
+                          nodes are expanded.
+                    </desc>
+                  </param>
+                </parameters>
+                <return>
+                  <type>NodeIterator</type>
+                  <desc>The newly created NodeIterator
+                  </desc>
+                </return>
+                <exceptions>
+                  <exc>
+                    <type>NOT_SUPPORTED_ERR</type>
+                    <when>Raised if the specified root is null.
+                    </when>
+                  </exc>
+                </exceptions>
+              </method>
+              <method>
+                <name>createTreeWalker</name>
+                <desc>Create a new TreeWalker over the subtree rooted at the
+                      specified node.
+                </desc>
+                <parameters>
+                  <param>
+                    <name>root</name>
+                    <type>Node</type>
+                    <desc>The node which will serve as the root for the TreeWalker.
+                          The whatToShow flags and the filter, if any, are considered
+                          when setting this position. The currentNode of the
+                          TreeWalker is initialized to this node, whether or not it is
+                          visible. The "root" functions as a stopping point for
+                          traversal methods that look upward in the document
+                          structure, such as parentNode and nextNode. The root must
+                          not be null.
+                    </desc>
+                  </param>
+                  <param>
+                    <name>whatToShow</name>
+                    <type>unsigned long</type>
+                    <desc>This flag specifies which node types may appear in the
+                          logical view of the tree presented by the TreeWalker. See 
+                          the description of NodeFilter for the set of possible
+                          SHOW_ values. These flags can be combined using OR.
+                    </desc>
+                  </param>
+                  <param>
+                    <name>filter</name>
+                    <type>NodeFilter</type>
+                    <desc>The NodeFilter to be used with this TreeWalker, or null to
+                          indicate no filter.
+                    </desc>
+                  </param>
+                  <param>
+                    <name>entityReferenceExpansion</name>
+                    <type>boolean</type>
+                    <desc>The value of this flag determines whether entity reference
+                          nodes are expanded.
+                    </desc>
+                  </param>
+                </parameters>
+                <return>
+                  <type>TreeWalker</type>
+                  <desc>The newly created TreeWalker
+                  </desc>
+                </return>
+                <exceptions>
+                  <exc>
+                    <type>NOT_SUPPORTED_ERR</type>
+                    <when>Raised if the specified root is null.
+                    </when>
+                  </exc>
+                </exceptions>
+              </method>
+            </methods>
+          </idl>
+        </interface>
+      </traversal>
+
+    </div>
+  </body>
+</html>

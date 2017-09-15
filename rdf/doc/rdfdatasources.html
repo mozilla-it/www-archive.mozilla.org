@@ -1,0 +1,567 @@
+<HTML>
+<HEAD>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000"
+      LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<CENTER>
+<H2>
+Implementing RDF Data Sources - Draft #1<BR>
+<FONT SIZE=+0>by <A HREF="mailto:rjc@netscape.com?subject=Implementing%20RDF%20Data%20Sources">Robert
+John Churchill<BR>
+</A>April 6, 1998</FONT></H2></CENTER>
+<B><FONT SIZE=+1>Summary:</FONT></B>  This document describes how
+to extend Netscape's Resource Description Framework (RDF) by the addition
+of new data sources.
+<BR>
+<BR><B><FONT SIZE=+1>Background:</FONT></B>  RDF, in its most simple
+form, is a directed labeled graph.  Imagine triplets of the following: 
+nodes (keyed off of URLs such as "http://people.netscape.com/rjc/") with
+arc nodes (such as "Owner Name") pointing to other nodes (such as "Robert
+John Churchill"). Each triplet is an RDF "assertion".
+
+<P>Most people, including end users, are familiar with hierarchies... from
+file systems to Netscape's bookmark window, a hierarchy helps to indicate
+organization in a tree. By defining a standard vocabulary that includes
+definitions for parent and child relationships, it becomes possible to
+layer a strict hierarchical view on top of RDF's graph. An example of this
+is Netscape's HyperTree which enables different views of data (such as
+bookmarks, history, the local file system, etc.) from RDF.
+
+<P>Question: How does data make its way into RDF's graph?
+
+<P>Answer:  For every type of data, there is an associated data source. 
+For example, file and folders from the local file system are reflected
+into RDF's graph via a file system data source that responds to queries
+from RDF's engine. (In the 3/31/1998 Free Source release, look at ns/modules/rdf/src/
+for code.)
+<BR>
+<BR><B><FONT SIZE=+1>Implementing a RDF Data Source:</FONT></B>
+<BR> 
+
+<PRE>One of the key structures is the RDF_TranslatorStruct:</PRE>
+
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+<TR>
+<TD><FONT SIZE=-1>struct <B><A HREF="#RDFT">RDF_TranslatorStruct</A></B>
+{</FONT> 
+<BR><FONT SIZE=-1>    RDFL               
+rdf;</FONT> 
+<BR><FONT SIZE=-1>    char               
+*url;      /* data source URL */</FONT> 
+<BR><FONT SIZE=-1>    void               
+*pdata;    /* private data storage */</FONT> 
+
+<P><FONT SIZE=-1>    /* translator entry points */</FONT> 
+
+<P><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#hasAssertionProc">hasAssertionProc   
+hasAssertion</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#assertProc">assertProc         
+assert</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#unassertProc">unassertProc       
+unassert</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#getSlotValueProc">getSlotValueProc   
+getSlotValue</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#getSlotValuesProc">getSlotValuesProc  
+getSlotValues</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#nextItemProc">nextItemProc       
+nextValue</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#disposeCursorProc">disposeCursorProc  
+disposeCursor</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#disposeResourceProc">disposeResourceProc
+disposeResource</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#destroyProc">destroyProc        
+destroy</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#arcLabelsOutProc">arcLabelsInProc    
+arcLabelsIn</A>;</FONT></FONT> 
+<BR><FONT COLOR="#1414FF"><FONT SIZE=-1>    <A HREF="#arcLabelsInProc">arcLabelsInProc    
+arcLabelsOut</A>;</FONT></FONT> 
+<BR><FONT SIZE=-1>};</FONT> 
+<BR><FONT SIZE=-1>typedef struct <A HREF="#RDFT">RDF_TranslatorStruct *RDFT</A>;</FONT></TD>
+</TR>
+</TABLE>
+
+<BR>Here are prototypes for the translator entry points:
+
+<PRE><FONT SIZE=-1>typedef PRBool     (*<FONT COLOR="#0905FF"><A HREF="#hasAssertionProc">hasAssertionProc</A></FONT>)(RDFT r, RDF_Resource u, RDF_Resource s, void *v,
+                                        RDF_ValueType type, PRBool tv);
+typedef PRBool     (*<FONT COLOR="#0905FF"><A HREF="#assertProc">assertProc</A></FONT>)(RDFT r, RDF_Resource u, RDF_Resource  s, void *v,
+                                        RDF_ValueType type, PRBool tv);
+typedef PRBool     (*<FONT COLOR="#071CFF"><A HREF="#unassertProc">unassertProc</A></FONT>)(RDFT r, RDF_Resource u, RDF_Resource s, void *v,
+                                        RDF_ValueType type);
+typedef void *     (*<FONT COLOR="#070BFF"><A HREF="#getSlotValueProc">getSlotValueProc</A></FONT>)(RDFT r, RDF_Resource u, RDF_Resource s,
+                                        RDF_ValueType type,  PRBool inversep, PRBool tv);
+typedef RDF_Cursor (*<FONT COLOR="#0E0AFF"><A HREF="#getSlotValuesProc">getSlotValuesProc</A></FONT>)(RDFT r, RDF_Resource u, RDF_Resource s,
+                                        RDF_ValueType type, PRBool inversep, PRBool tv);
+typedef void *     (*<FONT COLOR="#140CFF"><A HREF="#nextItemProc">nextItemProc</A></FONT>)(RDFT r, RDF_Cursor c);
+typedef RDF_Error  (*<FONT COLOR="#0509FF"><A HREF="#disposeCursorProc">disposeCursorProc</A></FONT>)(RDFT r, RDF_Cursor c);
+typedef RDF_Error  (*<FONT COLOR="#0A16FF"><A HREF="#disposeResourceProc">disposeResourceProc</A></FONT>)(RDFT r, RDF_Resource u);
+typedef RDF_Error  (*<FONT COLOR="#0F1BFF"><A HREF="#destroyProc">destroyProc</A></FONT>)(struct RDF_TranslatorStruct*);
+typedef RDF_Cursor (*<FONT COLOR="#0714FF"><A HREF="#arcLabelsOutProc">arcLabelsOutProc</A></FONT>)(RDFT r, RDF_Resource u);
+typedef RDF_Cursor (*<FONT COLOR="#0B07FF"><A HREF="#arcLabelsInProc">arcLabelsInProc</A></FONT>)(RDFT r, RDF_Resource u);</FONT></PRE>
+
+<BR>Dictionary:
+
+<P>A "<A NAME="RDFT"></A>RDFT" is a RDF_Translator reference. Its the interface
+between RDF and a data source.
+<BR>A "<A NAME="RDF_Cursor"></A>RDF_Cursor" is a database concept which
+allows enumeration over the results of a query.
+<BR>A "<A NAME="RDF_Resource"></A>RDF_Resource" is a node in RDF's graph.
+<BR>A "<A NAME="RDF_Type"></A>RDF_Type" is a RDF basic type (such as RDF_INT_TYPE,
+RDF_STRING_TYPE, RDF_RESOURCE_TYPE, etc.)
+
+<P>"u" represents the source node
+<BR>"s" represents the arc node
+<BR>"v" represents the destination node/value
+<BR>"tv" represents the truth value of the assertion (true or false)
+<BR>
+<BR>Every data source implements a public routine which, given a URL representing
+the data source, will allocate its own RDF_Translator, fills in the relevent
+parts of the structure and return it to RDF.
+
+<P>Most data sources will implement:
+
+<P><A NAME="hasAssertionProc"></A><FONT COLOR="#0710FF">hasAssertionProc</FONT>: 
+determine whether an assertion exists
+<BR><A NAME="assertProc"></A><FONT COLOR="#0A0EFF">assertProc</FONT>: make
+an assertion
+<BR><A NAME="unassertProc"></A><FONT COLOR="#140CFF">unassertProc</FONT>:
+remove an assertion
+<BR><A NAME="getSlotValueProc"></A><FONT COLOR="#0A0AFF">getSlotValueProc</FONT>:
+get the destination node/value
+<BR><A NAME="getSlotValuesProc"></A><FONT COLOR="#0A16FF">getSlotValuesProc</FONT>:
+get a cursor to enumerate over the destination node/value pairs
+<BR><A NAME="nextItemProc"></A><FONT COLOR="#020FFF">nextItemProc</FONT>:
+given a cursor, return the next node/value pair
+<BR><A NAME="disposeCursorProc"></A><FONT COLOR="#1702FF">disposeCursorProc</FONT>:
+dispose of a given cursor
+<BR>
+<BR><B><FONT SIZE=+1>Example Code:</FONT></B>
+
+<P>As an example, let's implement a file system data source!
+
+<P>First, let's register our data source.  (Note: Currently, RDF will
+need to be modified to call our MakeFSStore() routine as there is no discovery
+mechnism.)
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+<TR>
+<TD><FONT SIZE=-1>/*</FONT> 
+<BR><FONT SIZE=-1>    Allocate a RDF Translator structure
+and register our entry points</FONT> 
+<BR><FONT SIZE=-1>*/</FONT> 
+
+<P><FONT SIZE=-1>RDFT</FONT> 
+<BR><FONT SIZE=-1>MakeFSStore (char* url)</FONT> 
+<BR><FONT SIZE=-1>{</FONT> 
+<BR><FONT SIZE=-1>    RDFT       
+ntr;</FONT> 
+
+<P><FONT SIZE=-1>    ntr = (RDFT) XP_ALLOW(sizeof(struct
+RDF_TranslatorStruct));</FONT> 
+<BR><FONT SIZE=-1>    if (ntr != NULL)</FONT> 
+<BR><FONT SIZE=-1>    {</FONT> 
+<BR><FONT SIZE=-1>        ntr->url =
+copyString(url);</FONT> 
+
+<P><FONT SIZE=-1>        ntr->assert
+= NULL;</FONT> 
+<BR><FONT SIZE=-1>        ntr->unassert
+= NULL;</FONT> 
+<BR><FONT SIZE=-1>        ntr->getSlotValue
+= fsGetSlotValue;</FONT> 
+<BR><FONT SIZE=-1>        ntr->getSlotValues
+= fsGetSlotValues;</FONT> 
+<BR><FONT SIZE=-1>        ntr->hasAssertion
+= fsHasAssertion;</FONT> 
+<BR><FONT SIZE=-1>        ntr->nextValue
+= fsNextValue;</FONT> 
+<BR><FONT SIZE=-1>        ntr->disposeCursor
+= fsDisposeCursor;</FONT> 
+
+<P><FONT SIZE=-1>        ... do any
+data source specific initialization here ...</FONT> 
+
+<P><FONT SIZE=-1>        /* this sample
+file system data source should "discover"</FONT> 
+<BR><FONT SIZE=-1>          
+all available volumes and add them into the graph */</FONT> 
+<BR><FONT SIZE=-1>    }</FONT> 
+<BR><FONT SIZE=-1>    return (ntr);</FONT> 
+<BR><FONT SIZE=-1>}</FONT></TD>
+</TR>
+</TABLE>
+ 
+<BR>Given a well-known or discovered starting point (such as "C:\" on a
+Windows machine), RDF might ask for all the contents of that directory
+by obtaining a cursor from  the the data sources <FONT COLOR="#0E0AFF"><A HREF="#getSlotValuesProc">getSlotValuesProc</A></FONT>
+routine and asking for nodes to be returned.  By repeatedly calling
+the data source's <FONT COLOR="#0C10FF"><A HREF="#nextItemProc">nextItemProc</A></FONT>
+(which takes the cursor as an argument), RDF will get back RDF_Resources
+for each file/folder in the directory. When the end of the list is reached
+(indicated by NULL being returned from nextItemProc), RDF will that dispose
+of the cursor by calling <FONT COLOR="#0C21FF"><A HREF="#disposeCursorProc">disposeCursorProc</A></FONT>.
+
+<P>Here is pseudo-code for what those three routines might look like:
+<BR> 
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+<TR>
+<TD><FONT SIZE=-1>/*</FONT> 
+<BR><FONT SIZE=-1>    Construct a cursor iff asked for the
+contents of a directory</FONT> 
+<BR><FONT SIZE=-1>*/</FONT> 
+
+<P><FONT SIZE=-1>RDF_Cursor</FONT> 
+<BR><FONT SIZE=-1><FONT COLOR="#0509FF"><A HREF="#getSlotValuesProc">fsGetSlotValues</A></FONT>
+(RDFT rdf, RDF_Resource u, RDF_Resource s,</FONT> 
+<BR><FONT SIZE=-1>         RDF_ValueType
+type,  PRBool inversep, PRBool tv)</FONT> 
+<BR><FONT SIZE=-1>{</FONT> 
+<BR><FONT SIZE=-1>    RDF_Cursor    theCursor
+= NULL;</FONT> 
+
+<P>    /* asking for the contents of a directory ? */ 
+<BR><FONT SIZE=-1>    if ((((s == gCoreVocab->RDF_parent)
+&amp;&amp; (inversep == PR_TRUE)) ||</FONT> 
+<BR><FONT SIZE=-1>        ((s == gCoreVocah->RDF_child)
+&amp;&amp; (inversep == PR_FALSE)))</FONT> &amp;&amp; 
+<BR><FONT SIZE=-1>        (type == RDF_RESOURCE_TYPE)
+&amp;&amp; (fsUnitp(u)) &amp;&amp; (tv == PR_TRUE))</FONT> 
+<BR><FONT SIZE=-1>    {</FONT> 
+<BR><FONT SIZE=-1>        /* allocate
+cursor, fill in needed contents, and return it */</FONT> 
+
+<P><FONT SIZE=-1>        theCursor =
+XP_ALLOC(sizeof());</FONT> 
+<BR><FONT SIZE=-1>        if (theCursor
+!= NULL)</FONT> 
+<BR><FONT SIZE=-1>        {</FONT> 
+<BR><FONT SIZE=-1>           
+theCursor->u = u;</FONT> 
+<BR><FONT SIZE=-1>           
+theCursor->s = s;</FONT> 
+<BR><FONT SIZE=-1>           
+theCursor->type = type;</FONT> 
+<BR><FONT SIZE=-1>           
+theCursor->inversep = inversep;</FONT> 
+<BR><FONT SIZE=-1>           
+theCursor->tv = tv;</FONT> 
+<BR><FONT SIZE=-1>           
+theCursor->count = 0;           
+/* might want to skip "." and ".." by adjusting count */</FONT> 
+
+<P><FONT SIZE=-1>           
+... store any private data in the cursor here ...</FONT> 
+<BR><FONT SIZE=-1>        }</FONT> 
+<BR><FONT SIZE=-1>    }</FONT> 
+<BR><FONT SIZE=-1>    else if (... asking for enumeration
+over something else we can answer? ...)</FONT> 
+<BR><FONT SIZE=-1>    {</FONT> 
+<BR><FONT SIZE=-1>        ... construct
+a cursor that can respond to this query ...</FONT> 
+<BR><FONT SIZE=-1>   }</FONT> 
+
+<P><FONT SIZE=-1>    return (theCursor);</FONT> 
+<BR><FONT SIZE=-1>}</FONT> 
+
+<PRE><FONT SIZE=-1>/*
+    Obtain the next file/folder in a directory
+*/
+
+void *
+<FONT COLOR="#0509FF"><A HREF="#nextItemProc">fsNextValue</A></FONT> (RDFT rdf, RDF_Cursor theCursor)
+{
+    RDF_Resource    *r = NULL;
+    char            *fileURL;
+
+    if ((theCursor != NULL) &amp;&amp;
+        (theCursor->u != NULL) &amp;&amp;
+        (theCursor->s == gCoreVocab->RDF_parent) &amp;&amp;
+        (theCursor->type == RDF_RESOURCE_TYPE) &amp;&amp;
+        (theCursor->inversep == PR_TRUE) &amp;&amp;
+        (theCursor->tv == PR_TRUE))
+    {
+        /* given that theCursor contains the directory ("u")
+            and an index ("count") into its contents */</FONT></PRE>
+<FONT SIZE=-1>        ... get nth item
+(theCursor->count) from a directory ...</FONT>
+<BR><FONT SIZE=-1>        ... construct
+a properly encoded fileURL!!! ...</FONT>
+
+<P><FONT SIZE=-1>        /* create a
+RDF_Resource for the graph */</FONT>
+<BR><FONT SIZE=-1>        r = RDF_Resource(NULL,
+fileURL, PR_TRUE);</FONT>
+<BR><FONT SIZE=-1>        if (r != NULL)</FONT>
+<BR><FONT SIZE=-1>        {</FONT>
+<BR><FONT SIZE=-1>           
+/* if its a container (i.e. a directory), mark it as such */</FONT>
+<BR><FONT SIZE=-1>           
+if (isContainer == PR_TRUE)</FONT>
+<BR><FONT SIZE=-1>           
+{</FONT>
+<BR><FONT SIZE=-1>               
+setContainerp(r, PR_TRUE);</FONT>
+<BR><FONT SIZE=-1>           
+}</FONT>
+<BR><FONT SIZE=-1>        }</FONT>
+<BR><FONT SIZE=-1>        return(r);</FONT>
+<BR><FONT SIZE=-1>    }</FONT>
+<BR><FONT SIZE=-1>    else if (... looking for something
+else ...)</FONT>
+<BR><FONT SIZE=-1>    {</FONT>
+<BR><FONT SIZE=-1>        /* do the
+right thing */</FONT>
+<BR><FONT SIZE=-1>        return(...the
+data asked for, if it exists...);</FONT>
+<BR><FONT SIZE=-1>    }</FONT>
+
+<P><FONT SIZE=-1>    /* return NULL if don't know how to
+answer the query */</FONT>
+<BR><FONT SIZE=-1>    return(NULL);</FONT>
+<BR><FONT SIZE=-1>}</FONT>
+<BR> 
+
+<P><FONT SIZE=-1>/*</FONT>
+<BR><FONT SIZE=-1>    Free the cursor</FONT>
+<BR><FONT SIZE=-1>*/</FONT>
+
+<P><FONT SIZE=-1>RDF_Error</FONT>
+<BR><FONT SIZE=-1><FONT COLOR="#0F13FF"><A HREF="#disposeCursorProc">fsDisposeCursor</A></FONT>
+(RDFT rdf, RDF_Cursor theCursor)</FONT>
+<BR><FONT SIZE=-1>{</FONT>
+<BR><FONT SIZE=-1>    if (theCursor != NULL)</FONT>
+<BR><FONT SIZE=-1>    {</FONT>
+<BR><FONT SIZE=-1>        ... remember
+to also free any private data stored in the cursor ...</FONT>
+
+<P><FONT SIZE=-1>        XP_FREE(theCursor);</FONT>
+<BR><FONT SIZE=-1>    }</FONT>
+<BR><FONT SIZE=-1>    return (0);</FONT>
+<BR><FONT SIZE=-1>}</FONT></TD>
+</TR>
+</TABLE>
+Note:  The following two statements are the same relationship. <B>Both</B>
+should be checked for!
+
+<PRE><FONT SIZE=-1>Query #1:  (s == gCoreVocab->RDF_parent) &amp;&amp; (inversep == PR_TRUE)  &amp;&amp; (type == RDF_RESOURCE_TYPE)
+Query #2:  (s == gCoreVocah->RDF_child)  &amp;&amp; (inversep == PR_FALSE) &amp;&amp; (type == RDF_RESOURCE_TYPE)</FONT></PRE>
+
+<BR>Now that our pseudo file system data source can enumerate the contents
+of a directory and add nodes into RDF's graph, the next step is to implement
+the <FONT COLOR="#0A0AFF"><A HREF="#getSlotValueProc">getSlotValueProc</A></FONT><FONT COLOR="#000000">
+routine which RDF will call when it wants properties of a node (such as
+its name).</FONT>
+<BR> 
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+<TR>
+<TD><FONT SIZE=-1>/*</FONT> 
+<BR><FONT SIZE=-1>    Answer requests for node ("u")'s property
+("s")</FONT> 
+
+<P><FONT SIZE=-1>    Note: always allocate new memory for
+the answer as RDF will "own" it</FONT> 
+<BR><FONT SIZE=-1>*/</FONT> 
+
+<P><FONT COLOR="#000000"><FONT SIZE=-1>void *</FONT></FONT> 
+<BR><FONT SIZE=-1><FONT COLOR="#2407FD"><A HREF="#getSlotValueProc">fsGetSlotValue</A></FONT><FONT COLOR="#000000">
+(RDFT rdf, RDF_Resource u, RDF_Resource s, RDF_ValueType type, PRBool inversep, 
+PRBool tv)</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>{</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>    void   
+*data = NULL;</FONT></FONT> 
+
+<P><FONT COLOR="#000000"><FONT SIZE=-1>    if ((s == gCoreVocab->RDF_name)
+&amp;&amp; (type == RDF_STRING_TYPE) &amp;&amp;</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>       
+(inversep == PR_FALSE) &amp;&amp; (tv == PR_TRUE) &amp;&amp; (fsUnitp(u)))</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>    {</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>       
+/* asking for the name of a node */</FONT></FONT> 
+
+<P><FONT COLOR="#000000"><FONT SIZE=-1>       
+data = XP_STRDUP(... node's name...);</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>    }</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>    else if (...looking
+for other properties? ...)</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>    {</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>       
+... set "data" to be the correct result for what's being asked for ...</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>    }</FONT></FONT> 
+
+<P><FONT COLOR="#000000"><FONT SIZE=-1>    return (data);</FONT></FONT> 
+<BR><FONT COLOR="#000000"><FONT SIZE=-1>}</FONT></FONT> </TD>
+</TR>
+</TABLE>
+ 
+
+<P>Next, we need to implement the <FONT COLOR="#0710FF"><A HREF="#hasAssertionProc">hasAssertionProc</A></FONT><FONT COLOR="#000000">
+routine as RDF will use it to determine whether a specified assertion exists
+or not.</FONT>
+<BR> 
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+<TR>
+<TD><FONT SIZE=-1>/*</FONT> 
+<BR><FONT SIZE=-1>    Determine whether a given assertion
+exists.</FONT> 
+
+<P><FONT SIZE=-1>    Note: This example code answers the
+question:  Does file/folder "u" exist in folder "v" ?</FONT> 
+<BR><FONT SIZE=-1>*/</FONT> 
+
+<P><FONT SIZE=-1>PRBool</FONT> 
+<BR><FONT SIZE=-1><FONT COLOR="#1115FF"><A HREF="#hasAssertionProc">fsHasAssertion</A></FONT>
+(RDFT rdf, RDF_Resource u, RDF_Resource s, void* v, RDF_ValueType type,
+PRBool tv)</FONT> 
+<BR><FONT SIZE=-1>{</FONT> 
+<BR><FONT SIZE=-1>    PRBool    exists =
+PR_FALSE;</FONT> 
+
+<P><FONT SIZE=-1>    if ((((s == gCoreVocab->RDF_parent)
+&amp;&amp; (inversep == PR_TRUE)) ||</FONT> 
+<BR><FONT SIZE=-1>        ((s == gCoreVocah->RDF_child)
+&amp;&amp; (inversep == PR_FALSE))) &amp;&amp;</FONT> 
+<BR><FONT SIZE=-1>        (type == RDF_RESOURCE_TYPE)
+&amp;&amp; (tv == PR_TRUE) &amp;&amp;</FONT> 
+<BR><FONT SIZE=-1>        (fsUnitp(u))
+&amp;&amp; (fsUnitp(v)))</FONT> 
+<BR><FONT SIZE=-1>    {</FONT> 
+<BR><FONT SIZE=-1>        /* check to
+see if the file/folder "u" exists in the directory "v" */</FONT> 
+
+<P><FONT SIZE=-1>        exists = ...
+PR_TRUE, if file/folder "u" exists in directory "v"...</FONT> 
+<BR><FONT SIZE=-1>    }</FONT> 
+<BR><FONT SIZE=-1>    else if (... asking about something
+else...)</FONT> 
+<BR><FONT SIZE=-1>    {</FONT> 
+<BR><FONT SIZE=-1>        exists = ...
+determine the answer ...</FONT> 
+<BR><FONT SIZE=-1>    }</FONT> 
+
+<P><FONT SIZE=-1>    return(exists);</FONT> 
+<BR><FONT SIZE=-1>}</FONT> </TD>
+</TR>
+</TABLE>
+ 
+
+<P>Important Note: A file system data source can be implemented in a synchronous
+manner, but the rules change a bit if the data source needs to operate
+in an asynchronous manner.  If data streams in over the network, use
+RDF's sendNotifications2() routine to inform the graph of the new assertions
+(addtion, insertion, or deletion) to be made as results arrive.
+
+<P>Note that the file system data source example didn't implement the <FONT COLOR="#0905FF"><A HREF="#assertProc">assertProc</A>
+</FONT><FONT COLOR="#000000">or</FONT><FONT COLOR="#0905FF"> <A HREF="#unassertProc">unassertProc</A></FONT><FONT COLOR="#000000">. 
+What would implementing these routines mean?  An </FONT><FONT COLOR="#120AFF"><A HREF="#assertProc">assertProc</A></FONT><FONT COLOR="#000000">
+could provide the ability of creating files or folders, and would allow
+the data source to implement private commands that it had reflected into
+the HyperTree's contextual menus.  An </FONT><FONT COLOR="#0A0AFF"><A HREF="#unassertProc">unassertProc</A></FONT><FONT COLOR="#000000">
+could provide the ability of deleting files or folders (making sure to
+confirm the action with the user before doing so, of course!).</FONT>
+<BR>
+<BR><B><FONT COLOR="#000000"><FONT SIZE=+1>The Next Level:</FONT></FONT></B>
+
+<P>Other routines in the RDF_Translator that a data source might want to
+implement include:
+
+<P><A NAME="disposeResourceProc"></A><FONT COLOR="#0A16FF">disposeResourceProc:</FONT><FONT COLOR="#000000">
+indicates that a resource is being disposed from RDF's graph</FONT>
+<BR><A NAME="destroyProc"></A><FONT COLOR="#0F1BFF">destroyProc:</FONT><FONT COLOR="#000000">
+RDF is being shut down (dispose of any outstanding tasks, threads, etc
+that the data source created)</FONT>
+<BR><A NAME="arcLabelsOutProc"></A><FONT COLOR="#0714FF">arcLabelsOutProc</FONT>:
+get a cursor to enumerate over all arc nodes coming off of a node
+<BR><A NAME="arcLabelsInProc"></A><FONT COLOR="#0B07FF">arcLabelsInProc:
+</FONT>get a cursor to enumerate over all arc nodes coming into a node
+<BR> 
+
+<P><B><FONT SIZE=+1>RDF's vocabulary:</FONT></B>
+
+<P>RDF defines a standard vocabulary that the RDF engine as well as its
+clients can use.  Important vocabulary items include:
+<BR> 
+<BR> 
+<CENTER><TABLE BORDER WIDTH="80%" >
+<TR>
+<TD ALIGN=CENTER VALIGN=CENTER WIDTH="12%">
+<CENTER><B>RDF_name</B></CENTER>
+</TD>
+
+<TD VALIGN=TOP>The name of a node.  For example, given a file URL
+of "file://C:/Program Files/Navigator", its RDF_name would be "Navigator"</TD>
+</TR>
+
+<TR>
+<TD VALIGN=CENTER>
+<CENTER><B>RDF_parent</B></CENTER>
+</TD>
+
+<TD VALIGN=TOP>Indicates a parent relationship.  For example, given
+a file URL of "file://C:/Program Files/Navigator", its RDF_parent would
+be "file://C|/Program Files/"</TD>
+</TR>
+
+<TR>
+<TD VALIGN=CENTER>
+<CENTER><B>RDF_child</B></CENTER>
+</TD>
+
+<TD VALIGN=TOP>Indicates a child relationship.  For example, a file
+URL of "file://C:/Program Files/Navigator" would be a RDF_child of "file://C:/Program
+Files/".</TD>
+</TR>
+
+<TR>
+<TD ALIGN=CENTER VALIGN=CENTER><B>RDF_Command</B></TD>
+
+<TD>Used to provide reflection of data source specific commands into the
+HyperTree's contextual menus.</TD>
+</TR>
+</TABLE></CENTER>
+Note: many other vocabulary items exist. (In the 3/31/1998 Free Source
+release, look at ns/modules/rdf/include/vocab.h)
+<BR>
+<BR><B><FONT SIZE=+1>Data stores:</FONT></B>
+
+<P>RDF have two primary data stores:  the "local" store which offers
+persistence across instances of Navigator, and the "remote" store which
+does not.  If neither of these is appropriate for a data source, it
+can also keep its own private list of assertions.
+<BR>
+<BR><B><FONT SIZE=+1>The Future:</FONT></B>
+
+<P>It would be useful to implement a plugin mechanism (perhaps using Netscape's
+XP_COM) so that RDF data sources could be implemented much like Netscape
+plugins are implemented today instead of requiring data sources to be built-in
+to the core product.
+
+<P>Today, there are data sources for bookmarks, history, and the local
+file system. What else could be a data source?  Well, how about:
+<UL>
+<LI>
+Appletalk Zones and available file servers</LI>
+
+<LI>
+LDAP queries</LI>
+
+<LI>
+Novell NDS objects</LI>
+
+<LI>
+Microsoft Windows Network objects</LI>
+
+<LI>
+Oracle SQL queries</LI>
+
+<LI>
+DNS hierarchies</LI>
+</UL>
+and that's just the beginning.  Interested?  Code up a RDF data
+source today!
+<BR> 
+</BODY>
+</HTML>

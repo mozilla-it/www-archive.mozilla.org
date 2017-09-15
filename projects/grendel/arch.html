@@ -1,0 +1,557 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+<TITLE>grendel architecture</TITLE><script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+<H1 ALIGN=CENTER>grendel architecture
+<BR><FONT SIZE=3>(a 10,000-foot view)
+<BR>by <a href="mailto:terry@mozilla.org">Terry Weissman</A>
+<BR>6-Nov-1997
+</FONT></H1>
+</P>
+
+<P><HR><P>
+
+<P>Grendel is both a mail/news application, and a toolkit for building such
+applications.
+
+<P><FONT COLOR="#26AD00">Text appearing in green</FONT><FONT COLOR="#3366FF">
+</FONT>indicates an issue or other shaky ground, a decision that's not
+at all certain.
+
+<P> 
+
+<H2>Assumptions</H2>
+<UL>
+    These are things we are still evaluating.  But I'm looking into my
+    crystal ball, guessing what the evaluation will end up being, and writing
+    this document based on my guesses.  If I guessed wrong, I may have to do
+    major surgery on this document.  <UL>
+
+    <P><LI> I assume that we're going to use Sun's <A
+    HREF="http://java.sun.com/products/javamail/javadocs/">javamail</A> APIs.
+    I also assume we're going to be able to use very little of their actual
+    implementation, unless we get to copy their code and hack it to death.
+    We have ambitious performance goals, and also support of things like
+    intertwingle and RDF will probably require changing most of the
+    implementations.</LI>
+
+    <P><LI> I assume that we'll end up supporting RDF.  I assume we'll have
+    RDF objects corresponding to folders, messages, and the important message
+    headers.  I assume we will NOT have RDF objects corresponding to MIME
+    parts, although I know there are people who think this real
+    important.</LI>
+
+    </UL>
+ 
+</UL>
+<H2>The diagram</H2>
+<UL>
+
+    Any document like this needs a diagram.  Here's mine.  (Click on it
+    to see a larger, more readable version.)
+
+</UL>
+    <P ALIGN=RIGHT><A HREF="the-large-diagram.gif"><IMG
+        SRC="the-small-diagram.gif" BORDER=0 WIDTH=400 HEIGHT=457></A>
+<UL>
+
+    <P>This shows the basic relationship between most of the important
+    packages within grendel:
+
+    <UL>
+
+	<P><LI> The <TT><A HREF="javadoc/Package-grendel.storage.html">grendel.storage</A></TT> package implements javamail APIs
+	for four different kinds of message stores: POP3, Berkeley mail
+	folders, IMAP, and NNTP.
+
+	<P><LI> Underneath the message stores, the
+	<TT><A HREF="javadoc/Package-grendel.storage.intertwingle.html">grendel.storage.intertwingle</A></TT> package maintains the
+	intertwingle database describing what messages are in any of the
+	stores.  This database is used to support RDF functionality, and to
+	allow efficient searching and filtering.
+
+	<P><LI> The <TT><A HREF="javadoc/Package-grendel.filters.html">grendel.filters</A></TT> package presents javamail Folder
+	objects that represent the results of applying a filter on some set
+	of the existing folders.  Depending on the filter, this will work
+	either directly on the existing Folder objects or by querying the
+	intertwingle database.
+
+	<P><LI> The <TT><A HREF="javadoc/Package-grendel.view.html">grendel.view</A></TT> package takes a Folder object
+	(generally obtained from either the <TT><A HREF="javadoc/Package-grendel.storage.html">grendel.storage</A></TT> or
+	<TT><A HREF="javadoc/Package-grendel.filters.html">grendel.filters</A></TT> package) and sorts or threads the messages.
+	It directly supports most operations that will be needed from the
+	UI.
+
+	<P><LI> The <TT><A HREF="javadoc/Package-grendel.ui.html">grendel.ui</A></TT> object sits above everything, and
+	implements our user interface.
+
+	<P><LI> Third parties may write their own applications or UIs, that
+	call into any of the above packages.  They may also implement their
+	own javamail Folder objects, and our entire system should work with
+	those objects.
+
+    </UL>
+
+    <P> There are many important pieces of Grendel that do
+    not show up in this diagram.  This includes: 
+
+    <UL>
+
+	<P><LI> The <TT><A HREF="javadoc/Package-grendel.addressbook.html">grendel.addressbook</A></TT> package, which implements
+	the user's address book and speaks to LDAP servers.
+
+	<P><LI> The <TT><A HREF="javadoc/Package-grendel.composition.html">grendel.composition</A></TT> package, which presents the
+	user interface for composing new messages.  This will interact with
+	the <TT><A
+HREF="javadoc/Package-grendel.addressbook.html">grendel.addressbook</A></TT>
+and <TT><A HREF="javadoc/Package-grendel.storage.html">grendel.storage</A></TT>packages, as well as using Alchemy to implement message editing.
+
+	<P><LI> The <TT><A HREF="javadoc/Package-grendel.mime.html">grendel.mime</A></TT> package, which implements MIME
+	parsers and implements Magellan content handlers for MIME messages
+	and other messaging-related MIME types.
+
+    </UL>
+ 
+</UL>
+<H1>Issues of global scope (affecting all packages)</H1>
+<UL>
+
+<I>Reusable</I> and <I>customizable</I> are key adjectives we want to keep
+in mind at all times.  Unfortunately, details showing this probably
+won't show up much in the rest of the document, as there are too many other
+things that have to be worked out first.  But it's being kept in mind...
+
+<H2>Scriptability</H2>
+
+<P>Yeah, we want it.  I wish I understood better what we have to do to
+get it.  I'm hoping just publish a list of classes and methods somehow?
+
+<P> 
+
+</UL>
+<H1>Package <A HREF="javadoc/Package-grendel.storage.html">grendel.storage</A></H1>
+<UL>
+
+    <P>This package is where we implement most (all?) of the <A
+    HREF="http://java.sun.com/products/javamail/javadocs/">javamail</A> API.
+    Private to this package are any details about particular protocol
+    implementations.  All the differences between NNTP, IMAP, POP, etc.  are
+    packaged away in here and hidden. This also implements the RCFdata
+    interfaces; that is, this is the stuff that supports RDF queries.
+
+    <P> <HR WIDTH="100%">
+
+    <P>One problem that comes from using the javamail API throughout is that
+    it makes it difficult to innovate and optimize.  For example, javamail
+    does not provide an API to get the number of undeleted messages in a
+    folder.  This is a number we want to display in our UIs.  We can't just
+    add a new API to our subclasses of Folder, because we want to work with
+    third-party implementations of Folder as well.  And while it's possible
+    to determine this number using the existing APIs, it is a very slow and
+    expensive process to do so.
+
+    <P>To solve all this, we will define a <A HREF="javadoc/grendel.storage.FolderExtra.html">FolderExtra</A> interface.
+    <A HREF="javadoc/grendel.storage.FolderExtra.html">FolderExtra</A> has all the extra APIs we need, like
+    getUndeletedMessageCount().  Our implementations of Folder will also
+    implement the <A HREF="javadoc/grendel.storage.FolderExtra.html">FolderExtra</A> class.
+
+    <P>When we have code (e.g., our UI code) that is given a Folder object
+    and wants to call a method on <A HREF="javadoc/grendel.storage.FolderExtra.html">FolderExtra</A>, it gets a <A HREF="javadoc/grendel.storage.FolderExtra.html">FolderExtra</A> object
+    by calling <A HREF="javadoc/grendel.storage.FolderExtraFactory.html">FolderExtraFactory</A>.Get().  <A HREF="javadoc/grendel.storage.FolderExtraFactory.html">FolderExtraFactory</A> determines if
+    the given Folder directly implements <A HREF="javadoc/grendel.storage.FolderExtra.html">FolderExtra</A>.  If so, it returns that
+    object.  If not, it creates a new object which implements all the
+    <A HREF="javadoc/grendel.storage.FolderExtra.html">FolderExtra</A> methods in terms of methods available on Folder.
+
+    <P>This all makes things a bit convoluted for callers.  But it means we
+    can use our fast code for our own Folders, and be assured that things
+    will work (though slower) on Folders provided by other parties.
+
+    <P>Similarily, there is a <A HREF="javadoc/grendel.storage.MessageExtra.html">MessageExtra</A> interface and a
+    <A HREF="javadoc/grendel.storage.MessageExtraFactory.html">MessageExtraFactory</A>.  Other Extra interfaces will be invented as
+    necessary.
+
+    <P>It would be nice if we could just use the <B>pk.core.Supports</B>
+    interface for this kind of stuff.  However, this strategy only makes
+    sense if the base Folder object implements Supports.  Since Supports is
+    one of our own interfaces, and Folder comes from javasoft, I can't see
+    this happening.
+
+    <P> <HR WIDTH="100%">
+
+    <P>The <TT><A HREF="javadoc/Package-grendel.storage.html">grendel.storage</A></TT> package is where the database problem lives.  Do
+    we use summary files, like 3.0?  Do we use some general database?  Here
+    is the current thinking: we will use something like 3.0 summary files.  A
+    background thread will attempt to maintain all changes in a
+    general-purpose database (see the <TT><A HREF="javadoc/Package-grendel.storage.intertwingle.html">grendel.storage.intertwingle</A></TT>
+    package).  This database will only be used for fancy functions (cool
+    searches and filters).  If the database blows up, you'll still be able to
+    read your mail; if the database works well, you'll be able to do cool
+    stuff too.  If we find that the database is just too expensive or too
+    hard to maintain, then we'll still have a product even after we rip it
+    out.
+
+</UL>
+<H1>Package <A HREF="javadoc/Package-grendel.mime.html">grendel.mime</A></H1>
+<UL>
+
+    <P>This is where we put in our MIME parsing code.  Maybe this is just an
+    implementation of javamail APIs; maybe it is our own version, since we
+    have suspicions that javamail's won't be good enough, and their APIs
+    won't fit the problems we're trying to solve.
+
+    <P>The message/rfc822 parser also goes here, maybe.  And the Magellan
+    content handlers, that know how to display various messaging-related MIME
+    types in a Magellan window also go here.
+
+<P> 
+
+</UL>
+<H1>Package <A HREF="javadoc/Package-grendel.filters.html">grendel.filters</A></H1>
+<UL>
+
+    <P>These are classes that take Folder objects and use them to create
+    other Folder objects.  The idea is to end up with a Folder object that
+    acts just like any other javamail Folder object, but the messages in it
+    can actually come from any number of real Folders, and are chosen via
+    some constraint.
+
+</UL>
+<H1>Package <A HREF="javadoc/Package-grendel.view.html">grendel.view</A></H1>
+<UL>
+
+    <P>This is what gathers together the messages in a Folder, calculates a
+    sorting/threading order on them, and allows for a UI to present them.
+
+    <P>Much of the UI work is in the ``thread <NOBR>list'' --</NOBR> a scrollable list of
+    messages, possibly organized in a threaded tree, which the user can
+    scroll through and select and drag and manipulate.  Most of the smarts of
+    the ``thread list'' are really implemented here in the <TT><A HREF="javadoc/Package-grendel.view.html">grendel.view</A></TT> package.
+
+    <P><H2>Interfaces to the view package</H2>
+
+    <P>There are three interfaces defined: the view, messages within the
+    view, and observers of the view.
+
+    <P><H3><A HREF="javadoc/grendel.view.MessageSetView.html">MessageSetView</A></H3>
+
+    This represents one view on a set of messages.
+
+    <P><PRE>
+public interface <A HREF="javadoc/grendel.view.MessageSetView.html">MessageSetView</A> {
+  /** <I>Gets the root of the tree of
+      messages that are being viewed.</I> */
+  public <A HREF="javadoc/grendel.view.ViewedMessage.html">ViewedMessage</A> getMessageRoot();
+  public void setSort(SortOrder);
+  public SortOrder getSort();
+  public void setIsThreaded(boolean b);
+  public boolean isThreaded();
+
+  public int getMessageCount();
+  public int getUnreadMessageCount();
+  public void setFlags(Message msgs[],
+		       Flags flag,
+		       boolean value);
+  public boolean copyMessages(Message msgs[],
+			      Folder folder)
+
+  public void addObserver(<A HREF="javadoc/grendel.view.MessageSetViewObserver.html">MessageSetViewObserver</A> obs);
+  public void removeObserver(<A HREF="javadoc/grendel.view.MessageSetViewObserver.html">MessageSetViewObserver</A> obs);
+}
+</PRE>
+
+    <P>When a view is created (via the appropriate factory), the filtering
+    rules that determine which messages are part of the view are
+    specified. <FONT COLOR="#26AD00">To change the filtering rules, a new
+    view must be created</FONT><FONT COLOR="#3366FF">.</FONT>
+
+    <P>Once the messages are determined, however, the ordering and threading
+    can be controlled.  <FONT COLOR="#26AD00">(Need to figure out exactly
+    what the SortOrder class looks like.)</FONT>
+
+    <P><FONT COLOR="#000000">The number of messages, and number of unread
+    messages, can be obtained through the </FONT><TT>getMessageCount</TT> and
+    <TT>getUnreadMessageCount</TT> calls.  The <TT>setFlags</TT> and
+    <TT>copyMessages</TT> calls do the same things that the routines
+    javamail's <A
+    HREF="http://java.sun.com/products/javamail/javadocs/javax/mail/Folder.html">javax.mail.Folder</A>
+    class does, but lets the user of the view ignore the fact that the
+    messages in the view may in fact be from different Folder's.
+
+    <P><FONT COLOR="#000000">Any time the set of messages changes,
+    </FONT><FONT COLOR="#26AD00">or the order is changed</FONT><FONT
+    COLOR="#000000">, registered observers will get notified.  (The set of
+    messages can change when new messages appear or disappear from the
+    underlying message store.)</FONT>
+
+    <P><H3><A HREF="javadoc/grendel.view.ViewedMessage.html">ViewedMessage</A></H3>
+
+    <P>This represents one message in a view.  It is just a pointer into the
+    storage representation of a Message, as well as pointers to other
+    messages in the list or tree for this view.
+
+    <P><PRE>
+public interface <A HREF="javadoc/grendel.view.ViewedMessage.html">ViewedMessage</A> {
+  /** <I>Gets the view that this
+      message is a part of.</I> */
+  public <A HREF="javadoc/grendel.view.MessageSetView.html">MessageSetView</A> getView();
+
+  /** <I>Gets the message itself.  You
+      need to go through this to find out
+      stuff about the message (like its
+      subject, author, etc.).</I> */
+  public Message getMessage();
+
+  /** <I>Returns the parent of this
+      message.  (This is always null
+      unless threading is turned on in
+      the view.)</I> */
+  public <A HREF="javadoc/grendel.view.ViewedMessage.html">ViewedMessage</A> getParent();
+
+  /** <I>Returns the first child of this
+      message.  (This is always null unless
+      threading is turned on in the view.)</I> */
+  public <A HREF="javadoc/grendel.view.ViewedMessage.html">ViewedMessage</A> getChild();
+
+  /** <I>Returns the next message.  This
+      is the next message that has the
+      same parent as this message</I>.*/
+  public <A HREF="javadoc/grendel.view.ViewedMessage.html">ViewedMessage</A> getNext();
+}
+</PRE>
+
+    <P>Note that there is no random-access method of jumping around in the
+    view.  <FONT COLOR="#26AD00">Do we need one?</FONT>
+
+    <P><H3><A HREF="javadoc/grendel.view.MessageSetViewObserver.html">MessageSetViewObserver</A></H3>
+
+    <P>The <TT><A HREF="javadoc/Package-grendel.view.html">grendel.view</A></TT> package does not implement this class;
+    rather, users of the package will provide implementations.
+
+    <P><FONT COLOR="#26AD00">This is probably too simplistic.  We should
+    probably imitate the javamail observer classes instead.</FONT>
+
+    <P><PRE>
+public interface <A HREF="javadoc/grendel.view.MessageSetViewObserver.html">MessageSetViewObserver</A> {
+  /** <I>Some messages changed.  Each 
+      enumeration parameter might be null,
+      or it might be an enumeration of
+      <A HREF="javadoc/grendel.view.ViewedMessage.html">ViewedMessage</A> objects.
+
+      @param inserted   new messages that have
+                        appeared
+
+      @param deleted    old messages that are no
+                        longer considered part
+                        of the <A HREF="javadoc/grendel.view.MessageSetView.html">MessageSetView</A>
+
+      @param changed    Messages that have had
+                        their internals tweaked
+                        in some way</I>
+   */
+  public void messagesChanged(Enumeration inserted,
+			      Enumeration deleted,
+			      Enumeration changed);
+};
+</PRE>
+
+    <P><H2>Factories in the view package</H2>
+
+    <P>There will be factories to generate the different kinds of views. 
+    One important view is the <A HREF="javadoc/grendel.view.FolderView.html">FolderView</A>, which just shows every message in
+    one storage folder:
+
+<P><PRE>
+public class <A HREF="javadoc/grendel.view.FolderViewFactory.html">FolderViewFactory</A> {
+  static public <A HREF="javadoc/grendel.view.MessageSetView.html">MessageSetView</A> Make(Folder f);
+}
+</PRE>
+
+    <P>There will be another factory that take filter specifications and
+    maybe a set of Folders and create a view that show messages from within
+    those folders that match that filter. <FONT COLOR="#26AD00"> This needs
+    to be hashed out more when filters are hashed out more.</FONT>
+
+</UL>
+<H1>Package <A HREF="javadoc/Package-grendel.ui.html">grendel.ui</A></H1>
+<UL>
+
+    <P>This is enormous.  Much of the work is to create the outline view
+    of a set of messages, although much of that work is split off into the
+    <TT><A HREF="javadoc/Package-grendel.view.html">grendel.view</A></TT> package.
+
+</UL>
+<H1>Package <A HREF="javadoc/Package-grendel.composition.html">grendel.composition</A></H1>
+<UL>
+
+    <P>This is the UI to compose messages.  It uses Alchemy as the editor;
+    alchemy needs to support a plaintext mode for us, as well as full HTML
+    editing.
+
+    <P>It's tempting to think of compositions as totally isolated from the
+    rest of Grendel, but some important ties exist.  Compositions get their
+    headers initialized from other messages when you do a Reply or Forward.
+    Quoting needs to work to suck in the text of an original message.  When
+    you send a message, you often want to annotate the original message that
+    it was replied-to or forwarded.  When you send a message, you want to
+    append a copy of that message into the ``Sent'' folder.  You need to save
+    and restore messages into a ``Drafts'' folder.  We also need to interact
+    with an ``Outbox'' folder for offline compositions.
+
+</UL>
+<H1>Package <A HREF="javadoc/Package-grendel.addressbook.html">grendel.addressbook</A></H1>
+<UL>
+
+    <P>This talks to LDAP, and provides a nice API to all things dealing with
+    addressbook.
+
+</UL>
+<H1>Package <A HREF="javadoc/Package-grendel.storage.intertwingle.html">grendel.storage.intertwingle</A></H1>
+<UL>
+
+    <P>There are lots of spiffy ideas in 
+    <A HREF="../../blue-sky/misc/199805/intertwingle.html">intertwingle</A>
+
+    but the one I'm focusing on here is just to keep a global database
+    optimized for interesting searches across all folders.  It would be nice
+    if we had a simple, unified database story that solved this and all our
+    other concerns.  However, if we don't, another idea is to create a
+    separate database that gets updated in the background.
+
+</UL>
+<H1>Pieces needing a package<BR>
+<FONT SIZE=3>(i.e., pieces that need more thought)</FONT></H1>
+<UL>
+
+    <P>In the current picture, all of these things would get lumped into
+    <TT><A HREF="javadoc/Package-grendel.ui.html">grendel.ui</A></TT>.  But they aren't very directly UI-oriented, and we
+    would like to split them out into their own places.
+
+<H2>Incorporation filters</H2>
+
+<P>An incorporation filter is a filter with an associated action that changes
+something about the message, or otherwise takes a concrete action. 
+Actions include moving the message to a folder, or deleting it, or forwarding
+it to another user.  The action only happens when the incorporation
+filter finds a message that matches its criteria.  Incorporation filters
+get their name because they are generally invoked on new messages that
+are delivered to the user.  However, it is also useful for the user
+to be able to manually invoke an incorporation filter on a selected set
+of messages.
+
+<H2>Display filters</H2>
+
+<P>A display filter is a filter that changes some displayable attribute of
+a message.  The filters described in <TT><A HREF="javadoc/Package-grendel.filters.html">grendel.filters</A></TT> are
+a simple kind of display filter: they control whether a message is to be
+displayed or not.  But we would also like make filters that control
+other display attributes: what color to highlight this message with, or
+tweak a ``score'' associated with the message that would affect its sorting.
+
+<H2>Biff</H2>
+
+<P>Biff is the 
+<A HREF="http://www.comedia.com/hot/jargon_3.0/JARGON_B/BIFF.HTML">lingo</A>
+for ``check for new mail.''  Unlike Communicator 4.0, we would like new
+messages to automatically get fetched, without the user having to do a manual
+``Get New Mail'' operation.  This will then need to run the user's
+incorporation filters on the new messages, and decide how to alert the user
+about the new messages.
+
+</UL>
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September  8,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/grendel/arch.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

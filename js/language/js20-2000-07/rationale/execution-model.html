@@ -1,0 +1,325 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Execution Model</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="syntax.html">
+<LINK rel=Next href="member-lookup.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>July 2000 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Execution Model</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="syntax.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="member-lookup.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Thursday, November 11, 1999</P>
+
+<H2>Introduction</H2>
+
+<P>When does a declaration (of a value, function, type, class, method, pragma, etc.) take effect? When are expressions evaluated?
+The answers to these questions distinguish among major kinds of programming languages. Let's consider the following function
+definition in a language with C++ or Java-like syntax:</P>
+
+<PRE>gadget f(widget x) {
+  if ((gizmo)(x) != null)
+    return (gizmo)(x);
+  return x.owner;
+}</PRE>
+
+<P>In a static language such as Java or C++, all type expressions are evaluated at compile time. Thus, in this example <CODE>widget</CODE>
+and <CODE>gadget</CODE> would be evaluated at compile time. If <CODE>gizmo</CODE> were a type, then it too would be evaluated
+at compile time (<CODE>(gizmo)(x)</CODE> would become a type cast). Note that we must be able to statically distinguish identifiers
+used for variables from identifiers used for types so we can decide whether <CODE>(gizmo)(x)</CODE> is a one-argument function
+call (in which case <CODE>gizmo</CODE> would be evaluated at run time) or a type cast (in which case <CODE>gizmo</CODE> would
+be evaluated at compile time). In most cases, in a static language a declaration is visible throughout its enclosing scope,
+although there are exceptions that have been deemed too complicated for a compiler to handle such as the following C++:</P>
+
+<PRE>typedef int *x;
+
+class foo {
+  typedef x *y;
+  typedef char *x;
+}</PRE>
+
+<P>Many dynamic languages can construct, evaluate, and manipulate type expressions at run time. Some dynamic languages (such
+as <A href="../../bibliography.html#common-lisp">Common Lisp</A>) distinguish between compile time and run time and provide constructs (<CODE>eval-when</CODE>) to evaluate
+expressions early. The simplest dynamic languages (such as <A href="../../bibliography.html#scheme">Scheme</A>) process input in a single pass and do not distinguish between
+compile time and run time. If we evaluated the above function in such a simple language, <CODE>widget</CODE> and <CODE>gadget</CODE>
+would be evaluated at the time the function is called.</P>
+
+<H3><A name="challenges"></A>Challenges</H3>
+
+<P>JavaScript is a scripting language. Many programmers wish to write JavaScript scripts embedded in web pages that work in
+a variety of environments. Some of these environments may provide libraries that a script would like to use, while on other
+environments the script may have to emulate those libraries. Let's take a look at an example of something one would expect
+to be able to easily do in a scripting language:</P>
+
+<P>Bob is writing a script for a web page that wants to take advantage of an optional package <CODE>MacPack</CODE> that is
+present on some environments (Macintoshes) but not on others. <CODE>MacPack</CODE> provides a class <CODE>HyperWindoid</CODE>
+from which Bob wants to subclass his own class <CODE>BobWindoid</CODE>. On other platforms Bob has to define an emulation
+class <CODE>BobWindoid</CODE>' that is implemented differently from <CODE>BobWindoid</CODE> -- it has a different set of private
+methods and fields. There also is a class <CODE>WindoidGuide</CODE> in Bob's package; the code and method signatures of classes
+<CODE>BobWindoid</CODE> and <CODE>BobWindoid</CODE>' refer to objects of type <CODE>WindoidGuide</CODE>, and class <CODE>WindoidGuide</CODE>'s
+code refers to objects of type <CODE>BobWindoid</CODE> (or <CODE>BobWindoid</CODE>' as appropriate).</P>
+
+<P>Were JavaScript to use a dynamic execution model (described below), declarations take effect only when executed, and Bob
+can implement his package as shown below. The <CODE>package</CODE> keyword in front of both definitions of class <CODE>BobWindoid</CODE>
+lifts these definitions from the local <CODE>if</CODE> scope to the top level of Bob's package.</P>
+
+<PRE>class WindoidGuide; // forward declaration
+
+if (onMac()) {
+  import "MacPack";
+
+  package class BobWindoid extends HyperWindoid {
+    private field x;
+    field g:WindoidGuide;
+
+    private method speck() {...};
+    public method zoom(a:WindoidGuide, uncle:HyperWindoid = null):WindoidGuide {...};
+  }
+} else {
+  // emulation class BobWindoid'
+  package class BobWindoid {
+    private field i:integer, j:integer;
+    field g:WindoidGuide;
+
+    private method advertise(h:WindoidGuide):WindoidGuide {...};
+    private method subscribe(h:WindoidGuide):WindoidGuide {...};
+    public method zoom(a:WindoidGuide):WindoidGuide {...};
+  }
+}
+
+class WindoidGuide {
+  field currentWindoid:BobWindoid;
+
+  method introduce(arg:BobWindoid):BobWindoid {...};
+}</PRE>
+
+<P>On the other hand, if the language were static (meaning that types are compile-time expressions), Bob would run into problems.
+How could he declare the two alternatives for the class <CODE>BobWindoid</CODE>?</P>
+
+<P>Bob's first thought was to split his package into three HTML <TT>SCRIPT</TT> tags (containing <CODE>BobWindoid</CODE>,
+<CODE>BobWindoid</CODE>', and <CODE>WindoidGuide</CODE>) and turn one of the first two off depending on the platform. Unfortunately
+this doesn't work because he gets type errors if he separates the definition of class <CODE>BobWindoid</CODE> (or <CODE>BobWindoid</CODE>')
+from the definition of <CODE>WindoidGuide</CODE> because these classes mutually refer to each other. Furthermore, Bob would
+like to share the script among many pages, so he'd like to have the entire script in a single <TT>BobUtilities.js</TT> file.</P>
+
+<P>Note that this problem would be newly introduced by JavaScript 2.0 if it were to evaluate type expressions at compile time.
+JavaScript 1.5 does not suffer from this problem because it does not have a concept of evaluating an expression at compile
+time, and it is relatively easy to conditionally define a class (which is merely a function) by declaring a single global
+variable <VAR>g</VAR> and conditionally assigning either one or another anonymous function to it.</P>
+
+<P>There exist other alternatives in between the dynamic execution model and the static model that also solve Bob's problem.
+<A href="#conditional-compilation">One of them</A> is described at the end of this chapter.</P>
+
+<H2>Dynamic Execution Model</H2>
+
+<P>In a pure <I>dynamic execution model</I> the entire program is processed in one pass. Declarations take effect only when
+they are executed. A declaration that is never executed is ignored. <A href="../../bibliography.html#scheme">Scheme</A> follows this model, as did early versions of Visual
+Basic.</P>
+
+<P>The dynamic execution model considerably simplifies the language and allows an interpreter to treat programs read from
+a file identically to programs typed in via an interactive console. Also, a dynamic execution model interpreter or just-in-time
+compiler may start to execute a script even before it has finished downloading all of it.</P>
+
+<P>One of the most significant advantages of the dynamic execution model is that it allows JavaScript 2.0 scripts to turn
+parts of themselves on and off based on dynamically obtained information. For example, a script or library could define additional
+functions and classes if it runs on an environment that supports CSS unit arithmetic while still working on environments that
+do not.</P>
+
+<P>The dynamic execution model requires identifiers naming functions and variables to be defined before they are used. A
+use occurs when an identifier is read, written, or called, at which point that identifier is resolved to a variable or a function
+according to the scoping rules. A reference from within a control statement such as <CODE>if</CODE> and <CODE>while</CODE>
+located outside a function is resolved only when execution reaches the reference. References from within the body of a function
+are resolved only after the function is called; for efficiency, an implementation is allowed to resolve all references within
+a function or method that does not contain <CODE>eval</CODE> at the first time the function is called.</P>
+
+<P>According to these rules, the following program is correct and would print <CODE>7</CODE>:</P>
+
+<PRE>function f(a:integer):integer {
+  return a+b;
+}
+
+var b:integer = 4;
+print(f(3));</PRE>
+
+<P>Assuming that variable <CODE>b</CODE> is predefined by the host if <CODE>featurePresent</CODE> is true, this program would
+also work:</P>
+
+<PRE>function f(a:integer):integer {
+  return a+b;
+}
+
+if (!featurePresent) {
+  package var b:integer = 4;
+}
+
+print(f(3));</PRE>
+
+<P>On the other hand, the following program would produce an error because <CODE>f</CODE> is referenced before it is defined:</P>
+
+<PRE>print(f(3));
+
+function f(a:integer):integer {
+  return a*2;
+}</PRE>
+
+<P>Defining mutually recursive functions is not a problem as long as one defines all of them before calling them.</P>
+
+<H2>Hybrid Execution Model</H2>
+
+<P>JavaScript 1.5 does not follow the pure dynamic execution model, and, for reasons of compatibility, JavaScript 2.0 strays
+from that model as well, adopting a hybrid execution model instead. Specifically, JavaScript 2.0 inherits the following static
+execution model aspects from JavaScript 1.5:</P>
+
+<UL>
+  <LI>Unless specified otherwise using a <CODE>local</CODE> prefix, variable declarations of variables at the global scope
+    cause the variables to be created at the time the program is entered rather than at the time the declaractions are evaluated.</LI>
+  <LI>Unless specified otherwise using a <CODE>local</CODE> prefix, variable declarations of local variables inside a function
+    cause the variables to be created at the time the function is entered rather than at the time the declaractions are evaluated.</LI>
+  <LI>Unless specified otherwise, declarations of functions at the global scope cause the functions to be created at the time
+    the program is entered rather than at the time the declaractions are evaluated.</LI>
+  <LI>Unless specified otherwise, declarations of functions nested inside a function cause the functions to be created at
+    the time the function is entered rather than at the time the declaractions are evaluated.</LI>
+</UL>
+<P>In addition to the above, the evaluation of class declarations has special provisions for delayed evaluation to allow mutually-referencing
+classes.</P>
+
+<P>The second condition above allows the following program to work in JavaScript 2.0:</P>
+
+<PRE>const b:string = "Bee";
+
+function square(a:integer):integer {
+  b = a;   // Refers to local b defined below, not global b
+  return b*a;
+  var b:integer;
+}</PRE>
+
+<P>While allowed, using variables ahead of declaring them, such as in the above example, is considered bad style and may generate
+a warning.</P>
+
+<P>The third condition above makes the last example from the pure execution model section work:</P>
+
+<PRE>print(f(3));
+
+function f(a:integer):integer {
+  return a*2;
+}</PRE>
+
+<P>Again, actually calling a function at the top level before declaring it is considered bad style and may generate a warning.
+It also will not work with classes.</P>
+
+<DIV class=issue>
+
+  <H2>Discussion</H2>
+
+  <H3>Compiling The Dynamic Execution Model</H3>
+
+  <P>Perhaps the easiest way to compile a script under the dynamic execution model is to accumulate function definitions unprocessed
+  and compile them only when they are first called. Many JITs do this anyway because this lets them avoid the overhead of
+  compiling functions that are never called. This process does not impose any more of an overhead than the static model would
+  because under the static model the compiler would need to either scan the source code twice or save all of it unprocessed
+  during the first pass for processing in the second pass.</P>
+
+  <P>Compiling a dynamic execution model script off-line also does not present special difficulties as long as <CODE>eval</CODE> is
+  restricted to not introduce additional declarations that shadow existing ones (if <CODE>eval</CODE> is allowed to do this,
+  it would present problems for any execution model, including the static one). Under the dynamic execution model, once
+  the compiler has reached the end of a scope it can assume that that scope is complete; at that point all identifiers inside
+  that scope can be resolved to the same extent that they would be in the static model.</P>
+
+  <H3><A name="conditional-compilation"></A>Conditional Compilation Alternative</H3>
+
+  <P><A href="#challenges">Bob's problem</A> could also be solved by using conditional compilation similar in spirit to C's
+  preprocessor. If we do this, we have to ask about how expressive the conditional compilation meta-language should be. C's
+  preprocessor is too weak. In JavaScript applications we'd often find that we need the full power of JavaScript so that we
+  can inspect the DOM, the environment, etc. when deciding how to control compilation. Besides, using JavaScript as the meta-language
+  would reduce the number of languages that a programmer would have to learn.</P>
+
+  <P>Here's one sketch of how this could be done:</P>
+
+  <UL>
+    <LI>Execution of a script occurs in a series of passes. The last one is called <I>run time</I>. It is preceded by a <I>compile
+      time</I> pass, which is preceded (if necessary) by a <I>compile compile time</I> pass, which is preceded (if necessary)
+      by a <I>compile compile compile time</I> pass, etc. Having anything beyond a <I>compile compile time</I> pass is very
+      rare, but rapid-development tools could generate such code.</LI>
+    <LI>All definitions made in a previous pass (such as compile time) are also visible in a later pass (such as run time).
+      If we define a type to also be a function that casts its argument to it type, this allows an implementation to not worry
+      about whether <CODE>(x)(y)</CODE> is a function call of function <CODE>x</CODE> or a cast of <CODE>y</CODE> to type
+      <CODE>x</CODE>.</LI>
+    <LI><SPAN class=nonterminal>TypeExpression</SPAN>s are evaluated at compile time. These appear as types of variables, constants,
+      and fields; argument and result types of functions and methods; and superclasses.</LI>
+    <LI>Declarations are accumulated at compile time. Variables are declared, but variable initializers are not evaluated.
+      Functions and classes are declared and defined at compile time.</LI>
+    <LI>One can lift a <SPAN class=nonterminal>Block</SPAN> from run time to compile time by preceding the block with a <CODE>#</CODE>
+      symbol. For example, <CODE>#{var&nbsp;x:int&nbsp;=&nbsp;3}</CODE> defines a compile-time constant x and initializes
+      it to 3. One can also lift a <CODE>var</CODE>, <CODE>const</CODE>, or <CODE>function</CODE> declaration directly by
+      preceding it with a <CODE>#</CODE> symbol, so <CODE>#var&nbsp;x:int&nbsp;=&nbsp;3;</CODE> would accomplish the same
+      thing.</LI>
+    <LI>Any <SPAN class=nonterminal>TypeExpression</SPAN>s in blocks or statements lifted to compile time are evaluated at compile
+      compile time. <CODE>int</CODE> in the preceding example is such a <SPAN class=nonterminal>TypeExpression</SPAN>.</LI>
+    <LI>Any block or statement that is lifted twice (as in <CODE>#{#var&nbsp;x:int&nbsp;=&nbsp;3}</CODE>) is evaluated at
+      compile compile time, and so forth.</LI>
+    <LI>The compile time pass can selectively exclude source code statements from the run time pass using the construct below.
+      If the first <SPAN class=nonterminal>Expression</SPAN> is true, the first <SPAN class=nonterminal>Statements</SPAN> list
+      is included in the run time pass. Otherwise, if the second <SPAN class=nonterminal>Expression</SPAN> is true, the second
+      <SPAN class=nonterminal>Statements</SPAN> list is included in the run time pass, and so on.<BR>
+      <DIV class=grammar-rule><CODE class=terminal-keyword>#</CODE>&nbsp;<CODE class=terminal-keyword>if</CODE>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Expression</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;<SPAN class=nonterminal>Statements</SPAN>&nbsp;[<CODE class=terminal-keyword>#</CODE>&nbsp;<CODE class=terminal-keyword>else</CODE>&nbsp;<CODE class=terminal-keyword>if</CODE>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Expression</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;<SPAN class=nonterminal>Statements</SPAN>]&nbsp;...&nbsp;[<CODE class=terminal-keyword>#</CODE>&nbsp;<CODE class=terminal-keyword>else</CODE>&nbsp;<SPAN class=nonterminal>Statements</SPAN>]&nbsp;<CODE class=terminal-keyword>#</CODE>&nbsp;<CODE class=terminal-keyword>end</CODE>&nbsp;<CODE class=terminal-keyword>if</CODE></DIV>
+    </LI>
+    <LI>Unlike in C, the <SPAN class=nonterminal>Statements</SPAN> above must have balanced parentheses, braces, brackets, etc.
+      Also, unlike in C, preprocessing is not line-oriented; <CODE>#</CODE>'s can appear anywhere on a line.</LI>
+    <LI>The compile compile time pass can use <CODE>#if</CODE> to conditionally exclude compile time code, etc.</LI>
+  </UL>
+
+  <P>Note that because variable initializers are not evaluated at compile time, one has to use <CODE>#var a = int</CODE> rather
+  than <CODE>var a = int</CODE> to define an alias <CODE>a</CODE> for a type name <CODE>int</CODE>.</P>
+
+  <P>This sketch does not address many issues that would have to be resolved, such as how typed variables are handled after
+  they are declared but before they are initialized (this problem doesn't arise in the dynamic execution model), how the lexical scopes
+  of the run time pass would interact with scoping of the compile time pass, etc.</P>
+
+  <H3>Comparing the Dynamic Execution Model with Conditional Compilation</H3>
+
+  <P>Both approaches solve Bob's problem, but they differ in other areas. In the sequel "conditional compilation"
+  refers to the conditional compilation alternative described above.</P>
+
+  <UL>
+    <LI>The dynamic execution model is simpler to describe and analyze.</LI>
+    <LI>The dynamic execution model is easier to learn for non-programmers.</LI>
+    <LI>Conditional compilation is more familar to C/C++ programmers.</LI>
+    <LI>Conditional compilation requires either a control meta-language or facilities for lifting execution from run to compile
+      time. These often have unintended consequences (compile-time evaluation does not follow the same scopes as run-time
+      evaluation) and have been a significant source of problems in <A href="../../bibliography.html#common-lisp">Common Lisp</A>.</LI>
+    <LI>Conditional compilation can more faithfully emulate JavaScript 1.5 semantics because it allows a function to be called
+      at the top level before it is defined.</LI>
+    <LI>Conditional compilation cannot guarantee that variables' initializers have been run before the variables are referenced.
+      The dynamic execution model guarantees that.</LI>
+    <LI>Conditional compilation does not allow one to use general prototype-based types because prototypes are often calculated
+      at run time. The dynamic execution model allows these.</LI>
+    <LI>Conditional compilation does not support functors and templates without significant additional syntax. The dynamic execution model naturally extends to these.</LI>
+  </UL>
+</DIV>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Thursday, November 11, 1999</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="syntax.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="member-lookup.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

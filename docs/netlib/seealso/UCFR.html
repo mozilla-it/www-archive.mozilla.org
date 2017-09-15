@@ -1,0 +1,166 @@
+<HTML>
+<HEAD>
+   <TITLE>NETLIB II URL Connection Factory Registry Class</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+NETLIB II</H1>
+
+<H2>
+<TT>UCFR</TT>: the URL Connection Factory Registry</H2>
+This is the basic protocol registry. There will probably be one instance
+if this per client invocation. When a URL Connection Factory is created
+(at, e.g., client startup time, or DLL load time) it can register itself
+in the proffered registry. The registry class supports a method to create
+a URL Connection; it does this by searching its data for a protocol handler
+registered for the provided URL's protocol, then passing off into that
+URL Connection Factory's URL Connection creation method.
+<H3>
+Definition</H3>
+This class is defined in java, and is compiled with JMC. The C syntax is
+included in each method description, and is summarised below.
+<BR>
+<CENTER><TABLE BORDER CELLSPACING=0 CELLPADDING=0 >
+<TR>
+<TD>
+<PRE><TT>package netscape.net;
+
+import netscape.url.URL;
+
+public abstract class UCFR {
+  public <A HREF="#UCFR">UCFR</A>() throws Exception {};
+
+  public abstract void <A HREF="#registerFactory">registerFactory</A>(<A HREF="UCF.html">UCF</A> factory) throws Exception;
+  public abstract <A HREF="UCF.html">UCF</A> <A HREF="#findFactory">findFactory</A>(String name) throws Exception;
+  public abstract void <A HREF="#deregisterFactory">deregisterFactory</A>(String name) throws Exception;
+  public abstract String <A HREF="#listFactories">listFactories</A>() throws Exception;
+
+  public abstract <A HREF="UC.html">UC</A> <A HREF="#createUC">createUC</A>(<A HREF="URL.html">URL</A> url, <A HREF="NC.html">NC</A> nc) throws Exception;
+}</TT></PRE>
+</TD>
+</TR>
+
+<CAPTION ALIGN=BOTTOM><I><TT><A HREF="UCFR.java"></A></TT></I> </CAPTION>
+</TABLE></CENTER>
+
+<H3>
+Interface Methods</H3>
+
+<UL>
+<LI>
+<A NAME="UCFR"></A><TT>UCFR</TT></LI>
+
+<BR>This creation method simply creates a new,empty, registry.
+
+<P>The C signature of this method is:
+<CENTER><TT>UCFR *UCFRFactory_Create(JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="registerFactory"></A><TT>registerFactory</TT></LI>
+
+<BR>This method registers a URL Connection factory. It calls the factory's
+<TT><A HREF="UCF.html#getProtocolName">getProtocolName</A></TT> method
+to get the protocol name. This method raises an exception if the protocol
+name is already registered.
+
+<P>The C signature of this method is:
+<CENTER><TT>void UCFR_registerFactory(UCFR *self, <A HREF="UCF.html">UCF</A>
+*factory, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="findFactory"></A><TT>findFactory</TT></LI>
+
+<BR>This method looks up a factory by protocol name, and returns a reference
+to that factory. If the protocol is not found, this method returns null.
+
+<P>The C signature of this method is:
+<CENTER><TT><A HREF="UCF.html">UCF</A> *UCFR_findFactory(UCFR *self, const
+char *name, JMCException **e);</TT></CENTER>
+
+<LI>
+<A NAME="deregisterFactory"></A><TT>deregisterFactory</TT></LI>
+
+<BR>This method removes a named protocol from the registry. It is not an
+error if no protocol by that name is registered.
+
+<P>The C signature of this method is:
+<CENTER><TT>void UCFR_deregisterFactory(UCFR *self, const char *name, JMCException
+**e);</TT></CENTER>
+
+<LI>
+<A NAME="listFactories"></A><TT>listFactories</TT></LI>
+
+<BR>This method returns a comma-separated list of the protocol names with
+which UC Factories have been registered.  E.g., <TT>``http, gopher,
+ftp, file.''  </TT>As this is some analogue of a java String object,
+which must be released/finalised/GC'd; the caller must remember to <TT>XP_FREE</TT>
+the return string.
+<DT>
+ </DT>
+
+<DT>
+The C signature of this method is:</DT>
+
+<DT>
+ </DT>
+
+<CENTER>
+<DT>
+<TT>const char *UCFR_listFactories(UCFR *self, JMCException **e);</TT></DT></CENTER>
+
+<DT>
+ </DT>
+
+<LI>
+<A NAME="createUC"></A><TT>createUC</TT></LI>
+
+<BR>This method creates an object that implements the URL Connection interface
+<TT>UC,</TT> which object is appropriate to the protocol specified in the
+provided URL. In short, this method looks at the protocol part of the URL
+address, looks up that protocol in the registry, and calls that protocol
+factory's <TT><A HREF="UCF.html#createUC">createUC</A></TT> method to do
+the actual creation.
+
+<P>The C signature of this method is:
+<CENTER><TT><A HREF="UC.html">UC</A> *UCFR_createUC(UCFR *self, <A HREF="URL.html">URL</A>
+*url, <A HREF="NC.html">NC</A> *nc, JMCException **e);</TT></CENTER>
+</UL>
+
+<H3>
+Inherited Methods</H3>
+This class inherits the usual <A HREF="JMCObject.html">JMC base methods</A>.
+<H3>
+C interface</H3>
+
+<CENTER><TABLE BORDER CELLSPACING=0 CELLPADDING=0 >
+<TR>
+<TD>
+<PRE><TT>#include "UCFR.h"
+
+UCFR *<A HREF="#UCFR">UCFRFactory_Create</A>(JMCException **e);
+
+void <A HREF="#registerFactory">UCFR_registerFactory</A>(UCFR *self, <A HREF="UCF.html">UCF</A> *factory, JMCException **e);
+<A HREF="UCF.html">UCF</A> *<A HREF="#findFactory">UCFR_findFactory</A>(UCFR *self, const char *name, JMCException **e);
+void <A HREF="#deregisterFactory">UCFR_deregisterFactory</A>(UCFR *self, const char *name, JMCException **e);
+const char *<A HREF="#listFactories">UCFR_listFactories</A>(UCFR *self, JMCException **e);
+<A HREF="UC.html">UC</A> *<A HREF="#createUC">UCFR_createUC</A>(UCFR *self, <A HREF="URL.html">URL</A> *url, <A HREF="NC.html">NC</A> *nc, JMCException **e);
+
+/* methods inherited from base JMC object interface */
+void *<A HREF="JMCObject.html#getInterface">UCFR_getInterface</A>(UCFR *self, JMCInterfaceID id, JMCException **e);
+void <A HREF="JMCObject.html#addRef">UCFR_addRef</A>(UCFR *self, JMCException **e);
+void <A HREF="JMCObject.html#release">UCFR_release</A>(UCFR *self, JMCException **e);
+jint <A HREF="JMCObject.html#hashCode">UCFR_hashCode</A>(UCFR *self, JMCException **e);
+void *<A HREF="JMCObject.html#clone">UCFR_clone</A>(UCFR *self, JMCException **e);
+const char *<A HREF="JMCObject.html#toString">UCFR_toString</A>(UCFR *self, JMCException **e);
+void <A HREF="JMCObject.html#finalize">UCFR_finalize</A>(UCFR *self, JMCException **e);</TT></PRE>
+</TD>
+</TR>
+</TABLE></CENTER>
+
+<HR WIDTH="100%">
+<ADDRESS>
+Written by <A HREF="about:roeber">Frederick</A> at 18:33 17.03.1997.</ADDRESS>
+
+</BODY>
+</HTML>

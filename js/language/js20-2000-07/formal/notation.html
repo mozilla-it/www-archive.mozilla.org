@@ -1,0 +1,1427 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Semantic Notation</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="index.html">
+<LINK rel=Next href="stages.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+<STYLE type="text/css">
+.operator-heading {font-weight: bold; padding-top: 10pt; padding-bottom: 5pt}
+</STYLE>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>July 2000 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Formal Description</DIV>
+    <DIV class=title1>Semantic Notation</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="index.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="stages.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Thursday, November 11, 1999</P>
+
+<H2>Introduction</H2>
+
+<P>To precisely specify the semantics of JavaScript 2.0, we use the notation described below to define the behavior of all
+JavaScript 2.0 constructs and their interactions.</P>
+
+<H2><A name="semantic-value"></A>Semantic Values</H2>
+
+<P>The semantics describe the meaning of a JavaScript 2.0 program in terms of operations on simpler objects borrowed from
+mathematics collectively called semantic values. Semantic values can be held in semantic variables and passed to semantic
+functions. The kinds of semantic values used in this specification are summarized in the table below and explained in the
+next few sections:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Semantic Value Examples</TH>
+    <TH valign=TOP align=LEFT>Description</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP><SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT></TD>
+    <TD valign=TOP><A href="#bottom">The result of a nonterminating computation</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><SPAN class=field-name>syntaxError</SPAN></TD>
+    <TD valign=TOP><A href="#omega">The result of a computation that returns by throwing a semantic exception</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT></TD>
+    <TD valign=TOP><A href="#empty">The result of a semantic function that does not return a useful value</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><SPAN class=global-variable>true</SPAN>, <SPAN class=global-variable>false</SPAN></TD>
+    <TD valign=TOP><A href="#boolean">Booleans</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP>-3, 0, 1, 2, 93</TD>
+    <TD valign=TOP><A href="#integer">Mathematical integers</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP>1/2, -12/7</TD>
+    <TD valign=TOP><A href="#rational">Mathematical rational numbers</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP>1.0, 3.5, 2.0e-10, -0.0, -<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>, <SPAN class=global-variable>NaN</SPAN></TD>
+    <TD valign=TOP><A href="#double">Double-precision IEEE floating-point numbers</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP>&#8216;<CODE>A</CODE>&#8217;,
+      &#8216;<CODE>b</CODE>&#8217;,
+      &#8216;<CODE><SPAN class=control>&#171;LF&#187;</SPAN></CODE>&#8217;,
+      &#8216;<CODE><SPAN class=control>&#171;uFFFF&#187;</SPAN></CODE>&#8217;</TD>
+    <TD valign=TOP><A href="#character">Characters</A> (Unicode 16-bit code points)</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><B>[</B><VAR>value<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>value<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>
+    </TD>
+    <TD valign=TOP><A href="#vector">Vectors</A> &#151; indexed lists of semantic values</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP>&#8220;&#8221;,
+      &#8220;<CODE>abc</CODE>&#8221;
+      , &#8220;<CODE>1</CODE><CODE><SPAN class=control>&#171;TAB&#187;</SPAN></CODE>5&#8221;
+    </TD>
+    <TD valign=TOP><A href="#string">Strings</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP>{<VAR>value<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;<VAR>value<SPAN class=sub-num>2</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>value<SPAN class=sub>n</SPAN></VAR>}</TD>
+    <TD valign=TOP><A href="#set">Mathematical sets</A> of semantic values</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;<VAR class=field-name>name<SPAN class=sub-num>2</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub-num>2</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub>n</SPAN></VAR><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>&nbsp;&nbsp;&nbsp;</TD>
+    <TD valign=TOP><A href="#tuple">Tuples</A> with named member semantic values</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><VAR class=field-name>name</VAR> or <VAR class=field-name>name</VAR>&nbsp;<VAR>value</VAR></TD>
+    <TD valign=TOP><A href="#oneof">Tagged semantic values</A></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><SPAN class=semantic-keyword>function</SPAN>(<VAR>n</VAR>:&nbsp;<SPAN class=domain-name>Integer</SPAN>)&nbsp;<VAR>n</VAR>*<VAR>n</VAR></TD>
+    <TD valign=TOP><A href="#function">Semantic functions</A></TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+
+<H3><A name="bottom"></A><SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT></H3>
+
+<P>There is a special semantic value <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> (pronounced as "bottom")
+that represents the result of an inconsistent or nonterminating computation. Unless specified otherwise, applying any semantic
+operator (such as +, *, etc.) to <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> or calling a semantic function
+with <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> as any argument also yields <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+without evaluating any remaining operands or arguments (in technical terms, semantic functions and operators are <I>strict</I>
+in all of their arguments unless specified otherwise).</P>
+
+<P>If interpreting a JavaScript program according to the semantics here gives a <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+result, an actual implementation executing that JavaScript program will either fail to terminate or throw an exception because
+it runs out of memory or stack space.</P>
+
+
+
+<H3><A name="omega"></A><SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT></H3>
+
+<P>Semantic values of the form <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>value</VAR> represents the
+result of a computation that throws a semantic exception. <VAR>value</VAR> is the exception's value (which must be a member of
+the <A href="#T-SemanticException" class=domain-name>SemanticException</A> semantic type). Unless specified otherwise,
+applying any semantic operator (such as +, *, etc.) to <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>value</VAR>
+or calling a semantic function with <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>value</VAR> as any
+argument also yields <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>value</VAR> (with the same <VAR>value</VAR>)
+without evaluating any remaining operands or arguments.</P>
+
+<P>The <A href="#throw" class=semantic-keyword>throw</A> statement takes a value <VAR>v</VAR> and returns <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>.
+The <A href="#catch" class=semantic-keyword>catch</A> statement converts <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+back to <VAR>v</VAR>.</P>
+
+<H3><A name="empty"></A><SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT></H3>
+
+<P>Semantic functions that do not return a useful value return the semantic value <SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT>.
+There are no operations defined on <SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT>.</P>
+
+<H3><A name="boolean"></A>Booleans</H3>
+
+<P>The semantic values <SPAN class=global-variable>true</SPAN> and <SPAN class=global-variable>false</SPAN> are booleans.
+The <A href="#logical-not" class=semantic-keyword>not</A>, <A href="#logical-and" class=semantic-keyword>and</A>,
+<A href="#logical-or" class=semantic-keyword>or</A>, and <A href="#logical-xor" class=semantic-keyword>xor</A>
+operators operate on booleans. Like most other operators, <A href="#logical-and" class=semantic-keyword>and</A>,
+<A href="#logical-or" class=semantic-keyword>or</A>, and <A href="#logical-xor" class=semantic-keyword>xor</A>
+evaluate both operands before returning a result; these operators do not short-circuit.</P>
+
+<H3><A name="integer"></A>Integers</H3>
+
+<P>Unless specified otherwise, numbers in the semantics written without a slash or decimal point are mathematical integers:
+..., -3, -2, -1, 0, 1, 2, 3, .... The usual mathematical operators <A href="#rational-add">+</A>, <A href="#rational-subtract">-</A>,
+<A href="#rational-multiply">*</A>, and <A href="#rational-negate">unary -</A> can be used on integers. Integers can be compared
+using <A href="#rational-eq">=</A>, <A href="#rational-ne"><SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT></A>,
+<A href="#rational-lt">&lt;</A>, <A href="#rational-le"><SCRIPT type="text/javascript">document.write(U_le)</SCRIPT></A>,
+<A href="#rational-gt">&gt;</A>, and <A href="#rational-ge"><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT></A>.</P>
+
+<H3><A name="rational"></A>Rationals</H3>
+
+<P>Numbers in the semantics written with a slash are mathematical rational numbers. Every integer is also a rational. Rational
+numbers include, for example, 0, 1, 2, -1, 1/2, -12/7, and -24/14; the last two are different ways of writing the same rational
+number. The usual mathematical operators <A href="#rational-add">+</A>, <A href="#rational-subtract">-</A>, <A href="#rational-multiply">*</A>,
+<A href="#rational-divide">/</A>, and <A href="#rational-negate">unary -</A> can be used on rationals. Rationals can be compared
+using <A href="#rational-eq">=</A>, <A href="#rational-ne"><SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT></A>,
+<A href="#rational-lt">&lt;</A>, <A href="#rational-le"><SCRIPT type="text/javascript">document.write(U_le)</SCRIPT></A>,
+<A href="#rational-gt">&gt;</A>, and <A href="#rational-ge"><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT></A>.</P>
+
+<H3><A name="double"></A>Doubles</H3>
+
+<P>Numbers in the semantics written with a decimal point are double-precision IEEE floating-point numbers (often abbreviated
+as <I>double</I>s), including distinct +0.0, -0.0, +<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>, -<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>,
+and <SPAN class=global-variable>NaN</SPAN>. Doubles are distinct from integers and rationals; when writing doubles in the
+semantics, we always include a decimal point to distinguish them from integers and rationals.</P>
+
+<P><A name="significand"></A>Doubles other than +<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>, -<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>,
+and <SPAN class=global-variable>NaN</SPAN> are called <I>finite</I>. We define the <I>significand</I> of a finite double <VAR>d</VAR>
+as follows:</P>
+
+<UL>
+  <LI>The significand of +0.0 or -0.0 is 0.</LI>
+  <LI>If <VAR>d</VAR> is normalized, we can uniquely represent it as <VAR>s</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR>m</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;2<SUP><VAR>e</VAR></SUP>,
+    where <VAR>m</VAR> and <VAR>e</VAR> are integers, <VAR>s</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;{-1,&nbsp;1},
+    2<SUP>52</SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>m</VAR>&nbsp;&lt;&nbsp;2<SUP>53</SUP>,
+    and -1074&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>e</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;971.
+    <VAR>m</VAR> is the significand.</LI>
+  <LI>If <VAR>d</VAR> is denormalized, we can uniquely represent it as <VAR>s</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR>m</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;2<SUP>-1074</SUP>,
+    where <VAR>m</VAR> is an integer, <VAR>s</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;{-1,&nbsp;1},
+    and 0&nbsp;&lt;&nbsp;<VAR>m</VAR>&nbsp;&lt;&nbsp;2<SUP>52</SUP>. <VAR>m</VAR> is the significand.</LI>
+</UL>
+
+<H3><A name="character"></A>Characters</H3>
+
+<P>Characters are single Unicode 16-bit code points. We write them enclosed in single quotes &#8216;
+and &#8217;. There are exactly 65536 characters: &#8216;<CODE><SPAN class=control>&#171;u0000&#187;</SPAN></CODE>&#8217;,
+&#8216;<CODE><SPAN class=control>&#171;u0001&#187;</SPAN></CODE>&#8217;,
+...,&#8216;<CODE>A</CODE>&#8217;,
+&#8216;<CODE>B</CODE>&#8217;,
+&#8216;<CODE>C</CODE>&#8217;,
+..., &#8216;<CODE><SPAN class=control>&#171;uFFFF&#187;</SPAN></CODE>&#8217;
+(see also <A href="../introduction/notation.html#character">notation for non-ASCII characters</A>). Unicode surrogates are considered
+to be pairs of characters for the purpose of this specification.</P>
+
+<P>The <A href="#V-characterToCode" class=global-variable>characterToCode</A> and <A href="#V-codeToCharacter" class=global-variable>codeToCharacter</A>
+semantic functions convert between characters and their integer Unicode values.</P>
+
+<H3><A name="vector"></A>Vectors</H3>
+
+<P>A semantic vector contains zero or more elements indexed by integers starting from zero. We write a vector value by enclosing
+a comma-separated list of values inside bold brackets:</P>
+
+<P class=indent><B>[</B><VAR>element<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>element<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>element<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B></P>
+
+<P>For example, the following semantic value is a vector whose elements are four strings:</P>
+
+<P class=indent><B>[</B>&#8220;<CODE>parsley</CODE>&#8221;,&nbsp;&#8220;<CODE>sage</CODE>&#8221;,&nbsp;&#8220;<CODE>rosemary</CODE>&#8221;,&nbsp;&#8220;<CODE>thyme</CODE>&#8221;<B>]</B></P>
+
+<P>The empty vector is written as <B>[]</B>.</P>
+
+<P>Let <VAR>u</VAR> = <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>
+and <VAR>v</VAR> = <B>[</B><VAR>f<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>f<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>f<SPAN class=sub-num>m-1</SPAN></VAR><B>]</B>
+be vectors, <VAR>i</VAR> and <VAR>j</VAR> be integers, and <VAR>x</VAR> be a value. The following notations describe common
+operations on vectors:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Notation&nbsp;&nbsp;</TH>
+    <TH valign=TOP align=LEFT>Result&nbsp;Value</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>u</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_oplus)</SCRIPT>&nbsp;<VAR>v</VAR></TD>
+    <TD valign=TOP>The concatenated vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR>,&nbsp;<VAR>f<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>f<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>f<SPAN class=sub-num>m-1</SPAN></VAR><B>]</B></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap>|<VAR>u</VAR>|</TD>
+    <TD valign=TOP>The length <VAR>n</VAR> of the vector</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>u</VAR>[<VAR>i</VAR>]</TD>
+    <TD valign=TOP>The <VAR>i</VAR><SUP>th</SUP> element <VAR>e<SPAN class=sub>i</SPAN></VAR>, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+      if <VAR>i</VAR>&lt;0 or <VAR>i</VAR><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT><VAR>n</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>u</VAR>[<VAR>i</VAR>&nbsp;...&nbsp;<VAR>j</VAR>]</TD>
+    <TD valign=TOP>The vector slice <B>[</B><VAR>e<SPAN class=sub>i</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>i+1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub>j</SPAN></VAR><B>]</B>
+      consisting of all elements of <VAR>u</VAR> between the <VAR>i</VAR><SUP>th</SUP> and the <VAR>j</VAR><SUP>th</SUP>, inclusive, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+      if <VAR>i</VAR>&lt;0, <VAR>j</VAR><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT><VAR>n</VAR>, or <VAR>j</VAR>&lt;<VAR>i</VAR>-1.
+      The result is the empty vector <B>[]</B> if <VAR>j</VAR>=<VAR>i</VAR>-1.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>u</VAR>[<VAR>i</VAR>&nbsp;...]</TD>
+    <TD valign=TOP>The vector slice <B>[</B><VAR>e<SPAN class=sub>i</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>i+1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>
+      consisting of all elements of <VAR>u</VAR> between the <VAR>i</VAR><SUP>th</SUP> and the end, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+      if <VAR>i</VAR>&lt;0 or <VAR>i</VAR>&gt;<VAR>n</VAR>. The result is the empty vector <B>[]</B> if <VAR>i</VAR>=<VAR>n</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>u</VAR>[<VAR>i</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>x</VAR>]&nbsp;&nbsp;</TD>
+    <TD valign=TOP>The vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>i-1</SPAN></VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<VAR>e<SPAN class=sub-num>i+1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>
+      with the <VAR>i</VAR><SUP>th</SUP> element replaced by the value <VAR>x</VAR> and the other elements unchanged, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+      if <VAR>i</VAR>&lt;0 or <VAR>i</VAR><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT><VAR>n</VAR></TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<P>Semantic vectors are functional; there is no notation for modifying a semantic vector in place.</P>
+
+<H3><A name="string"></A>Strings</H3>
+
+<P>A semantic string is merely a vector of characters. For notational convenience we can write a string literal as zero or
+more characters enclosed in double quotes. Thus,</P>
+
+<P class=indent>&#8220;<CODE>Wonder</CODE><CODE><SPAN class=control>&#171;LF&#187;</SPAN></CODE>&#8221;</P>
+
+<P>is equivalent to:</P>
+
+<P class=indent><B>[</B>&#8216;<CODE>W</CODE>&#8217;,&nbsp;&#8216;<CODE>o</CODE>&#8217;,&nbsp;&#8216;<CODE>n</CODE>&#8217;,&nbsp;&#8216;<CODE>d</CODE>&#8217;,&nbsp;&#8216;<CODE>e</CODE>&#8217;,&nbsp;&#8216;<CODE>r</CODE>&#8217;,&nbsp;&#8216;<CODE><SPAN class=control>&#171;LF&#187;</SPAN></CODE>&#8217;<B>]</B></P>
+
+<P>In addition to all of the other vector operations, we can use <A href="#rational-eq">=</A>, <A href="#rational-ne"><SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT></A>,
+<A href="#rational-lt">&lt;</A>, <A href="#rational-le"><SCRIPT type="text/javascript">document.write(U_le)</SCRIPT></A>,
+<A href="#rational-gt">&gt;</A>, and <A href="#rational-ge"><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT></A>
+to compare two strings.</P>
+
+<H3><A name="set"></A>Sets</H3>
+
+<P>A semantic set is an unordered collection of values. Each value may occur at most once in a set. There must be a well-defined
+= semantic operator defined on all pairs of values in the set, and that operator must induce an equivalence relation.</P>
+
+<P>A semantic set is denoted by enclosing a comma-separated list of values inside braces:</P>
+
+<P class=indent>{<VAR>element<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;<VAR>element<SPAN class=sub-num>2</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>element<SPAN class=sub>n</SPAN></VAR>}</P>
+
+<P>The empty set is written as {}.</P>
+
+<P>For example, the following set contains seven integers:</P>
+
+<P class=indent>{3,&nbsp;0,&nbsp;10,&nbsp;11,&nbsp;12,&nbsp;13,&nbsp;-5}</P>
+
+<P>When using elements such as integers and characters that have an obvious total order, we can also write sets by using the
+... range operator. For example, we can rewrite the above set as:</P>
+
+<P class=indent>{0,&nbsp;-5,&nbsp;3&nbsp;...&nbsp;3,&nbsp;10&nbsp;...&nbsp;13}</P>
+
+<P>If the beginning of the range is equal to the end of the range, then the range consists of only one element: {7&nbsp;...&nbsp;7}
+is the same as {7}. If the end of the range is one "less" than the beginning, then the range contains no elements:
+{7&nbsp;...&nbsp;6} is the same as {}. If the end of the range is more than one "less" than the beginning, then
+the set is <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>.</P>
+
+<P>Let <VAR>A</VAR> and <VAR>B</VAR> be sets and <VAR>x</VAR> be a value. The following notations describe common operations
+on sets:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Notation&nbsp;&nbsp;</TH>
+    <TH valign=TOP align=LEFT>Result&nbsp;Value</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap>|<VAR>A</VAR>|</TD>
+    <TD valign=TOP>The number of elements in the set <VAR>A</VAR>; <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+      if <VAR>A</VAR> has infinitely many elements</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><SPAN class=semantic-keyword>min</SPAN> <VAR>A</VAR></TD>
+    <TD valign=TOP>If there exists a value <VAR>m</VAR> that satisfies both <VAR>m</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<VAR>A</VAR> and for all elements <VAR>x</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<VAR>A</VAR>,
+      <VAR>x</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT>&nbsp;<VAR>m</VAR>, then return <VAR>m</VAR>; otherwise
+      return <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> (this could happen either if <VAR>A</VAR> is empty
+      or if <VAR>A</VAR> has an infinite descending sequence of elements with no lower bound in <VAR>A</VAR>)</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><SPAN class=semantic-keyword>max</SPAN> <VAR>A</VAR></TD>
+    <TD valign=TOP>If there exists a value <VAR>m</VAR> that satisfies both <VAR>m</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<VAR>A</VAR> and for all elements <VAR>x</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<VAR>A</VAR>,
+      <VAR>x</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>m</VAR>, then return <VAR>m</VAR>; otherwise
+      return <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> (this could happen either if <VAR>A</VAR> is empty
+      or if <VAR>A</VAR> has an infinite ascending sequence of elements with no upper bound in <VAR>A</VAR>)</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>A</VAR> <SCRIPT type="text/javascript">document.write(U_cap)</SCRIPT> <VAR>B</VAR></TD>
+    <TD valign=TOP>The intersection of sets <VAR>A</VAR> and <VAR>B</VAR> (the set of all values that are present both in
+      <VAR>A</VAR> and in <VAR>B</VAR>)</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>A</VAR> <SCRIPT type="text/javascript">document.write(U_cup)</SCRIPT> <VAR>B</VAR></TD>
+    <TD valign=TOP>The union of sets <VAR>A</VAR> and <VAR>B</VAR> (the set of all values that are present in at least one
+      of <VAR>A</VAR> or <VAR>B</VAR>)</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>A</VAR> - <VAR>B</VAR></TD>
+    <TD valign=TOP>The difference of sets <VAR>A</VAR> and <VAR>B</VAR> (the set of all values that are present in <VAR>A</VAR>
+      but not <VAR>B</VAR>)</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR> <SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT> <VAR>A</VAR></TD>
+    <TD valign=TOP>Return <SPAN class=global-variable>true</SPAN> if <VAR>x</VAR> is an element of set <VAR>A</VAR> and <SPAN class=global-variable>false</SPAN>
+      if not</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>A</VAR> = <VAR>B</VAR></TD>
+    <TD valign=TOP>Return <SPAN class=global-variable>true</SPAN> if the two sets <VAR>A</VAR> and <VAR>B</VAR> are equal
+      and <SPAN class=global-variable>false</SPAN> otherwise. Sets <VAR>A</VAR> and <VAR>B</VAR> are equal if every element
+      of <VAR>A</VAR> is also in <VAR>B</VAR> and every element of <VAR>B</VAR> is also in <VAR>A</VAR>.</TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<P><SPAN class=semantic-keyword>min</SPAN> and <SPAN class=semantic-keyword>max</SPAN> are only defined for sets whose elements
+can be compared with &lt;.</P>
+
+<H3><A name="tuple"></A>Tuples</H3>
+
+<P>A semantic tuple is an aggregate of several named semantic values. Tuples are sometimes called records or structures in
+other languages. A tuple is denoted by a comma-separated list of names and values between bold triangular brackets:</P>
+
+<P class=indent><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;<VAR class=field-name>name<SPAN class=sub-num>2</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub-num>2</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub>n</SPAN></VAR><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B></P>
+
+<P>Each <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub>i</SPAN></VAR> pair is called
+a field. The order of fields in a tuple is irrelevant, so <B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>x</SPAN>&nbsp;3,&nbsp;<SPAN class=field-name>y</SPAN>&nbsp;4<B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>
+is the same as <B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>y</SPAN>&nbsp;4,&nbsp;<SPAN class=field-name>x</SPAN>&nbsp;3<B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>.
+A tuple's names must all be distinct.</P>
+
+<P>Let <VAR>w</VAR> be an expression that evaluates to a tuple <B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;<VAR class=field-name>name<SPAN class=sub-num>2</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub-num>2</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>&nbsp;<VAR>value<SPAN class=sub>n</SPAN></VAR><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>.
+We can extract the value of the field named <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR> from <VAR>w</VAR> by
+using the notation <VAR>w</VAR>.<VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>. <VAR>w</VAR> is required to have
+this field. For example, <B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>x</SPAN>&nbsp;3,&nbsp;<SPAN class=field-name>y</SPAN>&nbsp;4<B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>.<SPAN class=field-name>x</SPAN>
+is 3.</P>
+
+<P>In the HTML versions of the semantics, each use of <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR> is linked back
+to its <A href="#tuple-type">tuple type's</A> definition.</P>
+
+<H3><A name="oneof"></A>Oneofs</H3>
+
+<P>A semantic oneof is a pair consisting of a name (called the <I>tag</I>) and a value. Oneofs are sometimes called variants
+or tagged unions in other languages. A oneof is denoted by writing the tag followed by the value:</P>
+
+<P class=indent><VAR class=field-name>name</VAR>&nbsp;<VAR>value</VAR></P>
+
+<P>For brevity, when <VAR>value</VAR> is <SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT>, we can omit it altogether,
+so <SPAN class=field-name>red</SPAN> is the same as <SPAN class=field-name>red</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT>.</P>
+
+<P>Let <VAR>o</VAR> be an expression that evaluates to some oneof <VAR class=field-name>n</VAR>&nbsp;<VAR>v</VAR>. We can
+perform the following operations on <VAR>o</VAR>:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Notation&nbsp;&nbsp;</TH>
+    <TH valign=TOP align=LEFT>Result&nbsp;Value</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>o</VAR>.<VAR class=field-name>name</VAR></TD>
+    <TD valign=TOP>The value <VAR>v</VAR> if <VAR class=field-name>n</VAR> is <VAR class=field-name>name</VAR>; <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+      otherwise</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>o</VAR>&nbsp;<SPAN class=semantic-keyword>is</SPAN>&nbsp;<VAR class=field-name>name</VAR>&nbsp;&nbsp;&nbsp;</TD>
+    <TD valign=TOP><SPAN class=global-variable>true</SPAN> if <VAR class=field-name>n</VAR> is <VAR class=field-name>name</VAR>;
+      <SPAN class=global-variable>false</SPAN> otherwise</TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<P>For example, (<SPAN class=field-name>red</SPAN> 5)&nbsp;<SPAN class=semantic-keyword>is</SPAN>&nbsp;<SPAN class=field-name>blue</SPAN>
+evaluates to <SPAN class=global-variable>false</SPAN>, while (<SPAN class=field-name>red</SPAN> 5)&nbsp;<SPAN class=semantic-keyword>is</SPAN>&nbsp;<SPAN class=field-name>red</SPAN>
+evaluates to <SPAN class=global-variable>true</SPAN>. (<SPAN class=field-name>red</SPAN> 5).<SPAN class=field-name>red</SPAN>
+evaluates to 5.</P>
+
+<P>In addition to the operators above, the <A href="#case">case statement</A> evaluates one of several expressions based on
+a oneof tag.</P>
+
+
+<P>In the HTML versions of the semantics, each use of <VAR class=field-name>name</VAR> is linked back to its <A href="#oneof-type">oneof
+type's</A> definition.</P>
+
+<H3><A name="function"></A>Functions</H3>
+
+<P>A semantic function receives zero or more arguments, performs computations, and returns a result. We write a semantic function
+as follows:</P>
+
+<P class=indent><SPAN class=semantic-keyword>function</SPAN>(<VAR>param<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>param<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>)&nbsp;<VAR>body</VAR></P>
+
+<P>Here <VAR>param<SPAN class=sub-num>1</SPAN></VAR> through <VAR>param<SPAN class=sub>n</SPAN></VAR>
+are the function's parameters, <VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR> through <VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>
+are the parameters' respective <A href="#semantic-type">semantic types</A>, and <VAR>body</VAR> is an expression that computes
+the function's result. When the function is called with argument values <VAR>v<SPAN class=sub-num>1</SPAN></VAR> through <VAR>v<SPAN class=sub>n</SPAN></VAR>,
+the function's <VAR>body</VAR> is evaluated and the resulting value returned to the caller. <VAR>body</VAR> can refer to the
+parameters <VAR>param<SPAN class=sub-num>1</SPAN></VAR> through <VAR>param<SPAN class=sub>n</SPAN></VAR>;
+each reference to a parameter <VAR>param<SPAN class=sub>i</SPAN></VAR> evaluates to the corresponding
+argument value <VAR>v<SPAN class=sub>i</SPAN></VAR>. Arguments are passed by value (which in this language is equivalent to
+passing them by reference because there is no way to write to a parameter).</P>
+
+<P>Function parameters are statically scoped. When functions are nested and an inner function <VAR>f</VAR> defines a parameter
+with the same name as a parameter of an outer function <VAR>g</VAR>, then <VAR>f</VAR>'s parameter shadows <VAR>g</VAR>'s
+parameter inside <VAR>f</VAR>.</P>
+
+<P>The only operation allowed on a semantic function <VAR>f</VAR> is calling it, which we do using the <VAR>f</VAR>(<VAR>arg<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...,&nbsp;<VAR>arg<SPAN class=sub>n</SPAN></VAR>)
+syntax. In the presence of side effects, <VAR>f</VAR> is evaluated first, followed by the argument expressions <VAR>arg<SPAN class=sub-num>1</SPAN></VAR>
+through <VAR>arg<SPAN class=sub>n</SPAN></VAR>, in left-to-right order. If the result of evaluating <VAR>f</VAR> or any of
+the argument expressions is <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>, then the call immediately returns
+<SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> without evaluating the following argument expressions, if any.
+If the result of evaluating <VAR>f</VAR> or any of the argument expressions is <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+for some value <VAR>v</VAR>, then the call immediately returns that <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+without evaluating the following argument expressions, if any. Otherwise, <VAR>f</VAR>'s <VAR>body</VAR> is evaluated and
+the resulting value returned to the caller.</P>
+
+
+
+<H2><A name="semantic-type"></A>Semantic Types</H2>
+
+<P>A semantic type is a possibly infinite set of semantic values. Names of semantic types are shown in <SPAN class=domain-name>Capitalized
+Red Small Caps</SPAN>, and compound semantic type expressions are in <SPAN class=type-expression>red</SPAN>.</P>
+
+<P>We use semantic types to make the semantics more readable by declaring the semantic type of each semantic variable (including
+function argument variables). Each such declaration states that the only values that will be stored in a semantic variable
+will be members of that variable's semantic type. These declarations can be proven statically. The JavaScript semantics have
+been machine type-checked to ensure that every type declaration holds, so, for example, if the semantics state that variable
+<VAR>x</VAR> has type <SPAN class=domain-name>Integer</SPAN> then there does not exist any place that
+could assign the value <SPAN class=global-variable>true</SPAN> to <VAR>x</VAR>.</P>
+
+<P>Semantic type annotations allow us to restrict the description of each semantic operator and function to only describe
+its behavior on arguments that are members of the arguments' semantic types. Thus, for example, we need not describe the behavior
+of the <A href="#rational-add">+</A> semantic operator when passed the semantic values <SPAN class=global-variable>true</SPAN>
+and <SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT> as operands because we can prove that this case cannot
+arise.</P>
+
+<P>Every semantic type includes the values <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> and <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+for all values <VAR>v</VAR> whose semantic type is <A href="#T-SemanticException" class=domain-name>SemanticException</A>.
+For brevity we do not list <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> and <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+in the tables below.</P>
+
+<H3>Basic Semantic Types</H3>
+
+<P>The following are the basic semantic types:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Type</TH>
+    <TH valign=TOP nowrap align=LEFT>Set of Values</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="T-Void"></A><SPAN class=domain-name>Void</SPAN></TD>
+    <TD valign=TOP>{<SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT>}</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="T-Boolean"></A><SPAN class=domain-name>Boolean</SPAN></TD>
+    <TD valign=TOP>{<SPAN class=global-variable>true</SPAN>, <SPAN class=global-variable>false</SPAN>}</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="T-Integer"></A><SPAN class=domain-name>Integer</SPAN></TD>
+    <TD valign=TOP>{..., -2, -1, 0, 1, 2, ...} (All mathematical integers)</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="T-Rational"></A><SPAN class=domain-name>Rational</SPAN>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>All mathematical rational numbers</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="T-Double"></A><SPAN class=domain-name>Double</SPAN></TD>
+    <TD valign=TOP>All double-precision IEEE floating-point numbers, including <SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>,
+      -<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>, and <SPAN class=global-variable>NaN</SPAN></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="T-Character"></A><SPAN class=domain-name>Character</SPAN>&nbsp;&nbsp;&nbsp;</TD>
+    <TD valign=TOP>All 65536 characters</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="T-String"></A><SPAN class=domain-name>String</SPAN></TD>
+    <TD valign=TOP>Shorthand for <SPAN class=type-expression><SPAN class=domain-name>Character</SPAN>[]</SPAN> (see vector types
+      below)</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="T-SemanticException"></A><SPAN class=domain-name>SemanticException</SPAN>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>Set of all values that can be thrown as semantic exceptions. This type is defined separately inside each grammar that throws such exceptions.</TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<P>The type <A href="#T-Rational" class=domain-name>Rational</A> includes <A href="#T-Integer" class=domain-name>Integer</A>
+as a subtype because every integer is also a rational number. Except for <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> and <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>,
+the types <A href="#T-Rational" class=domain-name>Rational</A> and <A href="#T-Double" class=domain-name>Double</A>
+are disjoint.</P>
+
+<H3>Compound Semantic Types</H3>
+
+<P>We can construct compound semantic types using the notation below. Here <VAR class=domain-name>t</VAR>, <VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>,
+<VAR class=domain-name>t<SPAN class=sub-num>2</SPAN></VAR>, ..., <VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR> represent
+some existing semantic types.</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Type&nbsp;&nbsp;</TH>
+    <TH valign=TOP nowrap align=LEFT>Set of Values</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="vector-type"></A><SPAN class=type-expression><VAR class=domain-name>t</VAR>[]</SPAN></TD>
+    <TD valign=TOP>All <A href="#vector">vectors</A> <B>[</B><VAR>v<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>v<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>
+      all of whose elements <VAR>v<SPAN class=sub-num>0</SPAN></VAR>, ... , <VAR>v<SPAN class=sub-num>n-1</SPAN></VAR> have
+      type <VAR class=domain-name>t</VAR>. Note that the empty vector <B>[]</B> is a member of every vector type <SPAN class=type-expression><VAR class=domain-name>t</VAR>[]</SPAN>.
+    </TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="set-type"></A><SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}</SPAN></TD>
+    <TD valign=TOP>All <A href="#set">sets</A> {<VAR>v<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;<VAR>v<SPAN class=sub-num>2</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>v<SPAN class=sub>n</SPAN></VAR>}
+      all of whose elements <VAR>v<SPAN class=sub-num>1</SPAN></VAR>, ... , <VAR>v<SPAN class=sub>n</SPAN></VAR> have type
+      <VAR class=domain-name>t</VAR>. Note that the empty set {} is a member of every set type <SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}</SPAN>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="tuple-type"></A><SPAN class=type-expression><SPAN class=semantic-keyword>tuple</SPAN>&nbsp;{<VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>}</SPAN></TD>
+    <TD valign=TOP>All <A href="#tuple">tuples</A> <B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<VAR>v<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>&nbsp;<VAR>v<SPAN class=sub>n</SPAN></VAR><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>
+      for which each <VAR>v<SPAN class=sub>i</SPAN></VAR> has type <VAR class=domain-name>t<SPAN class=sub>i</SPAN></VAR> for
+      1&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>i</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>n</VAR>.
+      The <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>'s must be distinct; the order in which the <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>i</SPAN></VAR> fields are listed does not matter.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="oneof-type"></A><SPAN class=type-expression><SPAN class=semantic-keyword>oneof</SPAN>&nbsp;{<VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>}</SPAN>&nbsp;&nbsp;&nbsp;</TD>
+    <TD valign=TOP>All <A href="#oneof">oneofs</A> of the form <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>&nbsp;<VAR>v</VAR>,
+      where 1&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>i</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>n</VAR>
+      and <VAR>v</VAR> has type <SPAN class=type-expression><VAR class=domain-name>t<SPAN class=sub>i</SPAN></VAR></SPAN>. If
+      <SPAN class=type-expression><VAR class=domain-name>t<SPAN class=sub>k</SPAN></VAR></SPAN> is <A href="#T-Void" class=domain-name>Void</A>,
+      then <SPAN class=type-expression><VAR class=field-name>name<SPAN class=sub>k</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>k</SPAN></VAR></SPAN>
+      can be abbreviated as simply <VAR class=field-name>name<SPAN class=sub>k</SPAN></VAR> in the <SPAN class=type-expression><SPAN class=semantic-keyword>oneof</SPAN></SPAN>
+      semantic type syntax. The <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>'s must be distinct; the order in which the <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>i</SPAN></VAR> alternatives are listed does not matter.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="function-type"></A><SPAN class=type-expression><VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>2</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;...&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR></SPAN></TD>
+    <TD valign=TOP rowspan=2>Some* <A href="#function">functions</A> that take <VAR>n</VAR> arguments of types <VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>
+      through <VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR> respectively and produce a result of type <VAR class=domain-name>t</VAR>.
+      If <VAR>n</VAR> is zero (the function takes no arguments), we write this type as <SPAN class=type-expression>()&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR></SPAN>.<BR>
+      * Technically speaking, this semantic type includes only functions that are continuous in the domain-theoretical sense;
+      this avoids set-theoretical paradoxes.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A name="function-type"></A><SPAN class=type-expression>()&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR></SPAN></TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<P>The type constructors earlier in the table bind tighter than ones later in the table, so, for example, <SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN>[]</SPAN>
+is equivalent to <SPAN class=type-expression>(<SPAN class=domain-name>Integer</SPAN>[])&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;(<SPAN class=domain-name>Rational</SPAN>[])</SPAN>
+(a function that takes a vector of <SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN></SPAN>s and returns a
+vector of <SPAN class=type-expression><SPAN class=domain-name>Rational</SPAN></SPAN>s) rather than <SPAN class=type-expression>((<SPAN class=domain-name>Integer</SPAN>[])&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN>)[]</SPAN>
+(a vector of functions, each of which takes a vector of <SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN></SPAN>s
+and returns a <SPAN class=type-expression><SPAN class=domain-name>Rational</SPAN></SPAN>). In the rare cases where this is needed,
+parentheses are used to override precedence.</P>
+
+<H2>Semantic Operators</H2>
+
+<P>The table below lists the semantic operators in order from the highest precedence (tightest-binding) to the lowest precedence
+(loosest-binding). Operators under the same heading of the table have the same precedence and associate left-to-right, so,
+for example, 7-3+2-1 is interpreted as ((7-3)+2)-1 instead of 7-(3+(2-1)) or (7-(3+2))-1. When needed, parentheses can be
+used to group expressions.</P>
+
+<P>The type signatures of the operators are also listed. Some operators are polymorphic; <VAR class=domain-name>t</VAR>, <VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>,
+<VAR class=domain-name>t<SPAN class=sub-num>2</SPAN></VAR>, ..., and <VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR> can
+represent any semantic types. The types of some operators are underdetermined; for example, <B>[]</B> can have type <SPAN class=type-expression><VAR class=domain-name>t</VAR>[]</SPAN>
+for any type <VAR class=domain-name>t</VAR>. In these cases the particular choice of type is inferred from the context.</P>
+
+<P>Each operator in the table below is strict: it evaluates all of its operands left-to-right, and if any operand evaluates
+to <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>, then the operator immediately returns <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+without evaluating the following operands, if any. If any operand evaluates
+to <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR> for some value <VAR>v</VAR>, then the operator immediately returns that
+<SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR> without evaluating the following operands, if any.</P>
+
+<TABLE border=2 cellspacing=2 cellpadding=0>
+<TR>
+  <TH valign=TOP nowrap align=LEFT>Operator&nbsp;&nbsp;</TH>
+  <TH valign=TOP nowrap align=LEFT>Signatures</TH>
+  <TH valign=TOP align=LEFT>Description</TH>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Nonassociative Operators</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="parentheses"></A>(<VAR>x</VAR>)</TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR></SPAN></TD>
+  <TD valign=TOP>Return <VAR>x</VAR>. Parentheses are used to override operator precedence.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap rowspan=2><A name="vector-length"></A>|<VAR>u</VAR>|</TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN></TD>
+  <TD valign=TOP><VAR>u</VAR> is a vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>.
+    Return the length <VAR>n</VAR> of that vector.</TD>
+</TR>
+<TR>
+  <TD valign=TOP><SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN></TD>
+  <TD valign=TOP>The number of elements in the set <VAR>u</VAR>; <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    if <VAR>u</VAR> has infinitely many elements</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="vector-constructor"></A><B>[</B><VAR>x<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>x<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>x<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B></TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;...&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>[]</SPAN></TD>
+  <TD valign=TOP>Return a vector with the elements <VAR>x<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>x<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>x<SPAN class=sub-num>n-1</SPAN></VAR>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="set-constructor"></A>{<VAR>x<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;<VAR>x<SPAN class=sub-num>2</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>x<SPAN class=sub>n</SPAN></VAR>}</TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;...&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}</SPAN></TD>
+  <TD valign=TOP>Return a set with the elements <VAR>x<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;<VAR>x<SPAN class=sub-num>2</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>x<SPAN class=sub>n</SPAN></VAR>.
+    Any duplicate elements are included only once in the set. When <VAR class=domain-name>t</VAR> is <A href="#T-Integer" class=domain-name>Integer</A>
+    or <A href="#T-Character" class=domain-name>Character</A>, we can also replace any of the <VAR>x<SPAN class=sub>i</SPAN></VAR>'s
+    by a range <VAR>x<SPAN class=sub>i</SPAN></VAR>&nbsp;...&nbsp;<VAR>y<SPAN class=sub>i</SPAN></VAR> that contains all
+    integers or characters greater than or equal to <VAR>x<SPAN class=sub>i</SPAN></VAR> and less than or equal to <VAR>y<SPAN class=sub>i</SPAN></VAR>.
+    <VAR>y<SPAN class=sub>i</SPAN></VAR> must not be less than <VAR>x<SPAN class=sub>i</SPAN></VAR> "minus" one.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="tuple-constructor"></A><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<VAR>x<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>&nbsp;<VAR>x<SPAN class=sub>n</SPAN></VAR><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B></TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;...&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>
+    <SPAN class=semantic-keyword>tuple</SPAN>&nbsp;{<VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>}</SPAN></TD>
+  <TD valign=TOP>Return a tuple with the fields <VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<VAR>x<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>&nbsp;<VAR>x<SPAN class=sub>n</SPAN></VAR>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="empty-oneof-constructor"></A><VAR class=field-name>name</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=semantic-keyword>oneof</SPAN>&nbsp;{<VAR class=field-name>name</VAR>;&nbsp;<VAR class=field-name>name<SPAN class=sub-num>2</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>2</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>}</SPAN></TD>
+  <TD valign=TOP>Return a oneof value with tag <VAR class=field-name>name</VAR> and value <SCRIPT type="text/javascript">document.write(U_empty)</SCRIPT>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="action-reference"></A><SPAN class=action-name>Action</SPAN>[<SPAN class=nonterminal>nonterminal<SUB>i</SUB></SPAN>]</TD>
+  <TD valign=TOP>Determined by <SPAN class=action-name>Action</SPAN>'s declaration</TD>
+  <TD valign=TOP>This notation can only be used inside an <A href="#action-definition">action definition</A> for a grammar production <SCRIPT type="text/javascript">document.write(U_rho)</SCRIPT> that has
+    nonterminal <SPAN class=nonterminal>nonterminal</SPAN> on
+    the production's right side. Return the value of action <SPAN class=action-name>Action</SPAN> invoked on the <VAR>i</VAR><SUP>th</SUP> instance of
+    nonterminal <SPAN class=nonterminal>nonterminal</SPAN> on the right side of <SCRIPT type="text/javascript">document.write(U_rho)</SCRIPT>.  The subscript <VAR>i</VAR> can be omitted
+    if there is only one instance of nonterminal <SPAN class=nonterminal>nonterminal</SPAN> in <SCRIPT type="text/javascript">document.write(U_rho)</SCRIPT>.</TD>
+</TR>
+<TR>
+<TD valign=TOP nowrap><A name="nonterminal-reference"></A><SPAN class=nonterminal>nonterminal<SUB>i</SUB></SPAN></TD>
+  <TD valign=TOP><SPAN class=domain-name>Character</SPAN></TD>
+  <TD valign=TOP>This notation can only be used inside an <A href="#action-definition">action definition</A> for a grammar production <SCRIPT type="text/javascript">document.write(U_rho)</SCRIPT> that has
+    nonterminal <SPAN class=nonterminal>nonterminal</SPAN> on
+    the production's left or right side. Furthermore, every complete expansion of grammar nonterminal <SPAN class=nonterminal>nonterminal</SPAN> must
+    expand it into a single character.<BR>
+    Return the character to which the <VAR>i</VAR><SUP>th</SUP> instance of
+    nonterminal <SPAN class=nonterminal>nonterminal</SPAN> on the right side of <SCRIPT type="text/javascript">document.write(U_rho)</SCRIPT> expands.  The subscript <VAR>i</VAR> can be omitted
+    if there is only one instance of nonterminal <SPAN class=nonterminal>nonterminal</SPAN> in <SCRIPT type="text/javascript">document.write(U_rho)</SCRIPT>. If the subscript is omitted and nonterminal <SPAN class=nonterminal>nonterminal</SPAN> appears
+    on the left side of <SCRIPT type="text/javascript">document.write(U_rho)</SCRIPT>, then this expression returns the single character to which
+    this whole production <SCRIPT type="text/javascript">document.write(U_rho)</SCRIPT> expands.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Suffix Operators</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="vector-nth"></A><VAR>u</VAR>[<VAR>i</VAR>]</TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR></SPAN></TD>
+  <TD valign=TOP><VAR>u</VAR> is a vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>.
+    Return the <VAR>i</VAR><SUP>th</SUP> element <VAR>e<SPAN class=sub>i</SPAN></VAR>, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    if <VAR>i</VAR>&lt;0 or <VAR>i</VAR><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT><VAR>n</VAR>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="vector-subseq"></A><VAR>u</VAR>[<VAR>i</VAR>&nbsp;...&nbsp;<VAR>j</VAR>]</TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>[]</SPAN></TD>
+  <TD valign=TOP><VAR>u</VAR> is a vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>.
+    Return the vector slice <B>[</B><VAR>e<SPAN class=sub>i</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>i+1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub>j</SPAN></VAR><B>]</B>
+    consisting of all elements of <VAR>u</VAR> between the <VAR>i</VAR><SUP>th</SUP> and the <VAR>j</VAR><SUP>th</SUP>, inclusive, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    if <VAR>i</VAR>&lt;0, <VAR>j</VAR><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT><VAR>n</VAR>, or <VAR>j</VAR>&lt;<VAR>i</VAR>-1.
+    The result is the empty vector <B>[]</B> if <VAR>j</VAR>=<VAR>i</VAR>-1.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="vector-subseq1"></A><VAR>u</VAR>[<VAR>i</VAR>&nbsp;...]</TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>[]</SPAN></TD>
+  <TD valign=TOP><VAR>u</VAR> is a vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>.
+    Return the vector slice <B>[</B><VAR>e<SPAN class=sub>i</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>i+1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>
+    consisting of all elements of <VAR>u</VAR> between the <VAR>i</VAR><SUP>th</SUP> and the end, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    if <VAR>i</VAR>&lt;0 or <VAR>i</VAR>&gt;<VAR>n</VAR>. The result is the empty vector <B>[]</B> if <VAR>i</VAR>=<VAR>n</VAR>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="vector-set-nth"></A><VAR>u</VAR>[<VAR>i</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>x</VAR>]&nbsp;&nbsp;</TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>[]</SPAN></TD>
+  <TD valign=TOP><VAR>u</VAR> is a vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>.
+    Return the vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>i-1</SPAN></VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<VAR>e<SPAN class=sub-num>i+1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>
+    with the <VAR>i</VAR><SUP>th</SUP> element replaced by the value <VAR>x</VAR> and the other elements unchanged, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    if <VAR>i</VAR>&lt;0 or <VAR>i</VAR><SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT><VAR>n</VAR>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap rowspan=2><A name="tuple-get"></A><VAR>w</VAR>.<VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=semantic-keyword>tuple</SPAN>&nbsp;{<VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t<SPAN class=sub>i</SPAN></VAR></SPAN></TD>
+  <TD valign=TOP><VAR>w</VAR> is a tuple <B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<VAR>v<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>&nbsp;<VAR>v<SPAN class=sub>n</SPAN></VAR><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>.
+    Return the value <VAR>v<SPAN class=sub>i</SPAN></VAR> of <VAR>w</VAR>'s field named <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP><A name="oneof-get"></A><SPAN class=type-expression><SPAN class=semantic-keyword>oneof</SPAN>&nbsp;{<VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t<SPAN class=sub>i</SPAN></VAR></SPAN></TD>
+  <TD valign=TOP><VAR>w</VAR> is a oneof <VAR class=field-name>name<SPAN class=sub>k</SPAN></VAR>&nbsp;<VAR>v</VAR> for
+    some <VAR>k</VAR> between 1 and <VAR>n</VAR> inclusive. Return the value <VAR>v</VAR> if <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>
+    is <VAR class=field-name>name<SPAN class=sub>k</SPAN></VAR>, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    if not.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="function-call"></A><VAR>f</VAR>(<VAR>x<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...,&nbsp;<VAR>x<SPAN class=sub>n</SPAN></VAR>)</TD>
+  <TD valign=TOP><SPAN class=type-expression>(<VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;...&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT><VAR class=domain-name>t</VAR>)
+    <SCRIPT type="text/javascript">document.write(U_times)</SCRIPT> <VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;...&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>
+    <SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR></SPAN></TD>
+  <TD valign=TOP>Call the function <VAR>f</VAR> with the arguments <VAR>x<SPAN class=sub-num>1</SPAN></VAR> through <VAR>x<SPAN class=sub>n</SPAN></VAR>
+    and return the result.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Prefix Operators</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-negate"></A>-<VAR>x</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN>
+    or<BR>
+    <SPAN class=type-expression><SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN></SPAN></TD>
+  <TD valign=TOP>The mathematical negation of <VAR>x</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="set-minimum"></A><SPAN class=semantic-keyword>min</SPAN>&nbsp;<VAR>A</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR></SPAN></TD>
+  <TD valign=TOP>Return the minimal element of set <VAR>A</VAR>. Specifically, if there exists a value <VAR>m</VAR> that
+    satisfies both <VAR>m</VAR> <SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT> <VAR>A</VAR> and for all
+    elements <VAR>x</VAR> <SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT> <VAR>A</VAR>, <VAR>x</VAR> <SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT>
+    <VAR>m</VAR>, then return <VAR>m</VAR>; otherwise return <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    (this could happen either if <VAR>A</VAR> is empty or if <VAR>A</VAR> has an infinite descending sequence of elements
+    with no lower bound in <VAR>A</VAR>). The type <VAR class=domain-name>t</VAR> must have = and &lt; operations that define
+    a total order.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="set-maximum"></A><SPAN class=semantic-keyword>max</SPAN>&nbsp;<VAR>A</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR></SPAN></TD>
+  <TD valign=TOP>Return the maximal element of set <VAR>A</VAR>. Specifically, if there exists a value <VAR>m</VAR> that
+    satisfies both <VAR>m</VAR> <SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT> <VAR>A</VAR> and for all
+    elements <VAR>x</VAR> <SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT> <VAR>A</VAR>, <VAR>x</VAR> <SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>
+    <VAR>m</VAR>, then return <VAR>m</VAR>; otherwise return <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    (this could happen either if <VAR>A</VAR> is empty or if <VAR>A</VAR> has an infinite ascending sequence of elements
+    with no upper bound in <VAR>A</VAR>). The type <VAR class=domain-name>t</VAR> must have = and &lt; operations that define
+    a total order.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="oneof-constructor"></A><VAR class=field-name>name</VAR>&nbsp;<VAR>x</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=semantic-keyword>oneof</SPAN>&nbsp;{<VAR class=field-name>name</VAR>:&nbsp;<VAR class=domain-name>t</VAR>;&nbsp;<VAR class=field-name>name<SPAN class=sub-num>2</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>2</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>}</SPAN></TD>
+  <TD valign=TOP>Return a oneof value with tag <VAR class=field-name>name</VAR> and value <VAR>x</VAR>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Multiplicative Operators</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-multiply"></A><VAR>x</VAR>&nbsp;*&nbsp;<VAR>y</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN>
+    or<BR>
+    <SPAN class=type-expression><SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN></SPAN></TD>
+  <TD valign=TOP>The mathematical product of <VAR>x</VAR> and <VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-divide"></A><VAR>x</VAR>&nbsp;/&nbsp;<VAR>y</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN></SPAN></TD>
+  <TD valign=TOP>The mathematical quotient of <VAR>x</VAR> and <VAR>y</VAR>; <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    if <VAR>y</VAR>=0</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="set-intersection"></A><VAR>A</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_cap)</SCRIPT>&nbsp;<VAR>B</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}</SPAN></TD>
+  <TD valign=TOP>The intersection of sets <VAR>A</VAR> and <VAR>B</VAR> (the set of all values that are present both in
+    <VAR>A</VAR> and in <VAR>B</VAR>)</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Additive Operators</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-add"></A><VAR>x</VAR>&nbsp;+&nbsp;<VAR>y</VAR></TD>
+  <TD valign=TOP rowspan=2><SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN>
+    or<BR>
+    <SPAN class=type-expression><SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN></SPAN></TD>
+  <TD valign=TOP>The mathematical sum of <VAR>x</VAR> and <VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-subtract"></A><VAR>x</VAR>&nbsp;-&nbsp;<VAR>y</VAR></TD>
+  <TD valign=TOP>The mathematical difference of <VAR>x</VAR> and <VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="vector-append"></A><VAR>u</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_oplus)</SCRIPT>&nbsp;<VAR>v</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>t</VAR>[]</SPAN></TD>
+  <TD valign=TOP><VAR>u</VAR> is a vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR><B>]</B>
+    and <VAR>v</VAR> is a vector <B>[</B><VAR>f<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>f<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>f<SPAN class=sub-num>m-1</SPAN></VAR><B>]</B>.
+    Return the concatenated vector <B>[</B><VAR>e<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>e<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>e<SPAN class=sub-num>n-1</SPAN></VAR>,&nbsp;<VAR>f<SPAN class=sub-num>0</SPAN></VAR>,&nbsp;<VAR>f<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>f<SPAN class=sub-num>m-1</SPAN></VAR><B>]</B>.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="set-union"></A><VAR>A</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_cup)</SCRIPT>&nbsp;<VAR>B</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}</SPAN></TD>
+  <TD valign=TOP>The union of sets <VAR>A</VAR> and <VAR>B</VAR> (the set of all values that are present in at least one
+    of <VAR>A</VAR> or <VAR>B</VAR>)</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="set-difference"></A><VAR>A</VAR>&nbsp;-&nbsp;<VAR>B</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}</SPAN></TD>
+  <TD valign=TOP>The difference of sets <VAR>A</VAR> and <VAR>B</VAR> (the set of all values that are present in <VAR>A</VAR>
+    but not <VAR>B</VAR>)</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Comparison Operators</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-eq"></A><VAR>x</VAR>&nbsp;=&nbsp;<VAR>y</VAR></TD>
+  <TD valign=TOP rowspan=6><SPAN class=type-expression><SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN>
+    or<BR>
+    <SPAN class=type-expression><SPAN class=domain-name>Character</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Character</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN>
+    or<BR>
+    <SPAN class=type-expression><SPAN class=domain-name>String</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>String</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN>
+    or<BR>
+    <SPAN class=type-expression>{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN></TD>
+  <TD valign=TOP rowspan=6>Comparisons return <SPAN class=global-variable>true</SPAN> if the relation holds or <SPAN class=global-variable>false</SPAN>
+    if not.<BR>
+    Rationals are compared mathematically.<BR>
+    Characters are compared according to their code points.<BR>
+    Two strings are equal when they have the same lengths and contain exactly the same sequences of characters. A string
+    <VAR>x</VAR> is less than string <VAR>y</VAR> when either <VAR>x</VAR> is the empty string and <VAR>y</VAR> is not empty,
+    the first character of <VAR>x</VAR> is less than the first character of <VAR>y</VAR>, or the first character of <VAR>x</VAR>
+    is equal to the first character of <VAR>y</VAR> and the rest of string <VAR>x</VAR> is less than the rest of string
+    <VAR>y</VAR>.<BR>
+    Two sets <VAR>x</VAR> and <VAR>y</VAR> are equal if every element of <VAR>x</VAR> is also in <VAR>y</VAR> and every
+    element of <VAR>y</VAR> is also in <VAR>x</VAR>. Only = and <SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT>
+    can be used to compare sets.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-ne"></A><VAR>x</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT>&nbsp;<VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-lt"></A><VAR>x</VAR>&nbsp;&lt;&nbsp;<VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-le"></A><VAR>x</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-gt"></A><VAR>x</VAR>&nbsp;&gt;&nbsp;<VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="rational-ge"></A><VAR>x</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT>&nbsp;<VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="set-in"></A><VAR>x</VAR> <SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>
+    <VAR>A</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><VAR class=domain-name>t</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;{<VAR class=domain-name>t</VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN></TD>
+  <TD valign=TOP>Return <SPAN class=global-variable>true</SPAN> if <VAR>x</VAR> is an element of set <VAR>A</VAR> and <SPAN class=global-variable>false</SPAN>
+    if not</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="oneof-is"></A><VAR>o</VAR>&nbsp;<SPAN class=semantic-keyword>is</SPAN>&nbsp;<VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=semantic-keyword>oneof</SPAN>&nbsp;{<VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub-num>1</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>t<SPAN class=sub>n</SPAN></VAR>}&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN></TD>
+  <TD valign=TOP><VAR>o</VAR> is a oneof <VAR class=field-name>name<SPAN class=sub>k</SPAN></VAR>&nbsp;<VAR>v</VAR> for
+    some <VAR>k</VAR> between 1 and <VAR>n</VAR> inclusive. Return <SPAN class=global-variable>true</SPAN> if <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>
+    is <VAR class=field-name>name<SPAN class=sub>k</SPAN></VAR>, or <SPAN class=global-variable>false</SPAN> otherwise.</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Logical Negation</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="logical-not"></A><SPAN class=semantic-keyword>not</SPAN>&nbsp;<VAR>a</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Boolean</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN></TD>
+  <TD valign=TOP><SPAN class=global-variable>true</SPAN> if <VAR>a</VAR> is <SPAN class=global-variable>false</SPAN>; <SPAN class=global-variable>false</SPAN>
+    if <VAR>a</VAR> is <SPAN class=global-variable>true</SPAN></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Logical Conjunction</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="logical-and"></A><VAR>a</VAR>&nbsp;<SPAN class=semantic-keyword>and</SPAN>&nbsp;<VAR>b</VAR></TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Boolean</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN></TD>
+  <TD valign=TOP><SPAN class=global-variable>true</SPAN> if both <VAR>a</VAR> and <VAR>b</VAR> are <SPAN class=global-variable>true</SPAN>;
+    <SPAN class=global-variable>false</SPAN> if at least one of <VAR>a</VAR> and <VAR>b</VAR> is <SPAN class=global-variable>false</SPAN></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap colspan=3 class=operator-heading>Logical Disjunction</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="logical-or"></A><VAR>a</VAR>&nbsp;<SPAN class=semantic-keyword>or</SPAN>&nbsp;<VAR>b</VAR></TD>
+  <TD valign=TOP rowspan=2><SPAN class=type-expression><SPAN class=domain-name>Boolean</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN></TD>
+  <TD valign=TOP><SPAN class=global-variable>true</SPAN> if at least one of <VAR>a</VAR> and <VAR>b</VAR> is <SPAN class=global-variable>true</SPAN>;
+    <SPAN class=global-variable>false</SPAN> if both <VAR>a</VAR> and <VAR>b</VAR> are <SPAN class=global-variable>false</SPAN></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="logical-xor"></A><VAR>a</VAR>&nbsp;<SPAN class=semantic-keyword>xor</SPAN>&nbsp;<VAR>b</VAR></TD>
+  <TD valign=TOP><SPAN class=global-variable>true</SPAN> if <VAR>a</VAR> is <SPAN class=global-variable>true</SPAN> and
+    <VAR>b</VAR> is <SPAN class=global-variable>false</SPAN> or <VAR>a</VAR> is <SPAN class=global-variable>false</SPAN>
+    and <VAR>b</VAR> is <SPAN class=global-variable>true</SPAN>; <SPAN class=global-variable>false</SPAN> if both <VAR>a</VAR>
+    and <VAR>b</VAR> are <SPAN class=global-variable>true</SPAN> or both <VAR>a</VAR> and <VAR>b</VAR> are <SPAN class=global-variable>false</SPAN></TD>
+</TR>
+</TABLE>
+
+<H2>Semantic Statements</H2>
+
+<P>Semantic statements are similar to the semantic operators above in that they are also used to construct expressions, take
+zero or more operands, and return a value. Unlike other semantic operators, semantic statements are usually non-strict: they
+do not always evaluate all of their operands. Semantic statements have lower precedence than any of the semantic operators
+above.</P>
+
+<P>Some semantic statements are <I>syntactic sugars</I>, which means that they are defined as macros that expand into other,
+simpler statements and operators.</P>
+
+<H3>Function</H3>
+
+<P class=indent><SPAN class=semantic-keyword>function</SPAN>(<VAR>param<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>param<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>)&nbsp;<VAR>body</VAR></P>
+
+See the description of <A href="#function">function values</A>.
+
+<H3><A name="let"></A>Let</H3>
+
+<P class=indent><SPAN class=semantic-keyword>let</SPAN>&nbsp;<VAR>var<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>&nbsp;=&nbsp;<VAR>expr<SPAN class=sub-num>1</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR>var<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>&nbsp;=&nbsp;<VAR>expr<SPAN class=sub>n</SPAN></VAR>&nbsp;<SPAN class=semantic-keyword>in</SPAN>&nbsp;<VAR>body</VAR></P>
+
+<P>Evaluate <VAR>expr<SPAN class=sub-num>1</SPAN></VAR> through <VAR>expr<SPAN class=sub>n</SPAN></VAR> in order and save
+the results. If any <VAR>expr<SPAN class=sub>i</SPAN></VAR> evaluates to <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>,
+then immediately return <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> without evaluating the following <VAR>expr</VAR>'s.
+If any <VAR>expr<SPAN class=sub>i</SPAN></VAR> evaluates to <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+for some value <VAR>v</VAR>, then immediately return that <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+without evaluating the following <VAR>expr</VAR>'s. Otherwise evaluate <VAR>body</VAR> with new local variable bindings of
+<VAR>var<SPAN class=sub-num>1</SPAN></VAR> through <VAR>var<SPAN class=sub>n</SPAN></VAR>
+bound to the saved results of evaluating <VAR>expr<SPAN class=sub-num>1</SPAN></VAR> through <VAR>expr<SPAN class=sub>n</SPAN></VAR>,
+respectively. Return the result of evaluating <VAR>body</VAR>.</P>
+
+<P><VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR> through <VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>
+are the local variables' respective <A href="#semantic-type">semantic types</A>.  The type of the entire <SPAN class=semantic-keyword>let</SPAN>
+expression is the type of its <VAR>body</VAR>.</P>
+
+<P>The <SPAN class=semantic-keyword>let</SPAN> expression above is syntactic sugar for:</P>
+
+<P class=indent>(<SPAN class=semantic-keyword>function</SPAN>(<VAR>var<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>var<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>)&nbsp;<VAR>body</VAR>)(<VAR>expr<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>expr<SPAN class=sub>n</SPAN></VAR>)</P>
+
+<H3><A name="if"></A>If</H3>
+
+<P class=indent><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>expr</VAR>&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<VAR>body<SPAN class=sub-num>true</SPAN></VAR>&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<VAR>body<SPAN class=sub-num>false</SPAN></VAR></P>
+
+<P>Evaluate <VAR>expr</VAR>. If it evaluates to <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>, then immediately
+return <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>. If <VAR>expr</VAR> evaluates to <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+for some value <VAR>v</VAR>, then immediately return that <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>.
+Otherwise <VAR>expr</VAR> must evaluate to either <SPAN class=global-variable>true</SPAN> or <SPAN class=global-variable>false</SPAN>.
+If it evaluated to <SPAN class=global-variable>true</SPAN>, then evaluate <VAR>body<SPAN class=sub-num>true</SPAN></VAR> and
+return its result. If <VAR>expr</VAR> evaluated to <SPAN class=global-variable>false</SPAN>, then evaluate <VAR>body<SPAN class=sub-num>false</SPAN></VAR>
+and return its result.</P>
+
+<P><VAR>expr</VAR> must have type <SPAN class=domain-name>Boolean</SPAN>. The entire <SPAN class=semantic-keyword>if</SPAN>
+expression has any type <VAR class=domain-name>t</VAR> such that both <VAR>body<SPAN class=sub-num>true</SPAN></VAR> has type
+<VAR class=domain-name>t</VAR> and <VAR>body<SPAN class=sub-num>false</SPAN></VAR> has type <VAR class=domain-name>t</VAR>.</P>
+
+<H3><A name="case"></A>Case</H3>
+
+<P class=indent><SPAN class=semantic-keyword>case</SPAN>&nbsp;<VAR>expr</VAR>&nbsp;<SPAN class=semantic-keyword>of</SPAN><BR>
+&nbsp;&nbsp;&nbsp;&nbsp;<VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>(<VAR>var<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>):&nbsp;<VAR>body<SPAN class=sub-num>1</SPAN></VAR>;<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;...<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>(<VAR>var<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>):&nbsp;<VAR>body<SPAN class=sub>n</SPAN></VAR>;<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>end</SPAN></P>
+
+<P>Evaluate <VAR>expr</VAR>. If it evaluates to <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>, then immediately
+return <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>. If <VAR>expr</VAR> evaluates to <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+for some value <VAR>v</VAR>, then immediately return that <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>.
+Otherwise <VAR>expr</VAR> must evaluate to a oneof <VAR class=field-name>name</VAR>&nbsp;<VAR>v</VAR> where <VAR class=field-name>name</VAR>
+matches <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR> for some <VAR>i</VAR> between 1 and <VAR>n</VAR> inclusive.
+Evaluate the corresponding <VAR>body<SPAN class=sub>i</SPAN></VAR> with a new local variable <VAR>var<SPAN class=sub>i</SPAN></VAR>
+bound to <VAR>v</VAR>. Return <VAR>body<SPAN class=sub>i</SPAN></VAR>'s result.</P>
+
+<P>If we are not interested in using the oneof's value for a particular <VAR>body<SPAN class=sub>i</SPAN></VAR>, we can shorten
+that <VAR>body<SPAN class=sub>i</SPAN></VAR>'s clause from:</P>
+
+<P class=indent>&nbsp;&nbsp;&nbsp;&nbsp;<VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>(<VAR>var<SPAN class=sub>i</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>i</SPAN></VAR>):&nbsp;<VAR>body<SPAN class=sub>i</SPAN></VAR></P>
+
+<P>to:</P>
+
+<P class=indent>&nbsp;&nbsp;&nbsp;&nbsp;<VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>:&nbsp;<VAR>body<SPAN class=sub>i</SPAN></VAR></P>
+
+<P>In this case no local variable is bound while evaluating <VAR>body<SPAN class=sub>i</SPAN></VAR>.</P>
+
+<P><VAR>expr</VAR> must have type <SPAN class=type-expression><SPAN class=semantic-keyword>oneof</SPAN>&nbsp;{<VAR class=field-name>name<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>;&nbsp;...&nbsp;;&nbsp;<VAR class=field-name>name<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>}</SPAN>.
+The entire <SPAN class=semantic-keyword>case</SPAN> expression has any type <VAR class=domain-name>t</VAR> such that all of
+its <VAR>body<SPAN class=sub>i</SPAN></VAR>'s have type <VAR class=domain-name>t</VAR>. The <VAR class=field-name>name<SPAN class=sub>i</SPAN></VAR>'s
+must be distinct. The order in which the case clauses are listed does not matter.</P>
+
+<H3><A name="throw"></A>Throw</H3>
+
+<P class=indent><SPAN class=semantic-keyword>throw</SPAN>&nbsp;<VAR>expr</VAR></P>
+
+<P>Evaluate <VAR>expr</VAR>. If it evaluates to <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>, then immediately
+return <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>. If <VAR>expr</VAR> evaluates to <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>
+for some value <VAR>v</VAR>, then immediately return that <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>.
+Otherwise <VAR>expr</VAR> must evaluate to some value <VAR>v</VAR>, in which case return <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>.</P>
+
+<P><VAR>expr</VAR> must have type <A href="#T-SemanticException" class=domain-name>SemanticException</A>. The entire
+<SPAN class=semantic-keyword>throw</SPAN> expression has any type whatsoever (because every semantic type includes <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR>).</P>
+
+<H3><A name="catch"></A>Try-Catch</H3>
+
+<P class=indent><SPAN class=semantic-keyword>try</SPAN><BR>
+&nbsp;&nbsp;&nbsp;&nbsp;<VAR>body<SPAN class=sub-num>try</SPAN></VAR><BR>
+<SPAN class=semantic-keyword>catch</SPAN>&nbsp;(<VAR>var</VAR>:&nbsp;<A href="#T-SemanticException" class=domain-name>SemanticException</A>)<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;<VAR>body<SPAN class=sub-num>handler</SPAN></VAR></P>
+
+<P>Evaluate <VAR>body<SPAN class=sub-num>try</SPAN></VAR> to obtain a value <VAR>w</VAR>. If <VAR>w</VAR> does not have the
+form <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR> for some value <VAR>v</VAR>, then return
+<VAR>w</VAR>. Otherwise <VAR>w</VAR> is <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><VAR>v</VAR> for some
+value <VAR>v</VAR>. In this case evaluate <VAR>body<SPAN class=sub-num>handler</SPAN></VAR> with a new local variable <VAR>var</VAR>
+bound to <VAR>v</VAR> and return <VAR>body<SPAN class=sub-num>handler</SPAN></VAR>'s result.</P>
+
+<P>The type of <VAR>var</VAR> is always <A href="#T-SemanticException" class=domain-name>SemanticException</A>.
+The entire <SPAN class=semantic-keyword>try</SPAN>-<SPAN class=semantic-keyword>catch</SPAN> expression has any type <VAR class=domain-name>t</VAR>
+such that both <VAR>body<SPAN class=sub-num>try</SPAN></VAR> has type <VAR class=domain-name>t</VAR> and <VAR>body<SPAN class=sub-num>handler</SPAN></VAR>
+has type <VAR class=domain-name>t</VAR>.</P>
+
+<H2>Semantic Functions</H2>
+
+<P>The sections below list the predefined semantic functions, their type signatures, and short descriptions. All functions are
+strict and evaluate their arguments left-to-right.</P>
+
+<H3>Integer Manipulation</H3>
+
+<P>These functions perform bitwise operations on integers. The integers are treated as though they were written in binary
+notation, with each 1 bit representing <SPAN class=global-variable>true</SPAN> and 0 bit representing <SPAN class=global-variable>false</SPAN>.
+The integers must be nonnegative.</P>
+
+<TABLE border=2 cellspacing=2 cellpadding=0>
+<TR>
+  <TH valign=TOP nowrap align=LEFT>Function&nbsp;&nbsp;</TH>
+  <TH valign=TOP nowrap align=LEFT>Signature</TH>
+  <TH valign=TOP align=LEFT>Description</TH>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-bitwiseAnd"></A><SPAN class=global-variable>bitwiseAnd</SPAN>(<VAR>x</VAR>, <VAR>y</VAR>)</TD>
+  <TD valign=TOP rowspan=3><SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN></TD>
+  <TD valign=TOP>The bitwise AND of <VAR>x</VAR> and <VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-bitwiseOr"></A><SPAN class=global-variable>bitwiseOr</SPAN>(<VAR>x</VAR>, <VAR>y</VAR>)</TD>
+  <TD valign=TOP>The bitwise OR of <VAR>x</VAR> and <VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-bitwiseXor"></A><SPAN class=global-variable>bitwiseXor</SPAN>(<VAR>x</VAR>, <VAR>y</VAR>)</TD>
+  <TD valign=TOP>The bitwise XOR of <VAR>x</VAR> and <VAR>y</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-bitwiseShift"></A><SPAN class=global-variable>bitwiseShift</SPAN>(<VAR>x</VAR>, <VAR>count</VAR>)</TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN></TD>
+  <TD valign=TOP>Shift <VAR>x</VAR> to the left by <VAR>count</VAR> bits. If <VAR>count</VAR> is negative, shift <VAR>x</VAR>
+    to the right by -<VAR>count</VAR> bits. Bits shifted out are lost; bit shifted in are zero. This function is equivalent
+    to multiplying <VAR>x</VAR> by 2<SUP><VAR>count</VAR></SUP> and truncating the result (toward negative infinity) to an
+    integer. <VAR>x</VAR> can be negative.</TD>
+</TR>
+</TABLE>
+
+<H3>Double Manipulation</H3>
+
+<TABLE border=2 cellspacing=2 cellpadding=0>
+<TR>
+  <TH valign=TOP nowrap align=LEFT>Function&nbsp;&nbsp;</TH>
+  <TH valign=TOP nowrap align=LEFT>Signature</TH>
+  <TH valign=TOP align=LEFT>Description</TH>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-rationalToDouble"></A><SPAN class=global-variable>rationalToDouble</SPAN>(<VAR>r</VAR>)</TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Rational</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Double</SPAN></SPAN></TD>
+  <TD valign=TOP>The rational number <VAR>r</VAR> rounded to the nearest IEEE double-precision floating-point value as follows:<BR>
+    Consider the set of all <A href="#double">doubles</A>, with -0.0, +<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>,
+    -<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>, and <SPAN class=global-variable>NaN</SPAN> removed and
+    with two additional values added to it that are not representable as doubles, namely 2<SUP>1024</SUP> and -2<SUP>1024</SUP>.
+    Choose the member of this set that is closest in value to <VAR>r</VAR>. If two values of the set are equally close, choose
+    the one with an even <A href="#significand">significand</A>; for this purpose, the two extra values 2<SUP>1024</SUP> and
+    -2<SUP>1024</SUP> are considered to have even significands. Finally, if 2<SUP>1024</SUP> was chosen, replace it with +<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>;
+    if -2<SUP>1024</SUP> was chosen, replace it with -<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT>; if
+    +0.0 was chosen, replace it with -0.0 if and only if <VAR>r</VAR> &lt; 0; any other chosen value is used unchanged. The
+    result is the value of <SPAN class=global-variable>rationalToDouble</SPAN>(<VAR>r</VAR>).<BR>
+    This procedure corresponds exactly to the behavior of the IEEE 754 "round to nearest" mode.</TD>
+</TR>
+</TABLE>
+
+<H3>Character Conversions</H3>
+
+<TABLE border=2 cellspacing=2 cellpadding=0>
+<TR>
+  <TH valign=TOP nowrap align=LEFT>Function&nbsp;&nbsp;</TH>
+  <TH valign=TOP nowrap align=LEFT>Signature</TH>
+  <TH valign=TOP align=LEFT>Description</TH>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-characterToCode"></A><SPAN class=global-variable>characterToCode</SPAN>(<VAR>c</VAR>)</TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Character</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN></TD>
+  <TD valign=TOP>The number of the Unicode code point <VAR>c</VAR></TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-codeToCharacter"></A><SPAN class=global-variable>codeToCharacter</SPAN>(<VAR>i</VAR>)</TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Character</SPAN></SPAN></TD>
+  <TD valign=TOP>The Unicode code point number <VAR>i</VAR>, or <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>
+    if <VAR>i</VAR>&lt;0 or <VAR>i</VAR>&gt;65535</TD>
+</TR>
+</TABLE>
+
+<H3>Character Utilities</H3>
+
+<P>The function <SPAN class=global-variable>digitValue</SPAN> is defined as follows:</P>
+
+<P class=semantics><A name="V-digitValue"></A><SPAN class=global-variable>digitValue</SPAN>(<VAR>c</VAR>:&nbsp;<A href="#T-Character" class=domain-name>Character</A>)&nbsp;:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A><BR>
+&nbsp;&nbsp;=&nbsp;<SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>c</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;{&#8216;<CODE>0</CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE>9</CODE>&#8217;}<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<A href="#V-characterToCode" class=global-variable>characterToCode</A>(<VAR>c</VAR>)&nbsp;-&nbsp;<A href="#V-characterToCode" class=global-variable>characterToCode</A>(&#8216;<CODE>0</CODE>&#8217;)<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>c</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;{&#8216;<CODE>A</CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE>Z</CODE>&#8217;}<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<A href="#V-characterToCode" class=global-variable>characterToCode</A>(<VAR>c</VAR>)&nbsp;-&nbsp;<A href="#V-characterToCode" class=global-variable>characterToCode</A>(&#8216;<CODE>A</CODE>&#8217;)&nbsp;+&nbsp;10<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>c</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;{&#8216;<CODE>a</CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE>z</CODE>&#8217;}<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<A href="#V-characterToCode" class=global-variable>characterToCode</A>(<VAR>c</VAR>)&nbsp;-&nbsp;<A href="#V-characterToCode" class=global-variable>characterToCode</A>(&#8216;<CODE>a</CODE>&#8217;)&nbsp;+&nbsp;10<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT></P>
+
+<H3>Character Class Queries</H3>
+
+<TABLE border=2 cellspacing=2 cellpadding=0>
+<TR>
+  <TH valign=TOP nowrap align=LEFT>Function&nbsp;&nbsp;</TH>
+  <TH valign=TOP nowrap align=LEFT>Signature</TH>
+  <TH valign=TOP align=LEFT>Description</TH>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-isOrdinaryInitialIdentifierCharacter"></A><SPAN class=global-variable>isOrdinaryInitialIdentifierCharacter</SPAN>(<VAR>c</VAR>)</TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Character</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN></TD>
+  <TD valign=TOP>Return <SPAN class=global-variable>true</SPAN> if the nonterminal
+    <A href="lexer-semantics.html#N-OrdinaryInitialIdentifierCharacter" class=nonterminal>OrdinaryInitialIdentifierCharacter</A>
+    can expand into <VAR>c</VAR> and <SPAN class=global-variable>false</SPAN>
+    otherwise</TD>
+</TR>
+<TR>
+  <TD valign=TOP nowrap><A name="V-isOrdinaryContinuingIdentifierCharacter"></A><SPAN class=global-variable>isOrdinaryContinuingIdentifierCharacter</SPAN>(<VAR>c</VAR>)</TD>
+  <TD valign=TOP><SPAN class=type-expression><SPAN class=domain-name>Character</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Boolean</SPAN></SPAN></TD>
+  <TD valign=TOP>Return <SPAN class=global-variable>true</SPAN> if the nonterminal
+    <A href="lexer-semantics.html#N-OrdinaryContinuingIdentifierCharacter" class=nonterminal>OrdinaryContinuingIdentifierCharacter</A>
+    can expand into <VAR>c</VAR> and <SPAN class=global-variable>false</SPAN>
+    otherwise</TD>
+</TR>
+</TABLE>
+
+<H2>Semantic Definitions</H2>
+
+<H3>Value Definitions</H3>
+
+<P>We can define a global semantic constant named <VAR class=global-variable>var</VAR> as follows:</P>
+
+<P class=indent><VAR class=global-variable>var</VAR>&nbsp;:&nbsp;<VAR class=domain-name>type</VAR>&nbsp;=&nbsp;<VAR>expr</VAR></P>
+
+<P><VAR>expr</VAR> should evaluate to a value of type <VAR class=domain-name>type</VAR>. <VAR>expr</VAR> should not have side effects,
+and it should not evaluate to <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT>.</P>
+
+<P>In the HTML versions of the semantics, each reference to the global semantic constant <VAR class=global-variable>var</VAR> is linked
+to <VAR class=global-variable>var</VAR>'s definition.</P>
+
+<H3><A name="function-definition"></A>Function Definitions</H3>
+
+<P>We can define a global semantic function named <VAR class=global-variable>f</VAR> as follows:</P>
+
+<P class=indent><VAR class=global-variable>f</VAR>(<VAR>param<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>param<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>)&nbsp;:&nbsp;<VAR class=domain-name>type</VAR>&nbsp;=&nbsp;<VAR>body</VAR></P>
+
+<P><VAR>param<SPAN class=sub-num>1</SPAN></VAR> through <VAR>param<SPAN class=sub>n</SPAN></VAR>
+are the function's parameters, <VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR> through <VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>
+are the parameters' respective <A href="#semantic-type">semantic types</A>, <VAR class=domain-name>type</VAR> is the function
+result's <A href="#semantic-type">semantic type</A>, and <VAR>body</VAR> is an expression that computes the function's result.</P>
+
+<P>The above definition is syntactic sugar for the global constant definition:</P>
+
+<P class=indent><VAR class=global-variable>f</VAR>&nbsp;:&nbsp;<SPAN class=type-expression><VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>2</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;...&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<VAR class=domain-name>type</VAR></SPAN>&nbsp;=&nbsp;<SPAN class=semantic-keyword>function</SPAN>(<VAR>param<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>param<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>)&nbsp;<VAR>body</VAR></P>
+
+<P>In the HTML versions of the semantics, each reference to the global semantic function <VAR class=global-variable>f</VAR>
+is linked to <VAR class=global-variable>f</VAR>'s definition.</P>
+
+<P>For example, the function definition</P>
+
+<P class=indent><SPAN class=global-variable>square</SPAN>(<VAR>x</VAR>:&nbsp;<SPAN class=domain-name>Integer</SPAN>)&nbsp;:&nbsp;<SPAN class=domain-name>Integer</SPAN>&nbsp;=&nbsp;<VAR>x</VAR>*<VAR>x</VAR></P>
+
+<P>defines a function named <SPAN class=global-variable>square</SPAN> that takes an <SPAN class=domain-name>Integer</SPAN> parameter
+<VAR>x</VAR> and returns an <SPAN class=domain-name>Integer</SPAN> that is the square of <VAR>x</VAR>.
+This is equivalent to the following global definition:</P>
+
+<P class=indent><SPAN class=global-variable>square</SPAN>&nbsp;:&nbsp;<SPAN class=type-expression><SPAN class=domain-name>Integer</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<SPAN class=domain-name>Integer</SPAN></SPAN>&nbsp;=&nbsp;<SPAN class=semantic-keyword>function</SPAN>(<VAR>x</VAR>:&nbsp;<SPAN class=domain-name>Integer</SPAN>)&nbsp;<VAR>x</VAR>*<VAR>x</VAR></P>
+
+<H3>Type Definitions</H3>
+
+<P>We can give a new name to a semantic type <VAR class=domain-name>t</VAR> by using the <SPAN class=semantic-keyword>type</SPAN>
+definition, which has the form:</P>
+
+<P class=indent><SPAN class=semantic-keyword>type</SPAN>&nbsp;<VAR class=domain-name>name</VAR>&nbsp;=&nbsp;<VAR class=domain-name>t</VAR></P>
+
+<P>For example, the following notation defines <SPAN class=domain-name>RegExp</SPAN> as a shorthand for <SPAN class=type-expression><SPAN class=semantic-keyword>tuple</SPAN>&nbsp;{<SPAN class=field-name>reBody</SPAN>:&nbsp;<SPAN class=domain-name>String</SPAN>;&nbsp;<SPAN class=field-name>reFlags</SPAN>:&nbsp;<SPAN class=domain-name>String</SPAN>}</SPAN>:</P>
+
+<P class=indent><SPAN class=semantic-keyword>type</SPAN>&nbsp;<SPAN class=domain-name>RegExp</SPAN>&nbsp;=&nbsp;<SPAN class=type-expression><SPAN class=semantic-keyword>tuple</SPAN>&nbsp;{<SPAN class=field-name>reBody</SPAN>:&nbsp;<SPAN class=domain-name>String</SPAN>;&nbsp;<SPAN class=field-name>reFlags</SPAN>:&nbsp;<SPAN class=domain-name>String</SPAN>}</SPAN></P>
+
+<P>In the HTML versions of the semantics, each reference to the semantic type name <VAR class=domain-name>name</VAR> is linked
+to <VAR class=domain-name>name</VAR>'s definition.</P>
+
+<H2>Semantic Actions</H2>
+
+<P>Semantic actions tie together the grammar and the semantics. A semantic action ascribes semantic meaning to a grammar production.</P>
+
+<P>To illustrate the use of semantic actions, we shall look at an example, followed by a detailed description of the notation
+for specifying semantic actions.</P>
+
+<H3><A name="action-example"></A>Example</H3>
+
+<P>Consider the following grammar, with the start nonterminal <A href="#N-Numeral" class=nonterminal>Numeral</A>:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Digit"></A><SPAN class=nonterminal>Digit</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>0</CODE>&nbsp;|&nbsp;<CODE>1</CODE>&nbsp;|&nbsp;<CODE>2</CODE>&nbsp;|&nbsp;<CODE>3</CODE>&nbsp;|&nbsp;<CODE>4</CODE>&nbsp;|&nbsp;<CODE>5</CODE>&nbsp;|&nbsp;<CODE>6</CODE>&nbsp;|&nbsp;<CODE>7</CODE>&nbsp;|&nbsp;<CODE>8</CODE>&nbsp;|&nbsp;<CODE>9</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Digits"></A><SPAN class=nonterminal>Digits</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Digit" class=nonterminal>Digit</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Digits" class=nonterminal>Digits</A>&nbsp;<A href="#N-Digit" class=nonterminal>Digit</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Numeral"></A><SPAN class=nonterminal>Numeral</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Digits" class=nonterminal>Digits</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Digits" class=nonterminal>Digits</A>&nbsp;<CODE>#</CODE>&nbsp;<A href="#N-Digits" class=nonterminal>Digits</A></DIV>
+</DIV>
+
+<P>This grammar defines the syntax of an acceptable input: &#8220;<CODE>37</CODE>&#8221;,
+&#8220;<CODE>33#4</CODE>&#8221;
+and &#8220;<CODE>30#2</CODE>&#8221;
+are acceptable syntactically, while &#8220;<CODE>1a</CODE>&#8221;
+is not. However, the grammar does not indicate what these various inputs mean. That is the job of the semantics, which are
+defined in terms of actions on the parse tree of grammar rule expansions. Consider the following sample set of actions defined
+on this grammar, with a starting <A href="#N-Numeral" class=nonterminal>Numeral</A> action called (in this example)
+<SPAN class=action-name>Value</SPAN>:</P>
+
+<P class=semantics><A name="Example-T-SemanticException"></A><SPAN class=semantic-keyword>type</SPAN>&nbsp;<SPAN class=domain-name>SemanticException</SPAN>&nbsp;=&nbsp;<SPAN class=type-expression><SPAN class=semantic-keyword>oneof</SPAN>&nbsp;{<SPAN class=field-name>syntaxError</SPAN>}</SPAN></P>
+
+<P class=semantics><SPAN class=semantic-keyword>action</SPAN>&nbsp;<SPAN class=action-name>Value</SPAN>[<A href="#N-Digit" class=nonterminal>Digit</A>]&nbsp;:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A>&nbsp;=&nbsp;<A href="#V-digitValue" class=global-variable>digitValue</A>(<A href="#N-Digit" class=nonterminal>Digit</A>)</P>
+
+<P class=semantics><SPAN class=semantic-keyword>action</SPAN>&nbsp;<SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-Digits" class=nonterminal>Digits</A>]&nbsp;:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A></P>
+
+<P class=semantics-next><SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-Digits" class=nonterminal>Digits</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Digit" class=nonterminal>Digit</A>]&nbsp;=&nbsp;<SPAN class=action-name>Value</SPAN>[<A href="#N-Digit" class=nonterminal>Digit</A>]</P>
+
+<P class=semantics-next><SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-Digits" class=nonterminal>Digits</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<SPAN class=nonterminal><A href="#N-Digits">Digits</A><SUB>1</SUB></SPAN>&nbsp;<A href="#N-Digit" class=nonterminal>Digit</A>]&nbsp;=&nbsp;10*<SPAN class=action-name>DecimalValue</SPAN>[<SPAN class=nonterminal><A href="#N-Digits">Digits</A><SUB>1</SUB></SPAN>]&nbsp;+&nbsp;<SPAN class=action-name>Value</SPAN>[<A href="#N-Digit" class=nonterminal>Digit</A>]</P>
+
+<P class=semantics><SPAN class=semantic-keyword>action</SPAN>&nbsp;<SPAN class=action-name>BaseValue</SPAN>[<A href="#N-Digits" class=nonterminal>Digits</A>]&nbsp;:&nbsp;<SPAN class=type-expression><A href="#T-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<A href="#T-Integer" class=domain-name>Integer</A></SPAN></P>
+
+<P class=semantics-next><SPAN class=action-name>BaseValue</SPAN>[<A href="#N-Digits" class=nonterminal>Digits</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Digit" class=nonterminal>Digit</A>](<VAR>base</VAR>:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A>)<BR>
+&nbsp;&nbsp;=&nbsp;<SPAN class=semantic-keyword>let</SPAN>&nbsp;<VAR>d</VAR>:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A>&nbsp;=&nbsp;<SPAN class=action-name>Value</SPAN>[<A href="#N-Digit" class=nonterminal>Digit</A>]<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>in</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>d</VAR>&nbsp;&lt;&nbsp;<VAR>base</VAR><BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<VAR>d</VAR><BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>throw</SPAN>&nbsp;<A href="#Example-T-SemanticException" class=field-name>syntaxError</A></P>
+
+<P class=semantics-next><SPAN class=action-name>BaseValue</SPAN>[<A href="#N-Digits" class=nonterminal>Digits</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<SPAN class=nonterminal><A href="#N-Digits">Digits</A><SUB>1</SUB></SPAN>&nbsp;<A href="#N-Digit" class=nonterminal>Digit</A>](<VAR>base</VAR>:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A>)<BR>
+&nbsp;&nbsp;=&nbsp;<SPAN class=semantic-keyword>let</SPAN>&nbsp;<VAR>d</VAR>:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A>&nbsp;=&nbsp;<SPAN class=action-name>Value</SPAN>[<A href="#N-Digit" class=nonterminal>Digit</A>]<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>in</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>d</VAR>&nbsp;&lt;&nbsp;<VAR>base</VAR><BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<VAR>base</VAR>*<SPAN class=action-name>BaseValue</SPAN>[<SPAN class=nonterminal><A href="#N-Digits">Digits</A><SUB>1</SUB></SPAN>](<VAR>base</VAR>)&nbsp;+&nbsp;<VAR>d</VAR><BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>throw</SPAN>&nbsp;<A href="#Example-T-SemanticException" class=field-name>syntaxError</A></P>
+
+<P class=semantics><SPAN class=semantic-keyword>action</SPAN>&nbsp;<SPAN class=action-name>Value</SPAN>[<A href="#N-Numeral" class=nonterminal>Numeral</A>]&nbsp;:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A></P>
+
+<P class=semantics-next><SPAN class=action-name>Value</SPAN>[<A href="#N-Numeral" class=nonterminal>Numeral</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Digits" class=nonterminal>Digits</A>]&nbsp;=&nbsp;<SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-Digits" class=nonterminal>Digits</A>]</P>
+
+<P class=semantics-next><SPAN class=action-name>Value</SPAN>[<A href="#N-Numeral" class=nonterminal>Numeral</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<SPAN class=nonterminal><A href="#N-Digits">Digits</A><SUB>1</SUB></SPAN>&nbsp;<CODE>#</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-Digits">Digits</A><SUB>2</SUB></SPAN>]<BR>
+&nbsp;&nbsp;=&nbsp;<SPAN class=semantic-keyword>let</SPAN>&nbsp;<VAR>base</VAR>:&nbsp;<A href="#T-Integer" class=domain-name>Integer</A>&nbsp;=&nbsp;<SPAN class=action-name>DecimalValue</SPAN>[<SPAN class=nonterminal><A href="#N-Digits">Digits</A><SUB>2</SUB></SPAN>]<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>in</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>base</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT>&nbsp;2&nbsp;<SPAN class=semantic-keyword>and</SPAN>&nbsp;<VAR>base</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;10<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=action-name>BaseValue</SPAN>[<SPAN class=nonterminal><A href="#N-Digits">Digits</A><SUB>1</SUB></SPAN>](<VAR>base</VAR>)<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>throw</SPAN>&nbsp;<A href="#Example-T-SemanticException" class=field-name>syntaxError</A></P>
+
+
+<P>Action names are written in <SPAN class=action-name>violet cursive type</SPAN>. The last <SPAN class=semantic-keyword>action</SPAN>
+definition states in the example above that the action <SPAN class=action-name>Value</SPAN> can be applied to any expansion
+of the nonterminal <A href="#N-Numeral" class=nonterminal>Numeral</A>, and the result is an <A href="#T-Integer" class=domain-name>Integer</A>.
+This action maps all acceptable inputs to integers or <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><SPAN class=field-name>syntaxError</SPAN>.
+If the result is <SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><SPAN class=field-name>syntaxError</SPAN>, then the input satisfies the grammar but
+contains an error detected by the semantics; this is the case for the input &#8220;<CODE>30#2</CODE>&#8221;.
+A result of <SCRIPT type="text/javascript">document.write(U_perp)</SCRIPT> would indicate a nonterminating computation; this
+cannot happen in this example.</P>
+
+<P>There are two definitions of the <SPAN class=action-name>Value</SPAN> action on <A href="#N-Numeral" class=nonterminal>Numeral</A>,
+one for each grammar production that expands <A href="#N-Numeral" class=nonterminal>Numeral</A>. Each definition
+of an action is allowed to call actions on the terminals and nonterminals on the right side of the expansion. For example,
+<SPAN class=action-name>Value</SPAN> applied to the first <A href="#N-Numeral" class=nonterminal>Numeral</A> production
+(the one that expands <A href="#N-Numeral" class=nonterminal>Numeral</A> into <A href="#N-Digits" class=nonterminal>Digits</A>)
+simply applies the <SPAN class=action-name>DecimalValue</SPAN> action to the expansion of the nonterminal <A href="#N-Digits" class=nonterminal>Digits</A>
+and returns the result. On the other hand, <SPAN class=action-name>Value</SPAN> applied to the second <A href="#N-Numeral" class=nonterminal>Numeral</A>
+production (the one that expands <A href="#N-Numeral" class=nonterminal>Numeral</A> into <A href="#N-Digits" class=nonterminal>Digits</A>&nbsp;<CODE>#</CODE>&nbsp;<A href="#N-Digits" class=nonterminal>Digits</A>)
+performs a computation using the results of the <SPAN class=action-name>DecimalValue</SPAN> and <SPAN class=action-name>BaseValue</SPAN>
+applied to the two expansions of the <A href="#N-Digits" class=nonterminal>Digits</A> nonterminals. In this case
+there are two identical nonterminals <A href="#N-Digits" class=nonterminal>Digits</A> on the right side of the
+expansion, so we use subscripts to indicate on which one we're calling the actions <SPAN class=action-name>DecimalValue</SPAN>
+and <SPAN class=action-name>BaseValue</SPAN>.</P>
+
+<P>The <SPAN class=action-name>BaseValue</SPAN> action illustrates a syntactic sugar for defining an action that is a function;
+this syntactic sugar is analogous to that for defining <A href="#function-definition">global functions</A>.</P>
+
+<P>The <SPAN class=action-name>Value</SPAN> action on <A href="#N-Digit" class=nonterminal>Digit</A> illustrates
+the direct use of a nonterminal in a semantic expression: <A href="#V-digitValue" class=global-variable>digitValue</A>(<A href="#N-Digit" class=nonterminal>Digit</A>).
+Here the <A href="#N-Digit" class=nonterminal>Digit</A> semantic expression evaluates to the character into which
+the <A href="#N-Digit" class=nonterminal>Digit</A> grammar rule expands.</P>
+
+<P>We can fully evaluate the semantics on our sample inputs to get the following results:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Input&nbsp;&nbsp;&nbsp;</TH>
+    <TH valign=TOP align=LEFT>Semantic Result</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>37</CODE></TD>
+    <TD valign=TOP>37</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>33#4</CODE></TD>
+    <TD valign=TOP>15</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>30#2</CODE></TD>
+    <TD valign=TOP><SCRIPT type="text/javascript">document.write(U_Omega)</SCRIPT><SPAN class=field-name>syntaxError</SPAN></TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+
+<H3><A name="action-declaration"></A>Action Declarations</H3>
+
+<P class=indent><SPAN class=semantic-keyword>action</SPAN>&nbsp;<SPAN class=action-name>Action</SPAN>[<SPAN class=nonterminal>nonterminal</SPAN>]&nbsp;:&nbsp;<VAR class=domain-name>type</VAR></P>
+
+<P>This declaration states that action <SPAN class=action-name>Action</SPAN> is defined on nonterminal <SPAN class=nonterminal>nonterminal</SPAN>.
+Any reference to action <SPAN class=action-name>Action</SPAN>[<SPAN class=nonterminal>nonterminal</SPAN>] in a semantic expression
+returns a value of type <VAR class=domain-name>type</VAR>. The values of action <SPAN class=action-name>Action</SPAN> must be
+defined using <A href="#action-definition">action definitions</A> for each grammar production that has <SPAN class=nonterminal>nonterminal</SPAN>
+on the left side.</P>
+
+<H3><A name="action-definition"></A>Action Definitions</H3>
+
+<P class=indent><SPAN class=action-name>Action</SPAN>[<SPAN class=nonterminal>nonterminal</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<VAR>expansion</VAR>]&nbsp;=&nbsp;<VAR>expr</VAR></P>
+
+<P>This notation defines the value of action <SPAN class=action-name>Action</SPAN> on nonterminal <SPAN class=nonterminal>nonterminal</SPAN>
+in the case where nonterminal <SPAN class=nonterminal>nonterminal</SPAN> expands to the given <VAR>expansion</VAR>. <VAR>expansion</VAR>
+can contain zero or more terminals and nonterminals (as well as other notations allowed on the right side of a grammar production).
+Furthermore, the terminals and nonterminals of <VAR>expansion</VAR> can be subscripted to allow them to be unambiguously referenced
+by <A href="#action-reference">action references</A> or <A href="#nonterminal-reference">nonterminal references</A> inside
+<VAR>expr</VAR>.</P>
+
+<P>The type of action <SPAN class=action-name>Action</SPAN> on nonterminal <SPAN class=nonterminal>nonterminal</SPAN> must be
+declared using an <A href="#action-declaration">action declaration</A>. <VAR>expr</VAR> must have the type given by that action
+declaration.</P>
+
+<P><SPAN class=nonterminal>nonterminal</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<VAR>expansion</VAR>
+must be one of the productions in the grammar.</P>
+
+<H3>Action Function Definitions</H3>
+
+<P class=indent><SPAN class=action-name>Action</SPAN>[<SPAN class=nonterminal>nonterminal</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<VAR>expansion</VAR>](<VAR>param<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>param<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>)&nbsp;=&nbsp;<VAR>body</VAR></P>
+
+<P>This notation is a syntactic sugar for defining an action whose value is a function. This notation is equivalent to:</P>
+
+<P class=indent><SPAN class=action-name>Action</SPAN>[<SPAN class=nonterminal>nonterminal</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<VAR>expansion</VAR>]&nbsp;=<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;<SPAN class=semantic-keyword>function</SPAN>(<VAR>param<SPAN class=sub-num>1</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub-num>1</SPAN></VAR>,&nbsp;...&nbsp;,&nbsp;<VAR>param<SPAN class=sub>n</SPAN></VAR>:&nbsp;<VAR class=domain-name>type<SPAN class=sub>n</SPAN></VAR>)&nbsp;<VAR>body</VAR>
+</P>
+
+<H3>Combined Action Declarations and Definitions</H3>
+
+<P class=indent><SPAN class=semantic-keyword>action</SPAN>&nbsp;<SPAN class=action-name>Action</SPAN>[<SPAN class=nonterminal>nonterminal</SPAN>]&nbsp;:&nbsp;<VAR class=domain-name>type</VAR>&nbsp;=&nbsp;<VAR>expr</VAR></P>
+
+<P>This declaration is sometimes used when all expansions of nonterminal <SPAN class=nonterminal>nonterminal</SPAN> share the
+same action semantics. This declaration states both the type <VAR class=domain-name>type</VAR> of action <SPAN class=action-name>Action</SPAN>
+on nonterminal <SPAN class=nonterminal>nonterminal</SPAN> as well as that action's value <VAR>expr</VAR>. Note that the expansions
+are not given between the square brackets, and <VAR>expr</VAR> can refer only to the nonterminal <SPAN class=nonterminal>nonterminal</SPAN>
+on the left side of grammar productions. No additional action definitions are needed for nonterminal <SPAN class=nonterminal>nonterminal</SPAN>.</P>
+
+<P>See the <SPAN class=action-name>Value</SPAN> action on <A href="#N-Digit" class=nonterminal>Digit</A> in the
+<A href="#action-example">example</A> above for an example of this declaration.</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Thursday, November 11, 1999</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="index.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="stages.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

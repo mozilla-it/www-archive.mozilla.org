@@ -1,0 +1,1139 @@
+<HTML>
+<HEAD>
+   <META NAME="Author" CONTENT="Scott Furman">
+   <TITLE>Method Overloading in LiveConnect 3.0</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000"
+      LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1 ALIGN=CENTER>Java Method Overloading<BR>
+and LiveConnect 3</H1>
+
+<CENTER>
+Author: <A HREF="mailto:Scott Furman <fur@geocast.com>">Scott Furman &lt;fur@geocast.com></A>
+
+<P><FONT SIZE=-1>Last modified: <SCRIPT>document.write(document.lastModified)</SCRIPT></FONT>
+</CENTER>
+
+<H1>1 Motivation</H1>
+
+The technique that earlier versions of LiveConnect use to invoke overloaded
+Java methods from JavaScript is dirt-simple: The first applicable method
+that is enumerated by the Java VM is chosen.&nbsp; (Here, "applicable"
+means that the method name and the number of arguments match and that each
+of the JavaScript arguments can be converted to the corresponding Java
+type listed in the method's signature.)
+
+<P>The Netscape JVM always enumerated methods using the order in which
+they appeared in their classfile, so rearrangement of methods in the Java
+source files was often required to invoke the desired method.&nbsp; This
+behavior was sometimes painful to developers, both because source was not
+always available and because the static nature of this method resolution
+algorithm sometimes made it impossible to choose a different method resolution
+at each invocation site.&nbsp; Most importantly, the willingness of LiveConnect
+to convert method arguments from JavaScript types to wildly different Java
+types sometimes lead to unexpected method resolutions.&nbsp; A more serious
+problem has cropped up recently with Netscape's migration to 3rd-party
+JVM's: the enumeration order of methods is not defined by the Java specification,
+so overloaded method resolution can occur differently depending on which
+vendor's JVM is being used in conjunction with LiveConnect.&nbsp; It is
+these latter two difficulties which are addressed by this proposal for
+LiveConnect version 3 (LC3).
+<H1>2 Introduction</H1>
+
+Ideally, invocation of Java methods from JavaScript would make use of Java's
+own rules for overloaded method resolution, but using JS's runtime types
+rather than Java's compile-time types.&nbsp; However, that's not feasible
+for several reasons:
+
+<P>First, Java method signatures distinguish between a variety of numeric
+types, i.e. byte, char, short, int, long, float, double.&nbsp; JavaScript
+collapses all numeric types, whether integral or floating point, into a
+single number type.&nbsp; Given this Java class declaration:
+<BLOCKQUOTE><TT>class Ambiguous {</TT>
+<BR><TT>&nbsp;&nbsp; static public int numericArg(int x)&nbsp;&nbsp; {
+return 1; }</TT>
+<BR><TT>&nbsp;&nbsp; static public int numericArg(byte x)&nbsp; { return
+2; }</TT>
+<BR><TT>&nbsp;&nbsp; static public int numericArg(float x) { return 3;
+}</TT>
+<BR><TT>}</TT></BLOCKQUOTE>
+Which method should be invoked when integralArg is invoked from JavaScript
+?
+<BLOCKQUOTE><TT>Packages.Ambiguous.numericArg(3);</TT></BLOCKQUOTE>
+Finally, there is precedent set by previous versions of LiveConnect which
+are all too willing to convert JavaScript arguments to unrelated Java types,
+e.g. the conversion of a JavaScript boolean value to a string or an instance
+of java.lang.Boolean.
+<H1>3 Resolution of Java Methods from JavaScript</H1>
+
+Unfortunately, there is no way to both completely preserve backward compatibility
+and cure LiveConnect of its method invocation ills.&nbsp; The new approach
+is to apply heuristics to guess the intended method given the runtime JavaScript
+argument types and the type signatures of the candidate Java methods.
+Informally, the method with Java parameter types that most closely match
+the JavaScript types is chosen.&nbsp; For example, when converting from
+a JavaScript number type, a method that specifies a double argument is
+preferred to one that requires a <I>java.lang.String</I>.
+
+<P>Although the the choice of method to be invoked may be different in
+LC3 compared to earlier versions of LiveConnect, the permitted conversions
+of JavaScript arguments to Java types has not been changed.&nbsp; Hence,
+backward compatibility is preserved for invocations of non-overloaded methods
+or in cases where only a single method is compatible with the argument
+types used.
+<H2><A NAME="Applicability"></A>3.1 Method Accessibility and Applicability</H2>
+
+The first step in resolving a method invocation is to determine which methods
+of a class are accessible and applicable.&nbsp; A Java method is accessible
+and applicable if all of the following are true:
+<UL>
+<P><LI>
+The method is public.
+
+<P><LI>
+If the invocation is a static invocation, the method must be a static method.
+If the invocation is an instance invocation, the method must not be static.
+
+<P><LI>
+The number of parameters in the method declaration equals the number of
+argument expressions in the method invocation.
+
+<P><LI>
+The type of each actual argument can be converted by LiveConnect method
+invocation conversion (See <A HREF="#InvocationConversion">Section 3.3</A>).
+</UL>
+If there are no applicable methods for an invocation, an error occurs.
+If there is only one applicable method, it is the one invoked.
+<H2>3.2 Choose the Preferred Method</H2>
+
+When choosing between two or more <A HREF="#Applicability">applicable</A>
+methods, an algorithm is used that is similar in spirit to the ones used
+in Java and C++:
+<BLOCKQUOTE>Suppose that <B>U</B> and <B>S</B> are both applicable methods
+for an invocation, each having <B>n</B> parameters.&nbsp; Suppose, moreover,
+that the Java types of the parameters for method <B>U</B> are <B>u<SUB>1</SUB></B>,...,<B>u<SUB>n</SUB></B>
+and the Java types of&nbsp; the parameters for method <B>S</B> are <B>s<SUB>1</SUB></B>,...,<B>s<SUB>n</SUB></B>.
+Finally, the runtime JavaScript types of the actual arguments are <B>t<SUB>1</SUB></B>,...,<B>t<SUB>n</SUB></B>.
+Then the method U is preferred over method S iff
+<UL>
+<P><LI>
+<B>u<SUB>j</SUB></B> and <B>s<SUB>j</SUB></B> are the same type, or
+
+<P><LI>
+conversion to type <B>u<SUB>j</SUB></B> is <A HREF="#ConversionPreferences">preferred</A>
+to the conversion to type <B>s<SUB>j</SUB></B> when converting from <B>t<SUB>j</SUB></B>
+</UL>
+</BLOCKQUOTE>
+
+<UL>for all <B>j</B> from 1 to <B>n.</B></UL>
+A method is said to be <I>maximally preferred</I> for a method invocation
+if it is applicable and there is no more preferred applicable method.
+If there is only one maximally preferred method, that method is necessarily
+preferred to all other applicable methods<I> </I>and it is the one invoked.
+If there is more than one maximally preferred method, an error occurs.
+<H2><A NAME="InvocationConversion"></A>3.3 Allowed Method Argument Conversions</H2>
+
+The following sections detail the allowed conversions of JavaScript values
+to Java values when converting arguments for method invocation.&nbsp; These
+rules remain essentially unchanged from earlier LiveConnect implementations.
+If a conversion is not specifically listed below, then it is disallowed.
+<H3><A NAME="undefined_conversion"></A>3.3.1 undefined</H3>
+
+
+<TABLE BORDER WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Object
+<BR>java.lang.String</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>"undefined"<SUP>1</SUP></BLOCKQUOTE>
+  </TD>
+ </TR>
+</TABLE>
+Note: Change in behavior.&nbsp; In LC2 and previous implementations, conversion
+from undefined to a Java boolean type resulted in a value of false.
+<BLOCKQUOTE><SUP>1</SUP>There is some ambiguity to the result because the
+JS string literal "undefined" and the undefined JS value are both converted
+to the same Java string, but this wart is necessary to maintain backward
+compatibility with LC1.&nbsp; Really, it would be best if conversion from
+JS undefined to all Java types caused an error.</BLOCKQUOTE>
+
+<H3>3.3.2 Boolean</H3>
+
+
+<TABLE BORDER CELLPADDING=3 COLS=2 WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>boolean</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Map true/false directly to Java equivalent</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Boolean
+<BR>java.lang.Object</CENTER>
+  </TD>
+  <TD VALIGN=CENTER>
+
+<BLOCKQUOTE>Construct new instance of <I>java.lang.Boolean</I>.<SUP>2</SUP></BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE><TT>true&nbsp; </TT>==> "true"
+<BR><TT>false </TT>==> "false"</BLOCKQUOTE>
+  </TD>
+ </TR>
+</TABLE>
+
+<BLOCKQUOTE><SUP>2</SUP>Each argument conversion must result in a new <I>java.lang.Boolean</I>
+instance.&nbsp; For example, it is not permitted to always use <TT>java.lang.Boolean.TRUE</TT>
+and <TT>java.lang.Boolean.FALSE.</TT></BLOCKQUOTE>
+
+<H3><A NAME="Number"></A>3.3.3 Number</H3>
+
+
+<TABLE BORDER CELLPADDING=3 COLS=2 WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>double&nbsp;</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Transfer exact value to Java with
+<BR>no rounding or loss of magnitude/sign.</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Double
+<BR>java.lang.Object</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Create new instance of <I>java.lang.Double</I>, transferring
+exact value to Java with no rounding or loss of magnitude/sign.</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>float</CENTER>
+  </TD>
+  <TD>
+
+<UL>
+<P><LI>
+Round JS number to float precision.
+
+<P><LI>
+Unrepresentably large values are converted to +/- infinity.
+</UL>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>long
+<BR>int
+<BR>short
+<BR>byte
+<BR>char</CENTER>
+  </TD>
+  <TD>
+
+<UL>
+<P><LI>
+Truncate JS number to integral value by eliminating fractional part.
+
+<P><LI>
+NaN's or numbers with a magnitude too large to be represented in the target
+integral type result in a runtime error.<SUP>3</SUP>
+</UL>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Convert number to string per ECMA 9.8.1, <I>ToString() applied
+to Number type</I></BLOCKQUOTE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P><SUP>3</SUP>In pre-LC3 versions of LiveConnect, conversion from either
+NaN's or numbers with a magnitude too large to be represented in the target
+integral type was ill-defined and had platform-dependent behavior.
+<H3><A NAME="conversion_from_String"></A>3.3.4 Strings</H3>
+
+
+<TABLE BORDER CELLPADDING=3 COLS=2 WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String
+<BR>java.lang.Object</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Convert from Unicode JS
+<BR>string to Unicode <I>java.lang.String</I></BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>double<SUP>5</SUP>
+<BR>float<SUP>5</SUP>
+<BR>long<SUP>5</SUP>
+<BR>int<SUP>5</SUP>
+<BR>short<SUP>5</SUP>
+<BR>byte<SUP>5</SUP></CENTER>
+  </TD>
+  <TD>
+
+<OL>
+<P><LI>
+<FONT COLOR="#000000">Convert string to number per ECMA 9.3.1</FONT>
+
+<P><LI>
+<FONT COLOR="#000000">Convert Result(1) to Java numeric type using rules
+in <A HREF="#Number">Section 3.3.3</A>.</FONT>
+</OL>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>char<SUP>5</SUP></CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>
+<P><LI>
+For one-character strings, result is Unicode character.
+
+<P><LI>
+Otherwise, convert to number, using rule immediately above.
+</BLOCKQUOTE>
+  </TD>
+ </TR>
+</TABLE>
+
+<BLOCKQUOTE><SUP>5</SUP>Conversion added in LiveConnect version 2.</BLOCKQUOTE>
+
+<H3>3.3.5 Null</H3>
+
+
+<TABLE BORDER CELLPADDING=3 COLS=2 WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>Any class or interface type</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>null</BLOCKQUOTE>
+  </TD>
+ </TR>
+</TABLE>
+
+<H3>3.3.6 Object</H3>
+
+
+<H4>3.3.6.1 JavaObject (A Java object wrapped inside a JS object)</H4>
+
+
+<TABLE BORDER COLS=2 WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>Any interface or class that is assignment-compatible with the Java
+object obtained by unwrapping the JS object, i.e. the unwrapped JavaObject
+is an <TT>instanceof()</TT> the Java argument type.</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Unwrap JS object to obtain Java object</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Call the unwrapped object's toString() method and return the
+result as a new java.lang.String.</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>float, double, byte, char, short, int, long<SUP>5</SUP></CENTER>
+  </TD>
+  <TD>
+
+<OL>
+<P><LI>
+If the object does not have a doubleValue() method, call the object's toString()
+method and convert using the rules in <A HREF="#conversion_from_String">Section
+3.3.4</A>.
+
+<P><LI>
+Call object's doubleValue() method.
+
+<P><LI>
+<FONT COLOR="#000000">Convert Result(2) to Java numeric type using rules
+in <A HREF="#Number">Section 3.3.3</A>.</FONT>
+</OL>
+  </TD>
+ </TR>
+</TABLE>
+
+<H4>3.3.6.2 JavaArray (A Java array wrapped inside a JS object)</H4>
+
+
+<TABLE BORDER COLS=2 WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>Any interface or class that is assignment-compatible with the Java
+object obtained by unwrapping the JS object, i.e. the unwrapped JavaObject
+is an <TT>instanceof()</TT> the Java argument type.</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Unwrap JS object to obtain Java object</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Call the unwrapped array's toString() method and return the
+result as a new java.lang.String.</BLOCKQUOTE>
+  </TD>
+ </TR>
+</TABLE>
+
+<H4>3.3.6.3 JavaClass</H4>
+
+
+<TABLE BORDER COLS=2 WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Class<SUP>5</SUP></CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Extract corresponding Java class object</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.JSObject
+<BR>java.lang.Object</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Wrap JS object in new instance of java.lang.JSObject</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Call the JavaClass toString() method and return the result
+as a java.lang.String.</BLOCKQUOTE>
+  </TD>
+ </TR>
+</TABLE>
+
+<H4>3.3.6.4 JavaScript Array</H4>
+<TABLE BORDER COLS=2 WIDTH="100%" >
+  <TR BGCOLOR="#BCC0D3"> 
+    <TD> 
+      <CENTER>
+        <B>Java argument type</B>
+      </CENTER>
+    </TD>
+    <TD> 
+      <CENTER>
+        <B>Conversion Technique</B>
+      </CENTER>
+    </TD>
+  </TR>
+  <TR> 
+    <TD> 
+      <CENTER>
+        java.lang.JSObject <BR>
+        java.lang.Object
+      </CENTER>
+    </TD>
+    <TD> 
+      <BLOCKQUOTE>Wrap JS object in new instance of java.lang.JSObject</BLOCKQUOTE>
+    </TD>
+  </TR>
+  <TR> 
+    <TD> 
+      <CENTER>
+        java.lang.String
+      </CENTER>
+    </TD>
+    <TD> 
+      <BLOCKQUOTE>Call the JS object's toString() method and return the result 
+        as a java.lang.String.</BLOCKQUOTE>
+    </TD>
+  </TR>
+  <TR> 
+    <TD> 
+      <CENTER>
+        Any Java array type 
+      </CENTER>
+    </TD>
+    <TD>
+      <BLOCKQUOTE>
+        <P>Create a new Java array of the appropriate type with a length equal 
+          to that of the JS Array object. Fill in each element of the Java array 
+          by converting each element of the JS array, including undefined elements, 
+          to an equivalent Java value using the <A HREF="#InvocationConversion">method 
+          invocation conversion</A> rules. If conversion is not possible for any 
+          single element of an array, the method invocation results in an error. 
+          Note: Since the contents of the JS array are copied, side-effects made 
+          by the invoked Java method to the Java array will not be reflected in 
+          the JS array argument.</P>
+      </BLOCKQUOTE>
+    </TD>
+  </TR>
+</TABLE>
+<H4>3.3.6.5 Other JavaScript Objects</H4>
+
+
+<TABLE BORDER COLS=2 WIDTH="100%" >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type</B></CENTER>
+  </TD>
+  <TD>
+
+<CENTER><B>Conversion Technique</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.JSObject
+<BR>java.lang.Object</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Wrap JS object in new instance of java.lang.JSObject</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+  <TD>
+
+<BLOCKQUOTE>Call the JS object's toString() method and return the result
+as a java.lang.String.</BLOCKQUOTE>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>float, double, byte, char, short, int, long<SUP>5</SUP></CENTER>
+  </TD>
+  <TD>
+
+<OL>
+<P><LI>
+Apply the ToPrimitive operator (ECMA 9.3) to the JavaScript object with
+hint Number.
+
+<P><LI>
+<FONT COLOR="#000000">Convert Result(1) to Java numeric type using rules
+in <A HREF="#Number">Section 3.3.3</A>.</FONT>
+</OL>
+  </TD>
+ </TR>
+</TABLE>
+
+<H2><A NAME="ConversionPreferences"></A>3.4 Preferred Argument Conversions</H2>
+
+When converting from JavaScript to Java types, certain conversions are
+more "natural" and, hence, are preferred.&nbsp;&nbsp; In the table below,
+Java types are listed in decreasing order of preference.&nbsp; Types that
+are equally preferred are in the same table cell.
+<H3>3.4.1 undefined</H3>
+
+There is no preference among Java types for converting from the JavaScript
+undefined value.
+<H3>3.4.2 Boolean</H3>
+
+
+<TABLE BORDER CELLPADDING=3 >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type,</B>
+<BR><B>in decreasing order of preference</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>boolean</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Boolean</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Object&nbsp;</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+ </TR>
+</TABLE>
+
+<H3>3.4.3 Number</H3>
+
+
+<TABLE BORDER CELLPADDING=3 >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type,</B>
+<BR><B>in decreasing order of preference</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>double&nbsp;</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Double</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>float</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>long</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>int</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>short</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>char</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>byte</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Object</CENTER>
+  </TD>
+ </TR>
+</TABLE>
+
+<P><FONT COLOR="#660000">Rationale: The preference for floating-point types
+over integral types is likely to be the largest culprit in exposing incompatibilities
+with earlier versions of LiveConnect.&nbsp; However, double is the only
+primitive Java type guaranteed not to overflow or lose precision when converting
+from a JS number, so it should be preferred to the other Java numeric types.</FONT>
+<H3>3.4.4 Strings</H3>
+
+
+<TABLE BORDER CELLPADDING=3 >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type,</B>
+<BR><B>in decreasing order of preference</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Object</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>char</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>double, float, long, int, short, byte</CENTER>
+  </TD>
+ </TR>
+</TABLE>
+
+<H3>3.4.5 Null</H3>
+
+There is no preference among Java types for converting from the JavaScript
+null value.
+<H3>3.4.6 Object</H3>
+
+
+<H4>3.4.6.1 JavaObject (A Java object wrapped inside a JS object)</H4>
+
+
+<TABLE BORDER CELLPADDING=3 >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type,</B>
+<BR><B>in decreasing order of preference</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>Any class or interface type<SUP>6</SUP></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>double</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>float</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>long</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>int</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>short</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>char</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>byte</CENTER>
+  </TD>
+ </TR>
+</TABLE>
+
+<BLOCKQUOTE><SUP>6</SUP>Among Java reference types, further processing
+is required.&nbsp; Intuitively, the rule for preference among Java types
+when converting from a Java object that is wrapped in a JS object is that
+the most specific class or interface is preferred.&nbsp; More formally,
+let <B>T</B> be the&nbsp; Java class of an unwrapped JavaObject.
+Let <B>S</B> and <B>U</B> be class or interface types.&nbsp; <B>S</B> is
+preferred to <B>U</B> iff</BLOCKQUOTE>
+
+<UL>
+<UL>
+<P><LI>
+An instance of <B>T</B> is assignable to a variable of type <B>S, </B>i.e.
+<B>T</B>
+instanceof <B>S </B>is true
+
+<P><LI>
+An instance of <B>S</B> is assignable to a variable of type <B>U</B>, i.e.
+<B>S</B>
+instanceof <B>U </B>is true
+
+<P><LI>
+<B>S</B> and <B>U</B> are not the same types
+</UL>
+</UL>
+
+<H4>3.4.6.2 JavaArray (A Java array wrapped inside a JS object)</H4>
+
+
+<TABLE BORDER CELLPADDING=3 >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type,</B>
+<BR><B>in decreasing order of preference</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>Any class or interface type<SUP>6</SUP></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+ </TR>
+</TABLE>
+
+<H4>3.4.6.2 JavaClass</H4>
+
+
+<TABLE BORDER >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type,</B>
+<BR><B>in decreasing order of preference</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Class</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.JSObject</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Object</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+ </TR>
+</TABLE>
+
+<H4>3.4.6.3 JavaScript Array</H4>
+<TABLE BORDER >
+  <TR BGCOLOR="#BCC0D3"> 
+    <TD> 
+      <CENTER>
+        <B>Java argument type,</B> <BR>
+        <B>in decreasing order of preference</B> 
+      </CENTER>
+    </TD>
+  </TR>
+  <TR> 
+    <TD ALIGN="CENTER">Any Java array type</TD>
+  </TR>
+  <TR> 
+    <TD> 
+      <CENTER>
+        java.lang.JSObject 
+      </CENTER>
+    </TD>
+  </TR>
+  <TR> 
+    <TD> 
+      <CENTER>
+        java.lang.Object 
+      </CENTER>
+    </TD>
+  </TR>
+  <TR> 
+    <TD> 
+      <CENTER>
+        java.lang.String 
+      </CENTER>
+    </TD>
+  </TR>
+</TABLE>
+<H4>3.4.6.4 Other JavaScript Objects</H4>
+
+
+<TABLE BORDER >
+ <TR BGCOLOR="#BCC0D3">
+  <TD>
+
+<CENTER><B>Java argument type,</B>
+<BR><B>in decreasing order of preference</B></CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.JSObject</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.Object</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>java.lang.String</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>double</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>float</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>long</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>int</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>short</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>char</CENTER>
+  </TD>
+ </TR>
+ <TR>
+  <TD>
+
+<CENTER>byte</CENTER>
+  </TD>
+ </TR>
+</TABLE>
+
+<H1><A NAME="ExplicitMethod"></A>4 Explicit Method Specification</H1>
+
+LC3 allows explicitly specifying a particular method within a set of overloaded
+methods, thus bypassing the resolution process described in Section 3.
+Explicit method specification is most often used when a Java method is
+overloaded using Java numeric types as arguments:
+<BLOCKQUOTE><TT>class Ambiguous {</TT>
+<BR><TT>&nbsp;&nbsp; static public int numericArg(int x, byte y)
+{ return 1; }</TT>
+<BR><TT>&nbsp;&nbsp; static public int numericArg(byte x, char y)
+{ return 2; }</TT>
+<BR><TT>&nbsp;&nbsp; static public int numericArg(float x, int y) { return
+3; }</TT>
+<BR><TT>}</TT></BLOCKQUOTE>
+In this case it is possible to specify that numericArg(int,byte) should
+be called using the following syntax:
+<BLOCKQUOTE><TT>intNumericArg = Packages.Ambiguous["numericArg(int,byte)"];</TT>
+<BR><TT>intNumericArg(5); // returns 1</TT></BLOCKQUOTE>
+By using named property access and passing the name of the method with
+type signature information, an object will be returned that can be used
+to call the desired method.&nbsp; Explicit method specification can be
+used on both instance and static methods.
+
+<P>The same effect can be achieved without using a temporary value to hold
+the method:
+<BLOCKQUOTE><TT>Packages.Ambiguous["numericArg(int,byte)"](5); // returns
+1</TT></BLOCKQUOTE>
+A similar syntax can be used to explicitly specify selection of an overloaded
+constructor.&nbsp; For example, the following code invokes the <I>java.lang.String</I>
+constructor that accepts one argument, a one-dimensional array of characters:
+<BLOCKQUOTE><TT>new java.lang.String["(char[])"](c);</TT></BLOCKQUOTE>
+
+</BODY>
+</HTML>

@@ -1,0 +1,1065 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+  <title>Tutorial: Creating a Mozilla Extension</title>
+  <link href="../tutorial.css" rel="stylesheet" type="text/css">
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+<h1>Tutorial: Creating a Mozilla Extension</h1>
+
+
+<h2>Introduction</h2>
+
+<p>
+  A Mozilla extension is an installable enhancement to the Mozilla browser 
+  that provides additional functionality (for example
+  <a href="http://linky.mozdev.org/">Linky</a>, which adds an item 
+  to the context menu for opening multiple links in a document or selection).
+  This tutorial walks you through the process of building a Mozilla extension
+  that adds an icon to Mozilla's status bar showing the current status 
+  of the Mozilla source code (i.e. whether or not the latest version 
+  of the code is compiling successfully and passing tests).  The extension
+  will access <a href="http://tinderbox.mozilla.org/">Tinderbox</a>,
+  mozilla.org's webtool for tracking source code status, to get the status
+  of the code.
+</p>
+
+<p>
+  Completing this tutorial will give you a basic understanding of how Mozilla's
+  user interface (UI) is constructed, how to find the source code for the UI 
+  you want to extend, how to make an installation of Mozilla modifiable, 
+  how to use Mozilla's network library to load and parse web pages in JavaScript,
+  and how to use dynamic overlays to package a Mozilla extension
+  for installation by others.
+</p>
+
+
+<h2>Prerequisites</h2>
+
+<p>
+  In order to complete this tutorial you need to have and know how to use
+  the following programs on your computer:
+</p>
+
+<ol>
+  <li>an installation of Mozilla;</li>
+  <li>zip and unzip utilities;</li>
+  <li>a text editor.</li>
+</ol>
+
+<p>
+  You should also understand tag-based languages like HTML as well as basic
+  JavaScript, CSS, and the DOM.  You might install Mozilla multiple times 
+  in the course of this tutorial, so you will find it handy to keep around
+  a Mozilla installer.
+</p>
+
+<p>
+  If you currently use Mozilla, you should install a new copy of the software
+  in a different location from the existing installation for the purposes 
+  of this demo.  This tutorial instructs you to do things that can damage 
+  your installation and make it unusable, so don't modify your primary 
+  Mozilla installation per the instructions in this tutorial unless you 
+  really know what you are doing!
+</p>
+
+
+<h2>Tinderbox</h2>
+
+<p>
+  Tinderbox is a web tool for tracking the status of the Mozilla source code.
+  It consists of a set of client machines that continuously build and test
+  Mozilla and report their results back to a server that makes those results
+  available via a web page.  The tool enables mozilla.org to be immediately
+  notified of changes to the code that prevent Mozilla from compiling 
+  and running (or compromise performance and footprint) so they can get 
+  someone to fix the problem or reverse the changes.
+</p>
+
+<p>
+  Mozilla engineers regularly check Tinderbox before changing the code
+  because changes are prohibited while the codebase is broken.  The Mozilla
+  sheriff, a rotating position responsible for watching the code
+  and getting engineers to fix breakage, checks Tinderbox even more regularly.
+  While it isn't difficult to load the Tinderbox web page or sidebar,
+  it would be useful to have an even quicker way to check tinderbox
+  that doesn't require going to a web page, changing sidebars, or even
+  having the sidebar open.
+</p>
+
+<p>
+  Although there are multiple tinderbox clients machines doing different kinds
+  of builds (f.e. different platforms), most people only care about the overall
+  situation, i.e. whether or not any clients have failed. By checking for build
+  failures first and test failures second, we make sure to show users
+  the worst possible situation, i.e. if any clients have failed to build,
+  we will display a red icon that signifies a build failure; if all clients
+  built successfully but some failed tests we will display an orange icon
+  that signifies a test failure.  Only if all clients reported both successful
+  builds and successful tests will we display a green icon that signifies
+  all is well with the code.
+</p>
+
+
+<h2><a name="step1">Step 1: making a Mozilla installation modifiable</a></h2>
+
+<p>
+  Mozilla's user interface is made up of XUL (described below), XBL (a topic
+  for another tutorial), JavaScript, CSS, and image files.  XUL, XBL,
+  JavaScript, and CSS files are all in text format and can be edited
+  in a standard text editor, while image files are in binary GIF, JPG, or PNG
+  format and must be edited with an image editing program.
+</p>
+  
+<p>
+  The files are then collected into a series of JAR archives, which are just
+  ZIP files that contain a specially formatted "manifest" file which describes
+  the contents of the archive so Mozilla knows what to do with them.
+</p>
+
+<p>
+  Although JAR archives are binary files, Mozilla's UI is not compiled
+  into machine code; Mozilla instead builds its UI from the non-compiled
+  files in the archive each time it starts up.  Because of this, we can
+  modify the files in the archive and see our changes to the UI merely
+  by restarting the application.  This makes modifying Mozilla's UI
+  much easier than for many other applications.
+</p>
+
+<p>
+  Although Mozilla stores the UI files in JAR archives, it can also access them
+  in their original, unarchived form, which is useful for the extensions developer
+  because it makes it unnecessary to extract the files from the archive
+  before changing the code and then re-add them to the archive afterwards.
+  Instead, you only have to extract them once and can then make
+  as many modifications as you like.
+</p>
+
+<p>
+  To make Mozilla modifiable, we will first extract the UI files
+  from the archives using an unzip utility, then edit Mozilla's registry
+  of UI files to use the extracted files instead of the original JAR archives.
+</p>
+
+<p>
+  The archives are stored within the <kbd>chrome</kbd> subdirectory
+  of the Mozilla installation directory.  Use your unzip utility to extract
+  all files in that directory with a <kbd>.jar</kbd> extension.  Make sure
+  you extract them into the same (<kbd>chrome</kbd>) directory in which
+  they are located.  On Unix-like operating systems with bash-like shells,
+  you can run the following command within that directory to accomplish
+  this task:
+</p>
+
+<pre class="code">
+  for file in *.jar; do unzip $file; done
+</pre>
+
+<p>
+  On operating systems with DOS-like shells, the following command
+  accomplishes this task:
+</p>
+
+<pre class="code">
+  for %file in (*.jar); do unzip %file 
+</pre>
+
+<p>
+  Note that there are platform-specific files--en-mac.jar, en-unix.jar, 
+  and en-win.jar--in that directory.  Extract only the one appropriate
+  for your platform.
+</p>
+
+<p>
+  After extracting the files we will modify the Mozilla chrome registry
+  to use the extracted files instead of the original JAR archives.
+  The chrome registry is a file that lists each major Mozilla component
+  and where in the <kbd>chrome</kbd> directory its UI files are located.
+  It is located in the <kbd>chrome</kbd> directory itself and is called
+  either <kbd>chrome.rdf</kbd> or <kbd>installed-chrome.txt</kbd> (or both).
+</p>
+
+<p>
+  The registry contains a bunch of complicated configuration statements
+  in which you will find a number of URLs of the form
+  <kbd>jar:resource:/chrome/SOMETHING.jar!/SOMETHING-ELSE...</kbd>
+  which point to directories within the JAR archives.  Change them
+  so they point to the extracted files by removing the leading "jar:"
+  and the part in the middle that says "SOMETHING.jar!".  If you have Perl
+  on your system, you can do this with the following command:
+</p>
+
+<pre class="code">
+  perl -pi.orig -e 's/(jar:)|(\/[^.\/]+\.jar!)//g' chrome.rdf installed-chrome.txt
+</pre>
+
+<p>
+  For example, to convert the URL 
+  <kbd>jar:resource:/chrome/comm.jar!/content/necko/</kbd>,
+  change it to <kbd>resource:/chrome/content/necko/</kbd>.
+</p>
+
+<p>
+  After you make these changes, try starting the copy of Mozilla
+  you have modified. Make sure you start the modified copy and not
+  the default installation on your machine, and shut down "quick launch"
+  if you are on Windows and that feature is enabled.  If Mozilla starts up
+  and displays a normal-looking web browser window, then you have successfully
+  made your copy of Mozilla modifiable!
+</p>
+
+<!-- [mention that if you have Perl, you can also do this with Patch Maker] -->
+
+
+<h2><a name="step2">Step 2: finding the file to modify</a></h2>
+
+<p>
+  Now that we have a hackable Mozilla, it's time to find the file we want 
+  to hack.  Mozilla's UI is divided into three layers: the structure,
+  the style, and the behavior.  The structure layer identifies the widgets
+  (menus, buttons, etc.) and their position in the UI relative to each other,
+  the style layer defines how the widgets look (size, color, style, etc.) 
+  and their overall position (alignment), and the behavior layer specifies
+  how the widgets behave and how users can use them to accomplish their goals.
+</p>
+
+<!-- mention the localization layer -->
+
+<p>
+  (Note: These layers are not completely mutually exclusive.  In particular,
+  positioning information can be specified in both the structure layer
+  and the style layer, and some behavior can is partly defined 
+  in the style layer.)
+</p>
+
+<p>
+  We're going to add code to all three UI layers, starting with the structure
+  layer.  The structure layer consists of XUL files.  XUL, which is short for
+  XML-based User Interface Language (and is pronounced like "Zool"),
+  is an XML-based language specifically designed for describing application
+  interfaces.  It contains elements for all common UI widgets (menus, buttons,
+  toolbars, etc.) and many sophisticated ones (trees, browsers, color pickers).
+</p>
+
+<p>
+  Each window and dialog box in Mozilla is defined by a single XUL file
+  (in some cases other XUL files called overlays contribute portions
+  of another window's structure).  To add a tinderbox status icon to Mozilla,
+  we need to find the XUL file that defines the structure of the browser window.
+</p>
+
+<p>
+  The best way to find a XUL file for a window is to use the DOM inspector. 
+  The DOM Inspector is a tool bundled with Mozilla that allows you to examine 
+  the DOM of web pages and XUL windows.  To access it, go to the "Tools" menu, 
+  select the "Web Development" submenu, then select the "DOM Inspector" item.
+  The DOM Inspector will load in a new window.
+</p>
+
+<p>
+  In the DOM Inspector window, go to the <kbd>File</kbd> menu, select 
+  the <kbd>Inspect a Window</kbd> submenu, then select the Mozilla browser 
+  window item (named after the page currently loaded in the browser). 
+  The DOM Inspector will display the URL of the XUL file that defines
+  the Mozilla browser window, which is 
+  <kbd>chrome://navigator/content/navigator.xul</kbd>.
+</p>
+
+<p>
+  A <kbd>chrome</kbd> URL is a URL used internally by Mozilla to refer to files
+  in the <kbd>chrome</kbd> subdirectory of the Mozilla installation directory.
+  Chrome URLs have paths that do not necessarily refer to a precise directory
+  hierarchy.  In this case the chrome URL refers to the file located at
+  <kbd>mozilla-installation-directory/chrome/content/navigator/navigator.xul</kbd>.
+  <!-- [explain further, http://www.mozilla.org/xpfe/ConfigChromeSpec.html] -->
+</p>
+
+<h2><a name="step3">Step 3: finding the code to modify</a></h2>
+
+<p>
+  Now that we've found the file to edit, we need to find the specific code
+  within that file.  Again, the DOM Inspector makes this easy.
+  The "Document - DOM Nodes" pane on the left-hand side of the Inspector
+  window displays a tree representation of the browser window's XUL file.
+  When you select a node in the tree, a red border flashes for several 
+  seconds around the visual representation of that node in the browser window.
+</p>
+
+<p>
+  Scroll down the tree to the <kbd>statusbar</kbd> node and select it.
+  Notice the flashing red border around the horizontal status bar at the bottom
+  of the browser window.  Click the plus sign next to the <kbd>statusbar</kbd>
+  node in the DOM Inspector and select each <kbd>statusbarpanel</kbd> node
+  in turn.  Notice the flashing red border around each different section
+  of the status bar.
+</p>
+
+<p>
+  Open the navigator.xul file in a text editor.  Find the <kbd>statusbar</kbd>
+  element within it.  This is where we are going to add our tinderbox status UI.
+</p>
+  
+
+<h2><a name="step4">Step 4: adding the structure</a></h2>
+
+<p>
+  The UI for our extension is an icon in the status bar.  To implement this UI,
+  we'll add a <kbd>statusbarpanel</kbd> element to the <kbd>statusbar</kbd>
+  element in the navigator.xul file.
+</p>
+
+<pre class="code">
+  &lt;statusbar id="status-bar" class="chromeclass-status"
+             ondragdrop="nsDragAndDrop.drop(event, contentAreaDNDObserver);"&gt;
+    &lt;statusbarpanel id="component-bar"/&gt;
+    &lt;statusbarpanel id="statusbar-display"
+            label="&amp;statusText.label;" flex="1"/&gt;
+    &lt;statusbarpanel class="statusbarpanel-progress"&gt;
+      &lt;progressmeter class="progressmeter-statusbar"
+              id="statusbar-icon" mode="normal" value="0"/&gt;
+    &lt;/statusbarpanel&gt;
+    <span class="added">&lt;statusbarpanel class="statusbarpanel-iconic"
+              id="tinderbox-status" status="none"/&gt;</span>
+    &lt;statusbarpanel class="statusbarpanel-iconic" id="offline-status"/&gt;
+    &lt;statusbarpanel class="statusbarpanel-iconic" id="security-button"
+                    onclick="BrowserPageInfo(null, 'securityTab')"/&gt;
+  &lt;/statusbar&gt; 
+</pre>
+
+<p>
+  The <kbd>statusbar</kbd> XUL element defines a horizontal status bar 
+  where informative messages about an application's state can be displayed.
+  It can contain both text messages (f.e. "Done" in Mozilla when a document
+  finishes loading) and graphical messages (f.e. the lock icon in Mozilla
+  that shows whether or not a loaded document was encrypted with SSL).
+</p>
+
+<p>
+  Status bars comprise a series of panels, each one defined by 
+  a <kbd>statusbarpanel</kbd> XUL element.  Each status bar panel displays 
+  a different kind of status information.  Graphical panels (like the one
+  we are creating here that displays an icon) are given 
+  the <kbd>statusbar-iconic</kbd> class so they can be styled accordingly
+  by the CSS stylesheet that defines these elements' appearance.
+</p>
+
+<p>
+  The <kbd>status</kbd> attribute is not part of the XUL definition
+  for the <kbd>statusbarpanel</kbd> element, but is used by our extension
+  to store the current tinderbox state.  We'll update the value 
+  of that attribute each time we retrieve tinderbox's status from the server,
+  and we'll define CSS rules that change the appearance of the icon 
+  depending on the value of that attribute.  All XUL elements can be given
+  custom attributes in addition to the ones the XUL rendering engine
+  recognizes which get ignored by the engine, so adding this custom attribute
+  does not create any problems or modify the way the widget is displayed
+  (except for the ways we explicitly specify with CSS).
+</p> 
+
+
+<h2><a name="step5">Step 5: specifying the appearance</a></h2>
+
+<p>
+  Now that we have defined a panel in which to display an icon, we use CSS 
+  to specify which icon to display.  For this we have to first create four
+  icons, one for each tinderbox state (none, success, test failed, and busted), 
+  then create a set of CSS rules that displays the icon corresponding to 
+  the current tinderbox state:
+</p>
+
+<pre class="code">
+  statusbarpanel#tinderbox-status {
+    list-style-image: url("chrome://navigator/content/tb-nostatus.png");
+  }
+
+  statusbarpanel#tinderbox-status[status="success"] {
+    list-style-image: url("chrome://navigator/content/tb-success.png");
+  }
+
+  statusbarpanel#tinderbox-status[status="testfailed"] {
+    list-style-image: url("chrome://navigator/content/tb-testfailed.png");
+  }
+
+  statusbarpanel#tinderbox-status[status="busted"] {
+    list-style-image: url("chrome://navigator/content/tb-busted.png");
+  }
+</pre>
+
+<p>
+  Mozilla can have multiple sets of stylesheets that govern its appearance,
+  and we don't want to have to add these rules to each set (and have our
+  extension break when a new set gets installed), so we'll put this stylesheet
+  in a file called "tinderstatus.css" in the same directory as navigator.xul 
+  and reference it at the top of that file right under the global stylesheet 
+  reference:
+</p>
+
+<pre class="code">
+  &lt;?xml-stylesheet href="chrome://navigator/skin/" type="text/css"?&gt;
+  <span class="added">&lt;?xml-stylesheet
+          href="chrome://navigator/content/tinderstatus.css"
+          type="text/css"?&gt;</span>
+</pre>
+
+<p>
+  Our CSS rules use the "list-style-image" property to define an image
+  to appear when our status bar panel, identified by its <kbd>id</kbd> 
+  attribute), has a given value for its <kbd>status</kbd> attribute.
+  There is one rule for each possible tinderbox state.
+</p>
+
+<p>
+  Make your own icons for the four states or use the following icons:
+  <a href="tb-nostatus.png">no status</a>, <a href="tb-success.png">success</a>, 
+  <a href="tb-testfailed.png">test failed</a>, <a href="tb-busted.png">busted</a>.
+</p>
+
+<p>
+  If you restart Mozilla now you should see the "no status" icon appear
+  in the browser's status bar.
+</p>
+
+
+<h2><a name="step6">Step 6: enabling the behavior: retrieving tinderbox status</a></h2>
+
+<p>
+  Our Mozilla extension now exists, but it doesn't do anything.
+  To make it work we have to add JavaScript code that changes its status
+  when the tinderbox status changes.  The first step is to write a function
+  that queries the tinderbox server and retrieves the current status.
+</p>
+
+<pre class="code">
+  var gXMLHttpRequest;
+
+  function loadTinderboxStatus() {
+    gXMLHttpRequest = new XMLHttpRequest();
+    gXMLHttpRequest.onload = updateTinderboxStatus;
+    gXMLHttpRequest.open("GET", "http://tinderbox.mozilla.org/SeaMonkey/panel.html");
+    gXMLHttpRequest.send(null);
+  }
+</pre>
+
+<p>
+  XMLHttpRequest is an interface in Mozilla for retrieving documents via HTTP.
+  Although it is designed to retrieve XML content and parse it into a DOM,
+  it can retrieve (but not parse) other kinds of content as well.  In this case
+  we use it to retrieve an HTML page containing a brief summary of the current
+  tinderbox state.  That document gets updated by the tinderbox server every
+  time a build finishes.  It displays a list of active tinderbox clients
+  along with the result of their last build attempt.
+</p>
+
+<p>
+  XMLHttpRequest is easy to use in the simple case we have here.  We use 
+  <kbd>new</kbd> to create a new instance of it, set the instance's 
+  <kbd>onload</kbd> property to <kbd>updateTinderboxStatus()</kbd>, 
+  the function we want to execute when the document finishes loading, 
+  call its <kbd>open</kbd> method with the type of HTTP request we want to make
+  and the URL of the document to retrieve, and then call its <kbd>send</kbd> 
+  method to send the request.
+</p>
+
+<p>
+  XMLHttpRequest will retrieve the document located at the given URL 
+  and call the <kbd>updateTinderboxStatus()</kbd> function when it is done.
+</p>
+
+<p>
+  Notice that we defined the instance of XMLHttpRequest as a global variable.
+  This is because we need to reference it 
+  in the <kbd>updateTinderboxStatus()</kbd> function as well as the current 
+  function, and we can't pass the object from one function to the other 
+  because the one doesn't call the other directly.
+</p>
+
+
+<h2><a name="step7">Step 7: enabling the behavior: updating the status bar panel</a></h2>
+
+<p>
+  In order for <kbd>loadTinderboxStatus()</kbd> to have any effect 
+  we need to define a matching <kbd>updateTinderboxStatus()</kbd> function.
+</p>
+
+<pre class="code">
+  function updateTinderboxStatus()
+  {
+    var icon = document.getElementById('tinderbox-status');
+
+    if (gXMLHttpRequest.responseText.match("EE0000"))
+      icon.setAttribute("status", "busted");
+    else if (gXMLHttpRequest.responseText.match("FFAA00"))
+      icon.setAttribute("status", "testfailed");
+    else if (gXMLHttpRequest.responseText.match("11DD11"))
+      icon.setAttribute("status", "success");
+    else
+      icon.setAttribute("status", "");
+  }
+</pre>
+
+<p>
+  updateTinderboxStatus() retrieves a reference to the <kbd>statusbarpanel</kbd>
+  element then searches through the retrieved HTML document (stored in 
+  the <kbd>responseText</kbd> property of the <kbd>XMLHttpRequest</kbd> 
+  instance) for one of several color references.  The color red (represented 
+  by the RGB code EE0000) means a tinderbox client failed to build Mozilla.
+  The color orange ("FFAAOO") means a client successfully built Mozilla, 
+  but the build failed tests.  The color green ("11DD11") means the client 
+  successfully built and tested Mozilla.  When it finds a color, it sets 
+  the panel's status attribute to the corresponding status, which causes the 
+  previously defined CSS rules to switch to the icon appropriate 
+  for that status.  Because our conditional looks for worse states (bustage,
+  test failures) first, it will display those states before displaying
+  the success state.
+</p>
+
+
+<h2><a name="step8">Step 8: enabling the behavior: updating the status periodically</a></h2>
+
+<p>
+  Now that we have code to retrieve tinderbox status and update the icon,
+  we need to run it periodically.
+</p>
+
+<pre class="code">
+  function loadTinderboxStatus() {
+    gXMLHttpRequest = new XMLHttpRequest();
+    gXMLHttpRequest.onload = updateTinderboxStatus;
+    gXMLHttpRequest.open("GET", "http://tinderbox.mozilla.org/SeaMonkey/panel.html");
+    gXMLHttpRequest.send(null);
+    <span class="added">window.setTimeout(loadTinderboxStatus, 60000);</span>
+  }
+
+  <span class="added">window.setTimeout(loadTinderboxStatus, 1000);</span>
+</pre>
+
+<p>
+  window.setTimeout schedules functions to run at some future time.
+  We use it inside the loadTinderboxStatus function to make that function
+  run a second (1,000 milliseconds) after startup and a minute 
+  (60,000 milliseconds) after each invocation.  This allows users to get
+  relatively frequent updates about tinderbox without overloading
+  the tinderbox server or slowing down Mozilla with requests.
+</p>
+
+ <p>
+    Our code is now ready to run, but Mozilla doesn't know about it yet.
+    To enable its functionality, we have to add a reference to our JavaScript
+    code into <kbd>navigator.xul</kbd>, just as we put a reference to our
+    CSS code into that file back in <a href="#step5">Step 5</a>.  Put the
+    JavaScript code into a file called <kbd>tinderstatus.js</kbd> in the same
+    directory as <kbd>navigator.xul</kbd> and reference it in
+    <kbd>navigator.xul</kbd> where other JavaScript scripts are referenced:
+</p>
+
+<pre class="code">
+  ...
+
+  &lt;!-- Navigator --&gt;
+  &lt;script type="application/x-javascript"
+          src="chrome://navigator/content/browser.js"/&gt;
+  &lt;script type="application/x-javascript"
+          src="chrome://navigator/content/navigator.js"/&gt;
+  &lt;script type="application/x-javascript"
+          src="chrome://navigator/content/navigatorDD.js"/&gt;
+  &lt;script type="application/x-javascript"
+          src="chrome://navigator/content/sessionHistoryUI.js"/&gt;
+
+  <span class="added">&lt;script type="application/x-javascript"
+          src="chrome://navigator/content/tinderstatus.js"/&gt;</span>
+
+  &lt;!-- hook for stringbundle overlays --&gt;
+
+  ...
+</pre>
+
+<p>
+  With this code in place, restarting Mozilla should cause the Tinderbox 
+  status panel to display the current tinderbox state.  To confirm this state,
+  <a href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=SeaMonkey">go to Tinderbox</a>
+  and verify that the panel displays the current worst state of active 
+  tinderbox clients.
+</p>
+
+<h2><a name="step9">Step 9: making it into a static overlay</a></h2>
+
+<p>
+  Now that we have a working Mozilla extension that shows tinderbox status,
+  we need to make it distributable to other users.  The two ways of doing that
+  are to integrate it into the Mozilla codebase (in which case it is no longer
+  an extension but rather part of the default Mozilla distribution) 
+  and to package it into an installer that users can run from within Mozilla
+  to add the extension to their Mozilla installation.
+</p>
+
+<p>
+  Most extensions are distributed as installer packages, and that's how we'll
+  distribute our extension.  Integrating extensions into the Mozilla codebase
+  is beyond the scope of this tutorial, but for more information see 
+  mozilla.org's 
+  <a href="http://www.mozilla.org/hacking/">hacking documentation</a>.
+</p>
+
+<p>
+  Mozilla installer packages are called XPIs (pronounced "zippies"), 
+  which stands for cross-platform installer.  The packages are just standard
+  ZIP archives of the files to be installed along with a JavaScript script
+  that performs the installation and some RDF files that describe the components
+  being installed for the chrome registry.
+</p>
+
+<p>
+  Because our extension modifies an existing file in the Mozilla distribution,
+  before we package it up we need to separate the modifications into a different
+  file and add them back in at run time via a dynamic XUL overlay.
+</p>
+
+<p>
+  A XUL overlay is a XUL file containing elements to be inserted into another
+  XUL file when the other XUL file is rendered into an application interface.
+  Static overlays are added to a XUL file via a reference at the top of the file
+  (much like stylesheets and JavaScript scripts).  Dynamic overlays are added
+  to a XUL file via a reference in the chrome registry.
+</p>
+    
+<p>
+  Overlays provide a way to break up a large XUL file into several different 
+  files (one that describes the overall structure of an application window 
+  and the others to implement specific portions of the window) to improve
+  code readability, maintainability, and extensability.  Dynamic overlays 
+  also make it possible to modify a XUL file without actually changing the code
+  of the file itself, which is necessary when installing an extension like ours.
+  We'll first make the file into a static overlay, then we'll make it into
+  a dynamic overlay.
+</p>
+
+<p>
+  To make the file into a static overlay, we need to move all the code we added
+  to navigator.xul into a new file tinderstatusOverlay.xul in the same 
+  directory:
+</p>
+
+<pre class="code">
+  &lt;?xml version="1.0"?&gt;
+
+  &lt;?xml-stylesheet
+          href="chrome://navigator/content/tinderstatus.css"
+          type="text/css"?&gt; 
+
+  &lt;overlay id="tinderstatusOverlay" 
+          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"&gt;
+
+    &lt;script type="application/x-javascript"
+            src="chrome://navigator/content/tinderstatus.js" /&gt;
+
+    &lt;statusbar id="status-bar"&gt;
+      &lt;statusbarpanel class="statusbarpanel-iconic"
+              id="tinderbox-status"
+              insertbefore="offline-status"
+              status="none"/&gt;
+    &lt;/statusbar&gt; 
+
+  &lt;/overlay&gt;
+</pre>
+
+<p>
+  tinderstatusOverlay.xul starts with an XML processing instruction 
+  that identifies the file as XML (all XUL files need to include this).
+  Its next line is the stylesheet reference we previously added
+  to navigator.xul.  After that is a XUL <kbd>overlay</kbd> element.  This
+  element is the top-level element in a XUL overlay file and serves to identify
+  the file as an overlay.  Within that element is the script reference 
+  we previously added to navigator.xul.  Then there is a <kbd>statusbar</kbd> 
+  element containing a <kbd>statusbarpanel</kbd> element.
+</p>
+
+<p>
+  The value of the <kbd>id</kbd> attribute of the <kbd>statusbar</kbd> element
+  in our overlay matches the value of the <kbd>id</kbd> attribute
+  of the <kbd>statusbar</kbd> element in navigator.xul.  When navigator.xul
+  is rendering into the browser's application interface, this causes any
+  attributes or child elements of the <kbd>statusbar</kbd> element 
+  in the overlay file to be added to the interface's DOM and thus show up
+  in the interface as if they were defined on the same element in navigator.xul.
+</p>
+
+<p>
+  Note that we've added a new attribute to the <kbd>statusbarpanel</kbd>
+  element: <kbd>insertbefore</kbd>.  This attribute identifies another
+  <kbd>statusbarpanel</kbd> element within <kbd>statusbar</kbd> before which
+  our element should appear.  Thus it allows us to define the exact position
+  of our element relative to the other <kbd>statusbarpanel</kbd> elements
+  within <kbd>statusbar</kbd>.
+</p>
+
+<p>
+  If <kbd>insertbefore</kbd> is omitted, the element will be added as the last
+  child of <kbd>statusbar</kbd>, usually before the resizer grippy.  We could
+  instead have used an <kbd>insertafter</kbd> attribute to place the element
+  after another.
+</p>
+
+<p>
+  To use this overlay instead of our changes to navigator.xul we need to remove
+  our changes, then add a reference to the overlay to the top of navigator.xul:
+</p>
+
+<pre class="code">
+  ...
+
+  &lt;?xml-stylesheet href="chrome://navigator/skin/" type="text/css"?&gt; 
+  <span class="removed">&lt;?xml-stylesheet
+          href="chrome://navigator/content/tinderstatus.css"
+          type="text/css"?&gt;</span>
+
+  &lt;?xul-overlay href="chrome://navigator/content/navigatorOverlay.xul"?&gt;
+  &lt;?xul-overlay href="chrome://navigator/content/navExtraOverlay.xul"?&gt;
+  &lt;?xul-overlay href="chrome://navigator/content/linkToolbarOverlay.xul"?&gt;
+  <span class="added">&lt;?xul-overlay href="chrome://navigator/content/tinderstatusOverlay.xul"?&gt;</span>
+  &lt;?xul-overlay href="chrome://communicator/content/contentAreaContextOverlay.xul"?&gt;
+  &lt;?xul-overlay href="chrome://communicator/content/sidebar/sidebarOverlay.xul"?&gt;
+  &lt;?xul-overlay href="chrome://communicator/content/communicatorOverlay.xul"?&gt;
+  &lt;?xul-overlay href="chrome://communicator/content/bookmarks/bookmarksOverlay.xul"?&gt;
+
+  ...
+    
+    &lt;!-- Navigator --&gt;
+    &lt;script type="application/x-javascript"
+            src="chrome://navigator/content/browser.js"/&gt;
+    &lt;script type="application/x-javascript"
+            src="chrome://navigator/content/navigator.js"/&gt;
+    &lt;script type="application/x-javascript"
+            src="chrome://navigator/content/navigatorDD.js"/&gt;
+    &lt;script type="application/x-javascript"
+            src="chrome://navigator/content/sessionHistoryUI.js"/&gt;
+
+    <span class="removed">&lt;script type="application/x-javascript"
+            src="chrome://navigator/content/tinderstatus.js"/&gt;</span>
+
+    &lt;!-- hook for stringbundle overlays --&gt;
+
+    ...
+
+    &lt;statusbar id="status-bar" class="chromeclass-status"
+              ondragdrop="nsDragAndDrop.drop(event, contentAreaDNDObserver);"&gt;
+      &lt;statusbarpanel id="component-bar"/&gt;
+      &lt;statusbarpanel id="statusbar-display" label="&amp;statusText.label;" flex="1"/&gt;
+      &lt;statusbarpanel class="statusbarpanel-progress"&gt;
+        &lt;progressmeter class="progressmeter-statusbar"
+                id="statusbar-icon" mode="normal" value="0"/&gt;
+      &lt;/statusbarpanel&gt;
+      <span class="removed">&lt;statusbarpanel class="statusbarpanel-iconic"
+                id="tinderbox-status" status="none"/&gt;</span>
+      &lt;statusbarpanel class="statusbarpanel-iconic" id="offline-status"/&gt;
+      &lt;statusbarpanel class="statusbarpanel-iconic" id="security-button"
+                      onclick="BrowserPageInfo(null, 'securityTab')"/&gt;
+    &lt;/statusbar&gt; 
+  ...
+</pre>
+
+<h2><a name="step10">Step 10: making it into a dynamic overlay and packaging it up for distribution</a></h2>
+
+<p>
+  Now that we have a static overlay we're in good shape to create a XPI package
+  that installs our extension as a dynamic overlay.  XPIs have a complex 
+  structure designed to separate UI layers from each other.  To make our XPI
+  we'll start out by creating a directory to hold the files we're going
+  to add to the XPI.  Then we'll modify URLs in our files so they point to
+  the right place.  After that we'll create a contents.rdf file describing
+  the tinderstatus component for the chrome registry and an install.js script
+  to perform the installation.  Finally we'll zip the files into an archive.
+</p>
+
+<p>
+  Start out by creating a directory called <kbd>tinderstatus-installer</kbd>.
+  Create a <kbd>tinderstatus</kbd> subdirectory in it and a <kbd>content</kbd>
+  sub-subdirectory in that subdirectory.  Copy the following files 
+  into the <kbd>content</kbd> sub-subdirectory:
+</p>
+
+<pre>
+    tinderstatusOverlay.xul
+    tinderstatus.js
+    tinderstatus.css
+    tb-busted.png
+    tb-nostatus.png
+    tb-success.png
+    tb-testfailed.png
+</pre>
+
+<p>
+  These are the files we're going to put into the XPI.  We need to change 
+  some URLs in the copy of tinderstatusOverlay.xul to point to the new locations
+  the files will be in when they get installed via the XPI:
+</p>
+
+<pre class="code">
+  &lt;?xml version="1.0"?&gt;
+
+  &lt;?xml-stylesheet
+          href="<span class="changed">chrome://tinderstatus/content/tinderstatus.css</span>"
+          type="text/css"?&gt; 
+
+  &lt;overlay id="tinderstatusOverlay" 
+          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"&gt;
+
+    &lt;script type="application/x-javascript"
+            src="<span class="changed">chrome://tinderstatus/content/tinderstatus.js</span>" /&gt;
+
+    &lt;statusbar id="status-bar"&gt;
+      &lt;statusbarpanel class="statusbarpanel-iconic"
+              id="tinderbox-status"
+              insertbefore="offline-status"
+              status="none"/&gt;
+    &lt;/statusbar&gt; 
+
+  &lt;/overlay&gt;
+</pre>
+
+<p>
+  We also need to change the URLs in the copy of tinderstatus.css:
+</p>
+
+<pre class="code">
+  statusbarpanel#tinderbox-status {
+    list-style-image: url("<span class="changed">chrome://tinderstatus/content/tb-nostatus.png</span>");
+  }
+
+  statusbarpanel#tinderbox-status[status="success"] {
+    list-style-image: url("<span class="changed">chrome://tinderstatus/content/tb-success.png</span>");
+  }
+
+  statusbarpanel#tinderbox-status[status="testfailed"] {
+    list-style-image: url("<span class="changed">chrome://tinderstatus/content/tb-testfailed.png</span>");
+  }
+
+  statusbarpanel#tinderbox-status[status="busted"] {
+    list-style-image: url("<span class="changed">chrome://tinderstatus/content/tb-busted.png</span>");
+  }
+</pre>
+
+<p>
+  Then we need to create two files in the directory, one called contents.rdf
+  which contains information for the chrome registry about the component 
+  being installed and one called install.js that contains the code to install 
+  the component.  contents.rdf goes in the <kbd>content</kbd> sub-subdirectory:
+</p>
+
+<pre class="code">
+  &lt;?xml version="1.0"?&gt; 
+  &lt;RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+              xmlns:chrome="http://www.mozilla.org/rdf/chrome#"&gt; 
+
+    &lt;RDF:Seq about="urn:mozilla:package:root"&gt; 
+      &lt;RDF:li resource="urn:mozilla:package:tinderstatus"/&gt; 
+    &lt;/RDF:Seq&gt; 
+
+    &lt;RDF:Description about="urn:mozilla:package:tinderstatus" 
+          chrome:displayName="Mozilla Tinderstatus Extension" 
+          chrome:author="Myk Melez" 
+          chrome:name="tinderstatus"
+          chrome:extension="true"
+          chrome:description="Displays tinderbox status for the Mozilla codebase."&gt; 
+    &lt;/RDF:Description&gt;
+
+    &lt;RDF:Seq about="urn:mozilla:overlays"&gt;
+      &lt;RDF:li resource="chrome://navigator/content/navigator.xul"/&gt;
+    &lt;/RDF:Seq&gt;
+
+    &lt;RDF:Seq about="chrome://navigator/content/navigator.xul"&gt;
+      &lt;RDF:li&gt;chrome://tinderstatus/content/tinderstatusOverlay.xul&lt;/RDF:li&gt;
+    &lt;/RDF:Seq&gt;
+
+  &lt;/RDF:RDF&gt;
+</pre>
+
+<p>
+  install.js, on the other hand, goes into the tinderstatus-installer directory:
+</p>
+
+<pre class="code">
+  initInstall(
+          "Mozilla Tinderstatus Extension",
+          "/mozdev/tinderstatus",
+          "0.1");
+  var installDir = getFolder("Chrome","tinderstatus"); 
+  setPackageFolder(installDir);
+
+  addDirectory("tinderstatus");
+  registerChrome(
+          CONTENT | DELAYED_CHROME,
+          getFolder(installDir, "content"));
+  var result = performInstall();
+
+  if ( result != SUCCESS ) cancelInstall(result);
+</pre>
+
+<p>
+  Once all the files are in place, use your zip utility from within 
+  the tinderstatus-installer directory to create a ZIP archive called 
+  tinderstatus.xpi with install.js and the entire contents 
+  of the tinderstatus/ directory.  Make sure that file and directory
+  are on the top level of the archive.
+</p>
+
+<h2>Conclusion</h2>
+
+<p>
+  You now have a working Mozilla extension installer!  To test it, 
+  try installing the extension on a fresh copy of Mozilla by loading
+  the file in your Mozilla browser (this works whether you load it 
+  from the web or from your local hard drive via a "file:///" URL).
+  Mozilla will automatically detect that the file is an installer 
+  and ask you if you want to install the software.  Try installing 
+  the extension, restarting Mozilla, and see if it works.
+</p>
+
+<p>
+  If the version you created in this tutorial doesn't work, compare it
+  to <a href="tinderstatus.xpi">this working version</a> to help figure
+  out the problem.
+</p>
+
+<p>
+  Future directions for development of the tutorial and/or coursework:
+</p>
+
+<ol>
+  <li>
+    In addition to build status, Tinderbox also tells you if the CVS tree
+    is open or closed for check-ins.  How would you use JavaScript to determine
+    whether the tree is open or closed and CSS to style the icon accordingly?
+  </li>
+  <li>
+    Mozilla applications often store their CSS and image files in a separate 
+    "skin" subdirectory within the installation directory.  How would you modify
+    the XPI structure and installer script to install these files in that
+    subdirectory?
+  </li>
+  <li>
+    How could you modify the extension to load the Tinderbox page when you click
+    on the status icon?
+  </li>
+  <li>
+    Mozilla has a fourth UI layer--localized text--that wasn't discussed 
+    in the tutorial because there is no text to localize.  How could it 
+    be added to the extension if necessary?
+  </li>
+  <li>
+    Tinderbox actually keeps track of more than one codebase.  In particular,
+    it tracks both the main Mozilla codebase (the trunk) and a stable branch.
+    How could you modify tinderstatus to show the status of both the trunk
+    and the branch?
+  </li>
+  <li>
+    This extension can be installed into Netscape 7 without problems. 
+    Firefox has slightly different chrome registry requirements, so
+    you may need to modify the contents.rdf files. For example,
+    you need to change <code>chrome://navigator/content/navigator.xul</code>
+    to <code>chrome://browser/content/browser.xul</code>.
+</ol>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September 19,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/docs/tutorials/tinderstatus/index.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

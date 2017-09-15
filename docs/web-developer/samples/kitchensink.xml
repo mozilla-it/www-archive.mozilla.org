@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >
+
+<!--
+   ***** BEGIN LICENSE BLOCK *****
+   - Version: MPL 1.1/GPL 2.0/LGPL 2.1
+   -
+   - The contents of this file are subject to the Mozilla Public License Version
+   - 1.1 (the "License"); you may not use this file except in compliance with
+   - the License. You may obtain a copy of the License at
+   - http://www.mozilla.org/MPL/
+   -
+   - Software distributed under the License is distributed on an "AS IS" basis,
+   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+   - for the specific language governing rights and limitations under the
+   - License.
+   -
+   - The Original Code is Grey Hodge/jesus X HTML.
+   -
+   - The Initial Developer of the Original Code is
+   - Grey Hodge/jesus X.
+   - Portions created by the Initial Developer are Copyright (C) 2002
+   - the Initial Developer. All Rights Reserved.
+   -
+   - Contributor(s): Brian 'NeTDeMoN' Bober
+   - <http://www.geocities.com/netdemonz/>
+   -
+   - Alternatively, the contents of this file may be used under the terms of
+   - either the GNU General Public License Version 2 or later (the "GPL"), or
+   - the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+   - in which case the provisions of the GPL or the LGPL are applicable instead
+   - of those above. If you wish to allow use of your version of this file only
+   - under the terms of either the GPL or the LGPL, and not to allow others to
+   - use your version of this file under the terms of the MPL, indicate your
+   - decision by deleting the provisions above and replace them with the notice
+   - and other provisions required by the LGPL or the GPL. If you do not delete
+   - the provisions above, a recipient may use your version of this file under
+   - the terms of any one of the MPL, the GPL or the LGPL.
+   -
+   - ***** END LICENSE BLOCK ***** 
+--> 
+
+<!--
+ Bug: http://bugzilla.mozilla.org/show_bug.cgi?id=122411 
+ Sink ASCII Art by: Grey Hodge/jesus X
+ Javascript by: Brian Bober http://www.geocities.com/netdemonz/ 
+
+ This is 100% valid XHTML and CSS. We take fun seriously.
+-->
+
+<head>
+<title>The Kitchen Sink</title>
+<style type="text/css">
+<![CDATA[
+
+html {
+  background: white;
+  color: black;
+}
+
+#descMessage {
+  margin-top: 0.2em;
+  margin-left: 1em;
+  margin-bottom: 0.2em;
+  font-style: italic;
+  font-size: 2em;
+  color: blue;
+}
+
+#kitchenSink	{
+  font-size: 0.6em;
+  color: black;
+}
+
+]]>
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+// The following are the handles
+
+var handleBufferOff = new Array(
+"                  7ZWWi  ",
+"               MMM80a@MM ",
+"               M77MMrMM  ",
+"              MM MWrZ0   "
+);
+
+var handleBufferOn = new Array(
+"   iWWZ7                 ",
+"  MM@a08MMM              ",
+"   MMrMM77M              ",
+"    0ZrWM MM             "
+);
+
+// This is the repeated water segment
+
+var waterList = new Array(
+"oP0popo",
+"poPO0op",
+"0o0oopp",
+"oopPo0O",
+"0Oo000o",
+"O0oPp0p",
+"OooppoP" 
+);
+
+var waterBack = new Array();
+var preNode;
+var sinkAnimated = false;
+var waterNodes = new Array();
+var handleNodes = new Array();
+
+const flowTimeout = 30;
+var flowState = 0;  // 0 = none, 1 = starting, 2 = running, 3 = ending
+
+/* Use for effect of the head and tail of the water falling out of the
+   faucet as it turns on */
+
+var flowHead, flowTail; 
+var bufferPos = 0;
+
+/* The following function starts the display of the water in a fashion
+   that appears as if the head of the water is running from the faucet */
+
+function startFlow(section)
+{
+	if (section == 0)
+	{
+		// Make sure that we are ready to start the water
+		if (flowState != 0)
+		{
+			if (flowState < 3) return;
+			setTimeout("startFlow(" + section + ");", 100);
+			return;
+		}
+		flowHead = 0;
+		flowState = 1;
+	}
+	if (section != 7)
+	{
+		flowTail = section;
+		drawWater();
+		section++;
+		setTimeout("startFlow(" + section + ");", flowTimeout * 3);
+	}
+	else
+	{
+		flowState = 2;
+		flowHead = 0;
+		flowTail = 6;
+		doFlow();
+	}
+}
+
+/* The following function ends the display of the water in a fashion
+   that appears as the last tail of water is falling out of the faucet */
+function endFlow(section)
+{
+	if (section == 0)
+	{
+		if (flowState != 2)
+		{
+			if (flowState < 2 || flowState == 3) return;
+			setTimeout("endFlow(" + section + ");", 100);
+			return;
+		}
+		flowHead = 0;
+		flowState = 3;
+	}
+	if (section != 7)
+	{
+		var i;
+		for (i=0; i<7; i++)
+		{
+			var num = flowHead * 7 + i;
+			// Replace the sink text in span element
+			if (num < 38)
+				waterNodes[num].firstChild.nodeValue = waterBack[num];
+		}
+		flowHead = section;
+		drawWater();
+		section++;
+		setTimeout("endFlow(" + section + ");", flowTimeout * 3);
+	}
+	else
+	{
+		flowState = 0;
+		flowHead = 0;
+		flowTail = 0;
+	}
+}
+
+/* Normal water flow */
+
+function doFlow()
+{
+	if (flowState != 2) return;
+	drawWater();
+	setTimeout("doFlow();", flowTimeout);
+}
+
+/* Draws the water for the sink */
+
+function drawWater()
+{
+	var i,j;
+	for (i = flowHead; i <= flowTail; i++)
+	{
+		var counter;
+		for (j = 0; j < 7; j++)
+		{
+			var pos = bufferPos + j;
+			if (pos >= 7) pos = pos - 7;
+			var num = i*7 + j;
+			// Replace the span element's water text
+			if (num <= 4)	// The first 4 lines are thinner to show tapered water appearance
+				waterNodes[num].firstChild.replaceData(1,5,waterList[pos].slice(1,6));	
+			if (num < 38 && num > 4) // The remaining lines are normal width
+				waterNodes[num].firstChild.nodeValue =  waterList[pos];	
+		}		
+	}
+	bufferPos--;
+	if (bufferPos < 0) bufferPos = 6;
+}
+
+/* Called when you click on the handle */
+
+function triggerHandle()
+{
+	if (sinkAnimated == false) return;	// Has the presentation stopped yet?
+	toggleWater();
+}
+
+/* Flips the handle and calls functions to stop and start the water */
+
+function toggleWater()
+
+{
+
+	if (flowState != 2 && flowState != 0) return;	// Ignore if already doing something
+	var buffer;
+	if (flowState == 2) buffer = handleBufferOff;
+		else buffer = handleBufferOn;
+	var i;
+	//Replace handlePortion0 .. handlePortion3
+	for (i = 0; i <  buffer.length; i++)
+	{
+		handleNodes[i].firstChild.nodeValue = buffer[i]
+	}
+
+	if (flowState == 2) endFlow(0);
+		else startFlow(0);
+}
+
+var toggleCount = 0;
+
+/* This shows the demonstration for how to turn on and off the sink */
+
+function doPresentation(section)
+{
+	var i;
+	if (section == 0)
+	{
+		// Flip handle back and forth
+		if (toggleCount !=0 ) toggleWater();
+		if (toggleCount < 7) setTimeout("doPresentation(0);", 1000);
+			else setTimeout("doPresentation(1);", 500);
+		toggleCount++;
+	}
+	if (section == 1)
+	{
+		sinkAnimated = true;	// Now the user can flip the handle
+	}
+}
+
+/* Insert the span elements inside the <pre> */
+
+function insertSpan(textNode, pos, count)
+{
+	if (count <= 0 || pos < 0) return false;
+	var parentNode = textNode.parentNode;
+	var newNode;
+	textNode.splitText(pos+count);
+	if (pos > 0) newNode = textNode.splitText(pos);
+		else newNode = textNode;
+	var newSpanNode = document.createElementNS("http://www.w3.org/1999/xhtml","span");
+	parentNode.insertBefore(newSpanNode, newNode);
+	newSpanNode.appendChild(parentNode.removeChild(newNode));
+}	
+
+/* The following function splits up the text node into a group of text nodes.
+   It then adds <span> elements into some of them, so that the water can
+   be placed inside, changed, and removed when the sink is off. */
+
+function doLoad()
+{
+	preNode = document.getElementById("kitchenSink");
+	preNode.normalize();	// Make it only one text node
+	var textNodeItr = preNode.firstChild;
+	while(textNodeItr.length > 0)
+	{
+		var oldNode = textNodeItr;
+		textNodeItr = textNodeItr.splitText(textNodeItr.data.indexOf('\n') + 1);
+		// Remove empty lines
+		if (oldNode.length <= 1) preNode.removeChild(oldNode);
+	}
+	var waterItr = preNode.firstChild;
+	var i;
+	for (i = 0; i < 13; i++)
+		waterItr = waterItr.nextSibling;
+	// Insert the spans for the handle, and the onclick handler
+	textNodeItr = preNode.firstChild;
+	for (i = 0; i < 4; i++)
+	{
+		var newItr = textNodeItr.nextSibling;
+		insertSpan(textNodeItr, 92, 25);
+		handleNodes[i] = textNodeItr.nextSibling;
+		// Modify the ID and onclick() handler
+		handleNodes[i].setAttribute("onclick", "triggerHandle();");
+		textNodeItr = newItr;
+	}
+	// Inser the spans for the water
+	for (i=0; i < 38; i++)
+	{
+		var newItr = waterItr.nextSibling;
+		insertSpan(waterItr, 105, 7);
+		waterNodes[i] = waterItr.nextSibling;
+		waterBack[i] = waterNodes[i].firstChild.data;
+		// Modify the ID
+		waterItr = newItr;
+	}
+	preNode.normalize(); // Merge consequtive text nodes
+	doPresentation(0);
+}
+
+
+]]>
+</script>
+
+</head>
+
+<body onload="doLoad();">
+<p id="descMessage">
+And the kitchen sink, too...	
+</p>
+<pre id="kitchenSink">
+                                                                                                              7ZWWi                                                                                   
+                                                                                                           MMM80a@MM                                                                                  
+                                                                                                           M77MMrMM                                                                                   
+                                                                                                          MM MWrZ0                                                                                    
+                                                                                                   MMMMMaMM,                                                                                         
+                                                                                                rM87:;i0Mi7@                                                                                          
+                                                                                               MiaBBiMi0iZW                              0MX                                                          
+                                                                                               BM MMB2WZM B                            @MX 2B.                                                        
+                                                                                                MMM  aaM SiSWaZ                       MSM8   M                                                        
+                                                                                                XMWZZ2WMM SM M ;                     XMM@M0MMM                                                        
+                                                                                                :MM8W2MMSMMMZMMM                      0MM0.MMMa                                                       
+                                                                                                rMr MMMX  MM 7M7                        . M; MXB                                                      
+                                                                                                M,@:MW    MMMMM                           MM.MS                                                       
+                                                                                                MXMM@  .@MM                               MM2XM                                                       
+                                                                                                MrMM MM.WM                                 M  MM                                                      
+                                                                                                MSW7 rM M                                  MM MM                                                      
+                                                                                     .,rXXXXXXi;MX0@ZMWWM8ZBBB0BWMMMMMMMMMWW@@@@MM@0ZZa8BM8MM MWMMMMMBa2222SSSX7i                                     
+                                           0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWBZa2SSX r7XW8@rB2.i;;i2MozillaXXa8WMB2X2aaZZ80B0ZaSSM2XM02aZ0WWW@@@MMMMMMMMMM                                 
+                                         MMM@S;:..              ..,,,::::,.ZBZr            .:ir;MMMM8M8Z@0W0Z2ZX:. ::,,:  .:78@i7rXXXXXXrZZ 7M W 2WrXSSS2ZaS777XX;rMMM                                
+                                       MM2.i;;7XSXXXXXXXXXXXXXXXX77r7rrrr;W.     i7ZWWMMMMMWBBM8X:            ;X@@BMM8MM0a    M;XSSXSSSSXZ 0MMMM  MMSa2222ZZZa27XaSrWMM                               
+                                      MMirS77S2SSSSSXXXXXXXXXXXXXXXXXXXXX7aWrMMMMMMMM0ZWWa,       irSBS7XXi   X28Z80WW00@MMMMMar7r77XXXSX28M0, MM0M7rXS2222a2222XSaXrMMM                              
+                                     MMi7X7XSSXXXXXXX77rrr;;rrrr7r7XXXXX77r7aWBB@MM0BW@WWMMM@W@MW00a7Foo;;2BBar,:;XBaz00W28ZXa0WWW00BBBWBZ0M.ZM027X2aZ27rr7XSaaa2SSaXrMMB                             
+                                    MWi7X7XXXSX7XXSZBMMMMMMMMM@@WW0B000088Z2Srii.:::i,..,.,::::,,,,           .                              . .,i,  .;a808S;r7X22SS277MM;                            
+                                  2Mai7X7XXSSZ0WB82i                           ..     ..                               . ..,:iiiiii;;;;;;;;;;;rr7.     .  .XZ82;r722XSX7MM:                           
+                                 MMX;XX7XXXaS,          ,;r77X77SSXXXXXXXXX777777X7X7r;;;;;;;;ii;i;;;;;;;;;i:,,,::::::::::::::,:::iiiii;;;;;;i;ii.  WMMMM@27i..87i722XSr7MM                           
+                                MM;;XXXXX7r   ,2MMMW0; .r7rr;;7777rrr;;;;rrrrrrr;;iii;ii:i::i::i:::,,,,,..  . ...,,,,,,,,,,,,,,,:::::::ii;;;i;r;;;  2ZZZ8828@B2Za;:r22SSrXMM                          
+                               MMirXXXX7rrS28@BZBZa22X ;r;ii;7rrr;;;;;;rrr;;;r;rr;iiiiiii::i::::,,,,,,,,,..      .............,,,,:::::::iiiiiiiii  Z88888r8BWBB02ii7aSXXr7MM                         
+                              MMi7XXXX7r70M0WW0r808aX2 .rr;;rrrr;;;;;;;rrrrrrrr;;;;i;iiii:::::,:,,:,,,,,:,,.  ................,,,,,,,::::iiiii;;;; ;0B0808700000WWr,,XaS7XiaMM                        
+                             M0;7XXXX7r7a00ZWBBSaWWB20  ;iiiiiiii;iiiiiii;;;;;;iii:iii:,,,:,,,,.........,,,,. ..         .....: ......,,,,,,::::,  ;ZBB80aSBB000BM8;.:SaXrr:8MM                       
+                           7MS;XXXXX7rrZ88BBBB0ZrWBW7Zi .:,i::::::::iii:iiiiii;iiiiiiii::::,:,,:,,,,,,,,,,,,   ................... ......,...,i,.  ra8B8BSa00B0B8W@2; :aaXrr:8MM                      
+                          MM7rXXXX77r7Z0088B0W08,B0WSa7   .,,,:ii:iiiiiiiiiiii:i:iii:::::::,,,,.,:,,,,,..,,,.   .. . ...     ...   ., ..           ra88Z02Z00000BB@@2i ,Za7;;,WM0                     
+                         MM;rSXXXXX7XZ8ZZZa0BBZB7800aSX    ..,,:,.,,,:::iiiiiii;ii::::ii:::ii::i;iiiii::,,,..          . .....            ,.       XS0088X8000000B8082: i8a;;i MM7                    
+                        MMirXXXX7X7XZZZaZ8800B88aXB80XX      ,.,:,,:,,:::,:::::::,,,......,,,,:,,.,,.         .........   ,.......,::...:          SZB088S88B080Z8ZZWZS. 78Zi:: MM                    
+                       MMirSXXXXX7XZaaa22ZZ8BB82WrZWBXa.    .,,,:,iiii;;;;;rr;i;iiiiiiii::::::,,,.,,.   ..,..,:,.      ,::iiiiiiiii:,,,,,....     .2ZB00Za88000BZ8ZZWWZX  S8aii. MM                   
+                      M8i7SSXSXXXXZ2aZ222aaZZ00ZBSZ00XX,  :::,,::iiii:ii:iiii;r7SZaZ80BBBWZXXSS2ZaaaaaS27r;;;;irSa8888Za2Sr;;;;iiiiii;rr;;7Xrr;;  ,XS2aZXaZZ0880ZZaaXa8Zi .Z82;7,.MM                  
+                    iMX;XSXXX7XXSZ22Z2X22aaZZ8880aX00ZX2. :;r7Sa2aZaaZaa22aaZaa22ZZaZaa2SXri:ii,:.                 .i,ii;rrii;7r7X77X2222X;r77r.  ;ZZZ8Za8808ZZ888Zaa2Z82: ,Z0S:;,,MM                 
+                   0M7rXXSXSXX7S0aX2ZSS22aaaZ88880rZB8X                                                                                             ;28rraZaZZZZZZaa2aa8BS, :88X:i.iMM                
+                  MMirXSSSXXXX20SXrS2r7XXXS2aaaaa8SiZ8X                                                                                            .X2i:aa2aa22SX2SXXSXXBZS  r887ii.7MM               
+                 MM;7SSXSSXXXS8Sr;i77i;7XXSS2aZaaZ2. ,2S; rrXSa8BWWBBBBMWW@MM@WW@MMMMMMMMMMM@MMMMMMMM@MM@M@M@@@MMMMMMMMMMMM@@BMMMMM@M@MW8ZZZZaZa2Z2aZZSZ8Za2aaaSX22X777r70Zr..XZZi;;,SMM              
+                MM;XXaaSX7XXSZ7;r7rX2XSSXSSS2SXS22ZZXr2B@BWBBWWMMMM@@@MMMMMMMMM@MMMMWMM@BMMMMMMMMMMM@@WBZS77XXaZ0BWWWWB@@@@@WBWWBWWWB0@WB00B00BBZBWWWBBWB8ZaZ8ZZZaZaa22S7S02i ,2Zai;;.8MM             
+               MBi7X2SXXXXXXZXXSaaaaaaZZZaaaa2SS222a88ZZ27XS2a22SS2aZZZZZaaaZZZaaaaZ2ZaZ8ZZaS22SSXSSS22X222aa2a2SXXXSXSSXXSSXS22SSS222222aaaaZ0X,2Z880B0BB0ZZ008Z88ZZZZZaaaaa:.i2a2i7;.BMX            
+             .M8;XSSSXXXSSXZ22ZZZZ8ZZZZ8ZZ8ZZa2222SSaaaa2X7SS2SSSSSSSSSSSXSSXXXXXXXXXXXX77777r77XXXXrrr;77rr;;7777X7X7777777X7XXXXXXXXXXSaa22aar,S800008BZ8Z8Z80888Z88Z88ZZZ22.,raaX;7i.MMi           
+            aM2;XS2SSXX2XrZaaZZ88Z8aZZZZZZZZaa2XX7XXaa2X;:i7XXXXSSXXXXXXXXXSXXXX77XXXX77X77rr;r;;;;rii;rrr;;rrrrr;iii;;;;r;rrrrrr777777X7XXX7Xr. :28888aaaZZZZ00888ZZZZZZZ08aaX:irZZrr7, MM           
+           MMrrXXSXXXXSr7aZ88ZaZZZZZZZZZZ88ZaaX72X7XXXXi,  :i;;rXSXSXr777XXX77XX77777777SSSXr;rrr;;;iiiiii;;i:,:::i:iii;;ii;;;;i;;;;;rr;i;;;iii   :Saa22SS2Z88888Z888ZZZZZ888aar..Xaai;;,iMM          
+          MM;rX222SS22i7888888ZZZZZaZZZ8ZZaS2ZX72Xrr7r;.   ,irrrrrrrrrr7rrrrrrrr777rrr;;rrrr;iii;;;;;;iiii::i,::::ii::::::ii:::i::i,:::::,.. ..   .;7XSX7S2aZ0Z8088ZZZZZaaZZ002Zi::S8Zir;,iMM         
+         MMrrSS2SSSS2r70a8888ZZaZaZ2ZaZZaZ2ZSSX7r;i:,,. ,,.:i;ii;rrrr;;rrrrrrrrrrrrrrrr;;ii;;i;r;;;iii:iii:::,,:::,,,,:::i:i,,,:ii:,,,,,:,,..       ,;rrXXXSa08Z88ZZZZZZZZZZ8B8ZXii:a82:;;.XMM        
+        MMrrX2aaSSSSSXaZ88ZaaZZaZZZaZZZaZZa2XS77r;;;;;;irri:i;iiii;;rr7rrrr77r;;;;;;iii;i;;;;i;iiii;;;;;;r;;ii::::,.,:i;;i:i::,,,:.:,,,::,....      .iX7XS22a80Z8Z88ZZZZZZZaZ8r2Xi;:i82X:ri.2MM       
+       MB;7XaaS2SS2S77.Z8ZZZa2ZZZaaZaZZaZa22227r;ii;rXXX77i,iiiii;rr77777777777r;r;;;;;;ii::,,,:;;XXi;;ri:,...,::::iii:::..,.,::i::,.,:::,:ii;i:.   .:rrrXXX2ZB8ZZ8ZZZZaaaa2Z8X2;iri:7887:ri.ZM@      
+     SMZ;XSaa2SSSSSS7S2aaZZZ8ZZZaZZZZZaaZ2SSX7rXZXi:i;i:ii:r77rr;;7;ii::::::iirr;r;;i:i:iiiX2S7r;,.,,:,   ;Za7:iiii:,.........,.,,::,.:i::::i::i:,,,,;7rrXSS2SZBaa8ZZ88ZaZ880BZiii;ii.2Z8;ir:.8M0     
+    MMSrS22a22S222222SS22Z0aZZaZZZZZZZZa2XZSX7rii;;;iii::,ir;i;iiii:,,,:::::,,iii;;;ii::r2SS;;XX8W0Z28MMMMX   80X;ri,:i:ii;ii::,,,:, .,,....,,,,.., .,i;;rXS2ZBWB0BWWBWW@MM@Si.:i;;;r,iaaairX: MMS    
+   MM7rS22X7XSXS22SS2SSSXXa8BWBWBWWWW08Z2227;;iir;;;ri. . .,,:i;;iii:,::,,,,,.,,,::,iiX2X,:; rX2XXS80BaXZWMMM@;.0ZSSri. ..,.   .          ...      ,ir7XXXS2a8W@MWWWB8aX;,   ,ii;;;;;,rZZ2i;rr:.MM    
+  MM;XSS22SX72SSXSSSSS2XX7r;iiii;:i:i;rr7XXXSZZZZZa2aaZZZaa22SS22S2222aZaaa2aa22222SSXXr77XX77;;iii:.             .i:rSS22XSaaaaaZZZaZZ8ZZZZZ8Z8aX7ri,::..               ,:iiir;rr77X222rii;r;; .MM   
+ MMr7XSXSX2aSXSSXXXXXXXSXXXX777r7rrrrrrrrr7rr;rrrr;rr;rrr;7777rrrrrr7rrr;rrrrrrrrr;;;;r;rrrrrrrrii:::,...     :i:i;;;;;iiiiiii;r;;77777r;77XX77XX;r7rr77XSXS777XXXXXX7XXXXSSXXXXXXXX7r;i;;;r;;: .8MM  
+ M8SXrr;;7777XXXSS2aaa222222222222a2222aaaaaaa2aaaaaaaaZZaa222222SSSS22222SXSSXXXXXSXXSX77777r;;iiii,           ,ii;i;777XXX222SXX777XXXXXX7777riii:::,..........,,.......    .      ......    X02XMM 
+ M28MMMWB888088Z8Za2SSSSS22222aaaa22a2aa2a222a2aaaaaaaaaaaZZZaZZZZZZZZZZ8ZZZZ800B0BWBBBBBBB0088ZZaaaa2a7i.      ,7SS2aS2ZZ888ZZZZZ888088ZZZZ8ZZaS2SXX7XXXX7XXX7XXXX7rrX7rr7777777777rrrX7SaaWMMM87aMX 
+ 7MMMW088888aZZZZZZ88800ZZZZa2S2SS2a2XXXXXXXX77rr;;i;;;i::i:::::ii::,,,,....                                                                                   .  .;;;;r77777XXX7XS2aX22aSaaZZX0MMMM  
+    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM@@WWWB88880ZaZaS22S2XXX222XXXXSSSSS2a2aaaa2aaa222SXXS2aZ80BWW@MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMB    
+                                                  ...,,,,::ii:.,:::i::,::::iiiiirX777XMozillaXXrr7rrrrr;;;r;rr;;r;;;;iiiiii::::,,,........                                                            
+</pre>
+
+</body>
+</html>
+

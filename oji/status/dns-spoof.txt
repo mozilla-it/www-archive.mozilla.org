@@ -1,0 +1,70 @@
+Subject: A note about DNS Spoofing and the Java Plugin from Sun
+From: Stanley Ho
+
+Background:
+
+	Back in 1996, a security bug was found in Netscape Navigator and
+	Internet Explorer using DNS spoofing. To fix this security bug,
+	more rigorous security check were introduced into the security
+	manager. See http://java.sun.com/people/mrm/dns_spoofing.html
+	for more details.
+
+
+Problem:
+
+	Because of the rigorous security check, any Java
+	applets/applications will perform reverse DNS lookup for any
+	network connection in order to obtain both the IP address and
+	host name, to ensure that DNS spoofing does not take place. This
+	causes problems with client-side applets/applications.  Problems
+	occurr when the applet or application tries to connect to an
+	external server through a proxy.
+
+	Because the security check requires DNS lookup for the host
+	(external server in this case), any applets/applications
+	connecting to external hosts will try to resolve the external
+	hostname through the internal DNS servers. In most cases, this
+	will fail because most enterprise customers doesn't set up their
+	internal DNS server to resolve external host name. As a result,
+	this prevents any external (e.g. Internet) applets/applications
+	to work within the internal (e.g. Intranet) environment.
+
+	To workaround this issue, a Java property called "trustProxy"
+	was introduced into Java 1.1.x to disable this security
+	check. Therefore, customers enables this property will be able
+	to run external Java applets/applications through their proxy
+	server, but this will suffer from DNS spoofing.
+
+	Since this security check has a huge impact on Internet
+	customers, HotJava browser enables this "trustProxy" setting by
+	default, so their customers will be able to run applets on the
+	Internet.
+
+	On the other hand, Java Plug-in doesn't enable this property by
+	default, so customers had hard time running any external applets
+	through Java Plug-in, and it actually reduces the presence of
+	Java Plug-in on the Internet to near zero. As a result, almost
+	all Java Plug-in customers are deploying applets internally, so
+	they will not suffer from this DNS Spoofing security check.
+
+How to work around the DNS spoofing problem:
+
+Method 1, on WINNT:
+
+  Add an entry to the  C:\WINNT\System32\drivers\etc\HOSTS file like this:
+
+  209.24.185.109 www.prometheus-music.com
+
+  # etc.
+
+Method 2, cross platform:
+
+  Add an entry to the $JDKHOME/lib/security/java.policy
+
+  grant
+  {
+   permission java.security.AllPermission;
+  }
+
+ This method opens up a huge gaping security hole, however.
+

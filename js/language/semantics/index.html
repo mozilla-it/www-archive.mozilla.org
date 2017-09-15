@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>Formal JavaScript Semantics</TITLE>
+<LINK rel=stylesheet href="../styles.css">
+<LINK rel=Next href="lexer.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=TOP nowrap>
+      <DIV class=title1><SPAN class=top-title>Formal JavaScript Semantics</SPAN></DIV>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT>
+      <A href="../index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="lexer.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+
+<P class=mod-date>Thursday, February 8, 2001</P>
+
+<H2>Introduction</H2>
+
+<P>The current ECMAScript semantics are written informally and contain many amgibuities and errors. In addition, while experimenting
+with new language features it is difficult to modify the informal semantics and be assured that the result remains self-consistent
+and still behaves as expected. In an attempt to remedy these problems, <A href="mailto:waldemar@netscape.com">waldemar</A>
+is writing formal semantics for JavaScript together with an engine that can:</P>
+
+<UL>
+  <LI>pretty-print the semantics for human readability</LI>
+  <LI>grammar-check the semantics to make sure that the grammar is unambiguous</LI>
+  <LI>type-check the semantics to make sure that the rules are self-consistent</LI>
+  <LI>execute the semantics directly to check their behavior on sample JavaScript programs or verify against a test suite</LI>
+</UL>
+<H2>Status</H2>
+
+<P>The current semantics cover the lexer and most of expression handling:</P>
+
+<!--CONTENTS--><DL>
+  <DD><A href="lexer.html">Lexer semantics</A> (<A href="lexer.rtf">Word 98 rtf</A>) as a finite-state machine</DD>
+  <DD><A href="grammar.html">Expression semantics</A> (<A href="grammar.rtf">Word 98 rtf</A>) as a LR(1) grammar</DD>
+</DL><!--/CONTENTS-->
+
+<P>These are a work in progress. The files are in automatically generated Word RTF format and should be read by Word 97 or
+98 (HTML support in current browsers is inadequate to express these). The code that generated and can execute those is in
+the CVS tree at <A href="http://lxr.mozilla.org/mozilla/source/js2/semantics"><TT>mozilla/js2/semantics</TT></A>.</P>
+
+<H3>Notes</H3>
+
+<P>There is no documentation (yet) for the notation, but most of it should be self-explanatory.</P>
+
+<P>Type expressions are in <SPAN class=type-expression>red</SPAN>. <SPAN class=domain-name>Integer</SPAN> and <SPAN class=domain-name>Rational</SPAN>
+represent infinite sets of mathematical integers or rational numbers, respectively.</P>
+
+<P><SPAN class=semantic-keyword>letexc</SPAN> is a version of <SPAN class=semantic-keyword>let</SPAN> that immediately propagates
+an exception if it receives one; if it receives a regular value, it works like <SPAN class=semantic-keyword>let</SPAN>.</P>
+
+<H3>Grammar syntax</H3>
+
+<P>Grammar productions may expand nonterminals into empty right sides. Such right sides are indicated as &#171;empty&#187;.</P>
+
+<P>A number of rules in the grammar occur in groups of analogous rules. Rather than list them individually, these groups have
+been summarized using the shorthand illustrated by the example below:</P>
+
+<P>Statements such as</P>
+
+<DIV class=grammar-argument><SPAN class=nonterminal><SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_alpha)</SCRIPT></SPAN></SPAN>&nbsp;
+  <SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>
+  &nbsp;{<SPAN class=nonterminal><SPAN class=nonterminal-attribute>normal</SPAN></SPAN>,&nbsp;<SPAN class=nonterminal><SPAN class=nonterminal-attribute>initial</SPAN></SPAN>}</DIV>
+<DIV class=grammar-argument><SPAN class=nonterminal><SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SPAN></SPAN>&nbsp;
+  <SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>
+  &nbsp;{<SPAN class=nonterminal><SPAN class=nonterminal-attribute>allowIn</SPAN></SPAN>,&nbsp;<SPAN class=nonterminal><SPAN class=nonterminal-attribute>noIn</SPAN></SPAN>}</DIV>
+<P>introduce grammar arguments <SPAN class=nonterminal><SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_alpha)</SCRIPT></SPAN></SPAN> and <SPAN class=nonterminal><SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SPAN></SPAN>. If these arguments later parametrize the nonterminal on the left side of a rule, that
+rule is implicitly replicated into a set of rules in each of which a grammar argument is consistently substituted by one of
+its variants. For example,</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_alpha)</SCRIPT></SPAN>,<SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SPAN></SUP></SPAN>&nbsp;
+    <SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>
+  </DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>ConditionalExpression<SUP><SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_alpha)</SCRIPT></SPAN>,<SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_alpha)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_alpha)</SCRIPT></SUP></SPAN>&nbsp;<SPAN class=nonterminal>CompoundAssignment</SPAN>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SPAN></SUP></SPAN></DIV>
+</DIV>
+<P>expands into the following four rules:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN>&nbsp;
+    <SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>
+  </DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>ConditionalExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-attribute>normal</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-attribute>normal</SUP></SPAN>&nbsp;<SPAN class=nonterminal>CompoundAssignment</SPAN>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>noIn</SPAN></SUP></SPAN>&nbsp;
+    <SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>
+  </DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>ConditionalExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>noIn</SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-attribute>normal</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>noIn</SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-attribute>normal</SUP></SPAN>&nbsp;<SPAN class=nonterminal>CompoundAssignment</SPAN>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>noIn</SPAN></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>initial</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN>&nbsp;
+    <SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>
+  </DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>ConditionalExpression<SUP><SPAN class=nonterminal-attribute>initial</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-attribute>initial</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-attribute>initial</SUP></SPAN>&nbsp;<SPAN class=nonterminal>CompoundAssignment</SPAN>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>initial</SPAN>,<SPAN class=nonterminal-attribute>noIn</SPAN></SUP></SPAN>&nbsp;
+    <SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>
+  </DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>ConditionalExpression<SUP><SPAN class=nonterminal-attribute>initial</SPAN>,<SPAN class=nonterminal-attribute>noIn</SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-attribute>initial</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>noIn</SPAN></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>LeftSideExpression<SUP class=nonterminal-attribute>initial</SUP></SPAN>&nbsp;<SPAN class=nonterminal>CompoundAssignment</SPAN>&nbsp;<SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>noIn</SPAN></SUP></SPAN></DIV>
+</DIV>
+<P><SPAN class=nonterminal>AssignmentExpression<SUP><SPAN class=nonterminal-attribute>normal</SPAN>,<SPAN class=nonterminal-attribute>allowIn</SPAN></SUP></SPAN> is now an unparametrized nonterminal and processed normally by the
+grammar.</P>
+
+<P>Some of the expanded rules (such as the fourth one in the example above) may be unreachable from the starting nonterminal;
+these are ignored.</P>
+
+
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Thursday, February 8, 2001</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="../index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="lexer.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

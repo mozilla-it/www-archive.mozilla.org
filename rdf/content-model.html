@@ -1,0 +1,710 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+   <title>rdf: on making a content model from a graph</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<center>
+<h1>rdf: on making a content model from a graph</h1>
+</center>
+
+Contact:
+<a href="mailto:waterson@netscape.com">Chris Waterson</a> (waterson@netscape.com)<br>
+Last Updated: 04-December-1998
+
+<h2>Overview</h2>
+
+<ul>
+<p>
+A good first place to start is, <i>why</i>? Specifically, <i>why
+convert an RDF graph to a tree-like content model</i>? The motivation
+for doing this is very pragmatic:
+</p>
+
+<ul>
+<p>
+We need to convert an RDF graph into an NGLayout content model in
+order to display the RDF content in the NGLayout viewer, or any of the
+XPFE components that are based on the NGLayout content model (e.g.,
+the tree control and the toolbars).
+</p>
+</ul>
+
+<p>
+This document discusses some of the issues surrounding integration of
+the RDF graph with the NGLayout content model. Specifically, it
+discusses different generic mechanisms for converting an RDF graph
+into a tree structure. It ends with a "call for suggestions":
+recommendations as to what heuristics may be useful in constructing a
+content model from arbitrary RDF.
+</p>
+
+</ul>
+
+<h2>Why Converting RDF to a Content Model is Hard</h2>
+
+<ul>
+<p>
+The primary problem that we face when trying to convert an RDF graph
+into a content model is that the notion of "node-hood" differs between
+the two structures.
+</p>
+
+<p>
+A node in the RDF graph is extremely simple: it has a <i>label</i> (or
+<i>value</i>). Each of the node's properties is represented by a
+labeled arc that leads out of the node. Each arc points to another
+node, which itself has a label and its own have property arcs <i>ad
+infinitum</i>.
+</p>
+
+<p>
+A node in the NGLayout content model is more complicated. In the
+content tree, a node has a <i>tag</i>: this corresponds exactly to an
+RDF node's label. A node also has <i>attributes</i>, which are
+property/value pairs. Finally, a node may have children, which are
+themselves nodes. <i>[N.B., this isn't quite complete: what about text
+nodes? They don't have a tag, do they? This'll crop up later
+on...]</i>
+</p>
+
+<p>
+As you'll see below, there is no <i>a priori</i> reason to believe
+that there should or could be a single direct transformation from an
+RDF graph to a tree content model. It could be done in a number of
+interesting ways, and ideally, should be done <i>stylistically</i>
+using
+
+<a href="http://www.w3.org/Style/XSL/">XSL</a>,
+
+for example.
+</p>
+
+<p>
+That said, we need something <i>today</i> to get up and running. The
+good news is that this <i>isn't</i> a throw-away exercise: XSL works
+on a tree-like content model, not on raw RDF. The XSL style system
+will need a "bootstrap" content model from which to begin
+transformations: hopefully that's what we'll figure out how to do
+here.
+</p>
+</ul>
+
+<h3>Why We Need a Generic Algorithm</h3>
+
+<ul>
+<p>
+Certainly, one way to go about this endeavor would be to create a
+customized graph-to-content model conversion algorithm for each type
+of RDF graph that we encounter. As you may have guessed, I believe
+that this is <i>the wrong thing to do</i>.
+</p>
+
+<p>
+Specifically, I believe that writing custom graph-to-content model
+algorithms is the wrong thing to do because it doesn't scale. If you
+have <i>m</i> data source graphs, and <i>n</i> content models, you'll
+need <i>m</i> x <i>n</i> graph-to-content model implementations!
+That's a lot of typing.
+</p>
+</ul>
+
+<h2>The First Cut: <tt>GRAPH-TO-TREE</tt></h2>
+
+<ul>
+<p>
+I'd like to propose the following algorithm, called
+<tt>GRAPH-TO-TREE</tt>, as a starting point for recursively converting
+an RDF graph into an NGLayout content model.
+</p>
+
+<ul>
+
+<p>
+<b><tt>GRAPH-TO-TREE</tt></b>. An individual node <i>u</i> in the
+RDF graph is converted to a node <i>c</i> in the content tree using
+the following steps.
+</p>
+
+<ol>
+<li>
+Make <i>c</i>'s tag be <i>u</i>'s label.
+</li>
+
+<li>
+For each property arc </i>p</i> that leads out of <i>u</i> to another
+RDF node <i>v</i>, <b>either</b>
+
+<ol type="I">
+<li>
+Add an attribute/value pair to <i>c</i>, such that <i>p</i> =
+<i>v</i>.
+</li>
+
+<li>
+Recursively construct a node <i>c<sub>0</sub></i> in the content tree
+such that <i>c<sub>0</sub></i> corresponds to <i>v</i>, and make
+<i>c<sub>0</sub></i> a direct descendant of <i>c</i>.
+</li>
+
+<li>
+Construct a node <i>c<sub>0</sub></i> in the content tree such that
+<i>c<sub>0</sub></i> corresponds to <i>p</i>. Make
+<i>c<sub>0</sub></i> a direct descendant of <i>c</i>. Then recursively
+construct a node <i>c<sub>1</sub></i> in the content tree such that
+<i>c<sub>1</sub></i> corresponds to <i>v</i>, and make
+<i>c<sub>1</sub></i> a direct descendant of <i>c<sub>0</sub></i>.
+</li>
+</ol>
+
+</ol>
+</ul>
+
+<p>
+In short, <tt>GRAPH-TO-TREE</tt> recursively descends the RDF graph,
+non-deterministically choosing how to transform each property into a
+corresponding structure in the content model.
+</p>
+
+<p>
+It is worthwhile to note that this algorithm can be performed lazily.
+Because it can generate the content model from any individual node in
+the RDF graph "on demand", we need not traverse the entire graph to
+construct a content model. In fact, we can construct the content model
+<i>incrementally</i> as the content viewer needs it.
+</p>
+</ul>
+
+<h3>Example</h3>
+
+<ul>
+<p>
+To make this a bit clearer, let's look at what each of the three
+different transformations in step 2 would construct given the
+following RDF/XML document. Assume this is contained in the document
+<tt>x.rdf</tt>.
+</p>
+
+<ul>
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;RDF:RDF xmlns:RDF="http://www.w3.org/TR/WD-rdf-syntax"
+         xmlns:NS="http://somecompany.com/RDF#"&gt;
+&lt;RDF:Description RDF:ID="#foo"&gt;
+  &lt;NS:title&gt;babulach&lt;/NS:title&gt;
+  &lt;NS:pointer&gt;
+    &lt;RDF:Description RDF:ID="#bar"&gt;
+      &lt;NS:title&gt;bilch&lt;/NS:title&gt;
+    &lt;/RDF:Description&gt;
+  &lt;/NS:pointer&gt;
+&lt;/RDF:Description&gt;
+&lt;/RDF:RDF&gt;
+</pre>
+</ul>
+
+<p>
+The graph for the above fragment looks as follows:
+</p>
+
+<ul>
+<pre>
+(x.rdf#foo)
+    |
+    +-----[NS:title]---&gt;("babulach")
+    |
+    +----[NS:pointer]--&gt;(x.rdf#bar)--+
+                                     |
+    ("bilch")&lt;-----[NS:title]-----+
+</pre>
+</ul>
+
+<p>
+If we were to exclusively apply transformation <b>(I)</b> to the
+graph, the XML-serialized version of the content model would appear
+like this:
+</p>
+
+<ul>
+<pre>
+&lt;foo title="Title#1" pointer="x.rdf#bar"/&gt;
+</pre>
+</ul>
+
+<p>
+If we were to exclusively apply transformation <b>(II)</b> to the
+graph, the XML-serialized version of the content model would appear
+like this:
+</p>
+
+<ul>
+<pre>
+&lt;foo&gt;
+  babulach
+  &lt;bar&gt;bilch&lt;/bar&gt;
+&lt;/foo&gt;
+</pre>
+</ul>
+
+<p>
+Finally, if we were to exclusively apply transformation <b>(III)</b> to
+the graph, the XML-serialized version of the content model would
+appear like this:
+</p>
+
+<ul>
+<pre>
+&lt;foo&gt;
+  &lt;title&gt;&lt;babulach/&gt;&lt;/title&gt;
+  &lt;pointer&gt;
+    &lt;bar&gt;
+      &lt;title&gt;&lt;bilch/&gt;&lt;/title&gt;
+    &lt;/bar&gt;
+  &lt;/pointer&gt;
+&lt;/foo&gt;
+</pre>
+</ul>
+
+</ul>
+
+<h2>Which Transformation is "Right"?</h2>
+
+<ul>
+<p>
+The big headache here is that, in step 2 of <tt>GRAPH-TO-TREE</tt>,
+you have to choose between three alternatives. Not just on a
+node-by-node basis, but on a <i>property-by-property</i> basis!
+</p>
+
+</ul>
+
+<h3>Do 'em all!</h3>
+
+<ul>
+<p>
+None of the transformations are mutually exclusive, so one solution is
+to simply whack <i>all</i> (or, at least, more than one) of the
+transformations into the content model.
+</p>
+
+<p>
+For example, combining <b>(I)</b> and <b>(III)</b> on our above example
+would yield the following XML-serialized representation:
+</p>
+
+<ul>
+<pre>
+&lt;foo title="Title#1" pointer="x.rdf#bar"&gt;
+  &lt;title&gt;&lt;babulach/&gt;&lt;/title&gt;
+  &lt;pointer&gt;
+    &lt;bar&gt;
+      &lt;title&gt;&lt;bilch/&gt;&lt;/title&gt;
+    &lt;/bar&gt;
+  &lt;/pointer&gt;
+&lt;/foo&gt;
+</pre>
+</ul>
+
+<p>
+As you can see, this leads to redundancy, and potentially places a
+heavy burden on the down-stream consumer (e.g., the CSS style sheet
+writer) to exclude content that he or she isn't interested in.
+
+</ul>
+
+<h3>Heuristics</h3>
+
+<ul>
+<p>
+There are several domain-independent heuristics to <i>guess</i> which
+transformation would be right.
+</p>
+
+<ul>
+<p>
+<b><i>RDF collections</i></b>. If we encounter an RDF collection node
+(e.g., <tt>rdf:Bag</tt>), we can safely assume that we need <i>not</i>
+add the collection items as attribute/value pairs using transformation
+<b>(I)</b>. We can also probably assume that, by simply enforcing the
+order of the collection items in the (implicitly-ordered) content
+model, that transformation <b>(III)</b> is excessive. So simply using
+<b>(II)</b> for the collection items should be sufficient.
+</p>
+
+<p>
+For example, the following RDF/XML,
+</p>
+
+<ul>
+<pre>
+&lt;RDF:Bag ID="#foo"&gt;
+  &lt;RDF:li&gt;Big Judy&lt;/RDF:li&gt;
+  &lt;RDF:li&gt;Bad Judy&lt;/RDF:li&gt;
+  &lt;RDF:li&gt;Boo Judy&lt;/RDF:li&gt;
+&lt;/RDF:Bag&gt;
+</pre>
+</ul>
+
+<p>
+yields the below graph:
+</p>
+
+<ul>
+<pre>
+(foo.rdf#foo) --[RDF:instanceOf]--&gt; (RDF:bag)
+    |
+    +--[RDF:_1]--&gt;("Big Judy")
+    |
+    +--[RDF:_2]--&gt;("Bad Judy")
+    |
+    +--[RDF:_3]--&gt;("Boo Judy")
+</pre>
+</ul>
+
+Using transformation <b>(II)</b>, we'd get a content model like the
+following:
+
+<ul>
+<pre>
+&lt;foo&gt;
+Big Judy
+Bad Judy
+Boo Judy
+&lt;/foo&gt;
+</pre>
+</ul>
+
+<p>
+Unfortunately, this is a little bit unnatural: "Big Judy", "Bad Judy",
+and "Boo Judy" would all be individual text nodes in the content
+model. The serialization doesn't adequately illustrate this, as they'd
+all be "lumped" together into a single node were we to write this out
+as XML and then immediately read it back in. It works a bit better
+when the items in the collection are themselves resources.
+</p>
+
+<p>
+<b><i>Resources vs. literals</i></b>. We can examine the node at the
+<i>end</i> of an arc and determine whether it is a <i>resource</i>
+(which may itself have properties), or a simple <i>literal</i> (which
+must be a leaf node). For a resource, we can ignore transformation
+<b>(I)</b>, which would create an attribute/value pair. We can do this
+because it is fairly safe to make the assumption that the resource is
+a "first class object" that needs its own element in the content
+model.
+</p>
+
+<p>
+A simple literal probably would lead to use either <b>(I)</b>
+(creating an attribute/value pair), or <b>(III)</b> (creating an
+explicit element with a simple value). Use of <b>(II)</b> is somewhat
+ambiguous, because it assigns the value of the literal to the parent
+tag: more than one literal property would create concatenated,
+non-sensical text; e.g.,
+</p>
+
+<ul>
+<pre>
+&lt;RDF:Description RDF:ID="#foo"
+         NS:prop1="hey"
+         NS:prop2="garth"/&gt;
+</pre>
+</ul>
+
+<p>
+Would yield:
+</p>
+
+<ul>
+<pre>
+&lt;foo&gt;
+hey
+garth
+&lt;/foo&gt;
+</pre>
+</ul>
+
+<p>
+As you can see, "hey" and "garth" are indistinguishable.
+</p>
+
+</ul>
+
+</ul>
+
+<h3>Parameterized Hints</h3>
+
+<ul>
+<p>
+If we can parametrically provide some <i>hints</i> to
+<tt>GRAPH-TO-TREE</tt>, we may be able to constrain the problem.
+</p>
+
+<ul>
+<p>
+<i><b>Define a "Tree Property (or Properties)"</b></i>. We can
+explicitly <i>tell</i> <tt>GRAPH-TO-TREE</tt> which properties to
+apply transformations <b>(II)</b> or <b>(III)</b> to: call these the
+"tree properties". We will apply transformation <b>(I)</b> to all
+other properties: call these "normal" properties.
+</p>
+
+<p>
+For example, to display "bookmarks", we might tell
+<tt>GRAPH-TO-TREE</tt> that <tt>BM:Item</tt> and <tt>BM:Folder</tt>
+are tree properties. When <tt>GRAPH-TO-TREE</tt> encounters either of
+these properties, it will use either transformation <b>(II)</b> or
+transformation <b>(III)</b> to create a child element. Any other
+property will simply be constructed as an attribute/value pair.
+</p>
+
+<p>
+Unfortunately, we still need to choose between transformations
+<b>(II)</b> and <b>(III)</b>. In general, it's not clear which of
+these is appropriate.
+</p>
+
+<ul>
+<p>
+<font size="-1">
+<i>
+As a side note, Mozilla Classic used a highly constrained version of
+this solution: there was a single "tree property",
+</i><tt>RDF:child</tt><i>. This was used to represent all containment
+structure.
+</i>
+</font>
+</p>
+</ul>
+</ul>
+
+<p>
+Again, the key here is that these "hints" can be provided as
+<i>parameters</i> to <tt>GRAPH-TO-TREE</tt>. Remember our goal: one
+graph-to-content model conversion algorithm.
+</p>
+
+</ul>
+
+<h2>Hack-Alert! What's In There Now</h2>
+
+<ul>
+<p>
+You can (right now, today) view an RDF graph in HTML-like NGLayout
+document by applying CSS to it. The way to do this is to create an RDF
+file on your local hard drive (<tt>netlib</tt> will be able to tell
+it's an RDF file by it's file extension, <tt>.rdf</tt>).
+</p>
+
+<p>
+The content model is generated using a combination of some of the
+above mechanisms. Transform <b>(I)</b> is generously applied to any
+and all nodes, creating tons of attributes. For an RDF node <i>u</i>
+with property <i>p</i>, value <i>v</i>, a combination of
+transformation <b>(II)</b> and <b>(III)</b> are used. Specifically,
+transform <b>(III)</b> is <i>always</i> applied. If <i>v</i> is
+determined to be a literal (that is, <i>v</i> is not a URI), then
+transform <b>(II)</b> is also applied.
+</p>
+
+<p>
+To make this a bit more concrete, we'll look at what this does to our
+original example. Belew is the resulting XML-serialized content model
+that will be build if the sample RDF is read into NGLayout.
+</p>
+
+<ul>
+<pre>
+&lt;foo title="babulach" pointer="x.rdf#bar"&gt;
+  &lt;title&gt;babulach&lt;babulach/&gt;&lt;/title&gt;
+  &lt;pointer&gt;
+    &lt;bar title="bilch"&gt;
+      &lt;title&gt;bilch&lt;bilch/&gt;&lt;/title&gt;
+    &lt;/bar&gt;
+  &lt;/pointer&gt;
+&lt;/foo&gt;
+</pre>
+</ul>
+
+<p>
+You'll notice that differs distinctly from just applying <b>(III)</b>
+in that it actually creates a text node for "babulach" and
+"bilch". This is what actually makes something show up on the screen.
+</p>
+
+</ul>
+
+<h3>Demo</h3>
+
+<ul>
+<p>
+So you wanna see it for yourself, eh? Copy and past the sample code
+into a file, <tt>x.rdf</tt>. Fire up NGLayout and type in a
+<tt>file:</tt> URL to open the thing. You'll probably get something on
+your screen like:
+</p>
+
+<ul>
+bilchbabulach
+</ul>
+
+<p>
+So you're a CSS hack, right? Add a style sheet to it -- insert the
+following line immediately before the <tt>&lt;RDF:RDF&gt;</tt> tag:
+</p>
+
+<ul>
+<pre>
+&lt;?xml-stylesheet href="x.css" type="text/css"?&gt;
+</pre>
+</ul>
+
+<p>
+And create <tt>x.css</tt>, for example, as follows:
+</p>
+
+<ul>
+<pre>
+title {
+  display: block;
+  padding-left: 8pt;
+}
+pointer {
+  color: red;
+}
+</pre>
+</ul>
+
+<p>
+You should now start to see something a little more
+interesting:
+</p>
+
+<ul>
+<font color="red">bilch</font><br>
+babulach
+</ul>
+
+<p>
+Yeah, I know. It's backwards. It's a bug. Anyway, hack it. Let me know
+what's cool.
+</p>
+
+</ul>
+
+<h2>Waiting for Guffman...er, XSL</h2>
+
+<ul>
+<p>
+As you can see, this is a sticky, nasty problem. I can't wait for XSL
+to arrive, because it makes the problem belong to the content
+provider, not the core RDF engine.
+</p>
+
+<p>
+Until then, we're on our own. Suggestions and comments are
+welcome. Please post them to <a
+href="mailto:mozilla-rdf@mozilla.org"><i>mozilla-rdf@mozilla.org</i></a>,
+our little Mozilla RDF community.
+</p>
+</ul>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December  4,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/rdf/content-model.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

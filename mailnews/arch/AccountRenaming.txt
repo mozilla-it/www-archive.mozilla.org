@@ -1,0 +1,90 @@
+the revised "mscott" approach to fixing mozilla bug #14925
+feedback / comments to http://bugzilla.mozilla.org/show_bug.cgi?id=14295
+
+sspitzer@mozilla.org, cavin@netscape.com, bienvenu@netscape.com
+10/09/2001
+
+the "mscott" approach (the pop part was a clever idea from mscott)
+will allow the user to change the username / hostname and does not
+require the user to restart the app.
+
+here are the basics of the fix:
+
+a)  extend nsIMsgIncomingServer to have two new attributes:  
+    realHostName and realUsername.  like username and hostName,
+    those attributes are reflected into prefs.
+
+b)  the getters for those attributes will return the pref value 
+    (ex:  mail.server.server1.realHostName).  if the pref is not
+    set, it will call GetHostName().  the setter will only set the pref.
+
+c)  fix the account manager UI (am-server.xul) to use .realHostName and 
+    .realUsername.
+
+d)  leave all the code alone, except for the places where we actually go 
+    to send the username to the server, or open an connection.  
+    in those places, switch to use .realUsername and .realHostName
+
+e)  prevent the user from change an account to one that already exists
+
+f)  close all open connections
+    use nsIMsgIncomingServer's CloseCachedConnections()
+
+g)  clear any stored passwords in wallet 
+    use nsIMsgIncomingServer's forgetPassword()
+
+h)  change pretty name of account
+
+the pretty name shows up in the fcc pickers, the account manager tree
+and the folder pane.
+
+change pretty name of account in the way that all occurrences of old user
+and/or server names are replaced by the new user/server names (entered by
+the users).  For example, news account name "News on news.mcom.com" will
+become "News on news.mozilla.org" if the news server name is changed to
+"news.mozilla.org". Similarly, imap account name "IMAP - qatest20@nsmail-2"
+will become "IMAP - qatest33@nsmail-1" if the new user and server names are
+"qatest33" and "nsmail-1" respectively. Account name such as "My work account"
+will (most likely) stay the same because it does not contain any user and server
+specific names. 
+
+i)  if username or password are in memory anywhere (need to check, the might be in the incoming server implementations), we need to clear them out.
+
+<wasn't necessary, according to cavin>
+
+all internal uris (mailbox://username@hostname/Inbox) stay the same, 
+including the folder and copies prefs and the filter targets.
+
+all disk paths stay the same.  no files are copied or removed.  
+
+for pop, we don't want to lose any of the existing folders or filters
+
+for news, we don't want to lose the newsrc (and one day, the news filters)
+
+we'll unsubscribe to all the existing groups and then subscribe 
+back to them clean
+up the article numbers in the newsrc file (this is because the old and new
+servers may maintain different numbers for the same articles if both
+servers handle the same groups). 
+
+for imap, we don't want to lose the filters.
+
+++++++++
+details:
+++++++++
+
+a) fix am-server.xul
+   instead of server.username, put server.realUsername
+   also remove the disabled="true" (search for 14295 in am-server.xul)
+   once that is removed, you can use the UI to change the servername and hostname.
+
+b) do an LXR search on "GetHostName()" and ".hostname" (to cover the javascript cases) and figure out what needs to be 
+   left alone and what needs to be switched to GetRealHostName() and ".realHostName" (same with .username)
+
+c) fix it so when .realUsername or .realHostName are changed, we update pretty name for the account.
+
+d) cleanly close any open imap and nntp connections.  we don't keep pop connections open.
+
+e) prevent the user from changing an account to one that already exists.
+
+f) don't allow server name to be modified for AOL mail and Netscape Webmail accounts, and during offline. 

@@ -1,0 +1,261 @@
+#!/usr/bin/perl
+
+# "whosheriff" : figure out who's the sheriff for the Mozilla tree.
+# Copyright: standard Mozilla MPL/GPL dual license.
+# Author: Akkana Peck.
+
+# Here's the rule:
+# Mon
+#    Mail (Mscott)
+#    XML/DOM (Heikki)
+# Tue
+#    Embedding (Valeski)
+#    Necko, xpcom (Gagan)
+# Wed
+#    I18n (Frank Tang) / Plugins (Beard)
+#    Performance (Cathleen) + JavaScript (TheSteve)
+# Thu
+#    Install, Editor (Syd)
+#    Layout (Kevin McClusky)
+# Fri
+#    Browser (Pchen)
+#    Mozilla.org (Asa)
+
+
+# require 'Time/localtime.pm';
+use Time::localtime;
+use Time::Local;
+
+use Getopt::Long;
+#Getopt::Long::Configure("bundling");
+Getopt::Long::Configure("bundling_override");
+Getopt::Long::Configure("auto_abbrev");
+
+my ($progname) = $0 =~ /([^\/]+)$/;
+
+if ($progname =~ /mail/) {
+  $opt_m = 1;
+}
+
+sub Usage
+{
+  die "Usage: $progname [[-w|--week] [-d|--day dayofweeknum]] [-m monthnum] \
+                       [-mail-sheriff]\n";
+}
+
+&Usage if !&GetOptions('week' => \$opt_w, 'w' => \$opt_w,
+                       'day=i' => \$opt_d, 'd=i' => \$opt_d,
+                       'month=i' => \$opt_m, 'm=i' => \$opt_m,
+                       'year=i' => \$opt_y, 'y=i' => \$opt_y,
+                       'mail-sheriff' => \$opt_mail);
+
+my ($tt) = time();
+my ($lt) = localtime($tt);
+
+my($owner) = "akkana\@netscape.com";   # Mail author on errors
+my($group) = "Unknown";
+
+# Mail mode: send mail to people with upcoming sheriff responsibilities
+# Put in cron.daily with a name like "mailsheriff".
+if ($opt_mail)
+{
+  # Current plan: mail a reminder to today's sheriff and tomorrow's.
+
+  # Don't mail anything on weekends
+  if ($lt < 1 || $lt > 5) {
+    exit;
+  }
+
+  mailReminder($lt, "TODAY");
+
+  my ($when);
+  if ($lt->wday() == 5) {
+    $tt += 3*24*60*60;
+    $when = "next week";
+  } else {
+    $tt += 24*60*60;
+    $when = "tomorrow";
+  }
+  $lt = localtime($tt);
+  mailReminder($lt, $when);
+
+  exit;
+}
+
+if ($opt_d)
+{
+  $tt += 24*60*60 * ($opt_d - $lt->wday());
+  $lt = localtime($tt);
+}
+
+if ($opt_y)
+{
+  if ($opt_y > 1900) {
+    $opt_y -= 1900;
+  }
+  $tt = timelocal(0, 0, 0, $lt->mday(), $lt->mon(), $opt_y);
+}
+
+if ($opt_m)
+{
+  my($day) = 1;
+  while ($day < 31)
+  {
+    $tt = timelocal(0, 0, 0, $day, $opt_m-1, $lt->year());
+    $lt = localtime($tt);
+    printSheriff($lt);
+    if ($lt->wday() == 5) {
+      print("\n");
+      $day += 3;
+    }
+    else {
+      $day++;
+    }
+  }
+}
+
+if ($opt_w)
+{
+
+  # Special case for Fridays/weekends: show today plus all next week.
+  if ($lt->wday() >= 5)
+  {
+    printSheriff($lt);
+    # Skip ahead to Monday
+    $tt += 3*24*60*60;
+    $lt = localtime($tt);
+  }
+
+  while ($lt->wday() <= 5)
+  {
+    printSheriff($lt);
+    $tt += 24*60*60;
+    $lt = localtime($tt);
+  }
+}
+else
+{
+  printSheriff($lt);
+}
+
+sub mailReminder
+{
+  my ($today) = shift;
+  my ($when) = shift;
+
+  getSheriff($today);
+
+  $subject = "Reminder: sheriff duty " . $when;
+  $body = sprintf("%s has sheriff duty %s, %s, %d/%d/%d\n",
+	          $group, $when, day2str($today->wday()),
+	          $today->mon + 1, $today->mday, $today->year);
+  #$pid = open(MAILPROC, "| mail $owner -s '$subject'")
+  $pid = open(MAILPROC, "| Mail -I $owner")
+    or die "Couldn't start mail: $!\n";
+  # Count on mail prompting for subject,
+  # since perl won't let us send a -s with quotes around it.
+  print MAILPROC "~s $subject\n";
+  print MAILPROC "$body\n\n\n";
+  # The extra newlines were in case it prompted for cc or anything
+  close(MAILPROC);
+
+  #system("Mail $owner -s \"$subject\" $body\n";
+}
+
+sub printSheriff
+{
+  my ($today) = shift;    # Should be a Time:tm array
+  getSheriff($today);
+
+  printf("%s %d/%d/%d: Sheriff is %s (%s)\n",
+	 day2str($today->wday()), $today->mon + 1, $today->mday,
+	 $today->year + 1900,
+	 $group, $owner);
+}
+
+sub getSheriff
+{
+  my ($today) = shift;    # Should be a Time:tm array
+  my ($day) = $today->wday();
+  my ($year) = $today->year();
+  my ($week) = int($today->yday() / 7);
+
+  my($even) = 0;
+  if ($week % 2 == 0) {
+    $even = 1;
+  }
+
+  if ($day == 1) {
+    if ($even) {
+      $group = "XML/DOM";
+      $owner = "heikki\@netscape.com";
+    }
+    else {
+      $group = "Mail/News";
+      $owner = "mscott\@netscape.com";
+    }
+  }
+  elsif ($day == 2) {
+    if ($even) {
+      $group = "Necko, XPCOM";
+      $owner = "gagan\@netscape.com";
+    }
+    else {
+      $group = "Embedding";
+      $owner = "valeski\@netscape.com";
+    }
+  }
+  elsif ($day == 3) {
+    if ($even) {
+      $group = "I18n / Plugins";
+      $owner = "ftang\@netscape.com,beppe\@netscape.com";
+    }
+    else {
+      $group = "Performance / JS";
+      $owner = "cathleen\@netscape.com,thesteve\@netscape.com";
+    }
+  }
+  elsif ($day == 4) {
+    if ($even) {
+      $group = "Install, IM, Editor";
+      $owner = "syd\@netscape.com";
+    }
+    else {
+      $group = "Layout";
+      $owner = "kmcclusk\@netscape.com";
+    }
+  }
+  elsif ($day == 5) {
+    if ($even) {
+      $group = "Browser";
+      $owner = "sgehani\@netscape.com";
+    }
+    else {
+      $group = "mozilla.org";
+      $owner = "asa\@netscape.com";
+    }
+  }
+}
+
+# perl doesn't offer a way to convert a Time::tm struct
+# back to a string!  So we have to do our own formatting:
+sub day2str
+{
+  my($day) = shift;
+  if ($day == 1) {
+    return "Mon";
+  } elsif ($day == 2) {
+    return "Tue";
+  } elsif ($day == 3) {
+    return "Wed";
+  } elsif ($day == 4) {
+    return "Thu";
+  } elsif ($day == 5) {
+    return "Fri";
+  } elsif ($day == 6) {
+    return "Sat";
+  } elsif ($day == 0) {
+    return "Sun";
+  }
+}
+

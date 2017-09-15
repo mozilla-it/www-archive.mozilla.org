@@ -1,0 +1,942 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Operators Rationale</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="named.html">
+<LINK rel=Next href="units.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=top-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Operators</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="named.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="units.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Thursday, May 22, 2003</P>
+
+<P class=issue>User-overridable operators had originally been part of the JavaScript 2.0 proposal but were deferred to a
+future version of the language in order to keep JavaScript 2.0 small. If implemented, operator overriding might behave as
+described in this section.</P>
+
+<H2>Overview</H2>
+
+<P>JavaScript 2.0 provides a number of operators such as such as <CODE>+</CODE>, <CODE>*</CODE>, <VAR>a</VAR><CODE>[</CODE><VAR>b</VAR><CODE>]</CODE>,
+and <CODE>-=</CODE>. These operators are dispatched based on the types of their arguments. Some operators are dispatched only
+on one operand, in which case the dispatch behaves like property lookup. Other operators are dispatched on two operands simultaneously.
+Finally, some operators are syntactic sugars for combinations of existing operators.</P>
+
+<P>There are predefined definitions for all JavaScript operators. In addition, a class may provide additional definitions
+by overriding the existing behavior. Such overrides apply only when at least one of the dispatched operands is an instance
+of that class or its descendants. Operator overriding is useful, for example, to implement units without having to add units
+to the core of the JavaScript 2.0 language.</P>
+
+<P>This section presents the expansions of operators in JavaScript source code, the built-in definitions of those operators,
+and the means of overriding them.</P>
+
+<H2>Invoking Operators</H2>
+
+<P>When an operator is invoked in an expression, the corresponding operator is invoked according to the table below. The operator
+invocations use pseudo-syntax to denote which operator is called; only the expression syntax on the left side of the table
+can be used to invoke operators.</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP align=LEFT nowrap>Expression</TH>
+    <TH valign=TOP align=LEFT>Operator Invocation</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>+</CODE><VAR>x</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"+"(</CODE><VAR>x</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>-</CODE><VAR>x</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"-"(</CODE><VAR>x</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>~</CODE><VAR>x</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"~"(</CODE><VAR>x</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>++</CODE><VAR>x</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"++"(</CODE><VAR>x</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>++</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR><SCRIPT type="text/javascript">document.write(U_xi)</SCRIPT></VAR><CODE>&nbsp;=&nbsp;</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"++"(</CODE><VAR>x</VAR><CODE>),&nbsp;</CODE><VAR><SCRIPT type="text/javascript">document.write(U_xi)</SCRIPT></VAR><CODE>)</CODE>,
+      where <VAR><SCRIPT type="text/javascript">document.write(U_xi)</SCRIPT></VAR> is a temporary variable</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>--</CODE><VAR>x</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"--"(</CODE><VAR>x</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>--</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR><SCRIPT type="text/javascript">document.write(U_xi)</SCRIPT></VAR><CODE>&nbsp;=&nbsp;</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"--"(</CODE><VAR>x</VAR><CODE>),&nbsp;</CODE><VAR><SCRIPT type="text/javascript">document.write(U_xi)</SCRIPT></VAR><CODE>)</CODE>,
+      where <VAR><SCRIPT type="text/javascript">document.write(U_xi)</SCRIPT></VAR> is a temporary variable</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>(</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"()"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>new&nbsp;</CODE><VAR>x</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"new"(</CODE><VAR>x</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>new&nbsp;</CODE><VAR>x</VAR><CODE>(</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"new"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>[</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>]</CODE></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"[]"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>[</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>]&nbsp;=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"[]="(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>,&nbsp;</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>delete&nbsp;</CODE><VAR>x</VAR><CODE>[</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>]&nbsp;&nbsp;</CODE></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"delete[]"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;+&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"+"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;-&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"-"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;*&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"*"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;/&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"/"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;%&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"%"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&lt;&lt;&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"&lt;&lt;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&gt;&gt;&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"&gt;&gt;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&gt;&gt;&gt;&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"&gt;&gt;&gt;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&lt;&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"&lt;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&gt;&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"&lt;"(</CODE><VAR>y</VAR><CODE>,&nbsp;</CODE><VAR>x</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&lt;=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"&lt;="(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&gt;=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"&lt;="(</CODE><VAR>y</VAR><CODE>,&nbsp;</CODE><VAR>x</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;in&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"in"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;==&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"=="(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;!=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>!(</CODE>operator&nbsp;<CODE>"=="(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;===&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"==="(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;!==&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>!(</CODE>operator&nbsp;<CODE>"==="(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&amp;&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"&amp;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;^&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"^"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;|&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP>operator&nbsp;<CODE>"|"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;+=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"+"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;-=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"-"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;*=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"*"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;/=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"/"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;%=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"%"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&lt;&lt;=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"&lt;&lt;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&gt;&gt;=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"&gt;&gt;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&gt;&gt;&gt;=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"&gt;&gt;&gt;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;&amp;=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"&amp;"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;^=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"^"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>x</VAR><CODE>&nbsp;|=&nbsp;</CODE><VAR>y</VAR></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>&nbsp;=&nbsp;</CODE>operator&nbsp;<CODE>"|"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>))</CODE></TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+
+<H3><A name="operator-dispatch"></A>Operator Dispatch</H3>
+
+<P>Unary operators are single-dispatched just like regular methods. <CODE>in</CODE> is like a unary operator in that it can
+only be overridden by its right operand&#8217;s class, and it is single-dispatched by its right operand. Like in regular method
+dispatch, <CODE>null</CODE> is considered to be a member of only the types <CODE>Null</CODE> and <CODE>Object</CODE>.</P>
+
+<P>Binary operator methods are double-dispatched based on the types of both operands. When one of the binary operators <SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT>
+is invoked in an expression <VAR>a</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT>&nbsp;<VAR>b</VAR>,
+all applicable operator&nbsp;<CODE>"</CODE><SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT><CODE>"(</CODE><VAR>x</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE>
+methods are examined to find the most specific one, which is then called. A definition of operator&nbsp;<CODE>"</CODE><SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT><CODE>"(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>X</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>Y</VAR><CODE>)</CODE>
+is <I>applicable</I> to <VAR>a</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT>&nbsp;<VAR>b</VAR>
+if the value of <VAR>a</VAR> is a <A href="../core/concepts.html#type">member</A> of <VAR>X</VAR> and the value of <VAR>b</VAR> is
+a <A href="../core/concepts.html#type">member</A> of <VAR>Y</VAR>, except that, like in regular method dispatch, <CODE>null</CODE>
+is considered to be a member of only the types <CODE>Null</CODE> and <CODE>Object</CODE>. A definition of operator&nbsp;<CODE>"</CODE><SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT><CODE>"(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>X</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>Y</VAR><CODE>)</CODE>
+is <I>most specific</I> if it is applicable and if every applicable definition of operator&nbsp;<CODE>"</CODE><SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT><CODE>"(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>X'</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>Y'</VAR><CODE>)</CODE>
+satisfies <VAR>X</VAR> <SCRIPT type="text/javascript">document.write(U_sube)</SCRIPT> <VAR>X'</VAR> and <VAR>Y</VAR> <SCRIPT type="text/javascript">document.write(U_sube)</SCRIPT>
+<VAR>Y'</VAR>. If there is no most specific applicable definition of <SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT>
+or if there is more than one most specific applicable definition of <SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT>,
+then an error occurs when the expression <VAR>a</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_psi)</SCRIPT>&nbsp;<VAR>b</VAR>
+is evaluated.</P>
+
+<P>One of the operands of an operator expression inside a class <VAR>C</VAR> can be a <A href="../core/expressions.html#super"><CODE>super</CODE>
+expression</A>, in which case the set of applicable definitions of the operator is restricted to those defined to take a parameter
+of type <VAR>T</VAR> in that position, where <VAR>T</VAR> is any proper ancestor of <VAR>C</VAR>. This way a method overriding
+an operator can invoke its superclass&#8217;s definition of that operator.</P>
+
+<H2>Expression Grammar Changes</H2>
+
+<P>To accommodate <CODE>super</CODE> expressions, the grammar rules for expressions would be changed as described below.</P>
+
+<H3>Super Expressions</H3>
+
+<P>The <A href="#N-SuperExpression" class=nonterminal>SuperExpression</A> grammar rule is split into two to make <A href="#N-FullSuperExpression" class=nonterminal>FullSuperExpression</A>
+into a separate rule:</P>
+
+<DIV class=grammar-rule>
+<DIV class=grammar-lhs><A name="N-SuperExpression"></A><SPAN class=nonterminal>SuperExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>super</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullSuperExpression" class=nonterminal>FullSuperExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FullSuperExpression"></A><SPAN class=nonterminal>FullSuperExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>super</CODE>&nbsp;<A href="../core/expressions.html#N-ParenExpression" class=nonterminal>ParenExpression</A></DIV>
+</DIV>
+
+<P><CODE>super</CODE>, which may only be used inside a class <VAR>C</VAR>, can be applied to a subexpression that evaluates
+to an instance <VAR>v</VAR> of <VAR>C</VAR>. That subexpression can be either a <A href="../core/expressions.html#N-ParenExpression" class=nonterminal>ParenExpression</A>
+or omitted, in which case it defaults to <CODE>this</CODE>.</P>
+
+<P>As specified in the grammar below, the <A href="#N-SuperExpression" class=nonterminal>SuperExpression</A> must be embedded
+as an operand of one of the following operators:</P>
+
+<UL>
+  <LI>The left operand of a <CODE>.</CODE> (property lookup), <CODE>[]</CODE> (indexing), <CODE>()</CODE> (call), <CODE>new</CODE>,
+    or <CODE>new()</CODE> operator (for the <CODE>()</CODE> and <CODE>new()</CODE> operators the <A href="#N-SuperExpression" class=nonterminal>SuperExpression</A>
+    must be a <A href="#N-FullSuperExpression" class=nonterminal>FullSuperExpression</A>)</LI>
+  <LI>The right operand of an <CODE>in</CODE> operator</LI>
+  <LI>The operand of a unary <CODE>+</CODE>, <CODE>-</CODE>, <CODE>~</CODE>, <CODE>++</CODE>, or <CODE>--</CODE> operator</LI>
+  <LI>Either operand of a binary <CODE>+</CODE>, <CODE>-</CODE>, <CODE>*</CODE>, <CODE>/</CODE>, <CODE>%</CODE>, <CODE>&lt;&lt;</CODE>,
+    <CODE>&gt;&gt;</CODE>, <CODE>&gt;&gt;&gt;</CODE>, <CODE>|</CODE>, <CODE>^</CODE>, <CODE>&amp;</CODE>, <CODE>&lt;</CODE>,
+    <CODE>&gt;</CODE>, <CODE>&lt;=</CODE>, <CODE>&gt;=</CODE>, <CODE>==</CODE>, <CODE>!=</CODE>, <CODE>===</CODE>, or <CODE>!==</CODE>
+    operator</LI>
+  <LI>Either operand of a <CODE>+=</CODE>, <CODE>-=</CODE>, <CODE>*=</CODE>, <CODE>/=</CODE>, <CODE>%=</CODE>, <CODE>&lt;&lt;=</CODE>,
+    <CODE>&gt;&gt;=</CODE>, <CODE>&gt;&gt;&gt;=</CODE>, <CODE>|=</CODE>, <CODE>^=</CODE>, or <CODE>&amp;=</CODE> operator</LI>
+</UL>
+
+<P><CODE>super</CODE> changes the behavior of the operator in which it is embedded by limiting its property search to definitions
+inherited from class <VAR>C</VAR>&#8217;s superclass. See <A href="../core/namespaces.html#property-lookup">property lookup</A> and
+<A href="#operator-dispatch">operator dispatch</A>.</P>
+
+<H3>Postfix Expressions</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of <CODE>()</CODE> (call), <CODE>new</CODE>,
+<CODE>new()</CODE>, and postfix <CODE>++</CODE> and <CODE>--</CODE>. Unmodified rules are not shown below.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PostfixExpressionOrSuper"></A><SPAN class=nonterminal>PostfixExpressionOrSuper</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-PostfixExpression" class=nonterminal>PostfixExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FullPostfixExpression"></A><SPAN class=nonterminal>FullPostfixExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-PrimaryExpression" class=nonterminal>PrimaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-ExpressionQualifiedIdentifier" class=nonterminal>ExpressionQualifiedIdentifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullNewExpression" class=nonterminal>FullNewExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullPostfixExpression" class=nonterminal>FullPostfixExpression</A>&nbsp;<A href="../core/expressions.html#N-PropertyOperator" class=nonterminal>PropertyOperator</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A>&nbsp;<A href="../core/expressions.html#N-PropertyOperator" class=nonterminal>PropertyOperator</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullPostfixExpression" class=nonterminal>FullPostfixExpression</A>&nbsp;<A href="../core/expressions.html#N-Arguments" class=nonterminal>Arguments</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullSuperExpression" class=nonterminal>FullSuperExpression</A>&nbsp;<A href="../core/expressions.html#N-Arguments" class=nonterminal>Arguments</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PostfixExpressionOrSuper" class=nonterminal>PostfixExpressionOrSuper</A>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<CODE class=terminal-keyword>++</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PostfixExpressionOrSuper" class=nonterminal>PostfixExpressionOrSuper</A>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<CODE class=terminal-keyword>--</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FullNewExpression"></A><SPAN class=nonterminal>FullNewExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>new</CODE>&nbsp;<A href="../core/expressions.html#N-FullNewSubexpression" class=nonterminal>FullNewSubexpression</A>&nbsp;<A href="../core/expressions.html#N-Arguments" class=nonterminal>Arguments</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>new</CODE>&nbsp;<A href="#N-FullSuperExpression" class=nonterminal>FullSuperExpression</A>&nbsp;<A href="../core/expressions.html#N-Arguments" class=nonterminal>Arguments</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ShortNewExpression"></A><SPAN class=nonterminal>ShortNewExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>new</CODE>&nbsp;<A href="../core/expressions.html#N-ShortNewSubexpression" class=nonterminal>ShortNewSubexpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>new</CODE>&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<H3>Unary Operators</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of unary <CODE>+</CODE>, <CODE>-</CODE>,
+and <CODE>~</CODE> as well as prefix <CODE>++</CODE> and <CODE>--</CODE> operators.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-UnaryExpression"></A><SPAN class=nonterminal>UnaryExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-PostfixExpression" class=nonterminal>PostfixExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>delete</CODE>&nbsp;<A href="../core/expressions.html#N-PostfixExpression" class=nonterminal>PostfixExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>void</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>typeof</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>++</CODE>&nbsp;<A href="#N-PostfixExpressionOrSuper" class=nonterminal>PostfixExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>--</CODE>&nbsp;<A href="#N-PostfixExpressionOrSuper" class=nonterminal>PostfixExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>+</CODE>&nbsp;<A href="#N-UnaryExpressionOrSuper" class=nonterminal>UnaryExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>-</CODE>&nbsp;<A href="#N-UnaryExpressionOrSuper" class=nonterminal>UnaryExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>-</CODE>&nbsp;<SPAN class=terminal>NegatedMinLong</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>~</CODE>&nbsp;<A href="#N-UnaryExpressionOrSuper" class=nonterminal>UnaryExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>!</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-UnaryExpressionOrSuper"></A><SPAN class=nonterminal>UnaryExpressionOrSuper</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<H3>Multiplicative Operators</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of binary <CODE>*</CODE>, <CODE>/</CODE>,
+and <CODE>%</CODE> operators.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-MultiplicativeExpression"></A><SPAN class=nonterminal>MultiplicativeExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-MultiplicativeExpressionOrSuper" class=nonterminal>MultiplicativeExpressionOrSuper</A>&nbsp;<CODE class=terminal-keyword>*</CODE>&nbsp;<A href="#N-UnaryExpressionOrSuper" class=nonterminal>UnaryExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-MultiplicativeExpressionOrSuper" class=nonterminal>MultiplicativeExpressionOrSuper</A>&nbsp;<CODE class=terminal-keyword>/</CODE>&nbsp;<A href="#N-UnaryExpressionOrSuper" class=nonterminal>UnaryExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-MultiplicativeExpressionOrSuper" class=nonterminal>MultiplicativeExpressionOrSuper</A>&nbsp;<CODE class=terminal-keyword>%</CODE>&nbsp;<A href="#N-UnaryExpressionOrSuper" class=nonterminal>UnaryExpressionOrSuper</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-MultiplicativeExpressionOrSuper"></A><SPAN class=nonterminal>MultiplicativeExpressionOrSuper</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-MultiplicativeExpression" class=nonterminal>MultiplicativeExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<H3>Additive Operators</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of binary <CODE>+</CODE> and <CODE>-</CODE>
+operators.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-AdditiveExpression"></A><SPAN class=nonterminal>AdditiveExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-MultiplicativeExpression" class=nonterminal>MultiplicativeExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-AdditiveExpressionOrSuper" class=nonterminal>AdditiveExpressionOrSuper</A>&nbsp;<CODE class=terminal-keyword>+</CODE>&nbsp;<A href="#N-MultiplicativeExpressionOrSuper" class=nonterminal>MultiplicativeExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-AdditiveExpressionOrSuper" class=nonterminal>AdditiveExpressionOrSuper</A>&nbsp;<CODE class=terminal-keyword>-</CODE>&nbsp;<A href="#N-MultiplicativeExpressionOrSuper" class=nonterminal>MultiplicativeExpressionOrSuper</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-AdditiveExpressionOrSuper"></A><SPAN class=nonterminal>AdditiveExpressionOrSuper</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-AdditiveExpression" class=nonterminal>AdditiveExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<H3>Bitwise Shift Operators</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of the <CODE>&lt;&lt;</CODE>, <CODE>&gt;&gt;</CODE>,
+and <CODE>&gt;&gt;&gt;</CODE> operators.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ShiftExpression"></A><SPAN class=nonterminal>ShiftExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-AdditiveExpression" class=nonterminal>AdditiveExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A>&nbsp;<CODE class=terminal-keyword>&lt;&lt;</CODE>&nbsp;<A href="#N-AdditiveExpressionOrSuper" class=nonterminal>AdditiveExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A>&nbsp;<CODE class=terminal-keyword>&gt;&gt;</CODE>&nbsp;<A href="#N-AdditiveExpressionOrSuper" class=nonterminal>AdditiveExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A>&nbsp;<CODE class=terminal-keyword>&gt;&gt;&gt;</CODE>&nbsp;<A href="#N-AdditiveExpressionOrSuper" class=nonterminal>AdditiveExpressionOrSuper</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ShiftExpressionOrSuper"></A><SPAN class=nonterminal>ShiftExpressionOrSuper</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<H3>Relational Operators</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of the <CODE>&lt;</CODE>, <CODE>&gt;</CODE>,
+<CODE>&lt;=</CODE>, and <CODE>&gt;=</CODE> operators and the right operand of an <CODE>in</CODE> operator.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-RelationalExpression"></A><SPAN class=nonterminal>RelationalExpression</SPAN><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>&lt;</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>&gt;</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>&lt;=</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>&gt;=</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>is</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>as</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>in</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>instanceof</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>RelationalExpression</SPAN><SUP class=nonterminal-attribute>noIn</SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-attribute>noIn</SUP>&nbsp;<CODE class=terminal-keyword>&lt;</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-attribute>noIn</SUP>&nbsp;<CODE class=terminal-keyword>&gt;</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-attribute>noIn</SUP>&nbsp;<CODE class=terminal-keyword>&lt;=</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-attribute>noIn</SUP>&nbsp;<CODE class=terminal-keyword>&gt;=</CODE>&nbsp;<A href="#N-ShiftExpressionOrSuper" class=nonterminal>ShiftExpressionOrSuper</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-attribute>noIn</SUP>&nbsp;<CODE class=terminal-keyword>is</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-attribute>noIn</SUP>&nbsp;<CODE class=terminal-keyword>as</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-attribute>noIn</SUP>&nbsp;<CODE class=terminal-keyword>instanceof</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-RelationalExpressionOrSuper"></A><SPAN class=nonterminal>RelationalExpressionOrSuper</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<H3>Equality Operators</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of the <CODE>==</CODE>, <CODE>!=</CODE>,
+<CODE>===</CODE>, and <CODE>!==</CODE> operators.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-EqualityExpression"></A><SPAN class=nonterminal>EqualityExpression</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-RelationalExpression" class=nonterminal>RelationalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-EqualityExpressionOrSuper" class=nonterminal>EqualityExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<CODE class=terminal-keyword>==</CODE>&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-EqualityExpressionOrSuper" class=nonterminal>EqualityExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<CODE class=terminal-keyword>!=</CODE>&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-EqualityExpressionOrSuper" class=nonterminal>EqualityExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<CODE class=terminal-keyword>===</CODE>&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-EqualityExpressionOrSuper" class=nonterminal>EqualityExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<CODE class=terminal-keyword>!==</CODE>&nbsp;<A href="#N-RelationalExpressionOrSuper" class=nonterminal>RelationalExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-EqualityExpressionOrSuper"></A><SPAN class=nonterminal>EqualityExpressionOrSuper</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-EqualityExpression" class=nonterminal>EqualityExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<H3>Binary Bitwise Operators</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of the <CODE>&amp;</CODE>, <CODE>^</CODE>,
+and <CODE>|</CODE> operators.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseAndExpression"></A><SPAN class=nonterminal>BitwiseAndExpression</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-EqualityExpression" class=nonterminal>EqualityExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-BitwiseAndExpressionOrSuper" class=nonterminal>BitwiseAndExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<CODE class=terminal-keyword>&amp;</CODE>&nbsp;<A href="#N-EqualityExpressionOrSuper" class=nonterminal>EqualityExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseXorExpression"></A><SPAN class=nonterminal>BitwiseXorExpression</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-BitwiseAndExpression" class=nonterminal>BitwiseAndExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-BitwiseXorExpressionOrSuper" class=nonterminal>BitwiseXorExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<CODE class=terminal-keyword>^</CODE>&nbsp;<A href="#N-BitwiseAndExpressionOrSuper" class=nonterminal>BitwiseAndExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseOrExpression"></A><SPAN class=nonterminal>BitwiseOrExpression</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-BitwiseXorExpression" class=nonterminal>BitwiseXorExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-BitwiseOrExpressionOrSuper" class=nonterminal>BitwiseOrExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<CODE class=terminal-keyword>|</CODE>&nbsp;<A href="#N-BitwiseXorExpressionOrSuper" class=nonterminal>BitwiseXorExpressionOrSuper</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseAndExpressionOrSuper"></A><SPAN class=nonterminal>BitwiseAndExpressionOrSuper</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-BitwiseAndExpression" class=nonterminal>BitwiseAndExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseXorExpressionOrSuper"></A><SPAN class=nonterminal>BitwiseXorExpressionOrSuper</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-BitwiseXorExpression" class=nonterminal>BitwiseXorExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseOrExpressionOrSuper"></A><SPAN class=nonterminal>BitwiseOrExpressionOrSuper</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-BitwiseOrExpression" class=nonterminal>BitwiseOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+</DIV>
+
+<H3>Assignment Operators</H3>
+
+<P>These grammar rules are modified to permit <CODE>super</CODE> expressions as operands of the <CODE>+=</CODE>, <CODE>-=</CODE>,
+<CODE>*=</CODE>, <CODE>/=</CODE>, <CODE>%=</CODE>, <CODE>&lt;&lt;=</CODE>, <CODE>&gt;&gt;=</CODE>, <CODE>&gt;&gt;&gt;=</CODE>,
+<CODE>|=</CODE>, <CODE>^=</CODE>, and <CODE>&amp;=</CODE> operators.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-AssignmentExpression"></A><SPAN class=nonterminal>AssignmentExpression</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-ConditionalExpression" class=nonterminal>ConditionalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-PostfixExpression" class=nonterminal>PostfixExpression</A>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<A href="#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PostfixExpressionOrSuper" class=nonterminal>PostfixExpressionOrSuper</A>&nbsp;<A href="../core/expressions.html#N-CompoundAssignment" class=nonterminal>CompoundAssignment</A>&nbsp;<A href="#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PostfixExpressionOrSuper" class=nonterminal>PostfixExpressionOrSuper</A>&nbsp;<A href="../core/expressions.html#N-CompoundAssignment" class=nonterminal>CompoundAssignment</A>&nbsp;<A href="#N-SuperExpression" class=nonterminal>SuperExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-PostfixExpression" class=nonterminal>PostfixExpression</A>&nbsp;<A href="../core/expressions.html#N-LogicalAssignment" class=nonterminal>LogicalAssignment</A>&nbsp;<A href="#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+</DIV>
+
+<H2><A name="built-in-operator-definitions"></A>Built-In Operator Definitions</H2>
+
+<P>All operators have built-in definitions. These are summarized in the table below.</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP align=LEFT>Name</TH>
+    <TH valign=TOP align=LEFT>Signature</TH>
+    <TH valign=TOP align=LEFT>Behavior</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"()"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;...&nbsp;</CODE><VAR>args</VAR><CODE>)</CODE></TD>
+    <TD valign=TOP>Call <VAR>x</VAR> with the arguments <VAR>args</VAR> and return the result.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"new"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;...&nbsp;</CODE><VAR>args</VAR><CODE>)</CODE></TD>
+    <TD valign=TOP>Call <VAR>x</VAR>&#8217;s constructor slot with the arguments <VAR>args</VAR> and return the result.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"[]"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>n</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return the value of <VAR>x</VAR>&#8217;s most derived <CODE>public</CODE> property named <VAR>n</VAR><CODE>.toString()</CODE>.
+      See <A href="../core/namespaces.html#property-lookup">property lookup</A>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP rowspan=2><CODE>"[]="</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object,&nbsp;</CODE><VAR>n</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Set the value of <VAR>x</VAR>&#8217;s most derived <CODE>public</CODE> property named <VAR>n</VAR><CODE>.toString()</CODE>
+      to <VAR>y</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Array,&nbsp;</CODE><VAR>y</VAR><CODE>:Object,&nbsp;</CODE><VAR>n</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Set the value of <VAR>x</VAR>&#8217;s most derived <CODE>public</CODE> property named <VAR>n</VAR><CODE>.toString()</CODE>
+      to <VAR>y</VAR>. Update the <CODE>length</CODE> property as in JavaScript 1.5.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"delete[]"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>n</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Try to delete <VAR>x</VAR>&#8217;s most derived <CODE>public</CODE> property named <VAR>n</VAR><CODE>.toString()</CODE>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"~"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return the bitwise complement of ToInt32(operator&nbsp;<CODE>"+"(</CODE><VAR>x</VAR><CODE>)</CODE>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"++"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return operator&nbsp;<CODE>"+"(</CODE>operator&nbsp;<CODE>"+"(</CODE><VAR>x</VAR><CODE>),&nbsp;1)</CODE>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"--"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return operator&nbsp;<CODE>"-"(</CODE>operator&nbsp;<CODE>"+"(</CODE><VAR>x</VAR><CODE>),&nbsp;1)</CODE>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP rowspan=6><CODE>"+"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Let <VAR>x'</VAR>&nbsp;=&nbsp;ToPrimitive(<VAR>x</VAR>) and <VAR>y'</VAR>&nbsp;=&nbsp;ToPrimitive(<VAR>y</VAR>).
+      If at least one of <VAR>x'</VAR> and <VAR>y'</VAR> is a string, then return operator&nbsp;<CODE>"+"(</CODE><VAR>x'</VAR><CODE>,&nbsp;</CODE><VAR>y'</VAR><CODE>)</CODE>.
+      Otherwise return ToNumber(<VAR>x'</VAR>)&nbsp;+&nbsp;ToNumber(<VAR>y'</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:String,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return <VAR>x</VAR> concatenated with <VAR>y</VAR><CODE>.toString()</CODE>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:String)</CODE></TD>
+    <TD valign=TOP>Return <VAR>x</VAR><CODE>.toString()</CODE> concatenated with <VAR>y</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:String,&nbsp;</CODE><VAR>y</VAR><CODE>:String)</CODE></TD>
+    <TD valign=TOP>Return <VAR>x</VAR> concatenated with <VAR>y</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Number,&nbsp;</CODE><VAR>y</VAR><CODE>:Number)</CODE></TD>
+    <TD valign=TOP>Return <VAR>x</VAR>&nbsp;+&nbsp;<VAR>y</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP rowspan=2><CODE>"-"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return -ToNumber(<VAR>x</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;&#8211;&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"*"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"/"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;/&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"%"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;%&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"&lt;&lt;"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;&lt;&lt;&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"&gt;&gt;"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;&gt;&gt;&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"&gt;&gt;&gt;"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;&gt;&gt;&gt;&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"&lt;"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Same as in JavaScript 1.5.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"&gt;="</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Same as in JavaScript 1.5.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"in"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Same as in JavaScript 1.5.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"=="</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Same as in JavaScript 1.5.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"==="</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Same as in JavaScript 1.5.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"&amp;"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;&amp;&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"^"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;^&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"|"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:Object,&nbsp;</CODE><VAR>y</VAR><CODE>:Object)</CODE></TD>
+    <TD valign=TOP>Return ToNumber(<VAR>x</VAR>)&nbsp;|&nbsp;ToNumber(<VAR>y</VAR>).</TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+
+<H2><A name="operator-overriding"></A>Operator Overriding</H2>
+
+<P>An operator can be overridden only inside a class <VAR>C</VAR>. That class should define a function with the <CODE>operator</CODE>
+attribute (<CODE>operator</CODE> is an additional <A href="../core/definitions.html#member-attributes">member modifier attribute</A>).
+The function&#8217;s name must be one of the strings in the table below. The name must be a string rather than an identifier;
+the <A href="#N-FunctionName" class=nonterminal>FunctionName</A> grammar rule is extended to allow strings:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FunctionName"></A><SPAN class=nonterminal>FunctionName</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>get</CODE>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>set</CODE>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+</DIV>
+
+<P>A <A href="#N-FunctionName" class=nonterminal>FunctionName</A> can be a <SPAN class=terminal>String</SPAN> only for operator
+overrides.</P>
+
+<P>The table also defines the acceptable signatures that the operator can have. At least one parameter must be specified as
+taking a value of type <VAR>C</VAR> (a type that is a subclass of <VAR>C</VAR> is not acceptable). If the operator is <CODE>===</CODE>,
+then both parameters must take values of type <VAR>C</VAR>. A class can define several different signatures of the same binary
+(but not unary) operator, differing in the choice of parameter types <VAR>X</VAR> or <VAR>Y</VAR>, which may be omitted if
+they are <CODE>Object</CODE>. The parameters denoted as taking types <VAR>C</VAR>, <VAR>X</VAR>, or <VAR>Y</VAR> in the table
+below cannot be optional or named parameters. The return type of an operator override can be any type.</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP align=LEFT>Name</TH>
+    <TH valign=TOP align=LEFT>Signatures</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"~"<BR>
+      "++"<BR>
+      "--"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"+"<BR>
+      "-"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>)</CODE><BR>
+      <CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>Y</VAR><CODE>)</CODE><BR>
+      <CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>X</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>C</VAR><CODE>)</CODE><BR>
+      <CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>C</VAR><CODE>)</CODE>
+    </TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"*"<BR>
+      "/"<BR>
+      "%"<BR>
+      "&lt;&lt;"<BR>
+      "&gt;&gt;"<BR>
+      "&gt;&gt;&gt;"<BR>
+      "&lt;"<BR>
+      "&lt;="<BR>
+      "=="<BR>
+      "&amp;"<BR>
+      "^"<BR>
+      "|"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>Y</VAR><CODE>)</CODE><BR>
+      <CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>X</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>C</VAR><CODE>)</CODE><BR>
+      <CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>C</VAR><CODE>)</CODE>
+    </TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"==="</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>C</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"in"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>X</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>C</VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"()"<BR>
+      "new"<BR>
+      "[]"<BR>
+      "delete[]"</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>,&nbsp;</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><CODE>"[]="</CODE></TD>
+    <TD valign=TOP><CODE>(</CODE><VAR>x</VAR><CODE>:</CODE><VAR>C</VAR><CODE>,&nbsp;</CODE><VAR>y</VAR><CODE>:</CODE><VAR>Y</VAR><CODE>,&nbsp;</CODE><VAR>a</VAR><SUB class=var-sub>1</SUB><CODE>,</CODE>&nbsp;...<CODE>,&nbsp;</CODE><VAR>a<SUB>n</SUB></VAR><CODE>)</CODE></TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<P>The operator methods should return the result of the operator. For the <CODE>++</CODE> and <CODE>--</CODE> operators,
+the result is the incremented or decremented value. The <CODE>()</CODE>, <CODE>new</CODE>, <CODE>[]</CODE>, <CODE>delete[]</CODE>,
+and <CODE>[]=</CODE> operators take additional argument lists. If desired, these argument lists can include optional, named,
+or rest arguments. The <CODE>[]=</CODE> operator must take one more initial required parameter, which is the value stored
+in the element.</P>
+
+<P>The <CODE>&gt;</CODE>, <CODE>&gt;=</CODE>, <CODE>!=</CODE>, and <CODE>!==</CODE> operators cannot be overridden directly
+because they are syntactic sugars for invocations of the <CODE>&lt;</CODE>, <CODE>&lt;=</CODE>, <CODE>==</CODE>, and <CODE>===</CODE>
+operators; override the latter operators instead. The <CODE>!</CODE>, <CODE>||</CODE>, <CODE>^^</CODE>, <CODE>&amp;&amp;</CODE>,
+and <CODE>?:</CODE> operators cannot be overridden directly, but they are affected by any redefinition of <CODE>toBoolean</CODE>.
+The reason for not overriding <CODE>||</CODE>, <CODE>&amp;&amp;</CODE>, and <CODE>?:</CODE> is that they do not always evaluate
+all of their arguments, and programmers often take advantage of this short-circuiting behavior. <CODE>!</CODE> is not overridable
+in order to preserve useful identities such as:</P>
+
+<UL>
+  <LI><CODE>if&nbsp;(!</CODE><VAR>x</VAR><CODE>)&nbsp;</CODE><VAR>A</VAR><CODE>&nbsp;else&nbsp;</CODE><VAR>B</VAR> <SCRIPT type="text/javascript">document.write(U_equiv)</SCRIPT>
+    <CODE>if&nbsp;(</CODE><VAR>x</VAR><CODE>)&nbsp;</CODE><VAR>B</VAR><CODE>&nbsp;else&nbsp;</CODE><VAR>A</VAR></LI>
+  <LI><CODE>!(</CODE><VAR>x</VAR><CODE>&nbsp;&amp;&amp;&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE> <SCRIPT type="text/javascript">document.write(U_equiv)</SCRIPT>
+    <CODE>!</CODE><VAR>x</VAR><CODE>&nbsp;||&nbsp;!</CODE><VAR>y</VAR></LI>
+  <LI><VAR>x</VAR><CODE>&nbsp;!=&nbsp;</CODE><VAR>y</VAR> <SCRIPT type="text/javascript">document.write(U_equiv)</SCRIPT>
+    <CODE>!(</CODE><VAR>x</VAR><CODE>&nbsp;==&nbsp;</CODE><VAR>y</VAR><CODE>)</CODE></LI>
+</UL>
+
+<P>Definitions of operators cannot specify a namespace. No access restrictions can be imposed on operators.</P>
+
+<H3>Example</H3>
+
+<P>The following class illustrates overriding a few operators.</P>
+
+<PRE>class Complex {
+  var x:Number, y:Number;
+
+  operator function "+"(a:Complex):Complex {
+    return a;
+  }
+
+  operator function "-"(a:Complex):Complex {
+    return new Complex(x: -a.x, y: -a.y);
+  }
+
+  operator function "+"(a:Complex, b:Complex):Complex {
+    return new Complex(x: a.x+b.x, y: a.y+b.y);
+  }
+
+  operator function "+"(a:Complex, b:Number):Complex {
+    return new Complex(x: a.x+b, y: a.y);
+  }
+
+  operator function "+"(a:Number, b:Complex):Complex {
+    return new Complex(x: a+b.x, y: b.y);
+  }
+
+  function toBoolean():Boolean {
+    return this.x != 0 || this.y != 0;
+  }
+}</PRE>
+
+<H2><CODE>toBoolean</CODE> Method</H2>
+
+<P>Just like <CODE>toString</CODE>, every object has a <CODE>toBoolean</CODE> method that can be overridden. This method is
+called by statements such as <CODE>if</CODE>, <CODE>while</CODE>, <CODE>do while</CODE>, and <CODE>for</CODE> and operators
+such as <CODE>!</CODE>, <CODE>||</CODE>, <CODE>^^</CODE>, <CODE>&amp;&amp;</CODE>, and <CODE>?&nbsp;:</CODE>. This method
+should return either <CODE>true</CODE> or <CODE>false</CODE>.</P>
+
+<H2><A name="for-in"></A>For-In Operator</H2>
+
+<P>An object <VAR>x</VAR>&#8217;s class can override the meaning of for-in loops such as <CODE>for&nbsp;(</CODE><VAR>v</VAR><CODE>&nbsp;in&nbsp;</CODE><VAR>x</VAR><CODE>)</CODE>
+by overriding the following three methods which are located in the system-defined namespace <CODE>Iterator</CODE>:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP align=LEFT nowrap>Method</TH>
+    <TH valign=TOP align=LEFT>Description</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP><VAR>x</VAR><CODE>.Iterator::forIn()</CODE></TD>
+    <TD valign=TOP>If the iteration is empty, return <CODE>null</CODE>. Otherwise, return an object <VAR>o</VAR> with <CODE>public</CODE>
+      properties named <CODE>value</CODE> and <CODE>state</CODE> (<VAR>o</VAR> may also have other properties). The value
+      of <VAR>o</VAR><CODE>.value</CODE> is the first element returned by the iteration. The value of <VAR>o</VAR><CODE>.state</CODE>
+      can have any type and will be passed exactly once to either <CODE>Iterator::next</CODE> or <CODE>Iterator::done</CODE>.
+      The value of <VAR>o</VAR> is not guaranteed to be valid after <VAR>o</VAR><CODE>.state</CODE> is passed to <CODE>Iterator::next</CODE>
+      or <CODE>Iterator::done</CODE>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><VAR>x</VAR><CODE>.Iterator::next(</CODE><VAR>i</VAR><CODE>)</CODE></TD>
+    <TD valign=TOP><VAR>i</VAR> was returned by a previous call to <CODE>Iterator::forIn</CODE> or <CODE>Iterator::next</CODE>.
+      If the iteration is done, return <CODE>null</CODE>. Otherwise, return an object <VAR>o</VAR> with <CODE>public</CODE>
+      properties named <CODE>value</CODE> and <CODE>state</CODE> (<VAR>o</VAR> may also have other properties). The value
+      of <VAR>o</VAR><CODE>.value</CODE> is the next element returned by the iteration. The value of <VAR>o</VAR><CODE>.state</CODE>
+      can have any type and will be passed exactly once to either <CODE>Iterator::next</CODE> or <CODE>Iterator::done</CODE>.
+      The value of <VAR>o</VAR> is not guaranteed to be valid after <VAR>o</VAR><CODE>.state</CODE> is passed to <CODE>Iterator::next</CODE>
+      or <CODE>Iterator::done</CODE>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP><VAR>x</VAR><CODE>.Iterator::done(</CODE><VAR>i</VAR><CODE>)</CODE></TD>
+    <TD valign=TOP><VAR>i</VAR> was returned by a previous call to <CODE>Iterator::forIn</CODE> or <CODE>Iterator::next</CODE>.
+      This call alerts <VAR>x</VAR> that the iteration is exiting prematurely and it can do whatever cleanup it needs on <VAR>i</VAR>.
+      Every <VAR>i</VAR> returned by <CODE>Iterator::forIn</CODE> or <CODE>Iterator::next</CODE> is guaranteed to be subsequently
+      passed exactly once either to <CODE>Iterator::next</CODE> or <CODE>Iterator::done</CODE>. <CODE>Iterator::done</CODE>
+      should return <CODE>undefined</CODE>.</TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+
+
+<H3>Rationale</H3>
+
+<P>A few other approaches had been considered for overriding the for-in operator. The three-method approach above was chosen
+for the following reasons:</P>
+
+<UL>
+  <LI>Why use an iterator object instead of a function and a callback (i.e. have <CODE>Iterator::forIn</CODE> take a parameter
+    <VAR>f</VAR> and have it call <VAR>f</VAR> for each element in the collection)? The reason is that the iterator model
+    permits future extensions such as iterating through two collections concurrently. This cannot be done using callbacks.</LI>
+  <LI>Why return an object from <CODE>Iterator::forIn</CODE> and <CODE>Iterator::next</CODE> instead of having <CODE>Iterator::forIn</CODE>
+    and <CODE>Iterator::next</CODE> return just an iterator and having a separate <CODE>Iterator::get</CODE> method that,
+    given an iterator, returns an element? The rationale here is that the separate <CODE>Iterator::get</CODE> method would
+    introduce unavoidable concurrency hazards. Since <CODE>null</CODE> (or any other value) can be a member of a collection,
+    we can&#8217;t use the return value from <CODE>Iterator::get</CODE> to detect the end of iteration; instead, we&#8217;d
+    have to use a <CODE>null</CODE> return value from <CODE>Iterator::forIn</CODE> or <CODE>Iterator::next</CODE> to indicate
+    the end of iteration. In such a case, however, it would be possible for another thread to delete the last element between
+    the call to <CODE>Iterator::forIn</CODE> or <CODE>Iterator::next</CODE> and the call to <CODE>Iterator::get</CODE>, and
+    <CODE>Iterator::get</CODE> would then be stuck. We could use an exception to indicate the end of iteration, but this would
+    put exception handling on the fast path of program execution.</LI>
+  <LI>Why use an object with two named slots rather than a two-element read-only array for the return value? Named slots can
+    have heterogeneous types, while the types of array elements must be the same.</LI>
+  <LI>Why define <CODE>Iterator::done</CODE>? Some objects may erect temporary scaffolding to support iteration. This method
+    informs them that they can take down such scaffolding. Since JavaScript currently lacks finalization, there is no other
+    way for the iterated object to know that the iteration aborted early &#8212; the start of another iteration cannot be
+    used as an indication that the previous iteration completed because several iterations can be happening simultaneously
+    on the same object.</LI>
+</UL>
+
+<H2><A name="class-reflection"></A>Class Reflection Operator</H2>
+
+<P>Earlier drafts of this proposal had a <CODE>.class</CODE> operator that returned an instance&#8217;s class. This operator
+was defined using the grammar production:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>PropertyOperator</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>.</CODE>&nbsp;<A href="../core/expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>.</CODE>&nbsp;<CODE class=terminal-keyword>class</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-Brackets" class=nonterminal>Brackets</A></DIV>
+</DIV>
+
+<P>The operator was removed because obtaining an instance&#8217;s class breaks abstraction. The client of a factory method
+<VAR>m</VAR> could determine whether <VAR>m</VAR> was returning instances of some stated class <VAR>C</VAR> or subclasses
+of <VAR>C</VAR>, and <VAR>m</VAR> could not evolve to alter its implementation decision of what precise instances to return
+without potentially breaking clients.</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Thursday, May 22, 2003</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="named.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="units.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+</BODY>
+</HTML>

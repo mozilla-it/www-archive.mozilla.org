@@ -1,0 +1,227 @@
+<html>
+<head>
+<title>XPCOM Interface Rules We Break</title>
+</head>
+<body bgcolor="white">
+
+<center><h2>XPCOM Interface Rules We Break</h2></center>
+<center><a href="mailto:jband@netscape.com">John Bandhauer&lt;jband@netscape.com&gt;</a></center>
+<p>
+
+<h3>Introduction</h3>
+
+This is a list with commentary of the XPCOM interface rules that I see being
+broken in our code.  Much code is written as if the XPCOM interfaces were
+nothing more than C++ virtual base classes. So far, people have been able to get
+away with that. But these patterns simply will not do as we convert to xpidl,
+make more interfaces scriptable via XPConnect, and move toward proxy generation
+for an apartment threading model, or for remoting.
+
+<p>
+
+This does not generally address possible issues with how we <b>use</b> XPCOM and
+the interfaces, but instead focuses on how we <b>declare</b> interfaces. A much
+deeper analysis would be required to uncover problems with how interfaces are
+used (and where XPCOM rules might be being broken; e.g. refcounting errors,
+casting instead of using <code>QueryInterface</code>, Implementing objects that
+break XPCOM identity rules, etc).
+
+<p>
+
+<ul>
+
+<li><b>C++ default params</b><blockquote> A number of interfaces declare C++
+default param values in their method declarations. This can not be done in xpidl
+and makes no sense outside of in-process direct C++ to C++ calling. It is
+simply not XPCOM interface compliant.</blockquote>
+
+<li><b>Methods that are not declared NS_IMETHOD</b><blockquote>Many
+methods are accessors methods. The <i>proper</i> way to implement
+this in XPCOM is to use an <code>out</code> parameter. Admittedly, this makes for
+an awkward method usage. But this is how XPCOM works. Many interface
+authors have chosen to cut this corner. They write:
+
+<pre>NS_IMETHOD_(int) GetFoo() = 0;</pre>
+
+or worse...
+
+<pre>virtual int GetFoo() = 0;</pre>
+
+where they should be writing...
+
+<pre>NS_IMETHOD GetFoo(/*out*/ int* foo) = 0;</pre>
+
+The return type of <code>nsresult</code> (hidden in <code>NS_IMETHOD</code>) is
+critical for XPConnect and future proxy use. It should be used in <b>all</b>
+public interface unless there is a very strong overriding reason.
+
+<p>
+
+In the (very) few cases where it is not appropriate to return
+<code>nsresult</code>, it is important that the <code>NS_IMETHOD_()</code> macro
+be used. Some code, as shown above, does things like <code>virtual int</code>.
+The <code>NS_IMETHOD_()</code> macro does more than expand to
+<code>virtual</code>, it also declares the correct calling convention on some
+platforms. It should be used. I don't think it is ever appropriate for the
+keyword <code>virtual</code> to appear in an XPCOM interface header.
+
+<p>
+
+Some code tries to be tricky by returning semantically meaningful results
+in the <code>nsresult</code>...
+
+<pre>NS_IMETHOD IsEnabled() = 0;</pre>
+
+Users are expected to interpret a return value of <code>NS_OK</code> to mean one
+thing and any failure code to mean another. This pattern also will break
+down when used in XPConnect or across a proxy. The proxy uses the failure code
+for its own purposes and the intended result may not be passed through as
+expected. Don't do this. Use <code>out</code> params.</blockquote>
+
+
+<li><b>Non-XPCOM interface listeners</b><blockquote>There are a
+few pieces of code that declare listener interfaces where the
+listener interfaces are not XPCOM interfaces. If these listeners
+were declared as XPCOM interfaces then listeners could be implemented
+using XPConnect.</blockquote>
+
+
+<li><b>C++ templates in XPCOM interface
+declarations</b><blockquote><code>nsIFrameReflow</code> does this. I don't know
+why.</blockquote>
+
+<li><b>C++ operator overloading in XPCOM interface
+declarations</b><blockquote><code>nsITokenObserver</code> does this. I don't
+know why.</blockquote>
+
+<li><b>varargs</b><blockquote>One or two interfaces use <code>'...'</code> params.
+ This is not valid XPCOM. We've discussed possible workarounds. I
+ don't know what replacement for this will be decided upon.</blockquote>
+
+<li><b>Marking a method <code>const</code></b><blockquote>This is a
+normal C++ idiom to indicate that calling the given method will not
+modify the object. XPCOM has no way to check for or enforce this.</blockquote>
+
+<li><b>Marking a parameter <code>const</code></b><blockquote>This is not
+directly expressable in xpidl. The xpidl compiler may well mark
+pointer/reference type <code>in</code> params as const in the generated
+headers.</blockquote>
+
+ <li><b>Use of C arrays</b><blockquote>Currently we have no way to
+represent arrays in xpidl or map them to XPConnect. This needs to
+be addressed as some point. It is recommended that XPCOM wrapper
+interfaces be declared and implemented to manipulate them in the
+mean time.</blockquote>
+
+<li><b>Use of C structs and non-XPCOM classes (and
+<code>void*</code>)</b><blockquote>Currently we have no way to represent structs
+or non-XPCOM classes in xpidl or map them to XPConnect. This needs to be
+addressed as some point. It is recommended that XPCOM wrapper interfaces be
+declared and implemented to manipulate them in the mean time. 
+
+<p>
+
+Mike Shaver plans to implement a <code>native</code> modifier in xpidl to at
+least let pointers to non-XPCOM types appear in idl and the generated headers.
+However, interfaces using these <code>native</code> params will not be
+reflectable into XPConnect and we would have no way to build proxies for them in
+the future without also declaring the struct layout and details in some future
+incarnation of xpidl. </blockquote>
+
+<li><b>Failure to use the shared allocator</b><blockquote>XPCOM has
+some serious rules about transfer of ownership of pointer type
+objects when used in <code>out</code> and <code>in/out</code>
+params. Following these rules is inconvenient, but not following them puts
+one on the road to memory leaks and crashes. Given:
+
+<pre>NS_IMETHOD GetName(/*out*/ char** name) = 0;</pre>
+
+By the rules, the implementor of this method should be using the shared
+allocator (<code>nsIAllocator</code> in our system) to make a copy of
+<code>name</code> to hand to the caller. The caller then takes ownership of the
+string and uses the shared allocator to free it when it chooses. Any other
+scheme is not generally safe. The obvious (unsafe) implementation of the method
+is:
+
+<pre>
+NS_IMETHODIMP clazz::GetName(/*out*/ char** name) {
+    *name = mName;
+    return NS_OK;
+}
+</pre>
+
+This supposes both that the caller will not use the returned pointer past the
+lifetime of the callee object and that the callee is implemented such that it
+should retain ownership of the string returned to all callers; i.e. what if the
+semantics of the implementation where to have the callee return a string that
+was different on each call ("string1" then "string2"...), would we expect the
+callee to manage and free all of those strings upon its destruction?
+
+<p>
+
+Passing a pointer type as an <code>out</code> (or <code>in/out</code>) param
+without transferring ownership implies a contract that is <b>not</b> expressed in
+the XPCOM interface. This makes it dangerous. However, while it may be that the
+contract is understood by the users of the interface, we currently have no way
+to communicate that contract to XPConnect. Given that this pattern is so
+prevalent and I can't realistically anticipate that the pattern will go
+away, I intend to propose an xpidl keyword to be used to annotate such params so
+that XPConnect can know which ones do <b>not</b> follow the standard transfer of
+ownership rules. <i>Brendan suggests the keyword: 'weak'. I'm thinking 'shared'.</i></blockquote>
+
+
+<li><b>STRINGS</b><blockquote>The entire string issue remains a big mess in my
+eyes. We have a number of ways in the code to refer to strings:
+<code>char*</code> and <code>nsString</code> in a bunch of variations. We may
+well have an <code<nsIString</code> interface coming along too. Strings are the
+biggest example of the <b>Failure to use the shared allocator</b> problem
+mentioned above. We need to agree on a safe set of string representations that
+will be used for communication of this data across XPCOM interfaces. We are
+just not there yet.</blockquote>
+
+
+<li><b>C++ references</b><blockquote>(e.g. <code>char*&</code>) This C++ism is
+not representable in xpidl. The XPCOM typelib spec allows for representing this
+in the sense that it is implemented in binary as a pointer with the added
+guarantee that it can not hold a NULL. Mappings like XPConnect can
+impose (and honor) this guarantee as it pertains to <code>in</code>
+params, but I can't see that it is fully safe for <code>out</code>
+params. This is a really C++ only idiom and I don't think it really
+belongs in XPCOM interfaces.</blockquote>
+
+<li><b>Passing 'big' things by value</b><blockquote>C++ allows for passing
+structs by value. This is generally a mistake, though some structs really fit in
+32 or 64 bit 'slots'. Still this is not 'good' XPCOM interface
+behavior.</blockquote>
+
+<li><b>Use of <code>#define</code> for
+constants</b><blockquote>Converting these to <code>enum</code>
+will allow the xpidl compiler to capture them, reflect them into
+the generated headers, and, importantly, reflect them into XPConnect
+so that these name/value pairs will be accessible to JavaScript
+code using the interface.</blockquote>
+
+<li><b>Global <code>enums</code></b><blockquote>We do not have a way to reflect
+top level enums into XPConnect. Making use of the interface declaration as a
+namespace will both allow us to reflect them into XPConnect and also reduce
+global namespace pollution. I encourage people to do this wherever
+possible.</blockquote>
+
+<li><b>Mixing XPCOM interface declarations with other
+code</b><blockquote>A lot of header files declare XPCOM interfaces
+in the same file where 'other' stuff is declared. As we move to
+xpidl it will make more sense to separate these.</blockquote>
+
+</ul>
+
+<hr>
+<b>document history...</b>
+<font size="-1">
+<ul>
+<li><code>12 Feb 1999 - jband - </code>initial creation of document
+<li><code>16 Feb 1999 - jband - </code>fixed a few typos
+</ul>
+</font>
+
+<body>
+<html>

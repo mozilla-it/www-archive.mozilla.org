@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>ECMAScript 4 Packages</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="namespaces.html">
+<LINK rel=Next href="pragmas.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=es-title>ECMAScript 4 Netscape Proposal</SPAN></DIV>
+    <DIV class=title2>Core Language</DIV>
+    <DIV class=title1>Packages</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="namespaces.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="pragmas.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Wednesday, June 4, 2003</P>
+
+<P class=issue>Packages were originally part of the ECMAScript Edition 4 proposal but have been removed due to time constraints.
+If implemented, packages and import directives might be defined as described below.</P>
+
+<!--IMPORT "../../js20/core/packages.html" -class=js2 -class=js2-hidden +class=es4 +class=es4-hidden -->
+
+<H2><A name="package"></A>Defining Packages</H2>
+
+<P>Packages are an abstraction mechanism for grouping and distributing related code. Packages are designed to be linked at
+run time to allow a program to take advantage of packages written elsewhere or provided by the embedding environment. ECMAScript
+4 offers a number of facilities to make packages robust for dynamic linking:</P>
+
+<UL>
+  <LI>Selected package contents can be protected from outside reference.</LI>
+  <LI>Classes can maintain invariants that cannot be violated by code outside the class and/or package.</LI>
+  <LI>Function arguments and data structure references can be type-checked to limit the kinds of unexpected inputs the package&#8217;s
+    code can experience.</LI>
+  <LI>Packages can export multiple namespaces, allowing graceful upgrades to packages without changing the code that uses
+    them.</LI>
+</UL>
+
+<P>A package is defined using the following syntax:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PackageDefinition"></A><SPAN class=nonterminal>PackageDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>package</CODE>&nbsp;<A href="#N-PackageNameOpt" class=nonterminal>PackageNameOpt</A>&nbsp;<A href="statements.html#N-Block" class=nonterminal>Block</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PackageNameOpt"></A><SPAN class=nonterminal>PackageNameOpt</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PackageName" class=nonterminal>PackageName</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PackageName"></A><SPAN class=nonterminal>PackageName</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PackageIdentifiers" class=nonterminal>PackageIdentifiers</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PackageIdentifiers"></A><SPAN class=nonterminal>PackageIdentifiers</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PackageIdentifiers" class=nonterminal>PackageIdentifiers</A>&nbsp;<CODE class=terminal-keyword>.</CODE>&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+</DIV>
+
+<P>When a package is defined, it may, but is not required to, be given a <A href="#N-PackageName" class=nonterminal>PackageName</A>,
+which is either a string or a series of dot-separated identifiers. It is implementation-defined what the restrictions, if
+any, are on naming packages to avoid clashes with other packages that may be present.</P>
+
+<P>The <A href="statements.html#N-Block" class=nonterminal>Block</A> contains the body of a package <VAR>P</VAR>. The <A href="statements.html#N-Block" class=nonterminal>Block</A>
+is evaluated at the time package <VAR>P</VAR> is loaded. Any <CODE>public</CODE> top-level definitions are available to other
+packages that <CODE>import</CODE> package <VAR>P</VAR>. Any <CODE>public</CODE> class member definitions are available to
+all other packages, regardless of whether they <CODE>import</CODE> package <VAR>P</VAR>. Top-level and class definitions defined
+by <VAR>P</VAR> in another namespace <VAR>N</VAR> are available to other packages only if they <CODE>use</CODE> <CODE>namespace</CODE>
+<VAR>N</VAR> or qualify the access with namespace <VAR>N</VAR>.</P>
+
+<P>A package is loaded (its body is evaluated) when the package is first imported or invoked directly (if, for example, the
+package is on an HTML web page). Some standard packages are loaded when the ECMAScript engine first starts up. When a package
+is loaded, its statements are evaluated in order, which may cause other packages to be loaded along the way when <CODE>import</CODE>
+directives are encountered. Circularities are not allowed in the graph of package imports.</P>
+
+<P>Two attempts to load the same package in the same environment result in sharing of that package. What constitutes an environment
+is necessarily application-dependent. However, if package <VAR>P1</VAR> loads packages <VAR>P2</VAR> and <VAR>P3</VAR>, both
+of which load package <VAR>P4</VAR>, then <VAR>P4</VAR> is loaded only once and thereafter its code and data is shared by
+<VAR>P2</VAR> and <VAR>P3</VAR>.</P>
+
+<P>Javascript does not support package definition circularities (two packages <VAR>A</VAR> and <VAR>B</VAR> that each import
+the other), although an implementation may provide such a facility as an extension.</P>
+
+<H2><A name="import"></A>Importing Packages</H2>
+
+<P>A package <VAR>P</VAR> can reference another package <VAR>Q</VAR> via an <CODE>import</CODE> directive:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ImportDirective"></A><SPAN class=nonterminal>ImportDirective</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<A href="#N-PackageName" class=nonterminal>PackageName</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<A href="#N-PackageName" class=nonterminal>PackageName</A></DIV>
+</DIV>
+
+<P>An <CODE>import</CODE> directive may be preceded by <A href="definitions.html#attribute">attributes</A>; however, all such
+attributes must evaluate to either <CODE>true</CODE> or <CODE>false</CODE>.</P>
+
+<P>There are two ways an <CODE>import</CODE> directive can name a package to be imported:</P>
+
+<UL>
+  <LI>The <A href="#N-PackageName" class=nonterminal>PackageName</A> may be <A href="#N-PackageIdentifiers" class=nonterminal>PackageIdentifiers</A>.
+    In this case, the system looks for a package with that exact <A href="#N-PackageIdentifiers" class=nonterminal>PackageIdentifiers</A>
+    on its implementation-defined search path.</LI>
+  <LI>The <A href="#N-PackageName" class=nonterminal>PackageName</A> may be a literal string. In this case, the system interprets
+    the contents of the string in an implementation-defined manner in order to locate the package. Specific ECMAScript 4
+    embeddings should define the manner in which the contents of the string are interpreted. For example, a browser embedding
+    may be defined to interpret the string as a URI and look for a package at the location given by that URI.</LI>
+</UL>
+
+<P>An <CODE>import</CODE> directive does the following:</P>
+
+<UL>
+  <LI>Locate the target package specified by <A href="#N-PackageName" class=nonterminal>PackageName</A>. If the package has
+    not yet been loaded, then load it and wait until the target package&#8217;s <A href="statements.html#N-Block" class=nonterminal>Block</A>
+    is done evaluating. If loading the target package causes an import of the current package then throw a package circularity
+    exception.</LI>
+  <LI>Let <VAR>P</VAR> be the target package object.</LI>
+  <LI>If <A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A> is given, <CODE>const</CODE>-bind it to
+    <VAR>P</VAR> in the current scope.</LI>
+  <LI>For each non-<CODE>explicit</CODE> top-level definition <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> (<VAR>n</VAR> in namespace
+    <VAR>N</VAR>) in <VAR>P</VAR>, bind an alias <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> to <VAR>P</VAR>&#8217;s <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR>
+    in the global scope unless <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> is already defined in the global scope.</LI>
+</UL>
+
+<P>If package <VAR>P</VAR> has a top-level definition <VAR>n</VAR> and package <VAR>Q</VAR> imports <VAR>P</VAR> using <CODE>import&nbsp;PkgP&nbsp;=&nbsp;</CODE><VAR>P</VAR>,
+then package <VAR>Q</VAR> can refer to <VAR>n</VAR> as either <VAR>n</VAR> or <CODE>PkgP.</CODE><VAR>n</VAR>. The shorter
+form <VAR>n</VAR> is not available if it conflicts with some other <VAR>n</VAR>. If package <VAR>P</VAR> has an <CODE>explicit</CODE>
+top-level definition <VAR>n</VAR> and package <VAR>Q</VAR> imports <VAR>P</VAR>, then package <VAR>Q</VAR> can refer to that
+<VAR>n</VAR> only as <CODE>PkgP.</CODE><VAR>n</VAR>.</P>
+
+<!--/IMPORT-->
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Wednesday, June 4, 2003</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="namespaces.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="pragmas.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+      xmlns:ev="http://www.w3.org/2001/xml-events"
+      xmlns:xf="http://www.w3.org/2002/xforms">
+  <head>
+    <title>XForms Hotel Group Booking Request Form</title>
+    <link rel="stylesheet" href="include/hotelbooking.css" type="text/css" />
+
+    <xf:model>
+      <!-- Booking Info -->
+      <xf:instance id="data" xmlns="">
+	<data>
+	  <booking>
+	    <from/>
+	    <to/>
+	    <country/>
+	    <city/>
+	    <hotel/>
+	  </booking>
+	  <meta>
+	    <nights/>
+	    <nightstxt/>
+	  </meta>
+	</data>
+      </xf:instance>
+      <xf:bind nodeset="booking">
+	<xf:bind nodeset="node()" required="true()"/>
+	<xf:bind nodeset="from" type="xsd:date"/>
+	<xf:bind nodeset="to" type="xsd:date"
+		 constraint="/data/meta/nights &gt; 0"/>
+      </xf:bind>
+      <xf:bind nodeset="meta/nights"
+	       calculate="days-from-date(/data/booking/to) -
+			  days-from-date(/data/booking/from)"/>
+      <xf:bind nodeset="meta/nightstxt"
+	       relevant="../nights > 0"
+	       calculate="concat(../nights,
+			         if(../nights = 1,
+                                    ' night',
+				    ' nights'))"/>
+
+      <!-- Price Info -->
+      <xf:instance id="priceinfo" xmlns="">
+	<data>
+	  <price/>
+	  <pricedate/>
+	</data>
+      </xf:instance>
+
+      <!-- bug: should not be needed (probably fixed in bug 313118) -->
+      <xf:bind nodeset="instance('priceinfo')/price" relevant=". != ''"/>
+      <xf:bind nodeset="instance('priceinfo')/pricedate" relevant=". != ''"/>
+
+      <!-- Retrieval of Price Info -->
+      <xf:submission id="price"
+		     ref="instance('priceinfo')"
+		     action="include/hotelbooking-price.xml"
+		     method="get"
+		     replace="instance">
+	<xf:toggle case="price-busy" ev:event="xforms-submit" />
+	<xf:toggle case="price-error" ev:event="xforms-submit-error" />
+	<xf:toggle case="price-done" ev:event="xforms-submit-done" />
+      </xf:submission>
+
+      <!-- Customer Info -->
+      <xf:instance id="info" xmlns="">
+	<data>
+	  <id></id>
+	  <contactinfo>
+	    <firstname/>
+	    <lastname/>
+	    <street/>
+	    <postal/>
+	    <city/>
+	    <state/>
+	    <country/>
+	  </contactinfo>
+	</data>
+      </xf:instance>
+      <xf:bind nodeset="instance('info')/contactinfo">
+	<xf:bind nodeset="node()" required="true()"/>
+	<xf:bind nodeset="postal" type="xsd:integer"/>
+	<xf:bind nodeset="state" relevant="../country = 'United States'"/>
+      </xf:bind>
+
+      <!-- Retrieval of Customer Info -->
+      <xf:bind nodeset="instance('info')/id" required="true()"/>
+      <xf:submission id="retrieveinfo"
+		     replace="instance"
+		     instance="info"
+		     ref="instance('info')/id"
+		     action="include/hotelbooking-custinfo.xml"
+		     method="get">
+	<xf:message level="modal" ev:event="xforms-submit-error">
+	  An error occured when retrieving your information
+	</xf:message>
+      </xf:submission>
+
+      <!-- Country list -->
+      <xf:instance id="countries" src="include/countries.xml"/>
+
+      <!-- Hotel list -->
+      <xf:instance id="hotels" src="include/hotels.xml"/>
+    </xf:model>
+  </head>
+
+  <body>
+    <h1>XForms Hotel Group Booking Request Form</h1>
+
+    <p>
+      Welcome to the <em>XForms Hotel Group</em>. We aim to satisfy your every
+      XML need in a declarative way :)
+    </p>
+
+    <!-- Booking Information -->
+    <xf:switch>
+      <xf:case id="case-booking">
+	<xf:group ref="booking" class="main">
+	  <xf:label>Booking Information</xf:label>
+
+	  <xf:group>
+	    <xf:input ref="from">
+	      <xf:label>Arrival: </xf:label>
+	      <xf:hint>Please enter your date of arrival</xf:hint>
+	    </xf:input>
+
+	    <xf:input ref="to">
+	      <xf:label>Departure: </xf:label>
+	      <xf:hint>Please enter your date of departure</xf:hint>
+	    </xf:input>
+
+	    <xf:output ref="../meta/nightstxt">
+	      <xf:label> &ndash; a total of </xf:label>
+	    </xf:output>
+	  </xf:group>
+
+	  <xf:group>
+	    <xf:select1 ref="country">
+	      <xf:label>Country: </xf:label>
+	      <xf:itemset nodeset="instance('hotels')/country">
+		<xf:label ref="name"/>
+		<xf:value ref="name"/>
+	      </xf:itemset>
+	      <xf:setvalue ref="../city" value=""
+			   ev:event="xforms-select"/>
+	      <xf:setvalue ref="../hotel" value=""
+			   ev:event="xforms-select"/>
+	    </xf:select1>
+
+	    <xf:select1 ref="city">
+	      <xf:label>City: </xf:label>
+	      <xf:itemset nodeset="instance('hotels')/country[name = instance('data')/booking/country]/city">
+		<xf:label ref="name"/>
+		<xf:value ref="name"/>
+	      </xf:itemset>
+	      <xf:setvalue ref="../hotel" value=""
+			   ev:event="xforms-select"/>
+	    </xf:select1>
+
+	    <xf:select1 ref="hotel">
+	      <xf:label>Hotel: </xf:label>
+	      <xf:itemset nodeset="instance('hotels')/country[name = instance('data')/booking/country]/city[name = instance('data')/booking/city]/hotel">
+		<xf:label ref="."/>
+		<xf:value ref="."/>
+	      </xf:itemset>
+	    </xf:select1>
+	  </xf:group>
+
+
+	  <!-- Price Retrieval / Information -->
+	  <xf:submit submission="price">
+	    <xf:label>Get price information</xf:label>
+	  </xf:submit>
+
+	  <xf:switch>
+	    <xf:case/>
+	    <xf:case id="price-busy">
+	      <img src="include/spinner.gif" alt="Busy" />
+	      Fetching the price information ...
+	    </xf:case>
+	    <xf:case id="price-error">
+	      Sorry, an error occured while fetching your price information. Are
+	      you sure all the above fields have the correct information?
+	    </xf:case>
+	    <xf:case id="price-done">
+	      <xf:output ref="instance('priceinfo')/price">
+		<xf:label>Splendid! The price per night is: </xf:label>
+	      </xf:output>
+	      <br/>
+	      <xf:output ref="instance('priceinfo')/pricedate">
+		<xf:label>Price calculated: </xf:label>
+	      </xf:output>
+	    </xf:case>
+	  </xf:switch>
+	</xf:group>
+
+	<xf:trigger ref="instance('priceinfo')/price">
+	  <!--
+	      Binding the trigger to price makes it invisible until the price is
+	      non-empty
+	  -->
+	  <xf:label>Continue booking...</xf:label>
+	  <xf:toggle case="case-contact" ev:event="DOMActivate"/>
+	</xf:trigger>
+      </xf:case>
+
+
+      <!-- Contact Information Page -->
+      <xf:case id="case-contact">
+	<xf:group class="main">
+	  <xf:label>Hotel</xf:label>
+	  <xf:output ref="booking/hotel">
+	    <xf:label>Booking a room at </xf:label>
+	  </xf:output>
+	  <xf:output ref="meta/nightstxt">
+	    <xf:label> for </xf:label>
+	  </xf:output>
+	</xf:group>
+
+	<xf:group id="contactinfo" class="main"
+		  ref="instance('info')/contactinfo">
+	  <xf:label>Contact Information</xf:label>
+
+	  <xf:input ref="firstname">
+	    <xf:label>First name: </xf:label>
+	  </xf:input>
+	  <xf:input ref="lastname">
+	    <xf:label>Last name: </xf:label>
+	  </xf:input>
+
+	  <xf:input ref="street">
+	    <xf:label>Street: </xf:label>
+	  </xf:input>
+	  
+	  <xf:input ref="postal">
+	    <xf:label>Postal code: </xf:label>
+	  </xf:input>
+	  
+	  <xf:input ref="city">
+	    <xf:label>City: </xf:label>
+	  </xf:input>
+	  
+	  <xf:input ref="state">
+	    <xf:label>State: </xf:label>
+	  </xf:input>
+	  
+	  <xf:select1 ref="country">
+	    <xf:label>Country: </xf:label>
+	    <xf:itemset nodeset="instance('countries')/country">
+	      <xf:label ref="."/>
+	      <xf:value ref="."/>
+	    </xf:itemset>
+	  </xf:select1>
+
+	  <xf:input ref="instance('info')/id">
+	    <xf:label>Customer ID: </xf:label>
+	    <xf:hint>
+	      If you are a preferred customer we can get your information
+	      automatically
+	    </xf:hint>
+	    <!-- bug: relative links does not work (bug 329106) -->
+	    <xf:help src="http://www.mozilla.org/projects/xforms/samples/include/preferedcustomerblah.xhtml"/>
+	  </xf:input>
+	  <xf:submit submission="retrieveinfo">
+	    <xf:label>Retrieve</xf:label>
+	  </xf:submit>
+	</xf:group>
+
+	<xf:trigger>
+	  <xf:label>Go back...</xf:label>
+	  <xf:toggle case="case-booking" ev:event="DOMActivate"/>
+	</xf:trigger>
+      </xf:case>
+    </xf:switch>
+
+  </body>
+</html>

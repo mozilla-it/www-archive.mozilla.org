@@ -1,0 +1,180 @@
+things that an extension can load - 
+ - chrome (currently handled)
+ - default prefs (currently not handled)
+ - components (currently not handled)
+ 
+- extension manager 
+    - extension list
+    
+    - extension
+      - version
+      
+    - installExtension(nsIExtension aTheme);
+    - uninstallExtension(nsIExtension aTheme);
+    
+    // theme manager    
+    - installTheme(nsITheme aTheme);
+    - uninstallTheme(nsITheme aTheme);
+                
+init: 
+  load extensions datasource
+  walk the extensions list {
+    if extension is to be uninstalled {
+      locate install log
+      parse log, reverting file copies, deregistering Chrome etc
+      remove from extension list
+    }
+    if extension is to be enabled {
+      register packages' overlays
+      if the extension's components aren't yet registered
+        register extension's components
+      
+      load extension's default prefs
+    }
+    else {
+      if the extension's components have been registered
+        unregister the extension's components
+      
+      for each package supplied by the extension
+        unregister the package's overlays
+    }
+  
+    if extension is compatible {
+      clear uncompatible flag
+      enable extension 
+    }
+    else {
+      mark as being incompatible 
+      disable extension
+    }
+  }  
+
+on browser load:
+  walk uncompatible list {
+    if extension has updateURL
+      check for update at updateURL ----- (1) 
+    else
+      check for update at UMO ----------- (1)
+    if update exists
+      download and install update
+  }
+  
+installExtension: 
+  if extension is compatible {
+    insert extension into extensions list
+    register extension's components
+  }
+  else
+    display error message;
+
+uninstallExtension:
+  mark extension as to be uninstalled
+    
+enableExtension:
+  mark extension as to be enabled
+
+disableExtension:
+  mark extension as to be disabled
+
+(1) - Communication mechanism between client and site
+
+extension can provide a URL to query for updates, or the default site is used...
+URL is RDF file which contains:
+versions resource
+  - 0.7 - > 2.3 - url -> http://www.goat.com/foo-fb-0.7.xpi
+                - name -> Foo 2.3 for Firebird 0.7
+  - 0.8 ->  2.4 - url -> http://www.goat.com/foo-ff-0.8-2.4.xpi
+                - name -> Foo 2.4 for Firefox 0.8
+        ->  3.0 - url -> http://www.goat.com/foo-ff-0.8-3.0.xpi
+                - name -> Foo 3.0 for Firefox 0.8
+
+App can do:
+
+var currExtension; // current extension we're checking for
+var appVersion = "0.8";
+var targets = ds.GetTargets(VersionsRoot, appVersion);
+var newest = null;
+for (var target in targets) {
+  if (newest == null)
+    newest = target;
+  if (target.versionNumber > newest.target)
+    newest = target;
+}
+if (newest) {
+  if (newest.versionNumber == currExtension.versionNumber) {
+    // the author has marked the previous version of the extension as still
+    // compatible with the new version update. we can enable it now.
+    return enable extension
+  }
+  
+  install newest
+}
+... and show the newest version. Other available compatible versions can be shown in a list. 
+
+Other things - extensions we host must use this mechanism. 
+- must use namespaced chrome uris to prevent collisions. 
+
+The Install Process
+  install.js:
+  
+    registerChrome(PACKAGE)
+      - adds -> a package to the extension's package list
+      
+Web Side:      
+
+http://update.mozilla.org/
+  Gateway page featuring links to:
+    Extensions [ Firefox | Thunderbird | ... ]
+    Themes [ Firefox | Thunderbird | ... ]
+    Updates [ Firefox | Thunderbird | ... ]
+    
+http://update.mozilla.org/extensions/
+  Gateway page featuring links to:
+    Firefox | Thunderbird | ...
+    
+http://update.mozilla.org/themes/
+  Gateway page featuring links to:
+    Firefox | Thunderbird | ...
+        
+http://update.mozilla.org/updates/
+  Gateway page featuring links to:
+    Firefox | Thunderbird | ...
+
+http://update.mozilla.org/extensions/firefox/
+  < autodetect browser version > 
+  Show list of extensions, according to list spec
+  
+  etc.
+  
+http://update.mozilla.org/extensions/firefox/showUpdates.php
+  < takes extension list as param >
+  < takes update status as param: 
+     - new app version installed
+     - other (manual, periodic scan) >
+  Show list of extensions with available updates. If new app
+  version mode, show text explaining that updates for those
+  extensions are not yet available.
+  
+      
+OBSOLETE:
+    
+    - init:
+        load extension ds
+        walk extensions list 
+          if (compatible_version) {
+            dir = extension.componentsDir;
+            if (!registered)
+              autoRegisterComponents(dir);
+            else
+              autoUnregisterComponents(dir);
+            
+            dir = extension.prefsDir;
+            walk dir
+              readPrefs(file);
+          }
+          else {
+            if (allowOverlays) {
+              walk 
+              cr.setAllowOverlaysForPackage(extn, false);
+          
+          }      

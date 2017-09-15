@@ -1,0 +1,957 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+<title>Introduction to Mozilla Source Code.</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<h1>Mozilla Hacker's Getting Started Guide</h1>
+
+<h2>An Introduction To Hacking Mozilla.</h2>
+
+<p>
+If you find errors in this document, or if you want to contribute updated or
+additional sections, please contact
+<a href="mailto:kaie@kuix.de">Kai Engert</a>.
+</p>
+
+<h2>Contents</h2>
+
+<a href="#whatis">What is Mozilla?</a><br>
+<a href="#motivation">Motivation</a><br>
+<a href="#audience">Audience</a><br>
+<a href="#scope">Scope of this document</a><br>
+<a href="#netscape">What does Netscape have to do with this?</a><br>
+<a href="#cppjs">C++ and JavaScript</a><br>
+<a href="#nspr">NSPR - Netscape portable runtime</a><br>
+<a href="#threads">Threads</a><br>
+<a href="#oop">Object oriented programming &amp; Modularity</a><br>
+<a href="#interfaces">Interfaces</a><br>
+<a href="#xpcom">XPCOM / nsISupports / nsCOMPtr</a><br>
+<a href="#exceptions">Exceptions / nsresult</a><br>
+<a href="#strings">Strings in C++</a><br>
+<a href="#gui">Graphical User Interface / XUL</a><br>
+<a href="#build">Build System and Tree</a><br>
+<a href="#startup">Application Startup</a><br>
+<a href="#notification">Internal Notification System</a><br>
+<a href="#localization">Localization</a><br>
+<a href="#review">Coding and Review Rules</a><br>
+<a href="#milestones">Milestones</a><br>
+<a href="#bugzilla">Bugzilla</a><br>
+<a href="#webtools">Webtools / LXR / Bonsai</a><br>
+<a href="#more">Finding more information</a><br>
+
+<h2><a name="whatis"></a>What is Mozilla?</h2>
+
+<p>
+Mozilla is an open source project and organization to develop a cross-platform
+Internet client software. Since it is open source, the source code is available
+to everyone - although you have to follow the
+<a href="http://www.mozilla.org/MPL/">licenses</a>
+as defined in the respective source files (a mixture of MPL, NPL, GPL, LGPL).
+</p>
+
+<p>
+mozilla.org is the name of an organization that provides an infrastructure to
+help developers in the project.
+<a href="http://www.mozilla.org/">mozilla.org</a>
+is also the address of the central web site for the Mozilla project.
+</p>
+
+<h2><a name="motivation"></a>Motivation</h2>
+
+<p>
+Mozilla is one of the largest open source software projects. The Mozilla
+codebase has millions of lines of code. Therefore, getting started in this huge
+project isn't easy. The intention of this document is to give an overview
+about what you should be aware of in order to hack Mozilla. It tries to build a
+bridge between the many different technologies used in the Mozilla project.
+</p>
+
+<p>
+When I started to look into Mozilla, I wished a document like this existed. :)
+</p>
+
+<h2><a name="audience"></a>Audience</h2>
+
+<p>
+This document is primarily written for developers who want to be able to work on
+any part of Mozilla. You should have a good understanding of Object Oriented
+Programming, and especially you should be experienced with C/C++, as it is the
+main programming language used in the project.
+</p>
+
+<p>
+However, if you intend to work only on a subset of the code, say only the
+JavaScript and XUL UI code, this document should still be helpful.
+</p>
+
+<h2><a name="scope"></a>Scope of this document</h2>
+
+<p>
+This document will try to answer the following questions:
+</p>
+
+<ul>
+<li>How is the source code organized?</li>
+<li>Which technologies are used?</li>
+<li>Where do I start?</li>
+<li>How do the components work together?</li>
+<li>Which tools exist and how can they help me?</li>
+<li>What rules do I need to follow in order to contribute?</li>
+</ul>
+
+<h2><a name="netscape"></a>What does Netscape have to do with this?</h2>
+
+<p>
+From my personal point of view, in the beginning of Mozilla there was Netscape.
+At some point Netscape, the company, decided to give away those portions of the
+source code that they owned and that were free of others' copyright.
+</p>
+
+<p>
+This wasn't the complete product, therefore the Mozilla project has had to
+write a lot of new code. In addition, many portions were rewritten. Some other
+components were kept and extended. That's one reason why, in this document
+and when discussing the Mozilla project, you will hear the term Netscape.
+</p>
+
+<h2><a name="cppjs"></a>C++ and JavaScript</h2>
+
+<p>
+As it is widely used in Mozilla, it makes sense to explain how JavaScript and
+C++ relate to each other in the Mozilla source code. C++ is a compiled language,
+while JavaScript is an interpreted language. JavaScript is most commonly known
+as a technology used to implement web sites. However, the developers of Mozilla
+decided that the Mozilla source code itself should consist of a mixture of both
+languages.
+</p>
+
+<p>
+When you start the application, the C/C++ components start first. But in an
+early stage, a technology called XPConnect gets initialized that enables the use
+of interpreted JavaScript at runtime. In fact, a Mozilla browser distribution
+consists of both compiled C++ and uncompiled JS files.
+</p>
+
+<p>
+Note that JavaScript can not be compiled to be executed by the operating system
+directly, we still use C/C++ for the back-end of the program, JavaScript runs
+inside Mozilla.
+</p>
+
+<p>
+Also note, when surfing web pages which use JavaScript, that JavaScript code is
+executed within a sand box, and does not have access to Mozilla's internal
+objects. Only those objects that are exposed by DOM (Document Object Model) are
+accessible.
+</p>
+
+<p>
+Whenever JS is mentioned in this document, it is meant as a technology to
+contribute to internal Mozilla functionality. JavaScript is mostly used in those
+areas of the source code that care for user interface events. Most of the
+following document will explain the C++ aspect of the application.
+</p>
+
+<h2><a name="nspr"></a>NSPR - Netscape portable runtime</h2>
+
+<p>
+A primary requirement for Software developed in the Mozilla project is that it
+must be cross-platform, i.e. it must not be restricted to any particular
+operating system.
+</p>
+
+<p>
+While C++ is intended to be a portable programming language, this portability
+aspect applies only to general program logic and data structures. If you want to
+write software for a particular operating system, you need to use functionality
+that is specific to that system. Often, you want the same functionality on all
+systems, but in order to do it, you have to write specific software for each
+platform.
+</p>
+
+<p>
+The intention of
+<a href="http://www.mozilla.org/projects/nspr/">NSPR</a>
+is to provide a layer between the OS and the Mozilla source code, to allow for
+simpler coding in other areas of the Mozilla source code. When you are tempted
+to use a C library function, you should check first whether NSPR offers a
+cross-platform implementation.
+</p>
+
+<h2><a name="threads"></a>Threads</h2>
+
+<p>
+Mozilla is a multithreaded application. You should understand what that means
+before you try to code Mozilla.
+</p>
+
+<p>
+NSPR provides an operating system independent facility to program with multiple
+threads. For example, all network data transfer happens on a separate thread, to
+make sure the user interface stays responsive while data is being transferred.
+</p>
+
+<p>
+One requirement for C++ code you write is that it is safe for multiple threads.
+</p>
+
+<h2><a name="oop"></a>Object oriented programming &amp; Modularity</h2>
+
+<p>
+Mozilla C++ source code is intended to follow the rules of OOP, that includes
+building modular components, where access to internal data (variables) is only
+allowed/possible using the public interfaces of your classes.
+</p>
+
+<p>
+In most simple C++ projects, this only means, you carefully design your classes
+to use public/protected/private as appropriate, but all source code is still
+available everywhere. For instance, at any time, you can change any class'
+component from private to public, so it will be available at any other place in
+your project. This does not apply to Mozilla. It was decided that Mozilla should
+be even more modular.
+</p>
+
+<p>
+The Mozilla source code is organized as separate components. While within one
+component, you have all the freedom as described in the previous paragraph for
+simple projects, you don't have the same level of flexibility between
+components.
+</p>
+
+<p>
+When components talk to each other, they only do so using well defined
+interfaces using the component object model (COM).
+</p>
+
+<h2><a name="interfaces"></a>Interfaces</h2>
+
+<p>
+The concept of interfaces is something that is used in the CORBA technology, for
+example. Both CORBA and Mozilla use a similar language to describe interfaces,
+which is XPIDL (IDL means Interface Definition Language).
+</p>
+
+<p>
+In a CORBA environment, life is more restrictive and difficult, because you have
+inter-process and inter-network communication, something which Mozilla is not
+actively using. In a distributed CORBA environment, it is difficult to change
+the components of an interface, because you are usually unable to replace all
+running systems at the same time. If you want to change something, you have to
+define a new version of an interface, but you might still be required to support
+the old one.
+</p>
+
+<p>
+As Mozilla is not a distributed application as of writing, it is currently
+possible to change most interfaces as the development process requires it. But
+because the Mozilla browser runs embedded in some environments, those
+environments must be able to rely on a fixed interface, therefore interfaces can
+be frozen. This state is usually indicated in the interface definition. As
+Mozilla stabilizes over time, or approaches the magical version number
+One-Dot-Zero, the ratio of frozen to not frozen interfaces is likely to
+increase.
+</p>
+
+<p>
+One step of building Mozilla is automatically translating the interface
+definition files into C/C++ header files. That's the job of Mozilla's
+own IDL compiler, xpidl.
+</p>
+
+<p>
+Besides of the methods and data members, interfaces have additional attributes.
+They have a UUID, a number to uniquely identify an interface. Interfaces can
+have the scriptable attribute, which means they will be accessible from the
+JavaScript code. A scriptable interface is restricted to only use data types for
+parameters that are valid within the JavaScript runtime.
+</p>
+
+<h2><a name="xpcom"></a>XPCOM / nsISupports / nsCOMPtr</h2>
+
+<p>
+XPCOM is Mozilla's own implementation of COM - the component object model.
+The XP in front means it is cross-platform (do not confuse this with XP as it
+appears in product names for a certain operating system manufacturer). The fact
+that it is cross-platform makes XPCOM more versatile than any other form of COM.
+</p>
+
+<p>
+You should definitively read the introductory documents on
+<a href="http://www.mozilla.org/projects/xpcom/">XPCOM</a>
+on mozilla.org. To get you started, one could say that XPCOM is the engine that
+makes the COM concept work. This includes playing the role of an object broker.
+</p>
+
+<p>
+Typically, an interface describes an object that can be used to get a job done.
+If you have a job to do, you need to request an implementation that provides the
+interface. That implementation can reside within another component. To decide
+which particular implementation you want, you are using a contract ID, which is
+a text based identifier. The contract ID is a contract on the behaviour of the
+implementation, accessible using the well defined interface. The XPCOM runtime
+system knows which class implements which contract ID, and which component
+provides it.
+</p>
+
+<p>
+Even if your code stays completely within one component, and therefore using COM
+is not a strict requirement, it is used very often anyway. One reason is
+flexibility. Another one is to allow sharing functionality with those portions
+of the Mozilla logic that are implemented using JavaScript. Mozilla provides a
+technology called XPConnect that enables communication between interpreted
+JavaScript and compiled C++ at runtime.
+</p>
+
+<p>
+Whenever you request an instance of a COM object at runtime, a class object will
+be created and you will be given an interface pointer. For several reasons it
+was decided that these instances are reference counted. One reason is
+efficiency, for it making unnecessary copies of objects should be avoided.
+Another requirement is that data objects must be passed between threads, but all
+keep a pointer to the same data object in memory. Finally, the same data object
+might be referenced by multiple components, or stored in multiple lists.
+</p>
+
+<p>
+As the lifetime of a reference is different, it is easiest to have each object
+maintain a reference count, to remember how often it is currently referenced by
+something else. When you are given a reference to an object (be it from the
+XPCOM engine directly or from a function call), you have to make sure that you
+care for reference counting. You must tell the object whether you want to keep a
+reference to it, or whether you are finished with it, and remove the reference.
+That way, the object can decide on its own whether it is still needed. When its
+not needed anymore, it deletes itself from memory.
+</p>
+
+<p>
+In order to implement this generic functionality, all classes in Mozilla that
+implement any interface share the common base class nsISupports, which
+implements the reference counter and automatic destruction functionality. A
+similar base class exists in every implementation of COM.
+</p>
+
+<p>
+There is the general rule, that you must clean up what you allocate. For
+instance, if you add a reference, you are strongly encouraged to release the
+reference as soon as it is no longer needed. If you don't, you might cause
+problems such as memory leaks.
+</p>
+
+<p>
+In C++, this can be done by explicit method calls to methods of the nsISupports
+base class. But calling these methods is not only easy to forget, but it also
+makes your code less readable. Especially since many functions/methods have
+multiple exit points (i.e. return statements).
+</p>
+
+<p>
+You have to make sure that you release all your referenced objects in each of
+your exit points. To make this easier, and to not have to repeat many release
+calls, a general helper class has been provided for dealing with pointers to COM
+objects, whose name is
+<a href="http://www.mozilla.org/projects/xpcom/nsCOMPtr.html">nsCOMPtr</a>.
+This is something special to XPCOM and makes coding COM much easier. It
+simulates a pointer through overriding certain operators. Although there might
+be some edge cases, the following general rule should be followed for nearly all
+code: Whenever you'd expect to use a pointer variable
+"interface*" to an object that implements an interface, use a local
+"nsCOMPtr&lt;interface&gt;" variable instead. As soon as this pointer
+goes "out of scope", its destructor will automatically decrease the
+reference count, triggering destruction if possible.
+</p>
+
+<p>
+In interpreted JavaScript this is easier to code, because of garbage collection.
+There is some magic that automatically releases the references when possible.
+However, this magic requires that you don't introduce cycles. For example,
+if you have two objects, and each contain a reference to each other, but nobody
+else keeps a reference to them, this can not be detected, and those objects will
+live in memory for the rest of program execution.
+</p>
+
+<h2><a name="exceptions"></a>Exceptions / nsresult</h2>
+
+<p>
+Code execution can fail at runtime. One programming mechanism to deal with
+failure is to use exceptions. While Mozilla uses Exceptions in its JavaScript
+code portions, it does not in C++. One out of several reasons for this is
+exceptions haven't always been portable, so what was done in the past has
+stuck. Mozilla C++ code uses return codes to simulate exceptions. That means,
+while in JavaScript you can use try-catch blocks, in C++ you should check the
+return code whenever you call an interface method. That return code is of type
+nsresult. For this reason, the logical return type, as defined in the IDL file,
+is mapped to an additional method parameter in the C++ code.
+</p>
+
+<p>
+The nsresult type is intended to transport additional failure reasons. Instead
+of simply reporting failure or success, an integer type is used instead, to
+allow for defining a lot of different error codes.
+</p>
+
+<p>
+There are some general result codes, like NS_OK, which is used to indicate that
+everything went well and program flow can continue, or NS_ERROR_FAILURE, which
+is used if something went wrong, but no more details need to be provided as of
+yet.
+</p>
+
+<p>
+In addition to that, each component can request its own range of integers to
+define error codes that will not overlap with those failure codes used in other
+areas of an application. Look at mozilla/xpcom/base/nsError.h for more
+information.
+</p>
+
+<h2><a name="strings"></a>Strings in C++</h2>
+
+<p>
+While many application frameworks or class libraries decided to use just a
+single string class, the Mozilla developers have decided they need something
+more powerful. They have implemented a hierarchy of several string classes,
+which allows the dynamic runtime behaviour to be optimized for different
+situations. Sometimes you just need to fixed size string, sometimes you need a
+large string that grows over time. Therefore, for example, not only flat
+strings, but also segmented string types are available.
+</p>
+
+<p>
+An additional requirement is that Mozilla has to be fully multi-language. All
+strings that deal with information shown to a user are therefore using
+multi-byte Unicode character strings.
+</p>
+
+<p>
+The string types are template based, with the character type as the variable
+type, to allow the same logic to be used with regular and Unicode strings.
+</p>
+
+<p>
+While that approach of having many string classes means a lot of flexibility,
+the drawback is that learning Mozilla's string classes is not trivial.
+</p>
+
+<h2><a name="gui"></a>Graphical User Interface / XUL</h2>
+
+<p>
+Most operating systems define their own way to develop graphical user
+interfaces, and they are mostly different.
+</p>
+
+<p>
+For a cross-platform application like Mozilla it is crucial to have a set of
+technologies that hide the operating system dependent logic from the application
+logic.
+</p>
+
+<p>
+In the past a lot of C/C++ libraries have been coded that were cross-platform.
+To my knowledge, none of them are used in Mozilla, yet we have created our own
+graphics system.
+</p>
+
+<p>
+When defining the layout of a GUI (graphical user interface), you can choose to
+go with either of two possibilities. You could define the absolute positions of
+each UI (user interface) element that you want to appear. This approach actually
+has been chosen by a lot of GUI libraries. But it has some drawbacks - you are
+not very flexible when the layout changes when adding more elements, because you
+have to rearrange all elements to new positions. You also have to do that
+graphically, to get immediate feedback which elements overlap, etc. But still,
+the UI might not look as intended when a different font with different metrics
+has to be used - this can make a UI unusable.
+</p>
+
+<p>
+Mozilla developers wanted to have something very flexible. As Mozilla is
+cross-platform, it has to be very flexible with regards to fonts.
+</p>
+
+<p>
+Mozilla developers have chosen to use an approach where the contents of the UI
+are designed in a logical matter. We don't currently use an UI editor. We
+write a file with instructions how the UI should look. At runtime, the layout
+engine decides which fonts are available, and considers all the requests that
+have been defined in the UI description, and creates the actual UI dynamically.
+This is similar to what the web browser does when displaying web pages.
+</p>
+
+<p>
+The web has gone from a mostly text-based system to a very graphical rich
+environment that has user interfaces akin to many programs. Therefore, it was
+only natural for a web browser to use web languages in order to define its user
+interface. It was decided to use an XML based syntax to write the UI
+description, which has been called XUL (extensible user-interface language). (A
+good reference for XUL is available at
+<a href="http://www.xulplanet.com/">XULPlanet</a>).
+</p>
+
+<p>
+A XUL file describes what elements the UI consists of, and where elements
+appear. The XUL language defines attributes that allow the programmer to define
+the actions controls react to. To define the dynamic behaviour of the
+application, one can define JavaScript functions that will be called when
+certain user interface events happen. Within those JavaScript functions, you can
+either do the required application behaviour directly, or call any other
+application logic available by COM objects, including logic defined in C++.
+</p>
+
+<p>
+In addition to the logical representation of the UI, people also prefer to have
+a pretty looking UI. To define the detailed characteristics of the UI, one uses
+CSS files, that defines, for example, which images will be used to display
+certain UI elements. This makes it flexible to define additional
+"looks" for the application, which are referred to as
+"themes" or "skins". Mozilla defines currently two themes,
+classic and modern, which are actively maintained by the Mozilla developers.
+While there exist additional themes for Mozilla, they often exist only for
+certain versions of Mozilla. It is a lot of work for a theme designer to stay in
+sync with all the changes that happen to the UI each day.
+</p>
+
+<h2><a name="build"></a>Build System and Tree</h2>
+
+<p>
+Nowadays Mozilla is mostly used as a group of many shared libraries, loaded
+dynamically at runtime as needed. The COM system allows for a development
+environment, where you often need to re-compile only a subset of the application
+when you make changes to areas of the source code base. This is a very
+convenient development environment, but it means a slowdown at runtime. On the
+other hand, it is possible to create an executable where Mozilla's
+internal components are mostly linked statically. Due to the size of the
+application, this link step takes a lot of time, and makes most sense when
+preparing a package for distribution.
+</p>
+
+<p>
+Each component contains its own directory in the root directory of Mozilla. It
+might also contain subcomponents within it called modules. There are make files
+throughout the tree which tell Mozilla how to build.
+</p>
+
+<p>
+Most of the platform-specific code is contained in only a few places of the
+tree. The layer that sits between the operating system and the rest of the
+Mozilla code are the interfaces that are implemented by this code. Only the
+platform-specific code pertaining to the platform in which the build is
+occurring is built.
+</p>
+
+<p>
+Operating system messages are gathered by the platform-specific code and then
+sent to the platform-independent code in the same way.
+</p>
+
+<p>
+Widgets in respect to the Mozilla project are OS-independent widgets drawn using
+platform-specific rendering techniques.
+</p>
+
+<p>
+Within the tree, directories named public usually contain interface headers, and
+directories named src usually contain interface implementations and
+non-interface headers.
+</p>
+
+<p>
+Building this program can be daunting for someone not used to a project this
+large. It can take from 20 minutes on a powerful workstation to a couple hours
+on an older PC. First, you have to get the source, then build it using the rules
+contained in
+<a href="http://www.mozilla.org/build/">http://www.mozilla.org/build/</a>.
+While it's building, it will move all the header files to the dist/include
+directory so that you don't have to specify the directory of each header.
+It will also copy all the XUL, graphics, and JavaScript files (collectively
+called the chrome) to the chrome directory (a child of the directory containing
+the Mozilla binary). They are mapped to chrome:// URLs as defined in a file
+called jar.mn. In release versions of Mozilla, the chrome directory will only
+contain .jar files.
+</p>
+
+<p>
+Building Mozilla is only part of the process. If you want to develop, you will
+have to maintain the tree using a program called
+<a href="http://www.cvshome.org/">CVS</a>.
+When the build fails, you have to solve conflicts that occur when a merge
+between a file in your tree and one in the repository fails. Also, when you
+hack the tree, you have to build parts of the trees you modified. Occasionally,
+you will have to rebuild the entire tree using a process called depending, so
+that dependencies between source files can be determined. Also, you will
+occasionally have to rebuild the tree. Most likely, while you are doing this,
+you will be maintaining your own changes to the tree and trying to keep it in
+sync with others' changes.
+</p>
+
+<h2><a name="startup"></a>Application Startup</h2>
+
+<p>
+Mozilla's COM system relies on type libraries and an internal registry of
+available components and interfaces. During application startup, a check is
+being made whether the registry is still up to date. If changed libraries are
+detected, the registry is updated. Each component is allowed to do
+initialization during that registration phase. If changed libraries are
+detected, they are loaded and their initialization logic is executed. Besides
+changed libraries, only those application components are loaded as they become
+required.
+</p>
+
+<h2><a name="notification"></a>Internal Notification System</h2>
+
+<p>
+This section describes an engine that is available inside Mozilla. Most of the
+time you don't need it, but if you are required to react to certain events,
+knowing this system might be helpful. The idea of OOP is, you only do your own
+job. However, it often happens that component A needs to react when another
+component triggers an action in B. But component B should not know the details
+of what needed to happen, because its better to keep parts of the code separate.
+What is required here is: If other components need to react to B's actions,
+B should be extended to send out notifications when its actions are triggered.
+In addition, B keeps a dynamic list at runtime, where it remembers who wants to
+be notified. At runtime, when A becomes initialized, A informs B that it wants
+to become a member of the notification list.
+</p>
+
+<p>
+To make this more generic, it has been decided to use a central observer
+service. When component B triggers an action, it just notifies the observer
+service, specifying a descriptive name of the event. Components like A subscribe
+to the observer service giving the names of events they would like to observe.
+Using that principle, only the observer service has to deal with lists of
+components watching for events. When the observer receives notification for an
+event, it passes that notification on to all listening components for that
+event. Look at nsIObserver for more information.
+</p>
+
+<h2><a name="localization"></a>Localization</h2>
+
+<p>
+Mozilla was designed to separate code from human language. Whenever you need to
+use a text string that needs to be shown to a user, you are not allowed to store
+that string directly in your JavaScript or C++ file. Instead you define an
+descriptive identifier for your text, which is used in your C++ or JavaScript
+file. You use that identifier as a key and call members of the string bundle
+interface to retrieve the actual text. The text itself is stored in separate
+files, that only contain text. As Mozilla is modular, there are a lot of those
+files, each owned by a separate module. With that separation, it is easy to have
+translators create different language versions of those text files.
+</p>
+
+<p>
+When defining the UI, there are two kinds of strings. Some strings are known at
+the time the application is compiled and packaged, like labels for input fields,
+or the text that appears within the help system. Other text is assembled
+dynamically at runtime.
+</p>
+
+<p>
+Whenever you define text that does not need to be accessed at runtime, you
+define it in DTD files. You can refer to that text directly in XUL files.
+</p>
+
+<p>
+If you need to work with text at runtime, for example if your text contains a
+placeholder for a user name that needs to be filled at runtime, you define your
+text in properties files.
+</p>
+
+<h2><a name="review"></a>Coding and Review Rules</h2>
+
+<p>
+You are free to download Mozilla, change the code, and work with a version that
+contains your own changes.
+</p>
+
+<p>
+However, one idea behind open source as used in Mozilla is the following: You
+received the source for free, and if you make changes, you should consider
+giving something back to the community. By doing so, you become a contributor.
+</p>
+
+<p>
+But the Mozilla community has decided that it can't accept just any change
+to be integrated into the public central Mozilla codebase. If you want your code
+to become a part of it, you need to follow rules. These rules are not like law,
+but basically you must convince people that your change is good.
+</p>
+
+<p>
+The idea is, a lot of effort has been made to get the Mozilla code to its
+current state. While the Mozilla code is, like every piece of software, far from
+being perfect, people try to avoid anything that decreases maintainability, and
+to only allow code that seems to be correct.
+</p>
+
+<p>
+In order to achieve this, the Mozilla community has decided that all code has to
+be reviewed by other already known Mozilla hackers. There are two levels of
+review. You should get a first review (r=) from the owner of the code area your
+are changing. You are expected to make the corrections that are requested, or
+your code will not go in. If you have that first review, you need to get what is
+called super-review (sr=) in most cases. There are only a limited number of
+"Mozilla gurus" that have an accepted reputation for making good
+decisions on what code is good and what needs to be changed. Once you have both
+reviews, your code may be checked in most of the time. There are other levels of
+review in certain instances, and that is described elsewhere.
+</p>
+
+<p>
+Many people make changes to Mozilla. While everybody tries to make Mozilla
+better, every change has the risk of unforeseen side effects. This range from
+application features that, as a result of a change, no longer work, to the
+simple problem, that Mozilla source code does not even compile anymore. The
+latter is called "the tree is broken, burning, or red", where tree
+refers to the CVS source repository.
+</p>
+
+<p>
+If you are developing only on one combination of operating system and compiler,
+and you are not paying attention to the portability rules (read the documents on
+mozilla.org), it is very easy to break the tree. You should try your best to not
+break it, and getting review hopefully will find potential problems early,
+before the changes are checked in.
+</p>
+
+<p>
+A broken tree sucks. The Mozilla community has decided on the rule, that no
+other check-ins are allowed while the tree is broken. This is to help people who
+try to fix the problem. Allowing additional changes would make it even more
+difficult to find the real cause of a problem, because any new check-in could
+contain new problems.
+</p>
+
+<h2><a name="milestones"></a>Milestones</h2>
+
+<p>
+Every several weeks mozilla.org produces a new snapshot of the source
+repository. The idea is, people in the world should try out the current
+snapshot, and report any problems (bugs) they find. However, mozilla.org wants
+to emphasize that these milestones are being produced for testing purposes only.
+</p>
+
+<p>
+In order to prepare a more stable milestone, the rules for making changes to the
+source code repository get more restrictive prior to producing a new milestone.
+mozilla.org defines a schedule, and a couple of days before a milestone date,
+only those check-ins are allowed that have been approved by the mozilla.org
+"drivers". Drivers are a bunch of people who have the highest
+authority regarding the Mozilla repository. The drivers will also decide whether
+the milestone seems ready, or whether the schedule will be delayed in order to
+allow more fixes to be produced, that will make it more stable.
+</p>
+
+<h2><a name="bugzilla"></a>Bugzilla</h2>
+
+<p>
+<a href="http://bugzilla.mozilla.org/">Bugzilla</a>
+is mozilla.org's web based bug tracking system. Whenever a problem is
+encountered, people are asked to file a new bug (sometimes also known as problem
+ticket), with a good description of what happened. You will then be issued a bug
+or ticket number. This number will be used when people talk about the problem.
+Developers will subscribe to the "bug" and add comments to it, and if
+they know a fix, they will attach a patch to show how they suggest to fix the
+problem. Reviews will also be tracked within this system.
+</p>
+
+<p>
+The term "bug" is most often referred to as a software error. However,
+within Bugzilla, a bug can be anything that needs to be tracked. This ranges
+from software errors to enhancement requests. For example, the evolution of this
+document is tracked in
+<a href="http://bugzilla.mozilla.org/show_bug.cgi?id=123230">bug #123230</a>.
+</p>
+
+<p>
+If you are not a C++ developer, you can also work on Bugzilla. It started out as
+a simple bug reporting tool and has turned into quite a functional, complex
+system that has many users from other projects (such as
+<a href="http://www.redhat.com/">Redhat</a>).
+</p>
+
+<h2><a name="webtools"></a>Webtools / LXR / Bonsai</h2>
+
+<p>
+Webtools are server based tools that store information, and allow their
+information to be displayed and maybe even manipulated. You access such systems
+using a web browser, e.g. Mozilla.
+</p>
+
+<p>
+Mozilla developers have created several tools in order to make their life
+easier. We have already talked about Bugzilla.
+</p>
+
+<p>
+<a href="http://lxr.mozilla.org/">LXR</a>
+is a hypertext search engine for the Mozilla source code. You can look up
+identifiers and text, and you will see where in Mozilla it is used. Clicking on
+search result entries will directly bring you to current source code. The code
+is shown in a web page, and identifiers are hyperlinks, which, when clicked,
+will bring you the LXR search result for that identifier. You can use LXR to
+browse the source code and quickly navigate through it. It is based of the Linux
+project's glimpse engine with internal modifications.
+</p>
+
+<p>
+<a href="http://tinderbox.mozilla.org/">Tinderbox</a>
+is a tool that shows the current state of the source repository. mozilla.org
+hosts several machines for many different operating systems, that repeatedly and
+constantly obtain (check out) the newest source code from the central
+repository, and try to compile it. When finished with compiling, some automated
+tests are executed to check, whether the program still works correctly. The
+results of compilation and tests are reported to the central tinderbox system.
+When you access the tinderbox page, you can see whether the source code
+repository is currently in good condition, and how things changed in the past
+few hours. Tinderbox shows a graph, where time is shown vertically and the
+different machines / operating systems are displayed horizontally. Each
+compilation test phase is represented by a bar, defined by the required time for
+building.
+</p>
+
+<p>
+The bar is filled with a color. Green means good. Yellow means, compilation is
+still in progress, orange means compilation and building were successful, but
+one of the automated tests failed. Red means, the source code did not even
+compile. If the tree is red, it slows down development.
+</p>
+
+<p>
+Tinderbox is a very helpful tool, and everybody making changes to the source
+repository is expected to "watch the tree", i.e. watch whether your
+changes cause anything to fail.
+</p>
+
+<p>
+To assist you more, additional information is available on the tinderbox page.
+As people check in, their names appear on the page. There is a link to a list of
+changes they have made. If a compilation or test failed, the box will contain
+links to the output from the compiler, which should show the reason for failure.
+Additional text on the page shows the results of performance measurement.
+</p>
+
+<p>
+Another web tool is
+<a href="http://bonsai.mozilla.org/">Bonsai</a>.
+Bonsai tracks all changes made to the source repository. You can retrieve a
+listing of all changes made by people. It also provides a powerful interface to
+query the list of changes.
+</p>
+
+<h2><a name="more"></a>Finding more information</h2>
+
+<p>
+If you want to learn more about the mentioned programming techniques in general,
+I recommend searching the web for free documents. Hopefully the mentioned terms
+in this document will guide you. If you prefer to read books, I suggest to
+choose those books, where the author tries to explain in general, and does not
+concentrate on some particular operating system.
+</p>
+
+<p>
+Most documentation regarding to Mozilla development is published on the
+www.mozilla.org web site. If you can't find what you are looking for, try
+to use a search engine. Some popular search engines offer an advanced search
+option, where one can limit the search to a specific web site.
+</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September 24,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/hacking/coding-introduction.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

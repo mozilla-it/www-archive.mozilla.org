@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en" xml:lang="en"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<head>
+	<title>Mozilla's Layout Engine</title>
+	<link rel="stylesheet" type="text/css" href="slides.css" />
+</head>
+<body class="slidelist">
+
+<div class="slide">
+<h1>Mozilla's Layout Engine</h1>
+<div style="text-align:center">
+<h2><a href="http://dbaron.org/">L. David Baron</a></h2>
+<h2><a href="http://www.mozilla.com/">Mozilla Corporation</a></h2>
+<h2><a href="mailto:dbaron@dbaron.org">dbaron@dbaron.org</a></h2>
+<h3><a href="http://www.mozilla.com/">Mozilla Corporation</a>, Mountain View, California, USA</h3>
+<h3>Wednesday, July 12, 2006, 16:00 PDT</h3>
+<p>Some bits taken from 2002 tech talks on <a href="http://www.mozilla.org/newlayout/doc/gecko-overview.htm">gecko</a> (waterson) and <a href="http://www.mozilla.org/newlayout/doc/style-techtalk.html">style system</a> (dbaron)</p>
+</div>
+</div>
+
+<div class="slide">
+<h1>Layout</h1>
+<ul>
+  <li>where things go on the screen / paper</li>
+  <li>between content and view+gfx</li>
+  <li>also interacts with images, plugins, etc.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Layout (and neighbors)</h1>
+<ul>
+  <li>single threaded</li>
+  <li>most operations run to completion off main event loop</li>
+</ul>
+</div>
+
+<div class="slide imageslide">
+<h1>Layout (and neighbors)</h1>
+<img src="http://www.mozilla.org/newlayout/doc/gecko-overview_files/Slide0009.gif"></img>
+</div>
+
+<div class="slide imageslide">
+<h1>Layout (and neighbors)</h1>
+<img src="http://www.mozilla.org/newlayout/doc/gecko-overview_files/Slide0010.gif"></img>
+</div>
+
+<div class="slide imageslide">
+<h1>Layout (and neighbors)</h1>
+<img src="http://www.mozilla.org/newlayout/doc/gecko-overview_files/Slide0015.gif"></img>
+</div>
+
+<div class="slide">
+<h1>Input (concepts)</h1>
+<ul>
+<li>content tree</li>
+<li>images, plugins, etc.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Input: Content tree</h1>
+<pre>&lt;doc&gt;
+  &lt;title&gt;A few quotes&lt;/title&gt;
+  &lt;para class="emph"&gt;
+    Franklin said that &lt;quote&gt;"A penny
+    saved is a penny earned."&lt;/quote&gt;
+  &lt;/para&gt;
+  &lt;para&gt;
+    FDR said &lt;quote&gt;"We have nothing to
+    fear but &lt;span class="emph"&gt;fear
+    itself.&lt;/span&gt;"&lt;/quote&gt;
+  &lt;/para&gt;
+&lt;/doc&gt;</pre>
+</div>
+
+<div class="slide">
+<h1>Input: Content tree</h1>
+  <table class="tree">
+  <tr><td colspan="2" /><td>doc</td><td colspan="2" /></tr>
+  <tr class="arrows"><td /><td>&#x2199;</td><td>&darr;</td><td>&#x2198;</td><td /></tr>
+  <tr><td>title</td><td /><td>para<br /><small>class="emph"</small></td><td /><td>para</td></tr>
+  <tr class="arrows"><td colspan="2" /><td>&darr;</td><td /><td>&darr;</td></tr>
+  <tr><td colspan="2" /><td>quote</td><td /><td>quote</td></tr>
+  <tr class="arrows"><td colspan="4" /><td>&darr;</td></tr>
+  <tr><td colspan="4" /><td>span<br /><small>class="emph"</small></td></tr>
+  </table>
+</div>
+
+<div class="slide">
+<h1>Input: Content Tree APIs</h1>
+<ul>
+<li>nsIContent, nsINode, etc. (internal; preferred)</li>
+<li>nsIDOM* (frozen)</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Output (concepts)</h1>
+<ul>
+<li>Calls to 2-D graphics API
+  <ul>
+    <li>translate, save, restore, fill rect, draw text, draw image, etc.</li>
+    <li>See vlad's talk</li>
+  </ul>
+</li>
+<li>Mapping from coordinates back to content nodes (e.g., for event handling)</li>
+<li>APIs for computed style and element positions</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Parts of Layout</h1>
+<ul>
+  <li>Style data computation</li>
+  <li>Frame construction</li>
+  <li>Reflow</li>
+  <li>Painting (and event handling)</li>
+  <li>Glue to hold things together</li>
+  <li>Other things on frame classes: selection, accessibility, etc.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Sources of style data</h1>
+<ul>
+  <li>nsIStyleSheet; nsIStyleRuleProcessor</li>
+  <li>nsIStyleRule</li>
+  <li>examples of implementations (CSS, mapped attributes)</li>
+  <li>selector matching done up-front</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Style context</h1>
+<ul>
+<li>The internal API for computed style data</li>
+<li>style structs</li>
+<li>lazily computed data</li>
+<li>immutable</li>
+<li>shared among siblings</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Rule tree</h1>
+
+  <table style="margin: auto;font-size:0.7em;" border="border">
+  <tr><td colspan="2">Rules:
+<pre>/* rule 1 */ doc { display: block; text-indent: 1em; }
+/* rule 2 */ title { display: block; font-size: 3em; }
+/* rule 3 */ para { display: block; }
+/* rule 4 */ [class="emph"] { font-style: italic; }</pre>
+  </td></tr>
+  <tr><td>Rule tree:<table class="tree">
+    <tr><td colspan="2" /><td colspan="3">A: null</td><td colspan="2" /></tr>
+    <tr class="arrows"><td /><td>&#x2199;</td><td>&darr;</td><td /><td>&darr;</td><td>&#x2198;</td><td /></tr>
+    <tr><td>B: 1</td><td /><td>C: 2</td><td style="width: 1em;" /><td>D: 3</td><td /><td>E: 4</td></tr>
+    <tr class="arrows"><td colspan="4" /><td>&darr;</td><td colspan="2" /></tr>
+    <tr><td colspan="4" /><td>F: 4</td><td colspan="2" /></tr>
+  </table></td>
+  <td>Style context tree:<table class="tree">
+    <tr><td colspan="2" /><td>doc: B</td><td colspan="2" /></tr>
+    <tr class="arrows"><td /><td>&#x2199;</td><td>&darr;</td><td>&#x2198;</td><td /></tr>
+    <tr><td>title: C</td><td /><td>para: F<br /><small>class="emph"</small></td><td /><td>para: D</td></tr>
+    <tr class="arrows"><td colspan="2"></td><td>&darr;</td><td /><td>&darr;</td></tr>
+    <tr><td colspan="2" /><td>quote: A</td><td /><td>quote: A</td></tr>
+    <tr class="arrows"><td colspan="4" /><td>&darr;</td></tr>
+    <tr><td colspan="4" /><td>span: E<br /><small>class="emph"</small></td></tr>
+  </table></td>
+  </tr>
+  </table>
+
+
+</div>
+
+<div class="slide">
+<h1>Frames</h1>
+<ul>
+<li>Bad name: CSS "box", "rendering object"</li>
+<li>nsIFrame interface</li>
+<li>internal</li>
+<li>XUL: nsIBox, nsIBoxLayout</li>
+<li>tree structure, using linked lists of children</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Examples of frame classes</h1>
+<ul>
+<li>nsBlockFrame</li>
+<li>nsInlineFrame</li>
+<li>nsTableRowFrame</li>
+<li>nsViewportFrame</li>
+<li>nsGfxScrollFrame</li>
+<li>nsBoxFrame, nsLeafBoxFrame</li>
+<li>nsSVGOuterSVGFrame</li>
+<li><em>many</em> more</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Frame construction</h1>
+<ul>
+<li>nsCSSFrameConstructor.cpp
+  <ul>
+    <li>Also has some frame initialization code that could be refactored</li>
+  </ul>
+</li>
+<li>Based on element name or style data</li>
+<li>Recursive, but need not start at top</li>
+<li>Most often done in response to nsIDocumentObserver notifications</li>
+<li>frame->content pointers, content->frame hashtable</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Continuations</h1>
+<ul>
+<li>line breaking</li>
+<li>page breaking</li>
+<li>bidirectional text</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Continuations</h1>
+<table border="border">
+<tr><td><pre>&lt;p&gt;text &lt;span&gt;with
+line&lt;/span&gt; breaks&lt;/p&gt;</pre></td></tr>
+<tr><td style="line-height:1.5">text <span style="background:#CC0;color:black">with<br />
+line</span> breaks</td></tr>
+<tr><td><pre>&lt;Block&gt;text &lt;Inline(1)&gt;with&lt;/Inline(1)&gt;
+&lt;Inline(2)&gt;line&lt;/Inline(2)&gt; breaks&lt;/Block&gt;</pre></td></tr>
+</table>
+</div>
+
+<div class="slide">
+<h1>Continuations</h1>
+<p>(diagram from <a href="http://wiki.mozilla.org/Gecko:Continuation_Model">continuation model</a>)</p>
+<pre>    Root                      Root
+     |                       / |  \ 
+     A                     A1  A2  A3
+    / \                   / |  |    |
+   B   C                 B  C1 C2   C3
+   |  /|\                |  |  | \   |
+   D E F G               D  E  F G1  G2</pre>
+</div>
+
+<div class="slide">
+<h1>Generated content</h1>
+<p>(Differences between frame and content trees, #1.)</p>
+<table border="border">
+<tr><td colspan="2"><pre>&lt;p&gt;World&lt;/p&gt;</pre></td></tr>
+<tr><td colspan="2"><pre style="white-space: -moz-pre-wrap; white-space: pre-wrap">p:before { display: inline; content: url(icon.png) "Hello"; }</pre></td></tr>
+<tr>
+<td>
+  <table class="tree">
+  <tr><td>p</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>"World"</td></tr>
+  </table>
+</td>
+<td>
+  <table class="tree">
+  <tr><td colspan="2" /><td>Block(p)</td><td colspan="2" /></tr>
+  <tr class="arrows"><td colspan="2" /><td>&darr;</td><td>&#x2198;</td><td /></tr>
+  <tr><td colspan="2" /><td>Inline(p:before)</td><td /><td>Text<br /><small>"World"</small></td></tr>
+  <tr class="arrows"><td /><td>&#x2199;</td><td>&darr;</td><td colspan="2" /></tr>
+  <tr><td>Image</td><td /><td>Text<br /><small>"Hello"</small></td><td colspan="2" /></tr>
+  </table>
+</td>
+</tr></table>
+</div>
+
+<div class="slide">
+<h1>XBL</h1>
+<p>(Differences between frame and content trees, #2.)</p>
+<ul>
+  <li>XBL interleaves "anonymous" content with content tree</li>
+  <li>Frame tree matches the "flattened" (interleaved) content tree</li>
+  <li>XTF similar</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Floats and absolute positioning</h1>
+<p>(Differences between frame and content trees, #3.)</p>
+<ul>
+  <li>floats and absolutely positioned elements (and some others) are "out of flow"</li>
+  <li>placed at a different place in the frame tree than they are in the content tree</li>
+  <li>a <dfn>placeholder frame</dfn> is placed where they would have been with a pointer</li>
+  <li>The frame manager has a hashtable for the reverse (out of flow -> placeholder) mapping</li>
+  <li>multiple child lists</li>
+  <li>float ends up in additional child list of its containing block</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Floats and absolute positioning</h1>
+<p>(Differences between frame and content trees, #3.)</p>
+<table border="border">
+<tr><td><pre>&lt;p&gt;This is a document with &lt;span&gt;some
+markup and a floating &lt;img align="left"
+src="icon.png"&gt; image&lt;/span&gt; in it.&lt;/p&gt;</pre></td></tr>
+<tr><td>
+<p>This is a document with <span style="background:yellow;color:black">some<br/>
+markup and a floating <img align="left"
+src="http://www.mozilla.com/images/firefox-logo-64x64.png" /> image</span> in<br /> it.  Blah blah blah <br/>blah blah blah<br/>blah blah blah<br/>blah blah blah<br/>blah blah blah blah blah.</p>
+</td></tr>
+</table>
+</div>
+
+<div class="slide">
+<h1>Extra frames</h1>
+<p>(Differences between frame and content trees, #4.)</p>
+<ul>
+  <li>table</li>
+  <li>table cell</li>
+  <li>scroll frame</li>
+  <li>viewport</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Extra frames</h1>
+<p>(Differences between frame and content trees, #4.)</p>
+<table border="border" cellpadding="20">
+<tr>
+<td>
+  <table class="tree">
+  <tr><td>table</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>tbody</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>tr</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>td</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>"Cell"</td></tr>
+  </table>
+</td>
+<td>
+  <table class="tree">
+  <tr><td>TableOuter(table)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>Table(table)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>TableRowGroup(tbody)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>TableRow(tr)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>TableCell(td)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>Block(td)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>"Cell"</td></tr>
+  </table>
+
+</td>
+</tr></table>
+</div>
+
+<div class="slide">
+<h1>Reflow</h1>
+<ul>
+<li>Computing coordinates (top, left, width, height) for frames</li>
+<li>top and left relative to parent</li>
+<li>Recursive, starting from top of tree or reflow roots</li>
+<li>frames that are also boxes use Layout instead
+  <ul>
+    <li>box->block glue in in nsFrame::DoLayout, GetPrefSize, etc.</li>
+    <li>block->box glue in nsBoxFrame::Reflow, nsLeafBoxFrame::Reflow</li>
+  </ul>
+</li>
+<li>usually off the main event loop</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Intrinsic sizes</h1>
+<ul>
+<li>boxes have GetMinSize, GetPrefSize, GetMaxSize</li>
+<li>non-boxes <em>will</em> have GetMinWidth, GetPrefWidth</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Reflow</h1>
+<ul>
+<li>nsHTMLReflowState is input</li>
+<li>nsHTMLReflowMetrics is output</li>
+<li>caller of Reflow responsible for setting the rect to the size in the reflow metrics</li>
+<li>Designed for traditional-style layout (wdiths input, heights output)</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Breaking</h1>
+<ul>
+<li>lines, columns, pages</li>
+<li>Breaking done by propagating break-before or break-after status out of reflow</li>
+<li>Caller responsible for creating next-in-flow and propagating status</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Intrinsic widths (future)</h1>
+<ul>
+<li>nsIFrame::GetPrefWidth and GetMinWidth</li>
+<li>Separate methods for inline layout</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Incremental layout (future)</h1>
+<ul>
+<li>bits: is dirty, has dirty children</li>
+<li>intrinsic widths can be marked as dirty too (and are, up &amp; down)</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Box Layout</h1>
+<ul>
+<li>Parent sizes box first, then calls Layout</li>
+<li>much of the work done by an nsIBoxLayout object (sprocket, stack/deck)</li>
+<li>grid, tree more complicated</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Painting</h1>
+<ul>
+<li>BuildDisplayList method builds a display list for the frames in a
+clip rect or at a point</li>
+<li>we then paint the items in the list from bottom-most-needed to
+top</li>
+<li>views mostly vestigial</li>
+<li>usually off the main event loop</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Painting: BuildDisplayList</h1>
+<ul>
+<li>Recursive, starting from root
+  <ul>
+    <li>will soon cross parent/child presentations, if it doesn't already</li>
+  </ul>
+</li>
+<li>Only adds items that are in the clip rect / at the event's point</li>
+<li>Single recursive call to build lists for a multi-pass algorithm</li>
+<li>Various display items added to display list, for painting things like
+  <ul>
+    <li>background</li>
+    <li>border</li>
+    <li>text</li>
+  </ul>
+</li>
+<li>Read CSS2.1 Appendix E for requirements</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Invalidation</h1>
+<ul>
+  <li>Reflow invalidates regions that need to be repainted</li>
+  <li>We don't have a good sense of what the rules are, and they'll hopefully change soon</li>
+  <li>maximum containing rectangle or each rectangle separately?</li>
+</ul>
+</div>
+
+<!--
+<div class="slide">
+<h1>Paint order</h1>
+<div style="background: aqua;height:4em;"><div style="background: yellow; float: left; width: 5em; height: 1.6em;margin:0.3em;">float</div>
+  <div style="text-indent: -1em"><span style="background:lime">Block</span> with text<br/>that wraps<br/>around the float.</div>
+</div>
+</div>
+-->
+
+<div class="slide">
+<h1>Painting</h1>
+<ul>
+  <li>Display list optimized to avoid painting things underneath fully opaque things, etc.</li>
+  <li>Paint bottom-to-top, using 2-D graphics API</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Event handling</h1>
+<ul>
+<li>point &larr; frame mapping must use paint order</li>
+<li>so we use the same display list</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Reasons to optimize dynamic changes</h1>
+<ul>
+<li>Incremental page loading</li>
+<li>Small changes should take smaller amounts of time (DOM manipulation,
+editing)</li>
+<li>resizing</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Dynamic changes: content changes</h1>
+<ul>
+<li>document observer notifications trigger frame destruction/construction</li>
+<li>incremental reflow</li>
+<li>repaint invalidated region</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Dynamic changes: attribute and event state changes</h1>
+<ul>
+<li><code>document .getElementById("ok-button") .removeAttribute("disabled");</code></li>
+<li>Changes to :hover, :checked, :link (vs. :visited)</li>
+<li>Style system makes a somewhat (not very) conservative approximation for whether something might have changed</li>
+<li>Worth doing as much work as selector matching since it's not the whole subtree</li>
+<li>If a change, processed as a style change</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Dynamic changes: style changes</h1>
+<ul>
+<li><code>document .getElementById("foo") .style .color = "green";</code></li>
+<li>style changes caused by attribute or event state changes</li>
+</ul>
+<ul>
+<li>rerun rule matching on <em>subtree</em></li>
+<li>recursively compare data in old and new style contexts</li>
+<li>hints (applying to subtree): frame reconstruction, reflow, repaint, etc.</li>
+</ul>
+</div>
+
+</body>
+</html>

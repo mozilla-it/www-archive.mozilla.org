@@ -1,0 +1,502 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+                                                   
+  <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+  <title>Dynamic reconciliation of the current-panel-list</title>
+                                                                        
+               
+  <style type="text/css">
+BODY { font-family: Verdana, Myriad Web, Syntax, sans-serif; }
+ </style>                                      
+  <meta name="author" content="Samir Gehani &lt;sgehani@netscape.com&gt;">
+</head>
+  <body>
+ 
+<div align="Center"> 
+<div align="Center"> 
+<table cellpadding="2" cellspacing="2" border="0" width="100%">
+   <tbody>
+     <tr>
+       <td valign="Top">       
+      <div align="Center"><big><font face="Helvetica, Arial, sans-serif"><big><big><b>
+                        Dynamic reconciliation of the <tt>current-panel-list</tt></b></big></big></font></big><br>
+       </div>
+       </td>
+     </tr>
+   
+  </tbody> 
+</table>
+ </div>
+ <br>
+                   Samir Gehani         &lt;sgehani@netscape.com&gt;  <br>
+$Id: dyn-list.html,v 1.3 2001/10/19 20:42:39 sgehani%netscape.com Exp $<br>
+ 
+<hr width="100%" size="2" align="Left"> 
+<div align="Left"> 
+<h3>Contents</h3>
+ 
+<ol type="I">
+   <li><a href="#Motivation">Motivation</a>
+   </li>
+   <li><a href="#Background">Background</a>
+   </li>
+   
+  <ol type="i">
+     <li><a href="#Data">Data</a>
+     </li>
+     <li><a href="#State">State</a>
+       <br>
+     </li>
+   
+  </ol>
+   <li><a href="#Solutions_by_contingent">Proposed solutions by  contingent</a>
+   </li>
+   
+  <ol type="i">
+     <li><a href="#For_modular_installs">For modular installs</a>
+     </li>
+     <li><a href="#For_locale-switching">For locale-switching</a>
+     </li>
+     <li><a href="#For_expiration">For expiration</a>
+     </li>
+     <li><a href="#For_chrome_panel_installs">For chrome panel   installs</a>
+       <br>
+     </li>
+   
+  </ol>
+   <li><a href="#Proposed_unified_solution">Proposed unified solution</a>
+   </li>
+   
+  <ol type="i">
+     <li><a href="#Installupgrade_use_case">Install/upgrade use case</a>
+     </li>
+     <li><a href="#Locale-switching_use_case">Locale-switching use case</a>
+       <br>
+     </li>
+   
+  </ol>
+   <li><a href="#Backward_compatibility">Backwards compatibility</a>
+     <br>
+   </li>
+   <li><a href="#Conclusion">Conclusion</a>
+   </li>
+   <li><a href="#References">References</a>
+     <br>
+   </li>
+ 
+</ol>
+ 
+<hr width="100%" size="2" align="Left"> 
+<h3>I. <a name="Motivation"></a>
+                                    Motivation</h3>
+                                   The sidebar can be used to host web content
+   as  well   as  applications via local XUL content.    Thus,  the two primary 
+   parties       requiring enhancements to the sidebar    include  web developers 
+      and    application developers (e.g. mozilla).      The sidebar panels' 
+   datasource     is  used to store per-profile lists   of   user-selected 
+ panels  and their state     (selected, removed entirely   from   "tabs" menu
+ etc.).   Currently, there  are   four enhancement requests   having   an
+impact on  or being impacted by the  sidebar  panels' datasource   structure. 
+   These  enhancements warrant a change in the  datasource structure:   a 
+move   from  a single, per-profile panels datasource   to a categorized, 
+ composite   datasource that is composed of a profile-specific    datasource 
+  and a global   (or set of global) datasource(s).   Here we will   present 
+  how to achieve   the four following goals and we will  include design  
+ recommendations:<br>
+ 
+<ol type="i">
+   <li>Modular panels' datasources (customer: installer for correctness  
+  of     certain configurations)</li>
+   <li>Dynamically switchable, locale-based collection of sidebar   panels 
+         (customer:     l10n for useful user experience with a relevant set 
+   of   panels   based on  locale)</li>
+   <li>Expiration and intra-release installation of sidebar panels   (customer: 
+              web developers/website who wish to push panels for new  paying 
+   partners        and   remove panels of expired deals)</li>
+   <li>Install of panels through XPInstall (customer: developers   who wish 
+         to push chrome tabs via the web)<br>
+   </li>
+ 
+</ol>
+ 
+<hr width="100%" size="2" align="Left"> 
+<h3>II. <a name="Background"></a>
+                                    Background</h3>
+                                 First, let's outline the current design
+for   panel    data   retrieval      and   state   maintenance.<br>
+ 
+<h3>II.i. <a name="Data"></a>
+                                 Data</h3>
+                                 Given the present architecture, at profile-creation
+      time   a  default     copy   of  the local panels datasource, panels.rdf,
+      is copied    into the  profile   directory   and used as a base state. 
+    As users   add panels   from the web  or through   the  customize  dialog 
+   (reachable   through a menu   item in the  Tabs flyout)   additional  panels
+    are added   to the <tt> current-panel-list     </tt>RDF sequence.   
+The     structure  of the current single, per-profile    panels' datasource 
+is&nbsp;   diagrammatically represented below.<br>
+ <img src="../images/profile-panels-rdf.png" alt="[Image: Profile Current Panel List]" width="508" height="376" border="0" hspace="5" vspace="5">
+ <br>
+ <br>
+                                   When the user opens the customize dialog 
+ they   are   presented      with   two   trees.   The left-hand side contains
+  a  list built  from the    server-hosted     <tt>   master-panel-list </tt>
+    in  the all-panels.rdf  datasource    file.  This     datasource lists
+ <tt>  panel-groups</tt>       that  contain links    to other <tt>     
+  panel-lists   </tt>or like   the <tt> master-panel-list    </tt> they can
+ contain    links  to other  <tt>   panel-groups.</tt>    The structure 
+   of the <tt> master-panel-list     </tt>   is diagrammatically  represented
+   below.<br>
+ <img src="../images/all-panels-rdf.png" alt="[Image: Matser Panel List]" width="554" height="356" hspace="5" vspace="5" border="0">
+ <br>
+ 
+<h3>II.ii. <a name="State"></a>
+                                 State</h3>
+                                  The order of the panels is maintained implicitly
+     by  rearranging       the   tree   items which translates to rearranging
+    the <tt> current-panel-list       </tt>   RDF   sequence persisted in
+the    profile's  <tt>panels.rdf </tt>      datasource.       The  <tt> last-selected-panel 
+      </tt>is remembered in  the  localstore.rdf    datasource   on a per-profile 
+      basis.<br>
+ 
+<hr width="100%" size="2" align="Left"> 
+<h3>III. <a name="Solutions_by_contingent"></a>
+                                    Proposed solutions by contingent</h3>
+ 
+<h3>III.i.         <a name="For_modular_installs"></a>
+                            For modular installs</h3>
+ 
+<h4>Modular panels' datasources (per-component basis)</h4>
+                                 Currently, panels are installed at component-installation
+         time   (e.g.,    NIM  panel installed from NIM.xpi).  Yet, the default
+      panels.rdf     datasource    that  keeps track of  user's panel selection
+      list is global.      This means   for the  above cited example, NIM,
+ even     if a user has only    installed Navigator    the  sidebar panels
+ list will    expect a NIM panel.    Obviously there is a  run-time   failure
+ (currently     ungraceful) since the    NIM panel was not installed.   <br>
+ <br>
+                                 To address this problem two approaches have
+  been   suggested:<br>
+ <br>
+                                 (1) Ship <tt>&lt;component&gt;-panels.rdf</tt>
+       datasources       for   each   component   being installed.  Subsequently 
+   all these datasources       will  be  consulted when  building the user's 
+   panel list.  Either the   <tt>        &lt;component&gt;-panels.rdf    
+  </tt>  action to datasources   can be  copied  into the profile directory 
+   at   profile-creation  time or  they  can  be consulted  as read-only every
+  time   the  browser starts.   The problem   with this approach  is the
+increase    in  startup  time when  performing the   "groveling through 
+all <tt>*-panels.rdf</tt>            datasources"   to build   the user's 
+panel list.   In addition,  the  ability  to implicitly  remember    panel 
+order as could be  done when  we  had one unified    panels  list would  
+be  lost.<br>
+ <br>
+       (2) The other approach would be to still ship a global    panels.rdf 
+      per-profile    datasource but test for the existence of  local  panels
+   and    either eliminate    them from the list (or more conservatively
+    don't show   a sidebar header for   them in the current browser session)
+    if they are missing.    An addition to  this approach would be to categorize 
+       panels (via meta-info   tags for each   panel listing) as "ignore but
+   don't    remove" vs. "remove if  absent". Add an arc named <tt>absent </tt>
+      whose terminal node contains the action to take -- <tt>ignore </tt>
+or  <tt>   remove</tt> -- when the panel is local (<tt>chrome://</tt>  or
+<tt>   file:///</tt>    schemes) and the panel file is missing.<br>
+ 
+<h3>III.ii. <a name="For_locale-switching"></a>
+                            For locale-switching</h3>
+ 
+<h4>Dynamically switchable, locale-based collection of sidebar panels</h4>
+                                 The browser has the ability to switch locales. 
+    However,     currently      locale-sensitive    sidebar panels do not 
+switch   out or in dynamically.  There   are  two high-level      approaches 
+to making     the content switch dynamically     to match the new   locale: 
+  <br>
+ <br>
+       (1) have the panel send the locale as part of the  encoded     URL 
+  so   new   content   can dynamically be served to the panel<br>
+ <br>
+       (2) have the sidebar "know" that the locale has been   switched  
+  and     swap   out  all old locale-sensitive panels with the new   locale's
+  panels.<br>
+ <br>
+                                 The first approach is purely server side 
+but   would    require     redesigning       the  content of all current panels
+  including    3rd-party    panels.  The second      approach would require
+  the client  to:<br>
+ <br>
+       (1) tag each panel listing with meta-information  about    the   category 
+       it  is  in: locale-sensitive vs. global content (we would add an arc 
+  to the panel node named <tt>region </tt>which could be set to the region 
+ short name or the <tt>global </tt>constant)<br>
+ <br>
+       (2) remember the order of global and locale-sensitive    panels  
+ implicitly  so that   when locale switches       occur panel sequence order 
+is maintained  -- hidden panels are simply not displayed<br>
+ <br>
+       (3) keep panels that have been explicitly reordered   by  users  
+ intact       even   upon a locale switch (functionality that would   not
+be possible      with    the first  approach).<br>
+ 
+<h3>III.iii. <a name="For_expiration"></a>
+                            For expiration</h3>
+ 
+<h4>Intra-release cycle expiration of sidebar panels</h4>
+                                 Panel developers would like to expire a
+panel    either    by  setting     a  time   horizon  on the panel's life
+or by explicitly    notifying   user  agents    that  the panel  has expired
+(say upon a routine    content  refresh since a large percentage of clients
+of this functionality  would be panels with dynamic content).<br>
+ <br>
+                                 (1) Setting a time horizon: once again we
+ could    tag   each   panel-listing        with  an optional time-horizon
+ arc that    is used   either   at every browser      startup   or shutdown
+ to ask users    if they   wish to  remove panels that  have    expired.
+   The time horizon    may be  a relative  or absolute value,  i.e.,  relative
+  check:<tt>     panel-add-date    + horizon  &gt; now-date then  expire</tt>
+       -or-    absolute  check:    <tt> horizon &gt;  now-date then expire.</tt><br>
+ <br>
+       (2) Explicit notification of panel removal: the ability     to  add
+   panels     already  exists.  Expiration of panels must involve   explicit
+    user   approval    before panels are removed.  In addition, web   content
+  providers     may want  to  notify users by calling into the sidebar  
+API.    This would   require  the  addition  of a<tt> nsISidebar.removePanel(title,
+      expiration)</tt>        API  that  makes for a complete pairing alongside
+   the   current <tt>   nsISidebar.addPanel()</tt>             API. &nbsp;Code
+  embedded   in a sidebar panel would allow the panel to expire itself  
+immediately      using a new enum   such  as<tt> nsISidebar.EXPIRE_NOW</tt>
+ for   the <tt>   expiration    </tt>    parameter.<br>
+ 
+<h3>III.iv. <a name="For_chrome_panel_installs"></a>
+                            For chrome panel installs</h3>
+ 
+<h4>Installation of chrome panels through XPInstall</h4>
+                             Panel developers would like to add chrome panels,
+   i.e.   local    panels    that contain XUL/JS content, either when the
+mozilla   product  ships   or after    it has been installed. &nbsp;Currently,
+only   panels that  are  remote (web   content) can be added to an installation 
+  of mozilla because    local chrome  panels can pose a security risk (since 
+  local content is given    access to browser  code that could manipulate 
+local  resources including  local storage   devices and network connections, 
+e.g., XPCOM's <tt>nsIFile </tt>   implementation).   &nbsp;The <tt>   window.sidebar</tt>
+        object exports an API, <tt>addPanel()</tt>      , that allows web 
+pages   to add panels with  user approval. &nbsp;Thus, currently   it is not
+possible   to add a local chrome panel  through the sidebar API (known hacks
+ to install  and add chrome panels require  users to take multiple steps
+and  are deemed  unacceptable for commercial panel providers). &nbsp;<br>
+ <br>
+                        In order to install panels locally after a user has 
+ installed      mozilla,     panel  providers should have to go through XPInstall. 
+ &nbsp;Going      through     XPInstall  will communicate to the user that 
+ software that   can   possibly   pose  a risk if malicious is being downloaded 
+ and installed   as  opposed to  the more or less benign  alert that pops 
+up when users add  panels  using the  current <tt>  addPanel()  </tt>API mentioned
+above.<br>
+ <br>
+                        If a user is upgrading, their profile directory already 
+   contains     their    panel-list.  &nbsp;If the upgrade contains new panels 
+   that need    to be added    to the panel-list  this cannot currently be 
+ done.  &nbsp;A   couple of possible    solutions exist  for this case:<br>
+ <br>
+                        (1) When the upgrade occurs the XPInstall engine
+can   expose    a  new   API   that  explicitly "registers" the new panel
+into  the current    profile's   panel-list.    &nbsp;This will not work
+since multiple profiles    may exist   on a single machine   and only the
+upgrader's profile will be   updated with   the new panel entry  in the panel-list.
+&nbsp;This brings   us to the next  couple of proposals.<br>
+ <br>
+       (2) We could add a &lt;component&gt;-panels.rdf in a central   location, 
+        e.g.,  bin/defaults/profile, and a composite datasource of   all the
+   *-panels.rdf      files can be built. &nbsp;The final panel-list  can
+be   a composite datasource      of the central "vendor" panels lists' composite
+   datasource and the user's      profile panels.rdf. &nbsp;However, the
+building    of this composite datasource      means a lot of file I/O at
+every browser    session startup. &nbsp;This brings     us to the third and
+more refined  solution.<br>
+ <br>
+       (3) We could maintain a new version arc  that     stores   the user-agent
+ string of the client being used with the current     profile.     &nbsp;This
+ string is checked at sidebar-initialization time.   &nbsp;In     the   event
+ the string doesn't match that means either a user has  upgraded,     downgraded,
+   or is using a different flavor of mozilla (e.g.,  mozilla   users   now
+using   their profile with a Netscape 6.1 installation).   &nbsp;In   such
+  a case  we grovel the "central" location for *-panel.rdf datasources  
+  and then  construct the composite datasource that is reconciled with with
+    the user's  panel-list. &nbsp;Therefore, reconciliation only takes places
+    when the user  agent changes. &nbsp;In cases where panels have been installed
+    using the XPInstall engine after the product has been installed and run,
+   e.g., region packs that contain region-sensitive panels, an XPInstall
+API    can be exposed that tells the sidebar to conduct reconciliation on
+next   startup, i.e., delayed reconciliation, or  immediately.<br>
+<font color="#ff0000">// XXX list problems here: intra-release software updates
+and region pack installs</font><br>
+<font color="#ff0000">// XXX present new solution of <tt>last-reconciled
+</tt>arc</font><br>
+<font color="#ff0000">// XXX present both [lr] flavors: <tt>last-reconciled-vendor</tt>
+ and <tt>last-reconciled-users</tt></font><br>
+ <br>
+ 
+<hr width="100%" size="2" align="Left"> 
+<h3>IV. <a name="Proposed_unified_solution"></a>
+                                    Proposed unified solution</h3>
+                        Having discussed the individual problems and some 
+recommended       solutions      for each, let's build one solution that addresses
+all  issues     in a coherent      manner. &nbsp;This will require the extension
+ of the   <tt>   current-panel-list</tt>           format to include more
+state information.     &nbsp;In turn, the sidebar    API   will need to be
+extended for panel  developers   as well as for intra-application      clients
+such as the XPInstall  engine   and locale-switching code. &nbsp;The    
+ solution shall be described  in  the form of a couple of use cases. <br>
+ <br>
+                  To provide a quick picture of the proposed changes here 
+  is  a  diagram     including the new arcs in the <tt>current-panel-list</tt>
+           (which     might prove to be a handy reference in the solution 
+that   will   follow).<br>
+ <br>
+ <img src="../images/new-profile-panels-rdf.png" alt="[Image: New Profile Current Panel List]" width="661" height="535">
+ <br>
+ 
+<h3>IV.i. <a name="Installupgrade_use_case"></a>
+                 Install/upgrade use case</h3>
+                  The first use case will span the temporal   context of
+an  initial     install    and a subsequent upgrade keeping in mind multi-profile 
+   installations.<br>
+ <br>
+ <img src="../images/use-case.png" alt="[Image: Use case of changes to panels.rdf]" width="668" height="152">
+ <br>
+ 
+<h3>IV.i.a. Initial install</h3>
+                  (1) New profile created.<br>
+ <br>
+       (2) The default panel-list is copied over from bin/default/profile/panels.rdf
+         to the profile directory. &nbsp;This panel-list must contain entries
+for     all panels included with the application including chrome panels
+like search,    history,     bookmarks, and also the list of panels from
+all region packs    shipping with    the product (even though some region
+packs may not eventually be installed in a custom install:   extra entries
+  shall remain dormant and innocuous as we will see).<br>
+ <br>
+       (3) The users <tt>current-panel-list</tt> shall contain a <tt>last-reconciled
+          </tt>arc that will be the timestamp of the default panels.rdf file.
+&nbsp;This          will be useful when new region packs and software packages
+are installed.<br>
+ 
+<h3>IV.i.b. Install of a new region pack with panels</h3>
+                  (1) Now a region pack is installed.<br>
+ <br>
+       (2) The region pack shall register it's panels into the application's
+      central  bin/default/profile/panels.rdf through an API we shall expose
+    via   XPInstall,  say <tt>registerPanel()</tt>. &nbsp;We shall provide
+ the   ability   to defer  registration to next browser startup or to perform
+ registration      immediately.  &nbsp;Immediate registration entails updating
+ the current    user's  panels.rdf  with the new panel entries. &nbsp;Deferred
+ registration    is addressed  in the  next point: it becomes clear that
+deferred  registration    is the natural  default  behavior.<br>
+ <br>
+       (3) On every browser session startup for every profile, the node 
+value       of  the <tt>last-reconciled </tt>arc in the profile's panels.rdf
+is compared       against  the application's central panels.rdf file timestamp.
+&nbsp;If the profile's   is   older it is reconciled with the application's
+central panels.rdf. &nbsp;Reconciliation      entails  composing a single
+datasource from the profile's and the central      one (duplicate  resolution
+is part of the RDF framework). &nbsp;This will     take care of the  problem
+wherein one profile installs a region pack and    then others don't see it.
+&nbsp;Since all profiles have their own notion   of&nbsp; they can each carry
+out reconciliation  to remain    in sync with the central  list.<br>
+ 
+<h3>IV.i.c. Install of a new software component with a panel</h3>
+                  (1) Now install a software component.<br>
+ <br>
+       (2) The software component must also register panels it installs 
+   through   XPInstall. &nbsp;The behavior for this state is the same as the
+    case of installing  a new region pack.<br>
+ 
+<h3>IV.i.d. Upgrade to a new version of the browser</h3>
+                  (1) Now the user updates to a new version altogether.<br>
+ <br>
+       (2) The panels.rdf file timestamp will have changed.<br>
+ <br>
+       (3) Next time a profile starts up it will perform it's one time reconciliation 
+        and get new panels. &nbsp;Any chrome panels that are now obsolete 
+are    left    as entries in the central panels.rdf but have their <tt>absent 
+ </tt>      arc  nodes  set to <tt>remove.</tt> &nbsp;Or if they are removed 
+ altogether   and  their  <tt>absent </tt>arc nodes were set to <tt> ignore 
+ </tt>the panels   will  simply  not be shown if detected to be missing from 
+ the local volume.   &nbsp;(This    incidentally also solves the problem where
+ shared mozilla  and netscape6  profiles  get a broken panel when using mozilla
+ because of  the missing NIM  panel.)<br>
+ 
+<h3>IV.ii. <a name="Locale-switching_use_case"></a>
+                 Locale-switching use case</h3>
+                  This use case entails users switching from one locale to
+ another     and   then   back to the original. &nbsp;One can extrapolate
+the expected     behavior   of ,multiple distinct llocale switches(potentially
+without returning to the    original) from  this base use case.<br>
+ 
+<h3>IV.ii.a. Switch from US region to CA region</h3>
+                  (1) The user switches from US to CA region.<br>
+ <br>
+       (2) All the panels with <tt>region </tt>arc nodes that are set to
+ <tt>        global</tt>    or the region short name, say <tt>CA, </tt>are 
+shown.    &nbsp;There   is one  exception: if users have shown "regular/extensive"
+    usage of a panel   then it is promoted from the old <tt>US </tt>region
+ to   <tt>global. </tt>This way it will never be hidden on a locale switch
+    and the order will   remain.  &nbsp;What is meant by "regular/extensive"
+   is yet to be agreed upon:  it could  mean the user has moved this panel
+ from   its original spot in the  current-panel-list.  &nbsp;Or it could
+mean  the   user has opened the panel  a certain minimum threshold  number
+of times.    &nbsp;Or  it could be a combination  of the two conditions 
+mentioned.<br>
+ 
+<h3>IV.ii.b. Switch back from CA region to US region</h3>
+                  (1) The user switches back to US from CA.<br>
+ <br>
+       (2) All the CA panels are hidden and the US ones are shown again 
+based       on  a match with the new target region short name (same behavior
+ as  for   the  initial  case from US to CA).<br>
+ 
+<hr width="100%" size="2" align="Left"> 
+<h3>V. <a name="Backward_compatibility"></a>
+                                    Backwards compatibility</h3>
+                 If pre-existing profiles contain panels.rdf datasources
+but   no <tt>last-reconciled </tt>arc we know this is an older format. &nbsp;We 
+  can   reconcile the profile's    older format panels.rdf with the central 
+ application   datasource since we  are  not eliminating arcs, only adding 
+ new ones which   will receive reasonable   defaults if missing as and when
+they are  consulted. &nbsp;Users   who then switch back   to an older installation 
+ of mozilla will not be broken   since the additional   arcs from the proposed
+format change will be ignored.   &nbsp;<br>
+ 
+<hr width="100%" size="2" align="Left"> 
+<h3>VI. <a name="Conclusion"></a>
+                                    Conclusion</h3>
+                 The proposed unified solution should address all four contingents 
+    identified     at the outset of this document: locale-switching, missing 
+   local panels,   installation  of new panels after an initial install, and
+   expiration of panels  controlled  by the panel provider. &nbsp;The only
+ outstanding  issue remaining  is whether  we want to allow panel providers 
+ to be able to set expiration  of panels. &nbsp;We will take that up separately 
+ in the future. &nbsp;For  now, we will work on implementing said design in
+ the Mach V time frame after addressing any deficiencies identified during
+the review of this proposal.<br>
+ 
+<hr width="100%" size="2" align="Left"> 
+<h3>VII. <a name="References"></a>
+                                    References</h3>
+                                    Rodriguez, Jaime Jr., <a href="http://client/international/html/Mojo/SBMerge_req.html">
+                                    Proposal for Sidebar Merging</a>
+                           , August 23, 2001<br>
+                                    Logan, Syd, <a href="http://bugzilla.mozilla.org/show_bug.cgi?id=77564">
+                                   Bugzilla 77564: Unable to register into
+ local-panels.rdf         on  XPI   install</a>
+                           , April 25, 2001<br>
+                                    Roberts, Cindy, <a href="http://bugzilla.mozilla.org/show_bug.cgi?id=93981">
+                                    Bugzilla 93981: Sidebar Merging</a>
+                           , August 6, 2001<br>
+ <br>
+ <br>
+ </div>
+ </div>
+ 
+</body>
+</html>

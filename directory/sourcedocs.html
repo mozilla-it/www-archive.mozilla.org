@@ -1,0 +1,296 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+ <title>Mozilla LDAP C SDK: Source Code Documentation</title>
+</head>
+
+<body>
+
+<h1>Mozilla LDAP C SDK: Source Code Documentation</h1>
+<p class="byline">Last Updated: May 13, 2002</p>
+
+<h2>Contents</h2>
+
+<ul>
+ <li><a href="#overview">Overview</a>
+ <li><a href="#tree">Source Tree Directory Structure</a>
+ <li><a href="#arch">Internal Architecture</a>
+ <li><a href="#roadmap">Roadmap of the Source Files</a>
+</ul>
+
+<h2 id="overview">Overview</h2>
+
+<P>The source code for the LDAP C SDK consists of a library that
+implements the LDAP API and some command line utilities that provide
+LDAP access (e.g., the ldapsearch utility). The LDAP library defines
+functions that can establish sessions with LDAP servers, create and
+send LDAP requests to the servers, and retrieve responses from the
+servers.</p>
+
+<p>In the LDAP protocol, requests and responses are encoded using
+the Basic Encoding Rules (BER).  The SDK source code include
+functions for encoding and decoding data, according to these rules.</p>
+
+<p>There is work underway in the <a href="http://www.ietf.org">IETF</a>
+to standardize a LDAP API for C programmers, and the Mozilla LDAP C
+SDK closely follows the latest proposals.</p>
+
+<h2 id="tree">Source Tree Directory Structure</h2>
+
+<p>The source code for the Mozilla LDAP C SDK is organized in the
+following directories:</p>
+
+<pre>
+mozilla/
+  directory/
+    c-sdk/              // Main makefile
+      ldap/
+        build/          // LDAP-specific build scripts
+        clients/tools   // Command line utilities
+        examples/       // Sample code
+        include/        // Header files
+        libraries/
+          liblber/      // Functions for BER-encoding, decoding, and I/O
+          libldap/      // Functions implementing the LDAP API
+          libldif/      // Functions for manipulating LDIF data
+          libprldap/    // LDAP to NSPR "glue" library
+          libslldap/    // LDAP to NSS "glue" library
+          macintosh/    // MacOS-specific files
+          msdos/        // Windows-specific files
+            winsock/    // Windows .def files
+  dist/			// Contains the built SDK (created
+                        //   when you build the SDK)
+</pre>
+
+<h2 id="arch">Internal Architecture</h2>
+
+<p>The following diagram illustrates the internal architecture of
+the library:</p>
+
+<img src="intrarch.gif" border="0">
+
+<h2 id="roadmap">Roadmap of the Source Files</h2>
+
+<p>The different sets of functions and source code files are
+described below.</p>
+
+<p><strong>Header Files.</strong> The following header files define
+the internal structures used in this library:</p>
+
+<ul>
+ <li><code>ldap-int.h</code> in the <code>libldap</code> directory
+ <li><code>lber-int.h</code> in the <code>liblber</code> directory
+</ul>
+
+<p><strong>LDAP Operation API Functions.</strong> These API
+functions are responsible for requesting LDAP operations from the
+server (such as <code>ldap_search_ext_s()</code> and
+<code>ldap_add_ext()</code>).</p>
+
+<p>These functions are defined in the following files:</p>
+
+<ul>
+ <li><code>abandon.c</code>
+ <li><code>add.c</code>
+ <li>
+  <code>bind.c</code>, <code>sbind.c</code> (simple bind),
+  <code>saslbind.c</code> (SASL authentication)
+ <li><code>compare.c</code>
+ <li><code>delete.c</code>
+ <li><code>extendop.c</code> (LDAP v3 extended operations)
+ <li><code>modify.c</code>
+ <li><code>rename.c</code> (includes modify RDN and modify DN operations)
+ <li><code>search.c</code>,
+ <code>url.c</code> (functions for performing searches from LDAP URLs)
+ <li><code>unbind.c</code>
+</ul>
+
+<p>In addition, functions defined in the following files implement
+other aspects of the LDAP protocol as well as extensions to the
+protocol:</p>
+
+<ul>
+ <li><code>open.c</code> (<code>ldap_init</code> function)
+ <li><code>control.c</code> (general functions for LDAP v3 controls)
+ <li>
+  <code>psearch.c</code> (functions for <q>persistent search</q> and
+  <q>entry change notification</q> controls)
+ <li>
+  <code>sortctrl.c</code> (functions for <q>server-side 
+  sorting</q> controls)
+ <li><code>vlistctrl.c</code> (functions for <q>virtual list view</q> controls)
+ <li><code>cldap.c</code> (functions for CLDAP, Connectionless LDAP)
+</ul>
+
+<p><strong>Parsing Functions.</strong> These API functions are
+responsible for getting data from structures that represent entries,
+attributes, and other containers (such as <code>ldap_get_dn()</code>
+and <code>ldap_get_values()</code>).</p>
+
+<p>These functions are defined in the following files:</p>
+
+<ul>
+ <li>
+  <code>error.c</code> (functions for getting error information
+  from the <code>LDAP</code> structure)
+ <li>
+  <code>message.c</code> (functions for getting data about
+  <code>LDAPMessage</code> structures and for getting these
+  structures from search results)
+ <li>
+  <code>referral.c</code> (functions for handling smart referrals or
+  search references in search results)
+ <li><code>getattr.c</code> (functions for getting attributes from an entry)
+ <li>
+  <code>getdn.c</code> (functions for getting the DN from an entry
+  and for working with DNs)
+ <li>
+  <code>getentry.c</code> (functions for getting entries from
+  search results)
+ <li>
+  <code>getvalues.c</code> (functions for getting values from an
+  attribute)
+ <li>
+  <code>countvalues.c</code> (functions for counting the values in
+  an attribute)
+ <li>
+  <code>reslist.c</code> (functions for adding and deleting entries
+  from a list of search results)
+</ul>
+
+<p><strong>Utility Functions.</strong> These are utility functions
+in the API.</p>
+
+<p>These functions are defined in the following files:</p>
+
+<ul>
+ <li><code>getoption.c</code> (functions for getting session preferences)
+ <li><code>setoption.c</code> (functions for setting session preferences)
+ <li>
+  <code>getfilter.c</code>, <code>ldapfilter.conf</code> (functions
+  for working with filter configuration files)
+ <li><code>sort.c</code> (functions for sorting search results)
+ <li>
+  <code>free.c</code>, <code>freevalues.c</code> (functions for
+  freeing memory)
+ <li><code>memcache.c</code> (functions for working with the in-memory cache)
+ <li>
+  <code>friendly.c</code>, <code>ldapfriendly</code> (functions for
+  getting the <q>friendly</q> version of a name from a mapping file)
+ <li><code>ufn.c</code> (functions for performing <q>user friendly</q> searches)
+ <li><code>cache.c</code> (functions for a generic cache)
+ <li>
+  <code>srchpref.c</code>, <code>ldapsearchprefs.conf</code>
+  (functions for using a search preferences configuration file)
+ <li>
+  <code>disptmpl.c</code>, <code>tmplout.c</code>,
+  <code>tmpltest.c</code>, <code>ldaptemplates.conf</code> (functions
+  for using a template configuration file to display search results)
+</ul>
+
+<p><strong>Request and Result Handling Functions.</strong> These
+functions are responsible for generating and sending requests to an
+LDAP server and for handling results returned from an LDAP server.
+The LDAP operation functions call these functions to send LDAP
+requests and retrieve results from an LDAP server.</p>
+
+<p>These functions are defined in the following files:</p>
+
+<ul>
+ <li>
+  <code>request.c</code> (functions for generating and sending
+  LDAP requests)
+ <li>
+  <code>result.c</code> (functions for getting results back from
+  the server)
+ <li><code>os-ip.c</code> (platform-specific TCP- and UDP-related functions)
+</ul>
+
+<p><strong>Miscellaneous Functions.</strong> These are miscellaneous
+functions.</p>
+
+<p>These functions are defined in the following files:</p>
+
+<ul>
+ <li>
+  <code>charray.c</code> (functions for manipulating
+  <code>char *</code> arrays)
+ <li><code>utf8.c</code> (functions for handling UTF-8 character data)
+ <li><code>unescape.c</code> (functions for unescaping characters in a URL)
+ <li>
+  <code>regex.c</code> (functions for regular expression pattern
+  matching and replacement)
+ <li>
+  <code>dsparse.c</code> (functions for parsing template and search
+  preference configuration files)
+ <li>
+  <code>compat.c</code> (functions for compatibility across
+  different platforms)
+ <li>
+  <code>mozock.c</code> (functions that implement an intermediate
+  layer to network services)
+ <li><code>globals.c</code> (global variables for the LDAP library)
+ <li><code>dllmain.c</code> (DLLMain for the LDAP API library)
+ <li>
+  <code>nsprthreadtest.c</code>, <code>pthreadtest.c</code> (test
+  applications for testing the capability to specify thread handling
+  functions)
+ <li>
+  <code>test.c</code> (test application for testing the functions in
+  this library)
+</ul>
+
+<p><strong>BER Encoding, Decoding, and I/O Functions.</strong> These
+functions encode requests and decode results, according to the Basic
+Encoding Rules (BER). The functions are also responsible for sending
+BER-encoded requests to the server and receiving BER-encoded results
+from the server.</p>
+
+<p>These functions are defined in the following files, which are
+located in the <code>liblber</code> directory:</p>
+
+<ul>
+ <li><code>decode.c</code> (functions for decoding BER-encoded data)
+ <li><code>encode.c</code> (functions for BER-encoding data)
+ <li>
+  <code>io.c</code> (I/O functions for reading and writing
+  BER-encoded data)
+ <li><code>bprint.c</code> (functions for printing debugging information)
+ <li>
+  <code>dtest.c</code>, <code>etest.c</code> (test applications for
+  testing the encoding and decoding functions in this library)
+ <li>
+  <code>idtest.c</code> (test application for testing the decoding
+  functions with the ISODE library)
+</ul>
+
+<p><strong>Unused Functions.</strong> The following source files are
+not compiled or used in the library. (ifdefs are used to omit the
+entire source code in these files.)</p>
+
+<ul>
+ <li><code>getdxbyname.c</code>
+ <li><code>charset.c</code>
+</ul>
+
+<p>The following diagrams illustrate how
+<code>ldap_search_ext_s()</code> calls other library functions to
+generate and send an LDAP search request to the server and to get
+results back from the server. <a href="#fig1">Figure 1</a>
+illustrates how the function generates and sends the request, while
+<a href="#fig2">Figure 2</a> illustrates how the function gets
+results back.</p>
+
+<p id="fig1><strong>Figure 1: How ldap_search_ext_s() generates and
+sends a search request.</strong></p>
+
+<img src="srchreqs.gif" border="0">
+
+<p id="fig2"><strong>Figure 2: How ldap_search_ext_s() gets search
+results.</strong></p>
+
+<img src="srchrslt.gif" border="0">
+
+</body>
+</html>

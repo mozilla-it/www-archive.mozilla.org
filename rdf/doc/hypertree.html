@@ -1,0 +1,473 @@
+<HTML>
+<HEAD>
+   <META NAME="Author" CONTENT="Robert John Churchill">
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000"
+      LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+
+<H1>Status:</H1>
+<P>This document is <B>outdated</B>, and reflects the state of RDF in
+Mozilla before we moved to use of the new layout engine. To be reworked...
+</P>
+<P><SMALL>Last updated: $Id: hypertree.html,v 1.4 1999/03/18 09:07:56 daniel.brickley%bristol.ac.uk Exp $</SMALL></P>    <HR>
+
+
+<H2 ALIGN=CENTER>HyperTree - Draft #1<BR>
+<FONT SIZE=+0>by <A HREF="mailto:rjc@netscape.com?subject=HyperTree">Robert
+John Churchill<BR>
+</A>April 6, 1998</FONT></H2>
+
+
+
+
+
+<B><FONT SIZE=+1>Summary:</FONT></B> This document will describe functionality
+of the HyperTree (HT), a layer between Netscape Front-Ends (FEs) and the
+Resource Description Framework (RDF) engine.
+
+<P><B><FONT SIZE=+1>Background:</FONT></B>  RDF, in its most simple
+form, is a directed labelled graph.  Most people, including end users,
+are familar with hierarchies... from file systems to Netscape's bookmark
+window, a hierachy helps to indicate organization via a tree structure.
+By defining a standard vocabulary that includes definitions for parent
+and child relationships, it becomes possible to layer a strict hierarchical
+view on top of RDF's graph. An example of this is Netscape's HyperTree
+which enables different views of data (such as bookmarks, history, the
+local file system, Appletalk, LDAP, etc.) from RDF.
+
+<P><B><FONT SIZE=+1>HyperTree Concepts:</FONT></B>
+
+<P><A NAME="HT_View"></A>HT_View:  a collection of related data. 
+For example, there are HT_Views for bookmarks, history, etc.
+<BR><A NAME="HT_Pane"></A>HT_Pane:  a collection of HT_Views. 
+For example, a browser window can have a HT_Pane embedded in it.
+<BR><A NAME="HT_Columns"></A>HT_Columns:  every HT_View can have a
+variable number of columns... such as "Name", "URL", etc.
+<BR><A NAME="HT_Notification"></A>HT_Notification function:  this
+function listens for events from the RDF engine and passes appropriate
+events up to the FEs.
+
+<P>An FE will normally implement a HT_Notification function and register
+it with HT upon creation of an HT_Pane.  When the FE wants to make
+a change to either HT's state or RDF's graph, it can call the appropriate
+function.  Upon successful completion of the operation, the notification
+routine will be called.
+
+<P><B><FONT SIZE=+1>HT_Notification:</FONT></B>
+
+<P>A HT_Notification is a simple structure:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>typedef uint32 HT_NotificationMask;
+typedef uint32 HT_Event;
+
+struct _HT_NotificationStruct;</FONT></PRE>
+
+<PRE><FONT SIZE=-1>typedef void (*HT_NotificationProc)(struct _HT_NotificationStruct*, HT_Resource node, HT_Event whatHappened);
+
+typedef struct _HT_NotificationStruct {
+        HT_NotificationProc notifyProc;
+        void* data;
+} HT_NotificationStruct;
+
+typedef HT_NotificationStruct* HT_Notification;</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>As assertions are made on RDF's graph, or as HT's state (such as selection)
+changes, notification events will be sent to the registered function. 
+Events include:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>#define HT_EVENT_NODE_ADDED                     0x00000001UL
+#define HT_EVENT_NODE_DELETED_DATA              0x00000002UL
+#define HT_EVENT_NODE_DELETED_NODATA            0x00000004UL
+#define HT_EVENT_NODE_VPROP_CHANGED             0x00000008UL
+#define HT_EVENT_NODE_SELECTION_CHANGED         0x00000010UL
+#define HT_EVENT_NODE_OPENCLOSE_CHANGED         0x00000020UL
+#define HT_EVENT_VIEW_CLOSED                    0x00000040UL /* same as HT_EVENT_VIEW_DELETED */
+#define HT_EVENT_VIEW_DELETED                   0x00000040UL /* same as HT_EVENT_VIEW_CLOSED */
+#define HT_EVENT_VIEW_SELECTED                  0x00000080UL
+#define HT_EVENT_VIEW_ADDED                     0x00000100UL
+#define HT_EVENT_NODE_OPENCLOSE_CHANGING        0x00000200UL
+#define HT_EVENT_VIEW_SORTING_CHANGED           0x00000400UL
+#define HT_EVENT_VIEW_REFRESH                   0x00000800UL
+#define HT_EVENT_VIEW_WORKSPACE_REFRESH         0x00001000UL
+#define HT_EVENT_NODE_EDIT                      0x00002000UL
+#define HT_EVENT_WORKSPACE_EDIT                 0x00004000UL
+
+#define HT_EVENT_NO_NOTIFICATION_MASK           0x00000000UL
+#define HT_EVENT_DEFAULT_NOTIFICATION_MASK      0xFFFFFFFFUL</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>After creating a pane, its possible to obtain as well as change a HT_Pane's
+notification mask with the following routines:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(HT_Error)   HT_GetNotificationMask (HT_Pane node, HT_NotificationMask *mask);
+PR_PUBLIC_API(HT_Error)   HT_SetNotificationMask (HT_Pane node, HT_NotificationMask mask);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+ 
+
+<P><B><FONT SIZE=+1>HT_Panes:</FONT></B>
+
+<P>Functions to create and delete HT_Panes include:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(HT_Pane) HT_NewPane (HT_Notification notify);
+PR_PUBLIC_API(HT_Pane) HT_PaneFromResource(RDF_Resource r, HT_Notification n, PRBool autoFlush);
+PR_PUBLIC_API(HT_Pane) HT_NewQuickFilePane (HT_Notification notify);
+PR_PUBLIC_API(HT_Pane) HT_NewPersonalToolbarPane (HT_Notification notify);
+
+PR_PUBLIC_API(HT_Error) HT_DeletePane (HT_Pane pane);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>HT_NewPane() is the standard function to use.  It will return a
+HT_Pane that will be populated with appropriate HT_Views  (such as
+bookmarks, history, the file system, along with any user-created views).
+
+<P>HT_PaneFromResource() allows creation of a HT_Pane will a specific view
+specified by an RDF_Resource.  (Look at RDF's vocabulary for possible
+RDF_Resources to use.)  HT_NewQuickFilePane() and HT_NewPersonalToolbarPane()
+actually call HT_PaneFromResource() with appropriate vocabulary items to
+create an instance of a bookmark pane or an personal toolbar.
+
+<P>Its important for a FE to be able to associate private, front-end specific
+data with HT_Panes (and even HT_Views and HT_Resources).  The following
+functions provide help:
+<BR> 
+<TABLE BORDER CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(void*) HT_GetPaneFEData (HT_Pane pane);
+PR_PUBLIC_API(void)  HT_SetPaneFEData (HT_Pane pane, void* data);
+
+PR_PUBLIC_API(void*) HT_GetViewFEData (HT_View node);
+PR_PUBLIC_API(void)  HT_SetViewFEData (HT_View node, void* data);
+
+PR_PUBLIC_API(void*) HT_GetNodeFEData (HT_Resource node);
+PR_PUBLIC_API(void)  HT_SetNodeFEData (HT_Resource node, void* data);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+ 
+
+<P><B><FONT SIZE=+1>HT_Views:</FONT></B>
+
+<P>An HT_View equates to a list of related nodes in RDF's graph (for example,
+bookmarks).
+
+<P>Every HT_View will have a set of columns that the FE can optionally
+display.  Functions for managing colums include:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>enum    _HT_ColumnType {
+        HT_COLUMN_UNKNOWN=0, HT_COLUMN_STRING, HT_COLUMN_DATE_STRING,
+        HT_COLUMN_DATE_INT, HT_COLUMN_INT, HT_COLUMN_RESOURCE
+        };
+typedef enum _HT_ColumnType  HT_ColumnType;
+
+PR_PUBLIC_API(HT_Cursor) HT_NewColumnCursor (HT_View view);
+PR_PUBLIC_API(PRBool)    HT_GetNextColumn(HT_Cursor cursor, char **colName,
+                                             uint32 *colWidth, void **token, uint32 *tokenType);
+PR_PUBLIC_API(void)      HT_DeleteColumnCursor(HT_Cursor cursor);
+PR_PUBLIC_API(void)      HT_SetColumnOrder(HT_View view, void *srcColToken, void *destColToken, PRBool afterDestFlag);
+PR_PUBLIC_API(void)      HT_SetSortColumn(HT_View view, void *token, uint32 tokenType, PRBool descendingFlag);
+PR_PUBLIC_API(PRBool)    HT_ContainerSupportsNaturalOrderSort(HT_Resource container);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>Changing the selected column to sort on will sent a HT_EVENT_VIEW_SORTING_CHANGED
+event.
+
+<P>For a given HT_View, users will see a list of HT_Resources representing
+bookmarked URLs. Useful functions for managing lists of HT_Resources include:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(HT_Resource)  HT_GetNthItem (HT_View view, uint32 theIndex);
+PR_PUBLIC_API(uint32)       HT_GetNodeIndex(HT_View view, HT_Resource node);
+PR_PUBLIC_API(uint32)       HT_GetItemListCount(HT_View view);
+PR_PUBLIC_API(uint16)       HT_GetItemIndentation(HT_Resource r);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>To create a new HT_View (for example, if the users wants to create a
+new workspace), use:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(void)     HT_NewWorkspace(HT_Pane pane, char *id, char *optionalTitle);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+ 
+<BR>which will send a HT_EVENT_VIEW_ADDED event.
+
+<P><B><FONT SIZE=+1>HT_Resources:</FONT></B>
+
+<P>A HT_Resource equates to a node in RDF's graph.
+
+<P>As a user clicks on various nodes, or moves up and down via the arrow
+keys, the selection will change.  Useful functions for managing selection:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(PRBool)      HT_IsSelected (HT_Resource node);
+PR_PUBLIC_API(HT_Error)    HT_GetSelectedState (HT_Resource node, PRBool *selectedState);
+PR_PUBLIC_API(HT_Error)    HT_SetSelectedState (HT_Resource node, PRBool isSelected);
+
+PR_PUBLIC_API(HT_Error)    HT_SetSelection (HT_Resource node);
+PR_PUBLIC_API(HT_Error)    HT_SetSelectionAll (HT_View view, PRBool selectedState);
+PR_PUBLIC_API(HT_Error)    HT_SetSelectionRange (HT_Resource node1, HT_Resource node2);
+PR_PUBLIC_API(void)        HT_ToggleSelection(HT_Resource node);
+
+PR_PUBLIC_API(HT_Resource) HT_GetNextSelection(HT_View view, HT_Resource startingNode);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>Note: HT_GetNextSelection() is especially useful as it enables enumeration
+of all the selected nodes.  Begin with "startingNode" set to NULL
+and continue calling HT_GetNextSelection until NULL is returned (i.e. no
+more selected nodes are available).
+
+<P>Changing the selection will send a HT_EVENT_NODE_SELECTION_CHANGED event.
+
+<P>When a user opens/closes a HT_Resource which is a container, the FE
+can change the open state in HT and enumerate container's children. Useful
+functions:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(PRBool)      HT_IsContainer (HT_Resource node);
+
+PR_PUBLIC_API(PRBool)      HT_IsContainerOpen (HT_Resource node);
+PR_PUBLIC_API(HT_Error)    HT_GetOpenState (HT_Resource containerNode, PRBool *openState);
+PR_PUBLIC_API(HT_Error)    HT_SetOpenState (HT_Resource containerNode, PRBool isOpen);
+PR_PUBLIC_API(uint32)      HT_GetCountVisibleChildren(HT_Resource node);
+
+PR_PUBLIC_API(HT_Cursor)   HT_NewCursor (HT_Resource node);
+PR_PUBLIC_API(HT_Resource) HT_GetNextItem (HT_Cursor cursor);
+PR_PUBLIC_API(HT_Error)    HT_DeleteCursor (HT_Cursor cursor);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+ 
+<BR>Opening or closing a container will send HT_EVENT_NODE_OPENCLOSE_CHANGING
+(before) and HT_EVENT_NODE_OPENCLOSE_CHANGED (after) events.
+
+<P>The data associated with a given HT_Resource and a given column may
+be editable by the yser.  If the FE supports inline editing, the following
+functions are useful:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(PRBool)       HT_GetNodeData (HT_Resource node, void *token, uint32 tokenType, void **data);
+PR_PUBLIC_API(PRBool)       HT_IsNodeDataEditable(HT_Resource node, void *token, uint32 tokenType);
+PR_PUBLIC_API(HT_Error)     HT_SetNodeData (HT_Resource node, void *token, uint32 tokenType, void *data);
+PR_PUBLIC_API(HT_Error)     HT_SetNodeName (HT_Resource node, void *data);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<PRE>Changing data associated with a node will sent a HT_EVENT_NODE_VPROP_CHANGED event.</PRE>
+
+<PRE></PRE>
+
+<PRE>If a new container needs to be created, use:</PRE>
+
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(HT_Resource)  HT_MakeNewContainer(HT_Resource parent, char* name);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<PRE>which will send a HT_EVENT_NODE_ADDED event.</PRE>
+
+<PRE></PRE>
+
+<PRE>If a node needs to be deleted, use:</PRE>
+
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(PRBool)       HT_RemoveChild  (HT_Resource parent, HT_Resource child);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>which will sent either a HT_EVENT_NODE_DELETED_DATA or a HT_EVENT_NODE_DELETED_NODATA
+event, depending on whether FE-specific data is associated with the node,
+followed by a HT_EVENT_VIEW_REFRESH event.  (Multiple deletion events
+can be sent before a refresh event is sent, allowing for bulk deletion
+of nodes.)
+<BR> <B></B>
+
+<P><B><FONT SIZE=+1>Contextual Menus:</FONT></B>
+
+<P>Contextual menu support is available with the following functions:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>typedef enum    _HT_MenuCmd     HT_MenuCmd;
+
+PR_PUBLIC_API(HT_Cursor)   HT_NewContextMenuCursor(HT_Resource r);
+PR_PUBLIC_API(HT_Cursor)   HT_NewContextualMenuCursor (HT_View view, PRBool workspaceMenuCmds, PRBool backgroundMenuCmds);
+PR_PUBLIC_API(PRBool)      HT_NextContextMenuItem(HT_Cursor c, HT_MenuCmd *menuCmd);
+PR_PUBLIC_API(void)        HT_DeleteContextMenuCursor(HT_Cursor c);
+PR_PUBLIC_API(char *)      HT_GetMenuCmdName(HT_MenuCmd menuCmd);
+PR_PUBLIC_API(HT_Error)    HT_DoMenuCmd(HT_Pane pane, HT_MenuCmd menuCmd);
+PR_PUBLIC_API(PRBool)      HT_IsMenuCmdEnabled(HT_Pane pane, HT_MenuCmd menuCmd);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+ 
+
+<P><B><FONT SIZE=+1>Drag and Drop:</FONT></B>
+
+<P>The following functions are the FE to determine whether a node can be
+drag&amp;dropped, (within a given HT_View or between HT_Views) and allow
+the actual drag&amp;drop to occur:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>typedef uint8 HT_DropAction;
+
+#define DROP_NOT_ALLOWED  0
+#define COPY_MOVE_CONTENT 1
+#define UPLOAD_RDF        2
+#define COPY_MOVE_LINK    3
+#define UPLOAD_LFS        4
+
+PR_PUBLIC_API(HT_DropAction)   HT_CanDropHTROn(HT_Resource dropTarget, HT_Resource obj);
+PR_PUBLIC_API(HT_DropAction)   HT_CanDropURLOn(HT_Resource dropTarget, char* url);
+PR_PUBLIC_API(HT_DropAction)   HT_DropHTROn(HT_Resource dropTarget, HT_Resource obj);
+PR_PUBLIC_API(HT_DropAction)   HT_DropURLOn(HT_Resource dropTarget, char* url);
+PR_PUBLIC_API(HT_DropAction)   HT_DropURLAndTitleOn(HT_Resource dropTarget, char* url, char *title);
+
+PR_PUBLIC_API(HT_DropAction)   HT_CanDropHTRAtPos(HT_Resource dropTarget, HT_Resource obj, PRBool before);
+PR_PUBLIC_API(HT_DropAction)   HT_CanDropURLAtPos(HT_Resource dropTarget, char* url, PRBool before);
+PR_PUBLIC_API(HT_DropAction)   HT_DropHTRAtPos(HT_Resource dropTarget, HT_Resource obj, PRBool before);
+PR_PUBLIC_API(HT_DropAction)   HT_DropURLAtPos(HT_Resource dropTarget, char* url, PRBool before);
+PR_PUBLIC_API(HT_DropAction)   HT_DropURLAndTitleAtPos(HT_Resource dropTarget, char* url, char *title, PRBool before);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>To allow drag&amp;drop reordering of HT_Views, use:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(void)   HT_SetWorkspaceOrder(HT_View src, HT_View dest, PRBool afterDestFlag);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+ 
+
+<P><B><FONT SIZE=+1>Miscellaneous:</FONT></B>
+
+<P>Certain FEs (such as Windows) draw a hierarchy using dashed lines from
+a container to each of its children.  The following functions are
+useful:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(PRBool) HT_ItemHasForwardSibling(HT_Resource r);
+PR_PUBLIC_API(PRBool) HT_ItemHasBackwardSibling(HT_Resource r);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+
+<P>To obtain icon URLs for nodes:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(char *) HT_GetWorkspaceLargeIconURL (HT_View view);
+PR_PUBLIC_API(char *) HT_GetWorkspaceSmallIconURL (HT_View view);
+PR_PUBLIC_API(char *) HT_GetNodeLargeIconURL (HT_Resource r);
+PR_PUBLIC_API(char *) HT_GetNodeSmallIconURL (HT_Resource r);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+ 
+
+<P>Other useful routines:
+<BR> 
+<TABLE CELLPADDING=4 COLS=1 WIDTH="100%" BGCOLOR="#BFBFBF" >
+ <TR>
+  <TD>
+
+
+<PRE><FONT SIZE=-1>PR_PUBLIC_API(HT_Resource)  HT_TopNode (HT_View view);
+PR_PUBLIC_API(HT_Resource)  HT_GetParent (HT_Resource node);
+
+PR_PUBLIC_API(RDF_Resource) HT_GetRDFResource (HT_Resource node);
+PR_PUBLIC_API(RDF)          RDF_GetNavCenterDB();
+
+PR_PUBLIC_API(PRBool)       HT_IsLocalData (HT_Resource node);
+PR_PUBLIC_API(char *)       HT_DataSource (HT_Resource node);
+
+PR_PUBLIC_API(HT_Pane)      HT_GetHTPaneList ();
+PR_PUBLIC_API(HT_Pane)      HT_GetNextHTPane (HT_Pane pane);
+
+PR_PUBLIC_API(PRBool)       HT_IsSeparator (HT_Resource node);
+
+PR_PUBLIC_API(void)         HT_Properties (HT_Resource r);</FONT></PRE>
+  </TD>
+ </TR>
+</TABLE>
+ 
+</BODY>
+</HTML>

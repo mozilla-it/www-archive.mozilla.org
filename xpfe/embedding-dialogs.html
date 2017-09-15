@@ -1,0 +1,471 @@
+<html>
+<head>
+<title>Extrafenestral embedding tasks</title>
+<style type="text/css"><!--
+  h1 {font-size: 120%; font-weight: bold; text-decoration: underline;
+      line-height: 120% }
+  h2 {font-size: 100%; font-weight: bold; text-decoration: underline;
+      line-height: 120% }
+  h3 {font-size: 100%; font-weight: normal; text-decoration: underline;
+      line-height: 120% }
+  .history { text-indent: -12ex; margin-left: 12ex; font-size: 80%;
+             margin-top: 0; margin-bottom: 0 }
+  
+--></style>
+</head>
+
+<body>
+<p>A somewhat detailed explanation of tasks necessary to fix Gecko and
+supporting components to be able to pose dialogs while running as an
+embedded web browser. Here's a basic list of tasks, followed by what
+details I know at the moment.</p>
+
+<p align=right>20 Mar 01<br>
+<a href="mailto:danm@netscape.com">author</a></p>
+
+<p><b>Change history</b></p>
+<p class="history">4 Apr 01 Only complex components need
+support <a href="#piecemealoverride">piecemeal overriding of
+dialogs</a>.</p>
+<p class="history">13 Mar 01 Largely rewritten; updated to show current
+status</p>
+<p class="history">20 Mar 01 Included conclusions of the embedding API
+review. Added <a href="#programmingnotes">programming notes</a>.</p>
+
+<p>New work</p>
+<ul>
+  <li><a href="#posedialog">dialog posing API</a></li>
+  <li><a href="#sanctifypromptservice">sanctify nsIPromptService</a></li>
+  <li><a href="#eventloop">event loop</a></li>
+</ul>
+Work finished or abandoned
+<ul>
+  <li><a href="#openwindows">open windows without an nsXULWindow</a></li>
+  <li><a href="#windowmediator">window mediator component</a></li>
+  <li><a href="#nsiprompt">augment nsIPrompt</a></li>
+  <li><a href="#nsipromptservice">exorcise nsIPromptService</a></li>
+</ul>
+
+<h1><a name="posedialog"></a>Dialog Posing API</h1>
+
+<p>some investigation, some new code, some grunge.</p>
+
+<p>This section describes changes we need to make to code which poses
+dialogs to ready it for use as an embeddable browser. It begins with history
+and explanation, but hurried programmers may want to skip ahead to the
+<a href="#programmingnotes">programming notes</a> section.</p>
+
+<p>It seems generally accepted that embedding apps need to be able to
+request that Gecko pose one of its dialogs, and that they be able to replace
+any of Gecko's dialogs with their own. Note that in this Dialog Posing
+Section, an embedded context is the same as an installation context, meaning
+that the problem and solution are the same for an application wishing to
+embed a Gecko browser, and for a customized installation of the Mozilla
+browser.</p>
+
+<p>To pose a dialog, Mozilla code generally simply calls window.open (or the
+C++ equivalent) directly.  We plan to substitute dialog-posing components
+which can be swapped out by emdedder's components. A few scattered groups
+have already begun to architect their UIs this way; we're just building on
+it and canonizing it.</p>
+
+<p>An earlier plan was to roll all dialog posing methods into a single
+generic interface. We have abandoned the generic thrust and now plan a
+collection of individual components. Code that needs to present one or
+several dialogs and could be called from an embedded Gecko browser must
+collect its dialog posing code into a special-purpose interface, built into
+a component. The dialog posing interface for each component is free to be
+unique to that component, since we've abandoned as impractical the effort to
+standardize this thing. (Though see a restriction under
+<a href="#dialogparentage">Dialog Parentage</a>).</p>
+
+<p>We are explicitly omitting dialogs which wouldn't appear in an embedded
+browser. For example Composer's Image Properties Dialog isn't included, but
+the nsIPrompt alerts are. One of our
+<a href="#posedialogtasks">tasks</a> in coding this will be to make an
+exhaustive list of all affected dialogs. But this document includes a
+preliminary list of <a href="#posedialogcomponents">likely dialog-serving
+components</a>, presented as a guide, not a mandate.</p>
+
+<p>The point behind all this work is to make all dialogs pluggable. An
+embedding application will have detailed knowledge on which dialogs can be
+posed by an embedded browser, and can at its discretion override any or all
+of them. To replace a dialog by one of its own; that is, to force Gecko to
+display a dialog of their construction rather than Mozilla's, the embedding
+application must install its own version of the dialog-serving component.
+Embedded Gecko (or the full Mozilla app) will preferentially use that
+component when it runs into code that uses one of these dialog-serving APIs
+to pose a dialog. This goal implies a few additional architectural changes,
+described in the remainder of this section.</p>
+
+<h2>Architectural Changes</h2>
+
+<h3><a name="dialogparentage"></a>Dialog Parentage</h3>
+
+<p>Dialogs generally must be attached to their parent window in some
+fashion, to appease OSes with window-modal dialogs (as opposed to
+application-modal). Currently the Mozilla codebase addresses this in one
+of three ways:</p>
+
+<ul>
+  <li>Code initiating network access (one of our biggest users of dialogs)
+      stashes a parent window in the channel, in some disguised form.</li>
+  <li>Dialogs are opened directly from the parent window, as in the
+      JavaScript <code>window.open</code>.</li>
+  <li>The dialog is posed without a parent and allowed to wreak havoc.</li>
+</ul>
+
+<p>This document doesn't address the third case, which luckily is relatively
+rare. The first two cases must adapt under this plan. The solution isn't as
+complex as the problem's description. Each method which poses a dialog in a
+component's interface must take an nsIDOMWindow parent parameter. The
+objects currently used to parent dialogs in the first two cases above can
+readily cough up an nsIDOMWindow, so we shouldn't need to add to the list of
+dialogs in the third category.</p>
+
+<h3><a name="downcalls"></a>Data Transfer Methods</h3>
+
+<p>While some dialogs are posed solely from within the browser, others are
+posed directly by the owning application. Preferences, for instance. For the
+embedding application to write its own interface, these dialogs must
+provide, in addition to methods to pose the dialog, methods to populate the
+dialog from Gecko data and methods to push changed data from the dialog back
+into Gecko. Preferences, for instance, has <code>nsIPref</code>. Other such
+dialogs will need similar access.</p>
+
+<h3><a name="piecemealoverride"></a>Piecemeal Overriding of Dialogs</h3>
+
+<p>Some of the dialog UI components may be large and complex. The people
+behind this document have nevertheless agreed that it will be acceptable if,
+to override one dialog, an embedding application or installation must write
+its own implementation of the complete interface. However, we believe a
+scheme for overriding only certain methods within a component is desirable
+and way more slick, and we spec a simple way for complex UI components to be
+able to support this capability.</p>
+
+<p>Regardless of whether an individual component chooses to support this
+capability, all dialog-posing code must be prepared for the existence of two
+components implementing each UI-posing interface: the default Mozilla
+version and an embedding application's override version. That constrains
+dialog-posing code to never pose dialogs directly, but always go through the
+correct UI component. Additionally, complex UI components should allow an
+embedding app to override only a subset of all their dialogs, as outlined in
+the <a href="#guidelines">guidelines</a> section.</p>
+
+<p>There still remains the issue of whether we will support possible
+multiple applications each sharing a single instance of a Mozilla
+installation. While there may be issues preventing that, the dialog posing
+scheme outlined here should be able to handle it by enforcing a convention
+that, while the default Mozilla implementations may be automatically
+registered components, the application override implementations must be
+individually registered with the component manager at startup each time the
+application launches, and that registration is not to be persistent across
+subsequent launches of the application.</p>
+
+<h2><a name="posedialogcomponents"></a>Preliminary list of dialog posing
+components</h2>
+<ul>
+  <li>Wallet and Cookies</li>
+  <li>Personal Security Manager</li>
+  <li>an nsIPrompt service, based on nsCommonDialogs</li>
+  <li>a miscellaneous component</li>
+  <li>a small contingent of individuals, like Unknown Content Handler</li>
+</ul>
+
+<h2><a name="posedialogtasks"></a>Dialog Posing Tasks</h2>
+
+<ol start=1 type=1>
+  <li>Build a categorized list of every Mozilla dialog affected by this
+      plan. (The categories include whether a dialog is affected, which
+      component it should live in, and whether additional
+      <a href="#downcalls">data transfer methods</a> will be required.)</li>
+  <li>Collect the above dialogs into components</li>
+  <li>Change all places in the code which currently pose these dialogs
+      directly to instead go through the (redirectable) component</li>
+  <li>Retrofit nsCommonDialogs into this scheme and rework the current
+      nsIPrompt scheme as a service like any other (low priority, because
+      the current scheme is working though soon to be inconsistent with
+      the rest of the product)</li>
+  <li>documentation including programmer's guidelines</li>
+</ol>
+
+<h2><a name="programmingnotes"></a>Programming Notes</h2>
+
+<h3>Dialogs posed by the embedded browser ("up calls")</h3>
+
+<p>Any component which may be included in an embedded browser distribution
+and wishes to pose a dialog must group its UI (code which runs its dialogs)
+into a unique interface built just for that purpose. Any such code which
+isn't already a component needs to be. All code which actually poses
+dialogs, if it does this directly using <code>window.open</code>, wants to
+be changed to go through the new interface.</p>
+
+<p>Note that nsIPrompt dialogs will be one such component, so a component
+whose UI solely uses nsIPrompt is already up to spec.</p>
+
+<h3>Dialogs posed by the embedding app ("down calls")</h3>
+
+<p>Some components will not pose dialogs directly, but maintain a database
+of information an embedding app may wish to display as a dialog. Preferences
+are the canonical example. In this case, we must be sure to have an API
+which an embedding app can use to populate its own dialog, should it decide
+to eschew Mozilla's XUL version. These components need build no dialog
+posing interface.</p>
+
+<h3><a name="guidelines"></a>Guidelines</h3>
+
+<p>A few restrictions on each component's UI interface (yes I know...).
+Most if not all of these dialogs will need to be child/dependent/transient
+windows, so each method responsible for actually opening a window must take
+an <code>nsIDOMWindow *aParent</code> parameter, and use that window as the
+dialog's parent, if non-null.</p>
+
+<p>In some cases, we want to allow an overriding implementation to be able
+to implement only certain dialogs within a component, rather than being
+forced to implement them all. Most of the burden is on the embedding
+application, but a Gecko dialog-posing component needs to do a little extra
+work.</p>
+
+<p>Not all components need to worry about this. The benefit of supporting
+this capability is kind of unremarkable for a small, simple component.
+Complex components for which this capability makes sense (we leave this to
+the judgment of the component author!) should go to a little extra effort to
+allow an overriding implementation to override it piecemeal.</p>
+
+<p>A complex dialog-posing component should register itself with two
+Contract IDs, both referring to the same interface and implementation. Both
+will be published as part of Gecko's embedding API, though one is "public"
+and one "private". (Really, "basic" and "overrideable".) All UI components
+may be overridden by an embedding application or peculiar installation which
+may, at its discretion, register its own version of each UI component with
+the Component Manager at startup. Within complex components, we would also
+like for them to be able to override single dialogs. The scheme is for the
+default Gecko components to respond equally to two Contract IDs, and for the
+overriding component (if any) to override only the overrideable version. The
+overriding component will include its own implementation for each method it
+wishes to override, and it will be responsible for calling through to the
+base Gecko interface for each method it wishes to leave alone.</p>
+
+<p>To make our embedding API as consistent as possible, we'd like to impose
+a few coding conventions on these dialog-posing interfaces. We'll
+probably add more in time, but for now, here's the complete list:</p>
+
+<p>Embedded dialog posing interface coding conventions</p>
+<ul>
+  <li>The <code>nsIDOMWindow *aParent</code> parameter mentioned above
+      should be the first parameter to each method in which it appears.</li>
+  <li>The "private" Contract ID mentioned above should have the form,
+      ohhh, let's say "@mozilla.org/embedui/<b>unique-component-name</b>;1"
+      (where the ";1" will presumably change in the future) and the
+      "public" one
+      "@mozilla.org/embedui/<b>unique-component-name</b>-override;1"</li>
+</ul>
+
+<p>We wish we had actual code examples. The idea is straightforward;
+hopefully that will be enough for now, as we're just getting started. PSM 2
+is headed this way. You may want to look in mozilla/security/manager/pki
+for ideas.</p>
+
+<p>We have been building a list of affected components, currently arranged
+as a series of approximations converging on a final list; attachments to
+<a href="http://bugzilla.mozilla.org/show_bug.cgi?id=71837">Bugzilla bug
+71837</a>. If you know of omissions or unnecessary inclusions, please let
+us know.)</p>
+
+<h1><a name="sanctifypromptservice"></a>Sanctify nsIPromptService</h1>
+
+<p>new code</p>
+
+<p>It seems that for practical reasons we'll never successfully fit a window
+context into all the places that initiate a channel. (See the issue of
+<a href="#dialogparentage">Dialog Parentage</a>.) So rather than try to
+force the issue, the plan is to make nsIPromptService work in an embedding
+context. Standing in the way is nsIPromptService's use of the Evil Hidden
+Window; an object present only in the Mozilla application. It uses Hidden
+Window to open a new window (because before the recent ability to
+<a href="#openwindows">open windows without a parent</a>, windows couldn't
+be created in the absence of an extant window to serve as their parent). But
+we should now be able to fix nsIPromptService to work in an embedded
+context.  Windows created through this mechanism will still misbehave:
+they'll fail to be modal to their parent (important on platforms where modal
+windows are window modal, not application modal). That's unfortunate, but we
+have no solution at this time.</p>
+
+<h2>nsIPromptService sanctification tasks</h2>
+<ol start=1 type=1>
+  <li>Replace usage of Hidden Window in nsCommonDialogs with the
+      <code><a href="#openwindows">Window Watcher</a></code>.</li>
+  <li>Move the component containing it out of <code>xpfe</code>, into a
+      component more likely to be included in an embedding
+      distribution.</li>
+</ol>
+
+<h1><a name="eventloop"></a>The Event Loop</h1>
+
+<p>documentation</p>
+
+<p>The issue here is how the embedding app and Gecko will cooperate to
+implement modality, and what repercussions this will have on both.
+A modal dialog must do two unique things (ooo, a list:)</p>
+
+<ol>
+  <li>lock out user interaction with other windows (or at least the
+      parent window, depending on the platform)</li>
+  <li>prevent the calling code from continuing until the dialog is dismissed,
+      without losing important events</li>
+</ol>
+
+<p>People seem to be agreeing that we need not worry about the modal event
+loop in an embedded Mozilla, for reasons spelled out in an older version of
+this document. Basically it becomes an absurd exercise for Gecko to even try
+to provide a workable captive event loop suitable for use in foreign
+applications. Our current chosen direction is one where the application
+provides its own support for modality, and we must merely document this.</p>
+
+<p>Note that this makes the task of showing an alert (like
+nsIPrompt::Alert()) potentially more complicated to the calling application
+than merely calling the function. That's unfortunate, but I think our
+options are limited. Note also that nsIPrompt functions may not be at issue,
+if they are implemented by the embedding app as a naturally modal system
+dialog (like Windows' MessageBox), as entertained in the
+<a href="#nsiprompt">nsIPrompt</a> section. This decision may affect only
+other, rarer dialogs which the embedding application may want to be
+modal.</p>
+
+<h2>event loop tasks</h2>
+
+<ol start=1 type=1>
+  <li>document unusual Gecko requirements for posing modal dialogs
+      in an embedded environment.</li>
+</ol>
+
+<i>Tasks from the previous version of this document, now implemented
+or abandoned:</i>
+
+<h1><a name="openwindows"></a>Open Windows Without an nsXULWindow</h1>
+
+<p>Implemented. The new nsIWindowWatcher service contains a public method,
+<code>OpenWindow</code>. This is the supported way to create a window
+without a parent (by passing <code>null</code> in the <code>aParent</code>
+parameter).</p>
+
+<p>For this to work, the owning application must conform to two
+requirements:</p>
+<ul>
+  <li>Each application must instantiate an instance of an
+    <code>nsIWindowCreator</code>, and let the Window Watcher hold on to
+    it by calling <code>nsIWindowWatcher::SetWindowCreator</code>.</li>
+  <li>In the application, each object implementing
+    <code>nsIWebBrowserChrome</code> must be able to cough up an
+    <code>nsIDOMWindow</code> in its
+    <code>nsIInterfaceRequestor::GetInterface</code> method.</li>
+</ul>
+
+<h1><a name="windowmediator"></a>Window Mediator Component</h1>
+
+<p>Implemented. It's the <code>nsIWindowWatcher</code> component.</p> This
+service generally requires no new maintenance from embedding applications;
+it's hooked in at a Mozilla code level. Embedding applications are required
+to maintain its <code>activeWindow</code> attribute (by setting it when the
+active window changes), though truth be told, in the current codebase, the
+attribute is never used.</p>
+
+<h1><a name="nsiprompt"></a>Augment nsIPrompt</h1>
+
+<p>Current status: while the points below remain a concern, we've decided
+to generally leave <code>nsIPrompt</code> alone, except its implementation,
+as discussed in the <a href="#posedialog">dialog posing API</a> section.</p>
+
+<p>All dialogs should be children of some owning window. Otherwise, at best
+there can be confusion about which browser window (for example) a dialog
+belongs to. At worst a modal alert will be unable to lock out user
+interaction with the parent window. The worst case causes programmer
+surprises and occasional crashes. We must be able to retrieve a suitable
+parent window any time we wish to pose a dialog.</p>
+
+<p>Two possible schemes for accomplishing this have been raised.  These are:
+an augmentation to our current scheme in which references to the top-level
+window are carried around in contexts which may conceivably want to pose a
+dialog, and a global service which can be trusted to always hold a reference
+to the window corresponding to the network access currently being processed.
+These were both discussed in an earlier version of this document. In this
+one I'm running with the conclusion, which was that we stick with our
+current nsIPrompt scheme. Both schemes have their hoary undersides. Suffice
+to say that even the more general sounding other solution doesn't work in
+all situations which already occur in the codebase.</p>
+
+<p>Mozilla's current standard way of knowing the correct parent for a dialog
+relies on the code which initiates a networking connection (at some early
+point, every operation can locate its correct window) to stash a reference
+to the top-level window, disguised as an nsIInterfaceRequestor, in the
+channel. All current uses of this object QI it to an nsIPrompt. This holds
+for both Mozilla-the-app and for our embedding windows, as currently
+specified.</p>
+
+<p>The fact that all top-level windows, both Mozilla and embedding, already
+must implement nsIPrompt takes care of our immediate problem of moving
+nsIPrompt into the embedding world. Arguably, we're done with that (though
+I'll propose an extension requested by some outside developers, but that
+isn't immediately necessary.) What's left is the ability to pose a few more
+complicated dialogs. There's a move on to simplify nsIPrompt, to make the
+task of implementing this basic UI more straightforward for embedding apps.
+This may end up being a bootless simplification because of modifications
+described in the <a href="#posedialog">dialog posing API</a> section.</p>
+
+<h1><a name="nsipromptservice"></a>Exorcise nsIPromptService</h1>
+
+<p>Current status: while the points below remain a concern, we've switched
+our tack and decided instead to
+<a href="#sanctifypromptservice">Sanctify nsIPromptService</a>.</p>
+
+<p>In the <a href="#nsiprompt">nsIPrompt soliloquy</a> I mentioned that current
+accepted behaviour is to stash an nsIPrompt in each networking access' channel,
+from where it can be retrieved by code which does not naturally belong to
+a window but wishes to pose a dialog (like network error alerts). This is done
+in nearly all cases, but it's still wise to code a fallback in the dialog
+posing code.</p>
+
+<p>The dialog posing code attempts to retrieve an nsIPrompt from the
+nsIChannel. Failing that, it uses the global nsIPromptService. That creates
+a window whose parent is Hidden Window. It nearly works in the application,
+but the alert is incorrectly parented and behaves badly (on systems for
+which modal windows are modal only to their parent, it neglects to lock out
+user interaction with the parent window, leading to possible crashes). And
+it doesn't work in the embedding case, since there is no Hidden Window
+there.</p>
+
+<p>It's important for this scheme to work that each piece of code that
+initiates a channel hook it up with a proper nsIPrompt. Unfortunately, each
+such place in the code is rather unique. Most do; a few do not. A typical,
+or at least likely case, is the first load that happens when a browser
+window begins loading a web page. That load is fired by an nsDocShell. The
+nsDocShell has access to the nsIPrompt corresponding to its top-level
+window, and happily hands that along as an nsIPrompt. That one's relatively
+easy.<p>
+
+<p>The Channel doesn't carry an nsIPrompt directly; it contains an
+nsIInterfaceRequestor, accessible through its GetNotificationCallbacks
+method. If the channel's creator was thoughtful enough to put an nsIPrompt
+in that nsIInterfaceRequestor slot, you can request an nsIPrompt from that,
+and this is the common pattern in Mozilla. Occasionally the initiator
+doesn't put an nsIPrompt in the channel, but something else instead (last I
+looked, imglib was doing this somewhere). That causes problems in the
+current code and wants to be fixed. We need to do something like ... urk ...
+teach the channel to hold a list of notification callbacks and cycle through
+them each time.</p>
+
+<h2>tasks to exorcise nsIPromptService</h2>
+
+<ol start=1 type=1>
+  <li>Teach our nsChannel to be able to hold more than one
+      nsIInterfaceRequestor, and its users to be able to deal with
+      more than one.</li>
+  <li>Locate all places where a channel is initiated. Most already
+      associate an nsIPrompt with the channel. Those that don't.
+      should also add an nsIPrompt.</li>
+  <li>Remove the global service fallbacks relied on by distrustful
+      end consumers.</li>
+  <li>Remove the global service.</li>
+</ol>
+
+</body></html>

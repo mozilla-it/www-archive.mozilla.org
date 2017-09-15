@@ -1,0 +1,627 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Language" content="en">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+
+  <title>libxpnet: API Overview and Architecture</title>
+  <meta name="author" content="Samir Gehani">
+
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+  <h1>libxpnet: Architecture and API Overview</h1>
+
+  <address class="author">
+    Original author: Samir Gehani &lt;<a href=
+    "mailto:sgehani@netscape.com">sgehani@netscape.com</a>&gt;
+  </address>
+
+<h2>In this docoument</h2>
+
+  <ol style="list-style-type: upper-roman;" class="toc">
+    <li><a href="#motivation">Motivation</a></li>
+
+    <li><a href="#feature_Set">Feature Set</a></li>
+
+    <li><a href="#example_and_building">Example and Building the
+    Library</a></li>
+
+    <li><a href="#architecture">Architecture</a></li>
+
+    <li>
+      <a href="#api_Overview">API Overview</a>
+
+      <ol>
+        <li><a href="#nsHTTPConn">nsHTTPConn</a></li>
+
+        <li><a href="#nsFTPConn">nsFTPConn</a></li>
+
+        <li><a href="#nsSocket">nsSocket</a></li>
+      </ol>
+    </li>
+
+    <li><a href="#future_work">Future Work</a></li>
+  </ol>
+
+  <h3><a name="motivation" id="motivation">I. Motivation</a></h3>
+
+  <p>The Mozilla and Netscape 6 installers were designed such that users
+  download a lighweight "stub" installer under 200 KB, choose which software
+  packages to install, the destination directory for the installation and so
+  forth. Thereafter, only the selected packages are downloaded and installed
+  saving low bandwidth users considerable time. The stub installers are all
+  written in platform-native code. Being cross-platform, we have three separate
+  codebases: one installer codebase for <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/windows/">windows</a>,
+  one for the <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/mac/">macintosh</a>,
+  and one for the <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/unix/">unices</a>.
+  The windows and mac installers used a third-party library, SmartDownload, to
+  fetch installer modules via HTTP and FTP. The linux installer used the
+  original incarnation of <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/">libxpnet</a>,
+  a clean-room implementation of an FTP client.</p>
+
+  <p>Since the original release of Netscape 6, the third-party vendor that
+  originally authored the SmartDownload library on windows and mac stopped
+  supporting it. There were significant defects that warranted the need for a
+  maintainable download library. There were two choices:</p>
+
+  <ul>
+    <li>get the source code for the SmartDownload libraries on mac and windows
+    and then expand the original linux FTP implementation to be at par with the
+    SmartDownload libraries</li>
+
+    <li>expand the original linux FTP implementation to be at par with the
+    SmartDownload feature set and make the library cross-platform</li>
+  </ul>
+
+  <p>We decided to opt for the latter choice for the following reasons:</p>
+
+  <ul>
+    <li>it allowed us to have an easily maintainable codebase we were already
+    familiar with (SmartDownload source was to be provided with minimal to no
+    documentation which was not deemed acceptable by engineering).</li>
+
+    <li>we could implement our own integrated user-interface (the SmartDownload
+    library forced the use of their own user-interface which didn't comply with
+    interface guidelines)</li>
+
+    <li>we could tune the network library at will to work with our server farm
+    from a functional stand point and from an efficiency standpoint</li>
+
+    <li>mozilla could now take advantage of the download functionality and
+    architecture of the stub installers: previously the SmartDownload libraries
+    being binary were not acceptable for use by mozilla.org since source is
+    required for code used in any mozilla project (mostly)</li>
+  </ul>
+
+  <h3><a name="feature_Set" id="feature_Set">II. Feature Set</a></h3>
+
+  <p>Having described the motivation, following is an enumeration of features
+  we have implemented in libxpnet for SmartDownload parity:</p>
+
+  <ol>
+    <li>Minimal HTTP/1.1 support per <a class="ex-ref" href=
+    "http://sunsite.dk/RFC/rfc/rfc2068.html">RFC 2068</a> to get files</li>
+
+    <li>Minimal FTP support per <a class="ex-ref" href=
+    "http://sunsite.dk/RFC/rfc/rfc959.html">RFC</a> <a class="ex-ref" href=
+    "http://sunsite.dk/RFC/rfc/rfc959.html">959</a> to get files</li>
+
+    <li>Proxy support using HTTP proxies</li>
+
+    <li>Pause/resume support</li>
+
+    <li>Cancel support</li>
+  </ol>
+
+  <p>The general requirement is to be able to download a file via HTTP or FTP,
+  regardless of whether a client is behind a proxy server, and to be able to
+  resume the download mid-file regardless of whether a connection dropped or
+  the user explicitly paused or canceled the download. Hence, we have a
+  mechanism to explicitly pause/cancel a download and to be able to distinguish
+  such an explicit pause/cancel from a dropped connection.</p>
+
+  <h3><a name="example_and_building" id="example_and_building">III. Example and
+  Building the Library</a></h3>
+
+  <p>See <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/test/TestLibxpnet.cpp">
+  TestLibxpnet</a> for a sample usage of these APIs. The library can easily be
+  built on any platform by building the three objects first: nsSocket.o,
+  nsFTPConn.o, nsHTTPConn.o and linking them into a static library. Note that
+  all three classes, i.e., nsSocket, nsFTPConn, nsHTTPConn, have self-tests
+  built into them if the appropriate macros are defined at compile time:
+  <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsSocket.cpp#529">
+  TEST_NSSOCKET</a> for nsSocket, <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsHTTPConn.cpp#652">
+  TEST_NSHTTPCONN</a> for nsHTTPConn, and <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsFTPConn.cpp#602">
+  TEST_NSFTPCONN</a> for nsFTPConn. Each class can be compiled into a
+  standalone program when these test macros are turned on. Alternatively, if
+  you have <a href="http://www.mozilla.org/build/">built mozilla</a>, you will
+  find the resultant static library in dist or under the <a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/">libxpnet/src</a>
+  directory.</p>
+
+  <h3><a name="architecture" id="architecture">IV. Architecture</a></h3>
+
+  <p>The two protocols supported in libxpnet, HTTP and FTP, are abstracted
+  above a cross-platform socket layer that deals with the networking directly.
+  The socket layer talks to the platform-specific networking libraries
+  available: kernel-based <a class="ex-ref" href="http://www.bsd.org/">berkeley sockets</a> on
+  the Unices, <a class="ex-ref" href=
+  "http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winsock/hh/winsock/apistart_9g1e.asp">
+  Winsock</a> on Windows, and <a href=
+  "http://sourceforge.net/projects/gusi/">GUSI</a> on the Mac.</p>
+
+  <p><img src="architecture.png" alt="Libxpnet Architecture" width="512"
+  height="256"></p>
+
+  <h3><a name="api_Overview" id="api_Overview">V. API Overview</a></h3>
+
+  <ol>
+    <li>
+      <h4><a name="nsHTTPConn" id="nsHTTPConn"></a> <a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsHTTPConn.h">
+      nsHTTPConn</a></h4>
+
+      <h4><a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsHTTPConn.h">
+      </a></h4>
+
+      <h4>Constructors<br></h4>
+
+      <ul>
+        <li><code>nsHTTPConn(char *aHost, int aPort, char *aPath);</code><br>
+        Prepare to create an HTTP connection to the supplied host at a possibly
+        non-default port and download the resultant response into the file
+        whose path is specified.<br>
+        <code>aHost:</code> a DNS-resolvable hostname or an IP address string (only
+        IPv4 currently supported)<br>
+        <code>aPort:</code> a possibly non-default integer port number less than
+        65536<br>
+        <code>aPath:</code> a path to the destination file on the local system that
+        will be created with the HTTP response contents</li>
+
+        <li><code>nsHTTPConn(char *aURL);</code><br>
+        Prepare to create an HTTP connection to get the file at the supplied
+        URL. The destination file on the local system will be named after the
+        leaf name of the HTTP URL supplied. If no leaf name is detected then
+        the default file name will be "index.html". Note that the downloaded
+        file will be created in the current working directory.<br>
+        <code>aURL:</code> an HTTP URL per the semantics specified by <a href=
+        "http://sunsite.dk/RFC/rfc/rfc1738.html">RFC 1738</a></li>
+
+        <li><code>nsHTTPConn(char *aHost, int aPort, char *aPath, int
+        (*aEventPumpCB)(void));</code><br>
+        Prepare to create an HTTP connection to the supplied host at a possibly
+        non-default port and download the resultant response into the file
+        whose path is specified. An event pump callback can be supplied to
+        receive notification during the connection phase.<br>
+        <code>aHost:</code> a DNS-resolvable hostname or an IP address string (only
+        IPv4 currently supported)<br>
+        <code>aPort:</code> a possibly non-default integer port number less than
+        65536<br>
+        <code>aPath:</code> a path to the source file on the HTTP server
+        (http://&lt;aHost&gt;:&lt;aPort&gt;/&lt;aPath&gt;)<br>
+        <code>aEventPumpCB:</code> a callback function to be implemented by the
+        client which will be called during the connection phase (optional and
+        can be NULL)</li>
+
+        <li><code>nsHTTPConn(char *aURL, int
+        (*aEventPumpCB)(void));</code><br>
+        Prepare to create an HTTP connection to get the file at the supplied
+        URL. The destination file on the local system will be named after the
+        leaf name of the HTTP URL supplied. If no leaf name is detected then
+        the default file name will be "index.html". Note that the downloaded
+        file will be created in the current working directory. An event pump
+        callback can be supplied to receive notification during the connection
+        phase.<br>
+        <code>aURL:</code> an HTTP URL per the semantics specified by <a class="ex-ref" 
+        href="http://sunsite.dk/RFC/rfc/rfc1738.html">RFC 1738</a><br>
+        <code>aEventPumpCB:</code> a callback function to be implemented by the
+        client which will be called during the connection phase (optional and
+        can be NULL)</li>
+      </ul>
+
+      <h4>Methods</h4>
+
+      <ul>
+        <li><code>int Open();</code><br>
+        Opens a new HTTP connection using the host and port specification
+        passed in the constructor.</li>
+
+        <li><code>int ResumeOrGet(HTTPGetCB aCallback, char
+        *aDestFile);</code><br>
+        Resumes a mid-file download if an old destination file is found or
+        starts the download afresh if no destination file is found on the local
+        file system. Uses the URL or server path passed in the constructor.
+        Automatically starts from the end of the incompletely downloaded
+        file.<br>
+        <code>aCallback:</code>the optional download progress callback to be
+        implemented by the client (can be NULL) that is updated once every 1KB
+        (can be tuned in the libxpnet source)<br>
+        <code>aDestFile:</code> the path to the destination file to be
+        downloaded</li>
+
+        <li><code>int Get(HTTPGetCB aCallback, char *aDestFile);</code><br>
+        Performs an HTTP GET of the URL or server path passed in the
+        constructor.<br>
+        <code>aCallback:</code> the optional download progress callback to be
+        implemented by the client (can be NULL) that is updated once every 1KB
+        (can be tuned in the libxpnet source)<br>
+        <code>aDestFile:</code> the path to the destination file to be
+        downloaded</li>
+
+        <li><code>int Get(HTTPGetCB aCallback, char *aDestFile, int
+        aResumePos);</code><br>
+        Resumes a mid-file download from the resume position of the file being
+        downloaded. Uses the URL or server path passed in the constructor.<br>
+        <code>aCallback:</code> the optional download progress callback to be
+        implemented by the client (can be NULL) that is updated once every 1KB
+        (can be tuned in the libxpnet source)<br>
+        <code>aDestFile:</code> the path to the destination file to be
+        downloaded<br>
+        <code>aResumePos:</code> the position in the middle of the file to start
+        downloading: usually the size of the incompletely downloaded
+        file</li>
+
+        <li><code>int Close();</code><br>
+        Closes the HTTP connection to the server specified in the constructor
+        if originally opened.</li>
+
+        <li><code>void SetProxyInfo(char *aProxiedURL, char *aProxyUser, char
+        *aProxyPswd);</code><br>
+        Use this API before performing an HTTP GET. If you need to download
+        through an HTTP proxy server pass the proxy server hostname and port in
+        the constructor and the actual URL to download in this API, i.e., the
+        "proxied URL." In addition, we optionally support a username/password
+        specification for the proxy server. The password is base64 encoded and
+        sent over the network for authentication purposes if specified.<br>
+        <code>aProxiedURL:</code> the URL of the actual file to be downloaded (can
+        be an FTP or HTTP URL)<br>
+        <code>aProxyUser:</code> optional proxy server username<br>
+        <code>aProxyPswd:</code> optional proxy server password that is base64
+        encoded and sent to the proxy server</li>
+
+        <li><code>static int ParseURL(const char *aProto, char *aURL, char
+        **aHost, <br>int *aPort, char **aPath);</code><br>
+        A helper static method to parse an FTP or HTTP URL depending on which
+        protocol this URL is expected to be. It returns the host, port and
+        server path. Useful for use with the protocol implementations'
+        constructors.<br>
+        <code>aProto:</code> the protocol this URL is expected to be in (kHTTPProto
+        and kFTPProto defined in <a href=
+        "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsHTTPConn.cpp#33">
+        nsHTTPConn.cpp</a><br>
+        <code>aURL:</code> the source URL to parse<br>
+        <code>aHost:</code> the resultant hostname parsed from the supplied
+        URL<br>
+        <code>aPort:</code> the resultant port integer parsed from the supplied
+        URL<br>
+        <code>aPath:</code> the resultant server path of the file to download
+        parsed from the supplied URL</li>
+      </ul><br>
+    </li>
+
+    <li>
+      <h4><a name="nsFTPConn" href=
+      "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsFTPConn.h"
+      id="nsFTPConn"></a> <a href=
+      "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsFTPConn.h">
+      nsFTPConn</a></h4>
+
+      <h4>Constructors</h4>
+
+      <ul>
+        <li><code>nsFTPConn(char *aHost);</code><br>
+        Prepare to make an FTP connection to the supplied host.<br>
+        <code>aHost:</code> a DNS-resolvable hostname or an IP address string (only
+        IPv4 currently supported)</li>
+      </ul>
+
+      <ul>
+        <li><code>nsFTPConn(char *aHost, int
+        (*aEventPumpCB)(void));</code><br>
+        Prepare to make an FTP connection to the supplied host. An event pump
+        callback can be supplied to receive notification during the connection
+        phase.<br>
+        <code>aHost:</code> a DNS-resolvable hostname or an IP address string (only
+        IPv4 currently supported)<br>
+        <code>aEventPumpCB:</code> a callback function to be implemented by the
+        client which will be called during the connection phase (optional and
+        can be NULL)</li>
+      </ul>
+
+      <h4>Methods</h4>
+
+      <ul>
+        <li><code>int Open();</code><br>
+        Open a connection to the FTP host on default FTP port 21 using the host
+        specified in the constructor.</li>
+
+        <li><code>int Open(char *aHost);</code><br>
+        Open a connection to the FTP host on default FTP port 21 using the host
+        specified explicitly by the client of this API.<br>
+        <code>aHost:</code> a DNS-resolvable hostname or an IP address string (only
+        IPv4 currently supported)</li>
+
+        <li><code>int ResumeOrGet(char *aSrvPath, char *aLoclPath, int aType, int
+        aOvWrite, <br>FTPGetCB aCBFunc);</code><br>
+        Resumes a mid-file download if an old destination file is found or
+        starts the download afresh if no destination file is found on the local
+        file system. Uses the server path explicitly passed in by the client of
+        this API. Automatically starts from the end of the incompletely
+        downloaded file.<br>
+        <code>aSrvPath:</code> the path to the file on the server
+        (ftp://&lt;aHost&gt;:21/&lt;aPath&gt;)<br>
+        <code>aLoclPath:</code> the path to the destination file on the local
+        filesystem<br>
+        <code>aType:</code> the FTP transfer type, i.e., binary or ASCII<br>
+        <code>aOvWrite:</code> whether or not to overwrite the destination file if
+        it already exists<br>
+        <code>aCBFunc:</code> the optional download progress callback to be
+        implemented by the client (can be NULL) that is updated once every 1KB
+        (can be tuned in the libxpnet source)</li>
+
+        <li><code>int Get(char *aSrvPath, char *aLoclPath, int aType, int
+        aOvWrite,<br>FTPGetCB aCBFunc);</code><br>
+        Performs an FTP retrieve command (RETR) of the server path explicitly
+        passed in by the client of this API.<br>
+        <code>aSrvPath:</code> the path to the file on the server
+        (ftp://&lt;aHost&gt;:21/&lt;aPath&gt;)<br>
+        <code>aLoclPath:</code> the path to the destination file on the local
+        filesystem<br>
+        <code>aType:</code> the FTP transfer type, i.e., binary or ASCII<br>
+        <code>aOvWrite:</code> whether or not to overwrite the destination file if
+        it already exists<br>
+        <code>aCBFunc:</code> the optional download progress callback to be
+        implemented by the client (can be NULL) that is updated once every 1KB
+        (can be tuned in the libxpnet source)</li>
+
+        <li><code>int Get(char *aSrvPath, char *aLoclPath, int aType, int
+        aResumePos,<br>int aOvWrite, FTPGetCB aCBFunc);</code><br>
+        Resumes a mid-file download from the resume position of the file being
+        downloaded. Uses the server path explicitly passed in by the client of
+        this API. Resumption is indicated to the FTP server by sending a
+        restart (REST) command before retrieving the file.<br>
+        <code>aSrvPath:</code> the path to the file on the server
+        (ftp://&lt;aHost&gt;:21/&lt;aPath&gt;<br>
+        <code>aLoclPath:</code> the path to the destination file on the local
+        filesystem<br>
+        <code>aType:</code> the FTP transfer type, i.e., binary or ASCII<br>
+        <code>aResumePos:</code> the position in the middle of the file to start
+        downloading: usually the size of the incompletely downloaded
+        file<br>
+        <code>aOvWrite:</code> whether or not to overwrite the destination file if
+        it already exists<br>
+        <code>aCBFunc:</code> the optional download progress callback to be
+        implemented by the client (can be NULL) that is updated once every 1KB
+        (can be tuned in the libxpnet source)</li>
+
+        <li><code>int Close();</code><br>
+        Closes the FTP connection to the server specified in the constructor if
+        originally opened by sending the QUIT command.</li>
+      </ul><br>
+    </li>
+
+    <li>
+      <h4><a name="nsSocket" id="nsSocket" href=
+      "http://lxr.mozilla.org/seamonkey/source/xpinstall/wizard/libxpnet/src/nsSocket.h">
+      nsSocket</a></h4>
+
+      <h4>Constructors</h4>
+
+      <ul>
+        <li><code>nsSocket(char *aHost, int aPort);</code><br>
+        Prepare to open a socket to the specified host on the specified port
+        using a local ephemeral port.<br>
+        <code>aHost:</code> a DNS-resolvable hostname or an IP address string (only
+        IPv4 currently supported)<br>
+        <code>aPort:</code> a possibly non-default integer port number less than
+        65536
+        </li>
+
+        <li><code>nsSocket(char *aHost, int aPort, int (*aEventPumpCB)(void)
+        );</code><br>
+        Prepare to open a socket to the specified host on the specified port
+        using a local ephemeral port. An event pump callback can be supplied to
+        receive notification during the connection phase.<br>
+        <code>aHost:</code> a DNS-resolvable hostname or an IP address string (only
+        IPv4 currently supported)<br>
+        <code>aPort:</code> a possibly non-default integer port number less than
+        65536<br>
+        <code>aEventPumpCB:</code> a callback function to be implemented by the
+        client which will be called during the connection phase (optional and
+        can be NULL)</li>
+      </ul>
+
+      <h4>Methods</h4>
+
+      <ul>
+        <li><code>int Open();</code><br>
+        Open the socket to the host/port passed in the constructor.</li>
+
+        <li><code>int SrvOpen(); // server alternate to client
+        Open()</code><br>
+        Open a listening socket on an ephemeral port.  Useful for FTP passive
+        mode.</li>
+
+        <li><code>int SrvAccept(); // must be called after
+        SrvOpen()</code><br>
+        Accept a client connection on the listening socket.</li>
+
+        <li><code>int Send(unsigned char *aBuf, int *aBufSize);</code><br>
+        Send a buffer of the specified size to the host/port open already.
+        Requires <code>Open()</code> to have been called first.<br>
+        <code>aBuf:</code> the buffer to send<br>
+        <code>aBufSize:</code> the size of the buffer to send (on return indicates
+        how much of the buffer was sent)</li>
+
+        <li><code>int Recv(unsigned char *aBuf, int *aBufSize);</code><br>
+        Receive a buffer of an expected size: keep flushing the socket till the
+        buffer is filled.<br>
+        <code>aBuf:</code> the buffer to stuff with the received data<br>
+        <code>aBufSize:</code> the expected number of bytes to receive (on return
+        the actual number of bytes received)</li>
+
+        <li><code>int Recv(unsigned char *aBuf, int *aBufSize, int
+        aTimeoutThresholdUsecs);</code><br>
+        Receive a buffer of an expected size: keep flushing the socket till the
+        buffer is filled. Accepts a configurable timeout threshold in
+        microseconds passed to <code>select()</code> when in a non-blocking
+        loop.<br>
+        <code>aBuf:</code> the buffer to stuff with the received data<br>
+        <code>aBufSize:</code> the expected number of bytes to receive (on return
+        the actual number of bytes received)<br>
+        <code>aTimeoutThresholdUsecs:</code> the total timeout specified in
+        microseconds</li>
+
+        <li><code>int Close();</code><br>
+        Close this socket by closing the platform-native descriptor.</li>
+
+        <li><code>int GetHostPortString(char **aHostPort);</code><br>
+        Returns the host-port string representation of the IP address and port
+        of the listening socket descriptor, i.e.,
+        "&lt;AA1&gt;,&lt;AA2&gt;,&lt;AA3&gt;,&lt;AA4&gt;,&lt;PP1&gt;,&lt;PP2&gt;"
+        where &lt;AAx&gt; is the string value of integer in the xth position of
+        an IP address and &lt;PPx&gt; is the high 8 bits and low 8 bits of the
+        port.<br>
+        <code>aHostPort:</code> the formatted host-port string on return</li>
+
+        <li><code>static float CalcRate(struct timeval *aPre, struct timeval
+        *aPost, int aBytes);</code><br>
+        Helper utility to calculate the download rate. Can be used by clients
+        of the FTP and HTTP implementations in their callbacks.<br>
+        <code>aPre:</code> time before download<br>
+        <code>aPost:</code> time now or time when download completed<br>
+        <code>aBytes:</code> number of bytes downloaded</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3><a name="future_work" id="future_work">VI. Future Work</a></h3>
+
+  <p>At the time of this writing libxpnet is being built across linux, solaris,
+  mac, and windows.  It is in production code but is still young.  The primary
+  goal of future work should be to test against various flavors of servers and
+  adjust the client accordingly fixing defects and accommodating as many
+  servers as possible.  Porting this code to other unix platforms should be one
+  of the secondary goals but one that we should consider especially for those
+  unices that have POSIX-compliant APIs and support berkeley sockets.  The
+  porting to Mac OS X would be part of the unix porting effort.  A peer to the
+  goal of  porting this library more widely is to improve the HTTP
+  implementation to support a single open connection for multiple HTTP
+  requests.  The FTP implementation was designed as such and currently is used
+  in production code in this way.  Bringing the two protocol implementations in
+  parity would help make the API set easier to use for clients.</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 28,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/xpnet/index.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,202 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+<title>Windows embedders compiling the JS Engine with MSVC must use linker flag /OPT:NOICF</title>
+
+<style>
+body {background-color:#FFFFFF;}
+.important {font-size:120%; font-weight:bold; color:red; position:relative; text-align:center;}
+</style>
+
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel nomenu">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mBody" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+
+
+
+<div class="important">Windows embedders compiling the JS Engine with MSVC must use linker flag /OPT:NOICF&nbsp;&nbsp;!!!</div>
+<center>See: <a href="http://bugzilla.mozilla.org/show_bug.cgi?id=151066">http://bugzilla.mozilla.org/show_bug.cgi?id=151066</a></center>
+
+<br>
+<br> 
+As John Morisson noted in <a href="http://bugzilla.mozilla.org/show_bug.cgi?id=151066#c29">comment 29</a> of that bug, 
+linker flag /OPT:NOICF disables "perform identical COMDAT folding".
+<br>
+
+Failure to use this linker flag when compiling with MSVC will result in spurious errors such as: 
+<b>"ReferenceError: x is not defined"</b><br><br>
+
+
+Here are three comments from the above bug:<br>
+
+<hr>
+  <div >
+        <br>
+        <i>------- Additional Comment
+        <a>#7</a> From 
+        <a href="mailto:jrgmorrison@aol.com">John Morrison</a>
+        2002-06-13 17:00 
+        -------
+        </i>
+
+<pre>This would appear to be an optimizer bug (or abuse-of-optimizer). Rev 3.105
+of jsinterp.c collapsed js_GetArgument and js_GetLocalVariable to simply
+do 'return JS_TRUE;'. Both are then used as function pointers in jsparse.c.
+This seems to get mangled somehow.
+
+With rev 3.105, at the crash in Variables, |currentGetter| and |currentSetter|
+have the same value and both (according to the msvc debugger) point to 
+js_GetLocalVariable. |fun| is null.
+
+But when I stuck a printf into each of js_GetArgument and js_GetLocalVariable,
+the crash did not happen, currentGetter and currentSetter had different values,
+and fun (presumably) points to a valid JSFunction.</pre>
+    </div>
+
+  <div >
+        <br>
+        <i>------- Additional Comment
+        <a>#8</a> From 
+        <a href="mailto:brendan@mozilla.org">Brendan Eich</a>
+        2002-06-17 14:11 
+        -------
+        </i>
+
+        
+
+<pre>Someone file a bug with M$.  They're in violation of ISO C.
+
+/be</pre>
+    </div>
+
+
+  <div >
+        <br>
+        <i>------- Additional Comment
+        <a>#29</a> From 
+        <a href="mailto:jrgmorrison@aol.com">John Morrison</a>
+
+        2002-07-12 01:41 
+        -------
+        </i>
+        
+
+<pre>Sorry to say, but rpott's patch doesn't quite fix the problem. (The insertion
+of the '/Od /Og...' flags has to move below '$(CFLAGS)' since CFLAGS also adds
+'/O1' in an optimized build). However, '-Gy' is set by OS_CFLAGS in
+config/WIN32 and winds up as part of CFLAGS. The problem is that while setting
+'/Od' will unset '/O1', it doesn't appear to unset '-Gy' when set
+explicity. So, without a way to munge the CFLAGS (or set it privately for
+mozilla/js), this won't work for nmake builds.
+
+But, I think we can fix this by setting some linker flags, and that it is
+possibly the right way to fix this. Here's what I (unfortunately only vaguely)
+understand.
+
+Enabling '/Gy' allows &quot;the compiler to package individual functions in the
+form of packaged functions (COMDATs).&quot;  Linker option /OPT:REF will &quot;exclude
+unreferenced packaged functions&quot; and will turn on /OPT:ICF. <font color="red">/OPT:ICF will
+&quot;perform identical COMDAT folding&quot;, and can be disabled with /OPT:NOICF.</font>
+
+So, the fix is add /OPT:REF /OPT:NOICF to the linker flags for optimized
+builds on win32 (for both nmake and gmake builds). I'll attach a diff
+comparing the /VERBOSE linker output for the current default build, and a
+second build with those options enabled. You can see that the only difference
+is the elimation of the ICF's, and that we were only saving 79 bytes anyways
+(some of the savings ill-gotten as well). Note that js_GetArgument and 
+js_GetLocalVariable were part of a group of five functions that were being
+folded together (all of which just return true in the function body).
+
+[What I don't understand is that in the current nmake build system, I don't
+see us setting /OPT:REF anywherer, but it seems to be taking effect
+nonetheless (based on a comparison of the /VERBOSE output from the linker from
+a run with those explictly enabled, and a current default build).]
+
+Maybe pschwartau can run the js regression tests in an optimized gmake (or
+nmake) build with jsinterp.c reverted to rev 1.105 (the crashing rev) and see
+if this patch produces any problems.
+
+((p.s., the &quot;Discarded&quot; section, visible at the top of the diff, notes dead
+code that is thrown out. Or, at least, if I add the function below to
+jsinterp.c, I get these lines added in the /VERBOSE linker output:
+
+  Discarded &quot;`string'&quot; (??_C@_0CB@NOEM@unique?5but?5uncalled?5function@) \
+            from jsinterp.obj
+  Discarded _js_JunkFunction from jsinterp.obj
+
++ JSBool
++ js_JunkFunction(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
++ {
++     printf(&quot;unique but uncalled function&quot;);
++     return JS_TRUE;
++ }
+
+However, I'm not clear why, e.g., js_str_escape is discarded, but I didn't
+follow all of the trail of defines, etc., to see if it is indeed not
+ultimately used. But, to be clear, we were already discarding js_str_escape,
+etc., even without this proposed linker change, so adding these options is
+not changing that situation.))
+
+</pre>
+    </div>
+
+
+
+<hr class="hide">
+<hr class="hide">
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified November 17,  2003</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/js/spidermonkey/release-notes/NOICF.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,588 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <META NAME="Author" CONTENT="Tague Griffith">
+   <META NAME="Description" CONTENT="description of intl requirements for date and time formatting API">
+   <META NAME="KeyWords" CONTENT="date, intl">
+   <TITLE>Seamonkey Locale Model and Locale Functions</TITLE>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<CENTER><B><FONT SIZE=+3>locale model</FONT></B>
+<BR><B>by Tague Griffith &lt;<A HREF="mailto: tague@netscape.com">tague@netscape.com</A>></B>
+<BR><B>Last Modified:&nbsp;</B><SCRIPT>document.write(document.lastModified);</SCRIPT>
+</CENTER>
+
+<H3>1.0 Summary</H3>
+
+
+<BLOCKQUOTE>This document details both the <B>locale model</B> and the
+<B>locale functions</B> that will be implemented for the mozilla.org. A
+<B>locale model</B> is a strategy and a set of usage requirements for handling
+language and location preferences, while <B>locale functions </B>are a
+set of APIs provided to programmers to manipulate objects representing
+Locale preferences.&nbsp; The goal of the locale model is to enable developers
+to correctly handle the expectations of users as they view web pages in
+many different languages, which may even be different from the languages
+installed on their computer.</BLOCKQUOTE>
+
+<H3>2.0 Potential User Scenarios</H3>
+
+
+<BLOCKQUOTE>The following sections detail potential user scenarios and
+how differences in locale and language between the users machine and the
+content on the web should interact. This is not an exhaustive list, this
+doesn't illustrate all of the ways a user might want a browser&nbsp; to
+behave with regards to locale preferences, but it does try to capture
+the most important usage scenarios.&nbsp; The purpose of this list is to
+highlight the expectation of a user in pa
+
+<P>Since this list is not exhaustive, please contribute additional usage
+scenarios that illustrate user expectations that need to be supported by
+Mozilla..
+<H4>2.1 Just Japanese</H4>
+
+
+<BLOCKQUOTE>The simplest user scenario is a user using a single language,
+the user is looking at web pages in their native language, on a localized
+version of communicator with a matching localized version of the operating
+system.&nbsp; Although, this scenario covers the majority of users, we
+feel that it is important to point out that browsing in English in addition
+to a user's native language is also extremely common (common enough to
+be a high priority item).&nbsp; In this case, we have a Japanese user with
+a Japanese localized version of Mozilla running on a Japanese version of
+the operating system, only browsing Japanese content from Japan. This user
+wants all of his menus and page content in Japanese, following Japanese
+locale conventions.</BLOCKQUOTE>
+
+<H4>2.2 French Railways International</H4>
+
+
+<BLOCKQUOTE>An American user running an English localized version of Mozilla
+is viewing a French web page that is running Javascript. This particular
+page is from the French Ministry of Public Transportation and provides
+internet sales of French rail passes. The Javascript on this page does
+date and currency formatting. The user is planning a trip to France and
+wants to purchase a rail pass. The user can speak a bit of functional French,
+but is by no means fluent. Naturally, the user would prefer that all of
+the browser chrome remain in English, but since French Railways only provides
+a French version of their page, the user has no choice but to view the
+content in French. Since the page in particular is dealing with both the
+French language and purchases in France, the correct Locale choice for
+the entire page including the Javascript is French.</BLOCKQUOTE>
+
+<H4>2.3 Chinese Stock Trading Page</H4>
+
+
+<BLOCKQUOTE>A Chinese speaking user living in the Bay Area is accessing
+a stock brokerage homepage. The stock brokerage recognizing the potential
+market for non-English speaking customers, has provided several different
+translations of their trading page. This page uses Javascript to calculate
+both dates and do some currency formatting. Since the user is a native
+Chinese speaker, they would prefer to work in Chinese as much as possible.
+Their version of Mozilla&nbsp; is localized for Chinese.
+
+<P>In this scenario, it the appropriate behavior for Navigator is to keep
+the chrome in Chinese, but all the content, including the Javascript should
+be Chinese with one exception - the monetary formatting. Because this page
+is for a US company, all of the transactions are in US dollars. The Javascript
+should continue to format the dollar amounts using the standard US formatting
+for currency.</BLOCKQUOTE>
+
+<H4>2.4 Der Deutche Wired</H4>
+
+
+<BLOCKQUOTE>This scenario involves the Web site for a German localized
+version of Wired. Wired being the slick, technological magazine that it
+is has already implemented XUI interfaces for its website. For this web
+site, the distinction between chrome and content doesn't really exist.
+In this case, since the chrome is part of the presentation of the web site.
+In this case, the user wants the chrome to honor the web site designers
+wishes. In this case, the chrome has german menu and buttons pointing to
+various parts of the web site.</BLOCKQUOTE>
+
+<H4>2.5 European Internet Cafe</H4>
+
+
+<BLOCKQUOTE>This scenario involves the computers at a European cafe.
+Because of the proximity of people speaking a variety of different languages
+in Europe, businesses often provide access to multiple languages.
+<BR>At a public "terminal" office at the UN, or the EU or a multinational
+corporation, or in a European Cybercafe, or at some sort of public kiosk
+(e.g., train station) there may be systems that are available for use in
+several languages (like most ATMs in this area) where the browser and web
+applications need to dynamically switch the UI for different languages.
+The user should be able to return to the home page and select the language
+as you do for the first screen on ATMs.</BLOCKQUOTE>
+</BLOCKQUOTE>
+
+<H3>3.0 General Requirements</H3>
+
+
+<BLOCKQUOTE>The Mozilla Locale model is intended to provide programmers
+with a strategy for handling locale preferences in a way that supports
+our multilingual model of web browsing.&nbsp; From the user-scenarios above,
+we can outline the following principles :-</BLOCKQUOTE>
+
+<UL>
+<UL>
+<P><LI>
+the language of the page should usually determine the locale of the scripts
+and formatting applied to elements in the page
+
+<P><LI>
+it is necessary to allow the page author to select the locale for scripts
+and formatting for many instances
+
+<P><LI>
+when the content provider is providing XUI content, we should honor their
+locale specifications since this is part of the presentation of their page
+
+<P><LI>
+the user must be able to select a default application locale, to control
+the default UI selections
+</UL>
+Additionally, we have the following engineering requirements :-
+<UL>
+<P><LI>
+Extensible Locale Support - the locale system needs to provide for "drop-in"
+locale support which doesn't require modifying the base binary to add additional
+locale support
+
+<P><LI>
+Extensible Locale Categories&nbsp; - the locale system needs to provide
+for extending the data stored in a locale without requiring modifications
+to the base binary
+
+<P><LI>
+Multiple Active Locales - the locale model needs to provide for multiple
+locales being applied to different windows in the system as well as different
+layers of the "application hierarchy"
+
+<P><LI>
+Interoberability = the locale model needs to interoperate with both Java
+and ECMAScript locale proposal in addition to the underlying operating
+system
+
+<P><LI>
+Locale model needs to support dynamic language switching
+
+<P><LI>
+good software design principles
+
+<UL>
+<LI>
+lightweight
+
+<LI>
+object oriented
+
+<LI>
+easy to use for other developers
+</UL>
+
+<P><LI>
+locale system needs to be available as a shared library
+</UL>
+</UL>
+
+<H3>4.0 Terminology</H3>
+
+
+<BLOCKQUOTE>
+<H4>4.1 Locale</H4>
+
+
+<BLOCKQUOTE>Locale has two different meanings. In the most general case,
+a locale is a set of user preferences that are tied to the language and
+location of the particular user. The preferences captured by a locale are
+usually those things that change across languages and regions but aren't
+necessary changed by the user. Common examples are date and currency formatting.
+A locale can also be a specific instance of this collection of preferences.
+Usually a locale is named by a combination of language and location, such
+as en-US or en-GB representing the American and British variants of English
+respectively.</BLOCKQUOTE>
+
+<H4>4.2 Locale Category</H4>
+
+
+<BLOCKQUOTE>A locale is a collection of different properties. A locale
+category is a particular property that can be extracted from a locale.
+Traditionally the properties extracted from a locale have been called categories,
+so we continue this usage.</BLOCKQUOTE>
+
+<H4>4.3 Locale Model</H4>
+
+
+<BLOCKQUOTE>A locale model is a usage strategy/guide for a product. A locale
+model is an abstract design about what entities in a piece of software
+need to store and maintain locale information. In particular, it addresses
+where locale is inherited and where it is explicitly stated.</BLOCKQUOTE>
+
+<H4>4.4 Document Tree</H4>
+
+
+<BLOCKQUOTE>A model of the content of a page or document. A document tree
+breaks down the elements of a document into a tree like structure. This
+is taken from XML where the structure than an XML document represents is
+required to take the form of a tree with a single root. This concept can
+also be applied to HTML and XUI documents.</BLOCKQUOTE>
+
+<H4>4.5 XML</H4>
+
+
+<BLOCKQUOTE>XML is an abbreviation for e<B>X</B>tensible <B>M</B>arkup
+<B>L</B>anguage. XML is a general purpose markup language used for specifying
+the structure of a document. XML is a W3C standard which can be found <A HREF="http://www.w3c.org/xml">here</A>.
+For our usage, when we talk about XML, we are talking about documents or
+data - specifically we are not talking about the use of XML to represent
+cross platform UI resources (see XUI)</BLOCKQUOTE>
+
+<H4>4.6 HTML</H4>
+
+
+<BLOCKQUOTE><B>H</B>yper<B>T</B>ext <B>M</B>arkup <B>L</B>anguage. HTML
+is the markup language used in the world wide web for authoring documents.
+HTML is also a W3C standard which can be found <A HREF="http://www.w3c.org/MarkUp">here.</A>
+For our purposes, HTML refers specifically to user data and content, not
+cross platform UI resources implemented as markup.</BLOCKQUOTE>
+
+<H4>4.7 XUI</H4>
+
+
+<BLOCKQUOTE>XUI (pronounced "Zooey")&nbsp; is a specialization of either
+HTML or XML used in Mozilla to describe resources that can be rendered
+by the XPFE using the ngLayout layout engine.</BLOCKQUOTE>
+
+<H4>4.8 Override</H4>
+
+
+<BLOCKQUOTE>By override, we mean changing the entire locale. An example
+of this would be changing the locale from US English (en-US) to French
+(fr-FR). See also customization.</BLOCKQUOTE>
+
+<H4>4.9 Customization</H4>
+
+
+<BLOCKQUOTE>Customization refers to changing a category of the locale.
+An example of customizing would be using European (day, month, year) date
+formats with the US English (en-US) locale. See also Override.</BLOCKQUOTE>
+</BLOCKQUOTE>
+
+<H3>5.0 Locale Model</H3>
+
+
+<BLOCKQUOTE>Mozilla will be using a percolation model of locale support
+connected to a document tree model. Each element in a document tree will
+inherit it's initial local settings from it's parent; however, these locale
+settings can be overridden by elements like &lt;xml:lang> or &lt;html:lang>
+found in the document source code. At the top level, the application will
+inherit it's locale from the system. The application will be inherited
+element for the top of a document tree in absence of any particular document
+source code overriding that inheritance. There is an assumption in the
+locale model that the the presence of XUI, the document content tree is
+a subset of the XUI UI tree.</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<H4>5.1 Percolation Model</H4>
+
+
+<BLOCKQUOTE>Percolation as the name implies requires that the locale <I>percolate
+down</I> from the topmost (or least specific element) in a document to
+the most specific element in a document. In this percolation model, each
+element will initially inherit the default locale settings from it's parent.
+In the absence of an override such as an xml:lang or HTML:LANG tag, the
+element will provide this locale to any children which it creates. HTML
+4.0 provides for the lang attribute to be attached to any element in an
+HTML document with a few exceptions (see <A HREF="http://www.w3.org/TR/REC-html40/index/attributes.html">Index
+of Attributes</A>.)&nbsp; The locale library will provide services which
+map a particular LANG attribute/tag to a Locale object.
+
+<P>In this model, we treat each window, at least conceptually, as a single
+document.&nbsp; What is traditionally the chrome is at the root of the
+document tree, and what is traditionally been the content is treated as
+a frame an "&uuml;ber-document."&nbsp; As XUI and downloadable chrome become
+more commonplace, there is no reason to&nbsp; make a distinction between
+the two.&nbsp; Since the chrome is rooted at the top of the document tree,
+the XUI selected is determined from application preferences [when the XUI
+is resident on the disk] or accept language [when XUI is being fetched
+from another source].&nbsp; After going through the preference/accept-language
+process, the locale is known by which preference/accept-language was able
+to be successfully loaded.&nbsp; Additionally, there is a requirement/convention
+that XUI documents need to be labeled with both language and character
+set information.</BLOCKQUOTE>
+
+<H4>5.2 Overriding</H4>
+
+
+<BLOCKQUOTE>In the locale model that we are proposing, overriding involves
+overriding the entire locale, not customizing it&nbsp; When the HTML parser
+encounters a lang tag applied to an element, the new locale for that element
+becomes whatever is specified in the lang attribute. For instance if the
+parser encounters the HTML &lt;Q lang="de-DE">Hallo&lt;/Q> hat er gesagt,
+then the element contained within the &lt;Q> picks up German (as spoken
+in Germany) as a locale.</BLOCKQUOTE>
+
+<H4>5.3 Customization</H4>
+
+
+<BLOCKQUOTE>For Mozilla, customization is not going to be allowed on general
+web documents. Customization will only be allowed on the default locale
+(default application UI locale). xml:lang and HTML:LANG will always map
+to standard locales.</BLOCKQUOTE>
+
+<H4>5.4 Application Locale</H4>
+
+
+<BLOCKQUOTE>The application locale will be determined from the default
+<I>application</I> locale as provided by the underlying operating system.
+The default UI language for this locale is determined from a user's accept
+language setting if multiple localizations are installed or from the available
+localization if only a single localization is installed. The application
+is the only special case.</BLOCKQUOTE>
+
+<H4>5.4 Document Locale</H4>
+
+
+<BLOCKQUOTE>Well-written HTML documents should explicitly tag themselves
+with the appropriate language. In the absence of a language specification
+in the page, the page will execute in the locale of the parent.</BLOCKQUOTE>
+
+<H4>5.5 XUI Locale</H4>
+
+
+<BLOCKQUOTE>XUI documents/UI specification resources are expected to contain
+a language specifier. The locale of the XUI document is selected by that
+specifier. When multiple XUI documents are available from a server, the
+browser should honor the accept-language preferences of the user and attempt
+to download the matching XUI interface in the order of the accept-language
+preferences.&nbsp; Since part of the XUI interfaces may be implemented
+in Javascript, XUI Javascript may need to be treated as a special kind
+of Javascript, written to get locale information from the locale subsystems.</BLOCKQUOTE>
+</BLOCKQUOTE>
+
+<H3>6.0 Locale Interfaces</H3>
+
+
+<BLOCKQUOTE>The following sections outline the details of the nsLocale
+object and the interfaces it provides.</BLOCKQUOTE>
+
+<BLOCKQUOTE>
+<H4>6.1 Locale Object</H4>
+
+
+<BLOCKQUOTE>A Locale is a collection of various preferences that are related
+to a customs and conventions of a particular language and region. Locale
+preferences are usually related to categories like date and time formatting,
+sort order, decimal separators, etc. In the API we are proposing for Mozilla,
+there is a Locale object which is the token developers use to get at this
+set of preferences.</BLOCKQUOTE>
+
+<H4>6.2 Locale Object Interface</H4>
+
+
+<BLOCKQUOTE>The following class is taken from nsLocale.h.&nbsp; We considered
+using XPCOM for implementing the&nbsp; nsLocale interface, but decided
+to go with a standard C++ class.&nbsp; The XPCOM interface felt a bit awkward
+for use as means of specifying a Locale.&nbsp; Secondly, the Locale system
+is better represented as part of the base system, not a replaceable component
+module.&nbsp; Moving away from XPCOM to C++ classes will also make the
+interface lighter and simpler to use.&nbsp; Even though the interface is
+not XPCOM, it will be implemented as a shared object.
+<BLOCKQUOTE><TT>class nsLocale {</TT>
+
+<P><TT>&nbsp;/* constructory methods */</TT>
+<BR><TT>&nbsp;nsLocale(void);</TT>
+<BR><TT>&nbsp;nsLocale(const nsString&amp; localeString);</TT>
+<BR><TT>&nbsp;nsLocale(const nsString&amp; countryCode, const nsString&amp;
+languageCode, const nsString&amp; variant);</TT>
+<BR><TT>&nbsp;~nsLocale();</TT>
+
+<P><TT>&nbsp;void GetLanguage(nsString&amp; language);</TT>
+<BR><TT>&nbsp;void GetCountry(nsString&amp; country);</TT>
+<BR><TT>&nbsp;void GetVariant(nsString&amp; variant);</TT>
+
+<P><TT>&nbsp;void GetProperty(const nsString&amp; key, nsString&amp; value);</TT>
+
+<P><TT>&nbsp;PRUint32 GetWindowsLCID(void);</TT>
+<BR><TT>&nbsp;PRUint32 GetMacintoshScriptCode(void);</TT>
+<BR><TT>&nbsp;void GetPosixLocaleID(char* aPosixLocaleID);</TT>
+
+<P><TT>&nbsp;static nsLocale* GetSystemDefault(void);</TT>
+<BR><TT>&nbsp;static nsLocale* GetApplicationDefault(void);</TT>
+<BR><TT>&nbsp;static nsLocale* SetApplicationDefault(void);</TT>
+
+<P><TT>&nbsp;static nsLocale* GetLocaleFromAcceptLangauge(const nsString&amp;
+acceptLanguage);</TT>
+<BR><TT>&nbsp;static nsLocale* GetLocaleFromXMLLangTag(const nsString&amp;
+langTag);</TT>
+<BR><TT>&nbsp;static nsLocale* GetLocaleFromHTMLLangAttribute(const nsString&amp;
+langAtrribue);</TT>
+
+<P><TT>};</TT></BLOCKQUOTE>
+
+<P>
+Locales are named using a string of the form &lt;language>-&lt;country>-
+&lt;variant>. This form is described according to <A HREF="http://www.faqs.org/rfcs/rfc1766.html">RFC1766</A>.
+&lt;Country> and &lt;Language> are derived from the two-letter ISO standard
+country and language codes. &lt;VARIANT> is a two-character (from the US-ASCII
+codeset) freeform field. For example, "en-US" would be US English, whereas
+"en-GB" would correspond to British English.</BLOCKQUOTE>
+
+<H4>6.3 Locale Property Keys</H4>
+
+
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<P><LI>
+<B>ILocale_UserDisplayLanguage</B> - returns a user-displayable string
+representing the language of the Locale
+
+<P><LI>
+<B>ILocale_PlainOpenQuote </B>- returns the character (as a string) for
+the Plain Open Quote (see &lt;Q>)
+
+<P><LI>
+<B>ILocale_PlainCloseQuote</B> - returns the character (as a string) for
+the Plain Closed Quote (see &lt;/Q>)
+
+<P><LI>
+<B>ILocale_SmartOpenQuote</B> - similar to <B>ILocale_PlainOpenQuote </B>only
+with smart quotes
+
+<P><LI>
+<B>ILocale_SmartCloseQuote</B> - similar to <B>ILocale_PlainCloseQuote</B>
+only with smart quotes
+
+<P><LI>
+<B>ILocale_AcceptLanguage</B> - provides the appropriate Accept-Language
+string for this particular locale
+
+<P><LI>
+<B>ILocale_XMLLangValue </B>- return the appropriate xml::lang value for
+this locale
+
+<P><LI>
+<B>ILocale_HTMLLangValue</B> - returns the appropriate HTML 4.0 lang attribute
+for this locale
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+
+<H3>7.0 Reference Specs</H3>
+
+
+<BLOCKQUOTE><A HREF="http://ds.internic.net/rfc/rfc1766.txt">[RFC1766]</A>
+Tags for the Identification of Languges
+<BR><A HREF="http://www.w3.org/TR/REC-html40/">[HTML4.0]</A> Specification
+of HTML 4.0</BLOCKQUOTE>
+
+<H3>8.0 Relevant Design Docs</H3>
+
+
+<BLOCKQUOTE><A HREF="string-resources.html">[POEL1]</A> String Resources</BLOCKQUOTE>
+
+<H3>9.0 Historical Interest</H3>
+
+
+<BLOCKQUOTE><A HREF="xena-locale-model.html">[POEL2]</A> Xena Locale Model</BLOCKQUOTE>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March  3,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/intl/locale-model.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

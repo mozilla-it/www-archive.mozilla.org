@@ -1,0 +1,727 @@
+<HTML>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!--This file created 2/4/99 8:36 AM by Claris Home Page version 3.0 30 Day Trial-->
+<HEAD>
+   <TITLE>Application Core</TITLE>
+   <META NAME=GENERATOR CONTENT="Claris Home Page 3.0 30 Day Trial">
+   <X-CLARIS-WINDOW TOP=44 BOTTOM=730 LEFT=4 RIGHT=534>
+   <X-CLARIS-TAGVIEW MODE=minimal>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1"><META NAME="Author" CONTENT="Rod Spears">
+</HEAD>
+<BODY>
+<H1>Application Services / Application Core</H1>
+
+<P>&nbsp;</P>
+
+<H2>Table of Contents</H2>
+
+<UL>
+   <LI><A HREF="#Overview">Overview</A></LI>
+   
+   <LI><A HREF="#What is an AppCore">What is an AppCore?</A></LI>
+   
+   <LI><A HREF="#How does it actually work">How does it actually
+   work?</A></LI>
+   
+   <LI><A HREF="#How do I create an Application Core">How do I create
+   an Application Core?</A>
+   
+   <UL>
+      <LI><A HREF="#Registering the JS object into the External name space">Registering
+      the JS object into the External name space</A></LI>
+      
+      <LI><A HREF="#The External Objects">The External Objects
+      DLL</A></LI>
+      
+      <LI><A HREF="#How does this all fit">How does this all fit
+      together?</A></LI>
+   </UL>
+   </LI>
+   
+   <LI><A HREF="#Conclusion">Conclusion</A></LI>
+</UL>
+
+<H2>
+
+<HR>
+
+<A NAME=Overview></A>Overview</H2>
+
+<P><BR>
+XUL is an XML based grammar for specifying the&nbsp; static GUI. An
+Application Service is the code that both has access to the GUI
+elements and the code for doing the specified work. The definition of
+an cross platform (XP) application is a small kernel that is able to
+load the static definition of the UI, the XUL or multiple XUL files,
+and the Application Service(s), the code for processing the XUL. The
+AppRunner is available today for this purpose.</P>
+
+<P><B><I>NOTE</I></B>: There is already a notion of a Service Manager
+in the Mozilla code base. So there is no confusion, throughout the
+rest of this document the term "Application Core" or AppCore will be
+used in the place of Application Service.</P>
+
+<P>As stated earlier, the AppRunner has no application specific
+knowledge, it merely loads a XUL file and one of associated AppCores,
+then "hooks" them together and an application specific instance is
+born.<BR>
+&nbsp;</P>
+
+<H3><A NAME="What is an AppCore"></A>What is an AppCore?</H3>
+
+<P>An AppCore is one more objects that implements a set of
+functionality required for a specific type of application. For
+example, the mail application would conceivably have an
+<I>MailAppCore</I> that is capable of grabbing the data out of the UI
+and sending a message. The AppCore may be written entirely in
+JavaScript (JS), entirely in C++, or combination of the two (see
+Figure #1).<BR>
+&nbsp;<BR>
+&nbsp;<BR>
+</P>
+
+<CENTER><IMG SRC="figure1.gif" WIDTH=358 HEIGHT=293 ALIGN=bottom><BR>
+Figure #1</CENTER>
+
+<P><BR>
+&nbsp;</P>
+
+<P><BR>
+</P>
+
+<P>An AppCore is divided into two distinct pieces, the "glue" code
+and the application specific code. The "glue" code has knowledge of
+the UI and sits between the static UI elements and the application
+specific code. The application specific code's role is to know a
+little as possible about the GUI and only provide core application
+functionality. Figure #1 shows a line from the XUL to the JavaScript
+and then from the JS to the App. Specific Code (ASC). This path
+illustrates a user manipulating a UI element which causes a UI event
+to be fired. The event is processed in the JavaScript and then a call
+is made into the application specific code.</P>
+
+<P>The line between the XUL and the ASC illustrates direct calls from
+the GUI into the ASC and notifications from the ASC to the UI (this
+later path to UI from the ASC is discouraged).</P>
+
+<P>In the Mail example, consider a very simple UI. Text fields for
+the address, subject and the body of the message; and a single "Send"
+button for sending the contents of the UI to the specified address.
+The JS code for the XUL would contain two functions, a
+<I>MailSendMsg</I> function and a <I>MailSent</I> function. The user
+would fill in the message fields and then press "Send." The Send
+button invokes a XULCommand that executes the <I>MailSendMsg</I>
+function in the JS. The JS <I>MailSendMsg</I> function grabs the data
+out of the UI and makes a call into the ASC function called
+<I>SendMail</I>.</P>
+
+<P>When the ASC's <I>SendMail</I> completes, it makes a JS call to
+invoke the <I>MailSent</I> function. The <I>MailSent</I> function can
+then do any type of notification to the GUI (i.e. like clearing the
+form).<BR>
+&nbsp;<BR>
+&nbsp;<BR>
+</P>
+
+<CENTER><IMG SRC="figure2.gif" WIDTH=657 HEIGHT=415 ALIGN=bottom><BR>
+Figure #2</CENTER>
+
+<P><BR>
+&nbsp;</P>
+
+<H3><A NAME="How does it actually work"></A>How does it actually
+work?</H3>
+
+<P>Let's continue with the MAil example.</P>
+
+<P>The Mail example loads an initial XUL file <I>MailAppShell.xml</I>
+at start up. This file defines three IFRAMEs: the toolbar area, the
+"content" area, and the status bar area. In this example, the content
+area will contain an HTML file defining a form for entering in a Mail
+message (see figure #3)<BR>
+&nbsp;</P>
+
+<P><BR>
+</P>
+
+<CENTER><IMG SRC="figure5.gif" WIDTH=373 HEIGHT=292 ALIGN=bottom><BR>
+Figure #3</CENTER>
+
+<P>Next, we define the toolbar. The "Send" button defines a
+XULCommand to be executed when the user presses it. The XULCommands
+are also defined in the XUL files and they describe the JavaScript
+string they are to execute.<BR>
+&nbsp; <TABLE WIDTH="100%">
+   <TR>
+      <TD>
+         <P><IMG SRC="figure4.gif" WIDTH=311 HEIGHT=44 ALIGN=bottom></P>
+      </TD>
+      <TD>
+         <P><FONT COLOR="#000099">&nbsp;
+         <TT>&lt;xul:toolbar&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp; &lt;html:button
+         cmd="</TT></FONT><FONT COLOR="#CC0000"><TT>nsCmd:MailSendMsg</TT></FONT><FONT COLOR="#000099"><TT>"
+         style="background-color:rgb(192,192,192);"&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;
+         &lt;html:img
+         src="resource:/res/toolbar/Mail_SendMsg.gif"/&gt;&lt;html:BR/&gt;Send</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;
+         &lt;/html:button&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp; .</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp; .</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp; .</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&lt;/xul:toolbar&gt;</TT></FONT></P>
+         
+         <P><FONT COLOR="#000099"><TT>&nbsp;
+         &lt;xul:commands&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; &lt;xul:command
+         name="</TT></FONT><FONT COLOR="#CC0000"><TT>nsCmd:MailSendMsg</TT></FONT><FONT COLOR="#000099"><TT>"
+         onCommand="</TT></FONT><FONT COLOR="#CC0000"><TT>SendMailMessage(</TT></FONT><FONT COLOR="#990000"><TT>)</TT></FONT><FONT COLOR="#000099"><TT>"/&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+         .</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+         .</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+         .</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;
+         &lt;/xul:commands&gt;</TT></FONT><BR>
+         &nbsp;</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>The XULCommand
+<FONT COLOR="#CC0000"><TT>nsCmd:MailSendMsg</TT></FONT><FONT COLOR="#000000">
+defines a JavaScript string that is to be executed when the button is
+pressed. This JS function will ask the AppCoreManager for a
+MailAppCore by a unique name. If the MailAppCore doesn't exist yet,
+it will create one. Then it gets the data out of the form and invokes
+the <I>SendMail</I> function on the MailAppCore object.</FONT></P>
+
+<P><FONT COLOR="#000099"><TT>function
+SendMailMessage()</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; var appCore =
+AppCoresManager.Find("MailCore");</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; if (appCore==null) {</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; appCore = new
+MailCore();</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; if (appCore != null)
+{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+appCore.Init("MailCore");</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;
+appCore.MailCompleteCallback("MailSent()");</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;
+appCore.SetWindow(window);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;
+appCore.SendMail(document.forms&#91;0&#93;.elements&#91;1&#93;.value,
+document.forms&#91;0&#93;.elements&#91;2&#93;.value,
+document.forms&#91;0&#93;.elements&#91;4&#93;.value);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; }</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; } else {</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;
+appCore.SendMail(document.forms&#91;0&#93;.elements&#91;1&#93;.value,
+document.forms&#91;0&#93;.elements&#91;2&#93;.value,
+document.forms&#91;0&#93;.elements&#91;4&#93;.value);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; }</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>}</TT></FONT><BR>
+&nbsp;<BR>
+&nbsp;</P>
+
+<P>Next, we will define the GUI<BR>
+&nbsp; <TABLE WIDTH="100%">
+   <TR>
+      <TD>
+         <CENTER><IMG SRC="figure3.gif" WIDTH=364 HEIGHT=395 X-CLARIS-USEIMAGEWIDTH X-CLARIS-USEIMAGEHEIGHT ALIGN=bottom></CENTER>
+      </TD>
+      <TD>
+         <P><FONT COLOR="#000099"><TT>&lt;form ENCTYPE="text/plain"
+         onSubmit="return
+         submitForms()"&gt;&lt;/center&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;TABLE
+         bgcolor="#C0C0C0"&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;TR&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;TD&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;fieldset width="100%"
+         height="100%" &gt;&nbsp;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;legend
+         align=left&gt;&amp;nbsp;Info&amp;nbsp;&lt;/legend&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;TABLE width="100%"
+         height="100%"&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp; &lt;TR&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+         &lt;TD&gt;Address:&lt;/TD&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; &lt;TD
+         width="100%"&gt;&lt;input type="text" name="addrTo"
+         &gt;&lt;/TD&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp; &lt;/TR&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp; &lt;TR&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+         &lt;TD&gt;Subject:&lt;/TD&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+         &lt;TD&gt;&lt;input type="text" name="subject"
+         id="subject"&gt;&lt;/TD&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp; &lt;/TR&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;/TABLE&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;/fieldset&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;/TD&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;/TR&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;TR&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;TD&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;fieldset width="100%"
+         height="100%" &gt;&nbsp;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&lt;legend
+         align=left&gt;&amp;nbsp;Message&amp;nbsp;&lt;/legend&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&lt;TEXTAREA cols=40 rows=15
+         name="mailbody"&gt;&lt;/TEXTAREA&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;/fieldset&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;/TD&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;/TR&gt;&lt;/TABLE&gt;</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&lt;/form&gt;</TT></FONT></P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>The MailAppCore code is as follows:</P>
+
+<P><FONT COLOR="#000099"><TT>NS_IMETHODIMP</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>nsMailCore::SendMail(const nsString&amp;
+aAddrTo, const nsString&amp; aSubject, const nsString&amp;
+aMsg)</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; if (nsnull == mScriptContext)
+{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; return
+NS_ERROR_FAILURE;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; }</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;
+printf("----------------------------\n");</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; printf("-- Sending Mail
+Message\n");</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;
+printf("----------------------------\n");</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; printf("To: %s&nbsp; \nSub: %s&nbsp;
+\nMsg: %s\n", aAddrTo.ToNewCString(),</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+aSubject.ToNewCString(),</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+aMsg.ToNewCString()); </TT></FONT><FONT COLOR="#006600"><TT>// these
+ToNewCString's leak</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;
+printf("----------------------------\n");</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp; if (nsnull != mScriptContext)
+{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; const char* url =
+"";</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; PRBool isUndefined =
+PR_FALSE;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; nsString
+rVal;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+mScriptContext-&gt;EvaluateString(mScript, url, 0, rVal,
+&amp;isUndefined);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; }</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; return NS_OK;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>}</TT></FONT><BR>
+&nbsp;<BR>
+&nbsp;</P>
+
+<P><B>Summary</B><BR>
+The toolbar XUL loads a button with a specified XUL command:
+<FONT COLOR="#CC0000"><TT>nsCmd:MailSendMsg</TT></FONT><FONT COLOR="#000000">.
+The "content" area of the window contains a simple HTML form for
+entering in the message data. The content area also contains
+JavaScript for processing the toolbar XUL. When the user presses on
+the "Send" button it issues a XULCommand that executes a JS function,
+in this case the JS function is "<I>SendMailMsg</I>". This JS
+function creates a MailAppCore object and invokes a method to send
+the message. The SendMail native method then executes a JS function
+as a callback to the GUI to allow it to clean up after the message is
+sent.</FONT><BR>
+&nbsp;</P>
+
+<H3><A NAME="How do I create an Application Core"></A>How do I create
+an Application Core?</H3>
+
+<P>In order to create and use a native code from JavaScript we must
+do several things:</P>
+
+<UL>
+   <LI>Create the implementation for the JS object in native code
+   (probably C++)</LI>
+   
+   <LI>Create a factory for the the native object</LI>
+   
+   <LI>Define the scriptable interface in IDL</LI>
+   
+   <LI>Generate the interface and stub code using the IDL
+   compiler</LI>
+   
+   <LI><A HREF="#Registering the JS object into the External name space">Add
+   the the object to the name space registry for external JS
+   objects</A></LI>
+   
+   <LI><A HREF="#The External Objects">Add the Object to the factory
+   for the DLL it will live in</A></LI>
+</UL>
+
+<P><BR>
+In the Mail example, the MailAppCore is a single object with a
+JavaScript interface. The interface is defined with IDL and then run
+though the IDL compiler to create the nsIDOMxxx interface and the
+necessary "stub" functions needed to "hook" up the interface to a
+"real" implementation (see figure #6). Below, next to Figure #6, is
+the IDL for the MailAppCore.<BR>
+&nbsp; <TABLE WIDTH="100%">
+   <TR>
+      <TD>
+         <CENTER><IMG SRC="figure6.gif" WIDTH=486 HEIGHT=233 ALIGN=bottom><BR>
+         Figure #6</CENTER>
+      </TD>
+      <TD>
+         <P><FONT COLOR="#000099"><TT>interface MailCore :
+         BaseAppCore</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>{</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>/* IID: { 0x18c2f980, 0xb09f,
+         0x11d2, \</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; {0xbc, 0xde,
+         0x00, 0x80, 0x5f, 0x0e, 0x13, 0x53}} */</TT></FONT></P>
+         
+         <P><FONT COLOR="#000099"><TT>&nbsp; void
+         MailCore();</TT></FONT></P>
+         
+         <P><FONT COLOR="#000099"><TT>&nbsp; void SendMail(in wstring
+         addrTo, in wstring subject, in wstring msg);</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp; void
+         MailCompleteCallback(in wstring script);</TT></FONT><BR>
+         <FONT COLOR="#000099"><TT>&nbsp; void SetWindow(in Window
+         win);</TT></FONT></P>
+         
+         <P><FONT COLOR="#000099"><TT>};</TT></FONT><BR>
+         &nbsp;</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>The C++ implementation will also be derived from the nsIDOMxxx
+interface that is automatically generated from the IDL compiler. Here
+is the C++ implementation with the new interface added:</P>
+
+<P><FONT COLOR="#000099"><TT>class nsMailCore : public
+nsBaseAppCore,</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</TT></FONT><FONT COLOR="#CC0000"><TT>public
+nsIDOMMailCore</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp; public:</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+nsMailCore();</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+~nsMailCore();</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+NS_DECL_ISUPPORTS</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+NS_IMETHOD&nbsp;&nbsp;&nbsp; GetScriptObject(nsIScriptContext
+*aContext, void** aScriptObject);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+NS_IMETHOD&nbsp;&nbsp;&nbsp; Init(const nsString&amp;
+aId);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+NS_IMETHOD&nbsp;&nbsp;&nbsp; GetId(nsString&amp; aId) { return
+nsBaseAppCore::GetId(aId); }</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+NS_IMETHOD&nbsp;&nbsp;&nbsp; MailCompleteCallback(const nsString&amp;
+aScript);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+NS_IMETHOD&nbsp;&nbsp;&nbsp; SetWindow(nsIDOMWindow*
+aWin);</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+NS_IMETHOD&nbsp;&nbsp;&nbsp; SendMail(const nsString&amp; aAddrTo,
+const nsString&amp; aSubject, const nsString&amp;
+aMsg);</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp; protected:</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+nsString&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+mScript;</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+nsIScriptContext&nbsp;&nbsp; *mScriptContext;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+nsIDOMWindow&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+*mWindow;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>};</TT></FONT></P>
+
+<P>The methods Init, GetId, and GetScritpableObject are defined in
+the IDL's base class <I>BaseAppCore</I>.</P>
+
+<P>Here is a brief description of some of the methods:<BR>
+&nbsp; <TABLE BORDER=1 WIDTH="100%">
+   <TR>
+      <TD>
+         <CENTER><B>Method Name</B></CENTER>
+      </TD>
+      <TD>
+         <CENTER><B>Function</B></CENTER>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>Init</P>
+      </TD>
+      <TD>
+         <P>This method sets the name of the object and registers
+         with the AppCoreManager</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P>GetId</P>
+      </TD>
+      <TD>
+         <P>Returns the objects name</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P><FONT COLOR="#000000">MailCompleteCallback</FONT></P>
+      </TD>
+      <TD>
+         <P>Sets the JavaScript string that will be executed after
+         the message is sent</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P><FONT COLOR="#000000">SetWindow</FONT></P>
+      </TD>
+      <TD>
+         <P>Sets the WebShell window into the object, this is needed
+         so the object can execute JS</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD>
+         <P><FONT COLOR="#000000">SendMail</FONT></P>
+      </TD>
+      <TD>
+         <P>This sends the message</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P><B><I>NOTE</I></B>: It is important that the name of the IDL
+object matches the name of the implementation object (except for the
+"ns" prefix). The IDL compiler generates stub code for the mapping of
+the JS function calls to an instance of the implementation object. If
+the names are different you will get a compiler error.</P>
+
+<P>Your implementation object must have a standard factory for
+creating instances of it.<BR>
+&nbsp;</P>
+
+<P><A NAME="Registering the JS object into the External name space"></A><B>Registering
+the JS object into the External name space</B></P>
+
+<P>The Mozilla service manager contains a service for registering the
+JS object into the JS script name space. The following code snippet
+shows how to get the service and register a new script name
+space:</P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+/***************************************/</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; /* Add us to the
+Javascript Name Space */</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+/***************************************/</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+nsIScriptNameSetRegistry *registry;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; nsresult result =
+nsServiceManager::GetService(kCScriptNameSetRegistryCID,</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+kIScriptNameSetRegistryIID,</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+(nsISupports **)&amp;registry);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; if (NS_OK ==
+result)</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; {</TT></FONT><BR>
+<FONT COLOR="#990000"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+nsAppCoresNameSet* nameSet = new nsAppCoresNameSet();</TT></FONT><BR>
+<FONT COLOR="#990000"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+registry-&gt;AddExternalNameSet(nameSet);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+/* FIX - do we need to release this service?&nbsp; When we do, it get
+deleted,and our name is lost. */</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; }</TT></FONT></P>
+
+<P>The <I>nsAppCoresNameSet</I> object implements the
+<I>nsIScriptExternalNameSet</I> interface and it provides two
+important functions:</P>
+
+<OL>
+   <LI>The <I>AddNameSet</I> method enables it to register one or
+   more objects into the name space.</LI>
+   
+   <LI>The <I>InitializeClasses</I> method provides an easy way for
+   the JS objects to initialize their classes at start up.</LI>
+</OL>
+
+<P>Here is a small portion of the code for adding it's name to the
+name space:</P>
+
+<P><FONT COLOR="#000099"><TT>NS_IMETHODIMP</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>nsAppCoresNameSet::</TT></FONT><FONT COLOR="#990000"><TT>AddNameSet</TT></FONT><FONT COLOR="#000099"><TT>(nsIScriptContext*
+aScriptContext)</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; nsresult result =
+NS_OK;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;
+nsIScriptNameSpaceManager* manager;</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; result =
+aScriptContext-&gt;GetNameSpaceManager(&amp;manager);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; if (NS_OK == result)
+{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+result = manager-&gt;RegisterGlobalName("MailCore", kMailCoreCID,
+PR_TRUE);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+.</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NS_RELEASE(manager);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; }</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; return
+result;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>}</TT></FONT></P>
+
+<P>Here is a snippet showing the initialization of the external
+class:</P>
+
+<P><FONT COLOR="#000099"><TT>NS_IMETHODIMP</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>nsAppCoresNameSet::</TT></FONT><FONT COLOR="#990000"><TT>InitializeClasses</TT></FONT><FONT COLOR="#000099"><TT>(nsIScriptContext*
+aScriptContext)</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; nsresult result =
+NS_OK;</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; result =
+NS_InitMailCoreClass(aScriptContext, nsnull);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; .</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; .</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; .</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; return
+result;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>}</TT></FONT></P>
+
+<P><A NAME="The External Objects"></A><B>The External Objects
+DLL</B></P>
+
+<P>The DLL containing the external object(s) has a method
+<I>NSGetFactory</I> where a CID is passed in and the appropriate
+factory is passed back. So each scriptable object needs it's factory.
+This method looks as follows:</P>
+
+<P><FONT COLOR="#000099"><TT>extern "C" NS_EXPORT
+nsresult</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>NSGetFactory(const nsCID &amp;aClass,
+nsISupports* serviceMgr, nsIFactory **aFactory)</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; if (aFactory == NULL)
+{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return
+NS_ERROR_NULL_POINTER;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; }</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; *aFactory =
+NULL;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; nsISupports
+*inst;</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; if (
+aClass.Equals(kMailCoreCID) ) {</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; inst = new
+nsMailCoreFactory();</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; } else {</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return
+NS_ERROR_ILLEGAL_VALUE;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; }</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; if (inst == NULL)
+{</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return
+NS_ERROR_OUT_OF_MEMORY;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; }</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; nsresult res =
+inst-&gt;QueryInterface(kIFactoryIID, (void**)
+aFactory);</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; if (res !=
+NS_OK){</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; delete
+inst;</TT></FONT><BR>
+<FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; }</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>&nbsp;&nbsp;&nbsp; return
+res;</TT></FONT></P>
+
+<P><FONT COLOR="#000099"><TT>}</TT></FONT><BR>
+&nbsp;</P>
+
+<P><A NAME="How does this all fit"></A><B>How does this all fit
+together?</B></P>
+
+<P>Until COMConnect is implemented, the objects that are in the
+external DLL must be registered into the nsRespository like all other
+Mozilla objects. Then the NameSet object for the objects must be
+<A HREF="#Registering the JS object into the External name space">added</A>
+to the ScriptNameSetRegistry service. Now the application is ready to
+execute. When JS starts up it checks the registry and initializes all
+the classes (this is when the InitializeClasses method gets
+called.)</P>
+
+<P>When JS encounters the new object in the script it looks it up in
+the external name set registry and is then able to create an object
+of this kind.</P>
+
+<P>
+
+<HR>
+
+</P>
+
+<H3><A NAME=Conclusion></A>Conclusion</H3>
+
+<P>This document provides the initial approach to providing
+ApplicationCore objects to a XUL application using native code and
+scriptable interfaces. There are many unresolved issues that must be
+addressed. A few of these are as follows:<BR>
+&nbsp;</P>
+
+<UL>
+   <LI><B>Security</B> - Preventing documents from accessing the GUI
+   components. Allowing only "blessed" AppCore to register and be
+   executed.</LI>
+   
+   <LI><B>The JavaScript callback mechanism</B> - More thinking and
+   work need to go into the native code to JavaScript callback
+   mechanism</LI>
+</UL>
+</BODY>
+</HTML>

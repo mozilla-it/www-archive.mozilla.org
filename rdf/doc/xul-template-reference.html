@@ -1,0 +1,755 @@
+<html>
+<head>
+<title>XUL &lt;template&gt; reference</title>
+</head>
+<body>
+
+<center>
+<h1>XUL <tt>&lt;template&gt;</tt> reference</h1>
+</center>
+
+Contacts:<br>
+<a href="mailto:rjc@netscape.com">Robert Churchill</a> (rjc@netscape.com)<br>
+<a href="mailto:hyatt@netscape.com">David Hyatt</a> (hyatt@netscape.com)<br>
+<a href="mailto:waterson@netscape.com">Chris Waterson</a> (waterson@netscape.com)<br>
+<br>
+
+<p>
+This document is a reference guide for XUL templates. It assumes that
+you have a basic knowledge of the RDF data model, and a working
+knowledge of the XUL syntax.  Of course, there is no better reference
+than the
+
+<a href="http://lxr.mozilla.org/seamonkey/source/content/xul/templates/src/nsXULTemplateBuilder.cpp">code</a>,
+
+but that's probably impenetrable to just about everyone, especially
+the authors.
+</p>
+
+<p>
+See also the
+
+<a href="../../docs/xul/xulnotes/template-primer.html">XUL Template Primer</a>
+
+for an overview of the <em>extended template syntax</em>. If you're
+new to XUL templates, the "primer" may be an better introduction to the
+basic concepts than this document.
+</p>
+
+<h2>Overview</h2>
+
+<ul>
+
+<p>
+<i>XUL templates</i> are a mechanism for translating data contained in
+an RDF graph into a XUL content model for presentation
+
+<a href="#1">[1]</a>.
+
+Using a XUL template, it is possible to specify a content "fragment"
+that will be copied in a cookie-cutter fashion to generate a content
+model from the nodes and arcs in an RDF graph.
+</p>
+
+<p>
+Building content from RDF requires you specify several things:
+</p>
+
+<ol>
+
+<li>
+<p>
+You specify an element in the XUL which will "root" the RDF generated
+content. To this element, you attach an RDF composite data source that
+aggregates together the assertions from one or more individual RDF
+datasources. This makes the assertions contained in the composite
+datasource "visible" to the XUL content model generation engine.
+</p>
+</li>
+
+<li>
+<p>
+Contained immediately within the datasource element you specify one or
+more <i>templates</i>. A template is a fragment of normal XUL and HTML
+content. The fragment isn't ever displayed in the content model, but
+instead is used to construct new content from the assertions in the
+RDF graph.
+</p>
+</li>
+
+</ol>
+
+<p>
+<a href="#Appendix_1">Appendix 1</a> contains two sample XUL
+templates, which may be useful to refer to while reading the drier
+portions of this document.
+</p>
+
+</ul>
+
+<h2>Syntax</h2>
+
+<h3>The <tt>datasources</tt> Attribute</h3>
+
+<ul>
+
+<p>
+To specify the RDF graph from which content will be built, you add a
+<b><tt>datasources</tt></b> attribute to an element in your XUL
+file. This element is called the <i>datasource element</i> for the
+generated content.
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+The Datasource Element.
+<ul><pre>
+&lt;<i>tag</i> datasources="<i>rdf-datasource-list</i>" [<i>other attributes</i>]&gt;
+  ...
+&lt;/<i>tag</i>&gt;
+</pre></ul>
+</td></tr>
+</table>
+
+<p>
+The <b><tt>datasources</tt></b> attribute creates a
+
+<a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFCompositeDataSource.idl">composite data source</a>
+
+that is associated with the datasource element. You can access the
+composite datasource programatically via the <b><tt>database</tt></b>
+property of the element; e.g., from JavaScript,
+</p>
+
+<ul><pre>
+var tree = document.getElementById('MyTree');
+tree.database.AddDataSource(...);
+</pre></ul>
+
+<p>
+You may attach a <b><tt>datasources</tt></b> attribute to <i>any</i>
+element (including HTML elements) within a XUL document.
+</p>
+
+<p>
+You may attach a <b><tt>datasources</tt></b> attribute to <i>any
+number</i> of elements in a single XUL file. Each datasource element
+will is associated with its own composite datasource. The composite
+datasource in one datasource element may aggregate RDF datasources
+that "overlap" with another datasource element. Datasource elements
+may not currently be nested.
+</p>
+
+<p>
+<b><i>Specifying the RDF Datasources</i></b>. The
+<b><tt>rdf-datasource-list</tt></b> is a whitespace-separated list of
+RDF datasource identifiers that are aggregated into the composite
+datasource. These must be of the following form:
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+Specifying RDF datasources.
+<ul><pre>
+<i>rdf-datasource-list</i> ::= <i>rdf-datasource-id</i> [<i>rdf-datasource-id</i> ...]
+<i>rdf-datasource-id</i>   ::= rdf:<i>rdf-contractid-suffix</i> ("Built-in" form)
+<i>rdf-datasource-id</i>   ::= <i>URL</i>                       ("Remote" form)
+</pre></ul>
+</td></tr>
+</table>
+
+<p>
+If the <b>rdf-datasource-id</b> is a "built-in" datasource, it will
+load the component using the
+
+<a href="http://lxr.mozilla.org/seamonkey/source/xpcom/components/nsIServiceManager.h">XPCOM service manager</a>.
+
+The ContractID of the component will be constructed by appending the
+<b><tt>rdf-contractid-suffix</tt></b> to the prefix
+<b><tt>@mozilla.org/rdf/datasource;1?name=</tt></b>. The resulting
+component will be <b><tt>QueryInterface()</tt></b>'d for the
+
+<a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFDataSource.idl">nsIRDFDataSource</a>
+
+interface. Note that because components are loaded as services; i.e.,
+using <tt>nsServiceManager::GetService()</tt>, a single component may
+end up being shared across many content models..
+</p>
+
+<p>
+If the <b>rdf-datsource-id</b> is a "remote" datasource, the URL will
+be assumed to refer to an RDF/XML file. An RDF/XML datasource will be
+created whose contents will be loaded from the specified URL. Note
+that the content may arrive asynchronously.
+</p>
+
+<p>
+For example,
+</p>
+
+<ul><pre>
+&lt;tree datasources="rdf:mail rdf:bookmarks http://foo.com/sitemap.rdf"&gt;
+  ...
+&lt;/tree&gt;
+</pre></ul>
+
+<p>
+will create a
+
+<a href="../../xpfe/xptoolkit/trees.html">XUL tree</a>
+
+with a composite datasource that includes the two built-in datasources
+that will be loaded using the ContractIDs:
+</p>
+
+<ul><pre>
+@mozilla.org/rdf/datasource;1?name=mail
+@mozilla.org/rdf/datasource;1?name=bookmarks
+</pre></ul>
+
+<p>
+and the assertions from the remote RDF/XML file, which will be loaded
+from <tt>http://foo.com/sitemap.rdf</tt>.
+</p>
+
+</ul>
+
+<h3>Template</h3>
+
+<ul>
+
+<p>
+Directly inside the datasource element, you specify the content model
+<i>templates</i> that will be used to construct content from the RDF
+graph. The content model template is specified inside a
+<b><tt>template</tt></b> tag, using one of the two forms, below:
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+Form 1. Simple
+
+<ul><pre>
+&lt;template&gt;
+  <i>template XUL</i>
+&lt;/template&gt;
+</pre></ul>
+
+Form 2. Rule Match
+
+<ul><pre>
+&lt;template&gt;
+  &lt;rule [<i>match attributes</i>]&gt;
+    <i>template-XUL</i>
+  &lt;/rule&gt;
+&lt;/template&gt;
+</pre></ul>
+
+</td></tr>
+</table>
+
+<p>
+The first form specifies a single template that should be used to
+build content. The second form allows specification of multiple
+templates from which one will be selected to generate content. See
+
+<a href="#Content_Generation">Content Generation</a>,
+
+below, for details on the matching and generation process.
+</p>
+
+<p>
+The <b><tt>template-XUL</tt></b> is the set of XUL, XML, and HTML tags
+that will be copied from the template into the content model. Template
+XUL must be of the following form:
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+Template XUL
+
+<ul><pre>
+&lt;<i>shared-XUL</i>&gt;
+  &lt;<i>template-resource-element</i> uri="rdf:*" [<i>other attributes</i>]&gt;
+    &lt;<i>per-resource-XUL</i>&gt;
+      ...
+    &lt;/<i>pre-resource-XUL</i>&gt;
+  &lt;/<i>template-resource-element</i>&gt;
+&lt;/<i>shared-XUL</i>&gt;
+</pre></ul>
+
+</td></tr>
+</table>
+
+<p>
+<b><i>The Template Resource Element</i></b>. You use the
+<b>uri="rdf:*"</b> attribute/value pair to indicate which element will
+be the <i>template resource element</i>. The template resource element
+is the element that will correspond to a node in the RDF graph.
+</p>
+
+<p>
+The template resource element will be automatically assigned an
+<b>id</b> attribute whose value will be the fully-qualified URI of the
+resource to which it corresponds in the graph.  Any content "above"
+this node in the template will be shared by all of the "real" resource
+elements in a particular subtree; any content "below" this node in the
+template will be duplicated once for each "real" resource element (see
+below).
+</p>
+
+</ul>
+
+<a name="Content_Generations">
+<h3>Content Generation</h3>
+</a>
+
+<ul>
+<p>
+To apply the template, you must specify the URI of the node in the
+graph from which to begin building content. You do this by specifying
+a <b><tt>ref</tt></b> attribute the ``root'' node where that
+<b><tt>datasources</tt></b> attribute was specified. The
+<b><tt>ref</tt></b> attribute's value should refer to the URI of a
+resource in the graph. This element is called a <i>resource
+element</i>.
+</p>
+
+<p>
+The URI of a resource element may be specified either in absolute or
+relative form. If specified as a relative URI, it will be resolved
+relative to the XUL document's URL. [<i>TBD: Overlays</i>]
+</p>
+
+<p>
+<b><i>Generation</i></b> Once an appropriate template has been
+selected for a resource element, the template engine will <i>copy</i>
+the template's contents as children of the resource element as follows.
+</p>
+
+<ul>
+
+<p>
+First, it will find the resource node in the RDF graph that corresponds to
+the resource element in the XUL content model.
+</p>
+
+<p>
+Then, for each <i>containment arc</i> (described below) that leads out
+of the resource node into another node in the graph (the "child
+node"), it will construct content using the template:
+</p>
+
+<ul>
+<p>
+For the <i>shared XUL</i>, the XUL engine will ensure that the content
+model "beneath" (i.e. contained within) the resource element (and
+above the child resource element) contains a common subtree copied
+from the template.
+</p>
+
+<p>
+A <i>child resource element</i> will be created that corresponds to
+the <i>child node</i> in the RDF graph. The child resource element
+will be created from the <i>template resource element</i> (that is,
+the element in the template that has the <b><tt>uri="rdf:*"</tt></b>
+attribute). A distinct child resource element will be constructed for
+<i>each</i> child node in the RDF graph. Each child resource element
+will share the same <i>shared XUL</i>. See
+
+<a href="#Ordering">Sorting</a>,
+
+below, for more information on how individual child resource elements
+will be ordered in relation to one another.
+</p>
+
+<p>
+Beneath each child resource element, a copy of the <i>per-resource
+XUL</i> will be made. Inside the per-resource XUL, <i>attribute
+substitution</i> will be performed as described below.
+</p>
+</ul>
+
+</ul>
+
+<p>
+Because each template application generates a new <i>child resource
+element</i>, XUL templates may be recursively applied to generate a
+tree-like content model.
+</p>
+
+<p>
+<b><i>Rule Matching</i></b>. If more than one template is specified
+using the <b><tt>rule</tt></b> element, then the template engine will
+iterate through each <b><tt>rule</tt></b> to find the first rule whose
+<i>match attributes</i> are present as properties on the child node in
+the RDF graph. If a rule has no match attributes, it will
+automatically match.
+</p>
+
+<p>
+The special match attributes <b><tt>iscontainer</tt></b> and
+<b><tt>isempty</tt></b> will be dynamically computed while matching
+templates. The <b><tt>iscontainer</tt></b> attribute will be matched
+by "looking ahead" in the RDF graph and examining the arcs that lead
+out of the child node. If the child node may potentially have its own
+resource children <a href="#2">[2]</a> (based on the currently active
+containment properties, see below), this attribute will be match as
+<b><tt>true</tt></b>. If any of the arcs actually refer to other nodes
+in the graph, then the <b><tt>isempty</tt></b> attribute will match as
+<b><tt>false</tt></b>; if not, it will match as <b><tt>true</tt></b>.
+</p>
+
+<p>
+<b><i>Attribute Substitution</i></b>. Inside the <i>per-resource
+XUL</i> that is generated for each child resource element, the XUL
+engine will perform <i>attribute substitution</i>. Any attribute whose
+value is specified using the prefix <b>rdf:</b> is treated as a
+"property substitution". The <b>rdf:</b> prefix will be removed from
+the attribute's value, and the resulting string will be treated as a
+URI that names an RDF property. The content model builder will
+construct a value for this property by querying the RDF graph for the
+<i>target</i> of an assertion whose <i>source</i> is the resource that
+corresponds to the <i>resource element</i> and whose property
+corresponds to the named RDF property.
+</p>
+
+<p>
+The special attributes <b><tt>container</tt></b> and
+<b><tt>empty</tt></b> will be set on the resource element based on
+whether or not the resource element may potentially have its own
+resource children, and whether or not it actualy has resource
+children, respectively. <a href="#2">[2]</a>
+</p>
+
+<p>
+<b><i><tt>text</tt> Elements</i></b>. A <b>text</b> element with a
+<b>value</b> attribute that specifies an <b>rdf:</b> property will be
+replaced by a simple text node in the content model.
+</p>
+
+<p>
+<b><i>Containment</i></b>. The XUL engine determines a parent/child
+relationship between nodes in the RDF graph using a set of
+<i>containment properties</i>. The set of containment properties that
+are active at any point during content model generation are specified
+explicitly using the <b>containment</b> and <b>ignores</b> attributes.
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+
+Containment
+<ul><pre>
+&lt;<i>tag</i> containment="<i>containment-property-list</i>"&gt;
+  ...
+&lt;/<i>tag</i>&gt;
+
+containment-property-list ::= containment-property [containment-property ...]
+containment-property ::= <i>URI</i>
+</pre></ul>
+
+</td></tr>
+</table>
+
+<p>
+The following properties are <i>automatically</i> assumed to be
+containment properties.
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+Automatic Containment Properties
+<ul><pre>
+http://home.netscape.com/NC-rdf#child
+</pre></ul>
+
+In addition, any RDF "ordinal" property (e.g., <tt><i>rdf:</i>_1</tt>)
+is automatically considered to be a containment property.
+
+</td></tr>
+</table>
+
+<p>
+You can specify that a property be explicitly ignored for containment
+purposes using the <b><tt>ignores</tt></b> attribute.
+</p>
+
+<p>
+The containment properties that are in effect at a particular point in
+content model generation are determined by finding the nearest
+ancestor with a <b><tt>containment</tt></b> attribute.
+</p>
+
+</ul>
+
+<a name="Sorting">
+<h2>Sorting</h2>
+</a>
+
+<ul>
+
+<p>
+[<i>TBD</i>]
+</p>
+
+</ul>
+
+
+<h2>Notes</h2>
+
+<ul>
+
+<p>
+<a name="1">[1]</a> Originally, we thought that it would be possibly
+to have a generic "graph-to-content" translation algorithm that, when
+combined with CSS2, could produce <i>any</i> appropriate content model
+(see <a href="../content-model.html">this document</a>). It quickly
+became clear that this was not the case.
+</p>
+
+<a name="2">[2]</a>. Computing <b><tt>container</tt></b> and
+<b><tt>iscontainer</tt></b> works by calling
+
+<a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFDataSource.idl#155">nsRDFDatasource::ArcLabelsOut</a>.
+
+If any of the properties returned by <b><tt>ArcLabelsOut</tt></b> is a
+containment property, then the element is annotated as a "container".
+</p>
+
+<p>
+<b><tt>ArcLabelsOut</tt></b>'s semantics are defined such that it will
+return all of the <i>potential</i> arcs that may lead out of the
+specified resource. In other words, a property may be returned that
+does not actually participate in any assertions whose subject is the
+specified resource.
+</p>
+
+<p>
+The motivation for this somewhat bizarre behavior is as follows. An
+element in the content model may need to be annotated as a
+"container", even though it doesn't <i>currently</i> contain any
+elements; e.g., an empty folder in a file system, an empty bookmarks
+folder, etc. This needs to be done in a "schema agnostic" sort of way
+so that user interface interactions that know nothing about the
+underlying graph (e.g., drag-and-drop) can function properly.
+</p>
+
+<p>
+Computing <b><tt>empty</tt></b> and <b><tt>isempty</tt></b> is much
+more straight-forward. It works by calling
+
+<a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFDataSource.idl#60">nsRDFDatasource::GetTarget</a>
+
+on each containment property to see the property <i>really does</i>
+have a value. If it discovers that none of the containment properties
+yield values, then the element is annotated as "empty".
+</p>
+
+</ul>
+
+<a name="Appendix_1">
+<h2>Appendix 1: Examples</h2>
+</a>
+
+<ul>
+<p>
+Below are some examples that illustrate the use of the template
+code. These examples use the graph specified by the common RDF/XML
+file, listed here:
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+
+<a href="template-example.rdf">template-example.rdf</a>
+<ul><pre>
+&lt;?xml version="1.0"?&gt;
+&lt;RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:NC="http://home.netscape.com/NC-rdf#"&gt;
+  &lt;RDF:Seq ID="root"&gt;
+    &lt;RDF:li&gt;
+      &lt;RDF:Description ID="R1" NC:Name="Number One"&gt;
+        &lt;NC:child&gt;
+          &lt;RDF:Description ID="R1_1" NC:Name="Number One Point One" /&gt;
+        &lt;/NC:child&gt;
+        &lt;NC:child&gt;
+          &lt;RDF:Description ID="R1_2" NC:Name="Number One Point Two" /&gt;
+        &lt;/NC:child&gt;
+      &lt;/RDF:Description&gt;
+      &lt;RDF:Description ID="R2" NC:Name="Number Two" /&gt;
+    &lt;/RDF:li&gt;
+  &lt;/RDF:Seq&gt;
+&lt;/RDF:RDF&gt;
+</pre></ul>
+
+<img src="rdf-data-model.gif" alt="Data Model"></img>
+</td></tr>
+</table>
+
+</ul>
+
+<h3>Example 1. A Menu</h3>
+
+<ul>
+
+<p>
+This example illustrates use of two <b><tt>rule</tt></b>s to generate
+a walk-down menu.
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+
+<a href="template-example-menu.xul">template-example-menu.xul</a>
+<ul><pre>
+&lt;?xml version="1.0"?&gt;
+&lt;?xml-stylesheet href="chrome://global/skin" type="text/css"?&gt;
+
+&lt;window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        align="vertical"&gt;
+  &lt;menubar&gt;
+    &lt;menu datasources="template-example.rdf"
+          ref="template-example.rdf#root"
+          label="Test"&gt;
+      &lt;template&gt;
+        &lt;rule iscontainer="true"&gt;
+          &lt;menupopup&gt;
+            &lt;menu uri="rdf:*" label="rdf:http://home.netscape.com/NC-rdf#Name"&gt;
+              &lt;menupopup /&gt;
+            &lt;/menu&gt;
+          &lt;/menupopup&gt;
+        &lt;/rule&gt;
+        &lt;rule&gt;
+          &lt;menupopup&gt;
+            &lt;menuitem uri="rdf:*" label="rdf:http://home.netscape.com/NC-rdf#Name" /&gt;
+          &lt;/menupopup&gt;
+        &lt;/rule&gt;
+      &lt;/template&gt;
+
+      &lt;!-- We need to ``seed'' menus with the first popup --&gt;
+      &lt;menupopup /&gt;
+    &lt;/menu&gt;
+  &lt;/menubar&gt;
+&lt;/window&gt;
+</pre></ul>
+
+</td></tr>
+</table>
+
+<p>
+This yields the following content model at runtime:
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+<pre>
+&lt;window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"&gt;
+        align="vertical"&gt;
+  &lt;menubar&gt;
+    &lt;menu datasources="template-example.rdf"
+          ref="template-example.rdf#root"
+          label="Test"&gt;
+      &lt;menupopup&gt;
+        &lt;menu id="http://www.mozilla.org/rdf/doc/template-example-menu.xul#R1"
+              value="Number One"&gt;
+          &lt;menupopup&gt;
+            &lt;menuitem id="http://www.mozilla.org/rdf/doc/template-example-menu.xul#R1_1"
+                      label="Number One Point One" /&gt;
+            &lt;menuitem id="http://www.mozilla.org/rdf/doc/template-example-menu.xul#R1_2"
+                      label="Number One Point Two" /&gt;
+          &lt;/menupopup&gt;
+      &lt;/menu&gt;
+
+      &lt;menupopup&gt;
+        &lt;menuitem id="http://www.mozilla.org/rdf/doc/template-example-menu.xul#R2"
+                  label="Number Two" /&gt;
+      &lt;/menupopup&gt;
+    &lt;/menu&gt;
+  &lt;/menubar&gt;
+&lt;/window&gt;
+</pre>
+</td></tr>
+</table>
+
+<p>
+(For illustrative purposes, the <b><tt>template</tt></b> tag and its
+children have been removed; in reality, these would still be in the
+content model.)
+</p>
+
+</ul>
+
+<h3>Example 2. A Tree Widget</h3>
+
+<ul>
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+
+<a href="template-example-tree.xul">template-example-tree.xul</a>
+<ul><pre>
+&lt;?xml version="1.0"?&gt;
+&lt;?xml-stylesheet href="chrome://global/skin" type="text/css"?&gt;
+&lt;window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        align="vertical"&gt;
+
+  &lt;tree datasources="template-example.rdf"
+        flex="1" 
+        ref="template-example.rdf#root"&gt;
+    &lt;template&gt;
+      &lt;treechildren&gt;
+        &lt;treeitem uri="rdf:*"&gt;
+          &lt;treerow&gt;
+            &lt;treecell class="treecell-indent"
+                      label="rdf:http://home.netscape.com/NC-rdf#Name" /&gt;
+          &lt;/treerow&gt;
+        &lt;/treeitem&gt;
+      &lt;/treechildren&gt;
+    &lt;/template&gt;
+
+    &lt;treehead&gt;
+      &lt;treerow&gt;
+        &lt;treecell label="Name" /&gt;
+      &lt;/treerow&gt;
+    &lt;/treehead&gt;
+  &lt;/tree&gt;
+&lt;/window&gt;
+</pre></ul>
+
+</td></tr>
+</table>
+
+</ul>
+
+
+<a name="IgnoredAttributes">
+<h2>Appendix 2: Ignored Attributes</h2>
+</a>
+
+<ul>
+<p>
+The following attributes are ignored when building content from the
+template:
+</p>
+
+<table bgcolor="#ffffdd" border="1">
+<tr><td>
+Ignored Attributes
+<ul><pre>
+containercontentsgenerated
+containter
+id
+lazycontent
+ref
+rootcontainment
+subcontainment
+templatecontentsgenerated
+uri
+</pre></ul>
+</td></tr>
+</table>
+</ul>
+
+</body>
+</html>
+

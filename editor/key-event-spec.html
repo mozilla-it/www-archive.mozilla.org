@@ -1,0 +1,404 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<title>Key Events in SeaMonkey</title>
+
+<link rel="up" href="./" title="Editor project page">
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+<p class="crumbs"><em>You are here:</em> <a href="./">Editor project page</a> &gt; <strong>Key Events in SeaMonkey</strong></p>
+
+<h1>Key Events in SeaMonkey</h1>
+
+<h2> 1. Introduction</h2>
+<p>
+This document is a specification for all aspects of key events in SeaMonkey
+applications.  It describes key event generation, propogation, and
+processing.  It is particularly important for platform developers
+to understand the key event generation section.
+</p>
+
+<h2> 2. Key Event Generation</h2>
+<p>
+Native input methods (used when typing Japanese), aka IME, must have first
+crack at all keyboard events this includes accelerators and keybindings
+because they might be used by the native input method (such as to turn
+them on and off).  While the IME is active, key events (keydown, keypress,
+keyup) will not be generated.  IME input generates text events which
+are handled by a separate set of handlers.  If a key event isn't consumed
+by the native input method, it will result in a sequence as described below.
+</p>
+<p>
+Each keyboard input results in 3 separate key events:  KeyDown,
+followed by KeyPress, followed KeyUp.  All platforms must generate
+these events in this sequence for every keyboard input (except IME events).
+</p>
+<p>
+Key repeat (automatic generation of keyevents when a key is held down)
+results in a sequence of a KeyDown event, followed by multiple keypress
+events, terminated by a KeyUp event.  A keypress event should be generated
+for each platform key repeat event recieved.
+</p>
+<p>
+Each key event has 2 data fields:  a virtual key code and a computed
+character code.  The key code corresponds to the physical key that
+was typed.  The char code represents the Unicode character that results
+from the keyboard input.  The char code field is never set during
+KeyDown or KeyUp events.  It is only set during a KeyPress event in
+which the key maps to an actual character.  The following table describes
+how these data are interpreted for each type of key event:
+</p>
+
+<table class="data">
+<tr>
+<th>Key Event</th>
+<th>key code</th>
+<th>char code</th>
+</tr>
+
+<tr>
+<td>KeyDown</td>
+
+<td>set</td>
+
+<td>0 (ignored)</td>
+</tr>
+
+<tr>
+<td>KeyPress</td>
+
+<td>if char code is set, key code is not set
+ so key code is only set for input that doesn't map to a character,
+like "home" key or for dead key actions</td>
+
+<td>set if the key typed represents a character determined by nsIsPrintable(), 
+ otherwise 0 (ignored)</td>
+</tr>
+
+<tr>
+<td>KeyUp</td>
+
+<td>set</td>
+
+<td>0 (ignored)</td>
+</tr>
+</table>
+
+<p>
+Key listeners are responsible for knowing when to use key codes and
+when to use char codes.  In particular, the platform must not try
+to map these data in any way other than as specified in the table above.
+</p>
+<p>
+There are a few special cases that need to be described:
+</p>
+<ul>
+	<li>
+	If an alphanumeric key (a - z or 0-9) is pressed,
+	a charcode value must be returned, even if a modifier bit is set.
+	If the charcode is a resulting
+	character which should be inserted in an editor,
+	all 4 modifier flags should be cleared (0).  If the charcode
+	is not a character but instead a command or keybinding,
+	all modifier flags should be left intact. 
+	</li>
+
+	<li>
+	Modifier keys (such
+	as shift, alt, control, command) pressed in isolation generate the
+	same event sequence as normal keys.  This is for completeness, so
+	an app can choose to do something special when any of these keys are pressed
+	in isolation.</li>
+
+	<li>
+	Dead keys (such as keyboard
+	input used to generate accented characters) generate the same event sequence
+	as normal keys. <b>Key events have a bit that says whether the keyboard
+	input was from a dead key action</b>. The char code for a dead key
+	is always 0 (ignored).</li>
+
+	<li>
+	The absolute order of key events generated by a combination of keys is
+	indeterminate.  For example, if shift and A are pressed, the keyup
+	events could come in either order.</li>
+
+	<li>
+	There won't be a distinction between right and left modifier keys (nor
+	distinction between keyboard and keypad keys).</li>
+
+	<li>
+	Platform special keys (Windows key, contextual menu key on Windows, Macintosh
+	startup key, monitor control keys, etc.) do not propagate events. 
+	They should be handled in platform code if necessary.</li>
+</ul>
+
+<h2> 3. Key Event Propogation</h2>
+<p>
+Key events are DOM events, and follow all the normal DOM event rules for
+propogation.  See <a href="http://www.w3.org/TR/WD-DOM-Level-2/events.html">http://www.w3.org/TR/WD-DOM-Level-2/events.html</a>. 
+Key event propogation is entirely XP.
+</p>
+
+<h2>4. Key Event Processing</h2>
+
+<p>
+from Tom Pixley (joki@netscape.com)
+</p>
+
+<blockquote>
+<p>Internally we're using the consumeNoDefault flag.  Now
+ignore that for a second.  From the DOM perspective, there are three
+things that can be done to an event during processing.  One is cancelling
+the default action.  This is the equivalent of setting the consume
+flag.  This does *not* prevent further processing.  It simply
+prevents the default action of the system.  Now in most cases the
+system would be the browser itself but since much of the browser is implemented
+inside the content area this is a little confusing as the system is really
+now Gecko, not the browser, and since Gecko doesn't generally do too much
+with the event themselves, cancelling the default action won't buy you
+much.</p>
+</blockquote>
+
+<blockquote>
+<p>Then there are two other methods, preventCapture and preventBubble. 
+These methods will, respectively, prevent further handling by lower Nodes
+in the tree after capturing and prevent further handling by higher Nodes
+in the tree during bubbling.  If you wish a lower or higher level
+Node to get an event and then stop the event from going further you need
+to use these flags.  The consumeNoDefault flag will only tell the
+system to stop processing the event but it will still go give the event
+to all the other DOM handlers. Note that one of the properties of DOM event
+processing is that an event processor cannot prevent propogation of the
+event to other listeners on that same node.  Since DOM does not provide
+for ordering of event delivery to listeners on a single node, there is
+no general mechanism to allow for any communication between them.</p>
+</blockquote>
+
+<p>
+Key listeners are responsible for knowing when to look at key codes and
+when to look at char codes.
+</p>
+<p>
+ Key listeners should handle keyboard input using the KeyPress event
+handler.
+</p>
+<p>
+ For the editor KeyPress handler, any charCode that is non-zero should
+be a valid unicode character which can be inserted.  Keybindings and
+accelerators should cancel the event if it shouldn't be inserted in the
+editor.  The keybinding component needs to look at key events prior
+to the editor component.
+</p>
+<p>
+ Character mapping occurs in the platform specific code, prior to the
+keypress event being generated.  When a key combination, such alt+'s'
+could be both a keybinding and a character, the platform code will translate
+it into the appropriate Unicode character for the keypress event. 
+Keybindings need to match against the generated Unicode character in the
+keypress event.  The only exception to this is keys like Home or Page
+Up which don't have a Unicode character representation.  For this
+case, keybindings should use the keycode in the keypress event.
+</p>
+
+<h2>5. Sample Code</h2>
+
+<pre class="code">
+ boolean IsNonCharacterKey(nativeKeyCode)
+ {
+  boolean isNonPrintable;
+  <span class="remark">//</span>
+  <span class="remark">// this table is used to determine which keys are special and</span>
+  <span class="remark">// should not generate a charCode</span>
+  <span class="remark">//</span>
+  switch (nativeKeycode)
+  {
+   <span class="remark">// modifier keys</span>
+   case kShiftKeyCode:      isNonPrintable = true; break;
+   case kMetaKeyCode:       isNonPrintable = true; break;
+   case kCapsLockKeyCode:   isNonPrintable = true; break;
+   case kControlKeyCode:    isNonPrintable = true; break;
+   case kAltKeyCode:        isNonPrintable = true; break;
+   case kClearKeyCode:      isNonPrintable = true; break;
+   
+   <span class="remark">// function keys</span>
+   case kF1KeyCode:         isNonPrintable = true; break;
+   case kF2KeyCode:         isNonPrintable = true; break;
+   case kF3KeyCode:         isNonPrintable = true; break;
+   case kF4KeyCode:         isNonPrintable = true; break;
+   case kF5KeyCode:         isNonPrintable = true; break;
+   case kF6KeyCode:         isNonPrintable = true; break;
+   case kF7KeyCode:         isNonPrintable = true; break;
+   case kF8KeyCode:         isNonPrintable = true; break;
+   case kF9KeyCode:         isNonPrintable = true; break;
+   case kF10KeyCode:        isNonPrintable = true; break;
+   case kF11KeyCode:        isNonPrintable = true; break;
+   case kF12KeyCode:        isNonPrintable = true; break;
+   case kPauseKeyCode:      isNonPrintable = true; break;
+   case kScrollLockKeyCode:     isNonPrintable = true; break;
+   case kPrintScreenKeyCode:    isNonPrintable = true; break;
+   
+   <span class="remark">// misc. keys</span>
+   case kInsertKeyCode:         isNonPrintable = true; break;
+   case kDeleteKeyCode:         isNonPrintable = true; break;
+   case kTabKeyCode:            isNonPrintable = true; break;
+   case kBackspaceKeyCode:      isNonPrintable = true; break;
+   
+   <span class="remark">// navigation keys</span>
+   case kEscapeKeyCode:         isNonPrintable = true; break;
+   case kHomeKeyCode:           isNonPrintable = true; break;
+   case kEndKeyCode:            isNonPrintable = true; break;
+   case kPageUpKeyCode:         isNonPrintable = true; break;
+   case kPageDownKeyCode:       isNonPrintable = true; break;
+   case kLeftArrowKeyCode:      isNonPrintable = true; break;
+   case kRightArrowKeyCode:     isNonPrintable = true; break;
+   case kUpArrowKeyCode:        isNonPrintable = true; break;
+   case kDownArrowKeyCode:      isNonPrintable = true; break;
+   case kReturnKeyCode:         isNonPrintable = true; break;
+   case kEnterKeyCode:          isNonPrintable = true; break;
+   default:                     isNonPrintable = false; break;
+  }
+  return isNonPrintable;
+ }
+ <span class="remark">// logic for determining if a keyevent is printable</span>
+ boolean nsIsPrintable(nativeEvt)
+ {
+     if (IsNonCharacterKey(nativeEvt.keyCode)) return false;
+     if (nativeEvt.charCode &lt; 32)) return false;
+     if (IsDeadKey(nativeEvt)) return false;
+     return true;
+ }
+ 
+ 
+     <span class="remark">// logic for generating a key down</span>
+     domEvent.charcode = 0;
+     domEvent.keyCode = PlatformToDOMKeyCode(nativeEvt.keyCode);
+     <span class="remark">// logic for generating a key press</span>
+    if (nsIsPrintable(nativeEvt))
+     {
+       domEvent.charCode = ConvertToUnicode(nativeEvt.charCode);
+       domEvent.keyCode = 0;
+     }
+     else
+     {
+         domEvent.keyCode = PlatformToDOMKeyCode(nativeEvt.keyCode);
+         domEvent.charCode = 0;
+     }
+     <span class="remark">// logic for generating a key up</span>
+     domEvent.charcode = 0;
+     domEvent.keyCode = PlatformToDOMKeyCode(nativeEvt.keyCode);
+  
+</pre>
+
+<address class="author"><a href="mailto:tague@netscape.com">Tague</a> and <a href="mailto:brade@netscape.com">Kathy</a>'s
+proposal<br>
+ 9/19/99 Results of second meeting    Steve Clark (buster@netscape.com)<br>
+ 9/15/99 Initial draft    Steve Clark (buster@netscape.com)</address>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified October 31,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/editor/key-event-spec.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

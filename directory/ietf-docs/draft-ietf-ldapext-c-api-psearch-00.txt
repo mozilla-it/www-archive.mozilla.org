@@ -1,0 +1,454 @@
+
+
+
+
+
+
+LDAPEXT Working Group                                           M. Smith
+INTERNET-DRAFT                             Netscape Communications Corp.
+Intended Category: Standards Track
+Expires: 12 September 1998
+
+
+                                                           12 March 1998
+
+
+              LDAP C API Extensions for Persistent Search
+               <draft-ietf-ldapext-c-api-psearch-00.txt>
+
+
+
+1.  Status of this Memo
+
+This draft document will be submitted to the RFC Editor as a Standards
+Track document. Distribution of this memo is unlimited.  Technical dis-
+cussion of this document will take place on the IETF LDAP Extension
+Working Group mailing list <ietf-ldapext@netscape.com>.  Please send
+editorial comments directly to the author <mcs@netscape.com>.
+
+This document is an Internet-Draft.  Internet-Drafts are working docu-
+ments of the Internet Engineering Task Force (IETF), its areas, and its
+working groups.  Note that other groups may also distribute working
+documents as Internet-Drafts.
+
+Internet-Drafts are draft documents valid for a maximum of six months
+and may be updated, replaced, or obsoleted by other documents at any
+time.  It is inappropriate to use Internet-Drafts as reference material
+or to cite them other than as ``work in progress.''
+
+To learn the current status of any Internet-Draft, please check the
+``1id-abstracts.txt'' listing contained in the Internet-Drafts Shadow
+Directories on ds.internic.net (US East Coast), nic.nordu.net (Europe),
+ftp.isi.edu (US West Coast), or munnari.oz.au (Pacific Rim).
+
+Copyright (C) The Internet Society (1998). All Rights Reserved.
+
+Please see the Copyright section near the end of this document for more
+information.
+
+
+
+
+
+
+
+
+
+
+Expires: 12 September 1998                                      [Page 1]
+
+INTERNET-DRAFT        LDAP C Persistent Search API         12 March 1998
+
+
+2.  Abstract
+
+This document defines extensions to the LDAP C API to support the LDAP
+Persistent Search Simple Change Notification Mechanism.  More specifi-
+cally, this document defines functions to create Persistent Search con-
+trols and to parse Entry Change Notification controls.
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED",  and "MAY" in this document are
+to be interpreted as described in RFC 2119 [KEYWORDS].
+
+
+3.  Background and Intended Usage
+
+The LDAP C API [CAPI] defines a C language application programming
+interface (API) to the Lightweight Directory Access Protocol [LDAP].
+This document defines extensions to that API to support an optional LDAP
+extension for change notification called Persistent Search [PSEARCH].
+
+Persistent Search is an extension to the LDAPv3 [LDAP] search operation
+that provides a simple mechanism by which an LDAP client can receive
+notification of changes that occur in an LDAP server.  The mechanism is
+designed to be very flexible yet easy for clients and servers to imple-
+ment.
+
+LDAP clients that wish to use the Persistent Search feature SHOULD first
+check the supportedControls attribute in a server's rootDSE to determine
+if a value identical to the Persistent Search control's OID is present.
+If the OID is present and the client chooses to use the Persistent
+Search feature, it MUST construct a Persistent Search control and send
+it to the server within an LDAP searchRequest message.  Clients applica-
+tions MAY use the ldap_create_persistentsearch_control() function des-
+ribed in this document to create a Persistent Search control.
+
+If requested in the Persistent Search control, servers MUST return an
+Entry Change Notification control to the client with each SearchResul-
+tEntry message returned due to an entry being added, deleted, or modi-
+fied in the server.  An Entry Change Notification control MAY be parsed
+to extract its contents by using the ldap_parse_entrychange_control()
+function described in this document.
+
+
+
+4.  Creating a Persistent Search Control
+
+The ldap_create_persistentsearch_control() function MAY be used to
+create a Persistent Search control which MAY in turn be passed to the
+ldap_search_ext() or ldap_search_ext_s() functions described in [CAPI]
+
+
+
+Expires: 12 September 1998                                      [Page 2]
+
+INTERNET-DRAFT        LDAP C Persistent Search API         12 March 1998
+
+
+to request a Persistent Search.
+
+       int ldap_create_persistentsearch_control(
+           LDAP            *ld,
+           int             changetypes,
+           int             changesonly,
+           int             return_echg_ctls,
+           char            ctl_iscritical,
+           LDAPControl     **ctrlp
+       );
+
+       #define LDAP_CHANGETYPE_ADD             1
+       #define LDAP_CHANGETYPE_DELETE          2
+       #define LDAP_CHANGETYPE_MODIFY          4
+       #define LDAP_CHANGETYPE_MODDN           8
+       #define LDAP_CHANGETYPE_ANY             (1|2|4|8)
+
+       #define LDAP_CONTROL_PERSISTENTSEARCH   "2.16.840.1.113730.3.4.3"
+
+The parameters to the ldap_create_persistentsearch_control() function
+are:
+
+ld               An LDAP session handle, as obtained from a call to
+                 ldap_init().
+
+changetypes      A bit-sensitive field that indicates which kinds of
+                 changes the client wants to be informed about.  Its
+                 value should be LDAP_CHANGETYPE_ANY, or any logical-OR
+                 combination of LDAP_CHANGETYPE_ADD,
+                 LDAP_CHANGETYPE_DELETE, LDAP_CHANGETYPE_MODIFY, and
+                 LDAP_CHANGETYPE_MODDN.  This field corresponds to the
+                 changeType element of the BER-encoded PersistentSearch
+                 control value itself.
+
+changesonly      A Boolean field that indicates whether the client
+                 wishes to only receive searchResultEntry messages for
+                 entries that have been changed. If non-zero, only
+                 entries that result from changes are returned; other-
+                 wise, all of the static entries that match the search
+                 criteria are returned before the server begins change
+                 notification.  This field corresponds to the change-
+                 sOnly element of the BER-encoded PersistentSearch con-
+                 trol value itself.
+
+return_echg_ctls A Boolean field that indicates whether the server
+                 should send back an Entry Change Notification control
+                 with each searchResultEntry that is returned due to a
+                 change to an entry.  If non-zero, Entry Change
+
+
+
+Expires: 12 September 1998                                      [Page 3]
+
+INTERNET-DRAFT        LDAP C Persistent Search API         12 March 1998
+
+
+                 Notification controls are requested; if zero, they are
+                 not.  This field corresponds to the returnECs element
+                 of the BER-encoded PersistentSearch control value
+                 itself.
+
+ctl_iscritical   Used to set the ctl_iscritical flag within the result-
+                 ing LDAPControl structure.  Pass a non-zero value to
+                 indicate that the Persistent Search control is critical
+                 and a zero value if it is not.
+
+ctrlp            A result parameter that will be assigned the address of
+                 an LDAPControl structure that contains the Persistent
+                 Search control created by this function.  The memory
+                 occupied by the LDAPControl structure should be freed
+                 when it is no longer in use by calling
+                 ldap_control_free().
+
+The ldap_create_persistentsearch_control() function returns an LDAP
+error code to indicate success or failure (LDAP_SUCCESS if all goes
+well).
+
+
+
+5.  Parsing an Entry Change Notification Control
+
+When an application receives entries that contain Entry Change Notifica-
+tion controls, it SHOULD use the ldap_parse_entrychange_control() func-
+tion to look for and parse the control.
+
+       int ldap_parse_entrychange_control(
+           LDAP            *ld,
+           LDAPControl     **ctrls,
+           int             *chgtypep,
+           char            **prevdnp,
+           int             *chgnumpresentp,
+           long            *chgnump
+       );
+
+       #define LDAP_CONTROL_ENTRYCHANGE        "2.16.840.1.113730.3.4.7"
+
+The parameters to the ldap_parse_entrychange_control() function are:
+
+ld               An LDAP session handle.
+
+ctrls            The address of a NULL-terminated array of LDAPControl
+                 structures, typically obtained by a call to
+                 ldap_get_entry_controls().
+
+
+
+
+Expires: 12 September 1998                                      [Page 4]
+
+INTERNET-DRAFT        LDAP C Persistent Search API         12 March 1998
+
+
+chgtypep         This result parameter is filled in with one of the fol-
+                 lowing values to indicate the type of change that was
+                 made that caused the entry to be returned:
+                 LDAP_CHANGETYPE_ADD (1), LDAP_CHANGETYPE_DELETE (2),
+                 LDAP_CHANGETYPE_MODIFY (4), or LDAP_CHANGETYPE_MODDN
+                 (8).  If this parameter is NULL, the change type infor-
+                 mation is not returned.  The value for this result
+                 parameter is pulled from the changeType element of the
+                 BER-encoded EntryChangeNotification control value
+                 itself.
+
+prevdnp          This result parameter is filled in with the DN the
+                 entry had before it was renamed and/or moved by a
+                 modifyDN operation.  It is set to NULL for other types
+                 of changes.  If this parameter is NULL, the previous DN
+                 information is not returned.  The value for this result
+                 parameter is pulled from the previousDN element of the
+                 BER-encoded EntryChangeNotification control value
+                 itself.
+
+chgnumpresentp   This result parameter is filled in with a non-zero
+                 value if a change number was returned in the
+                 EntryChangeNotification control (the change number is
+                 optional and servers MAY choose not to return it).  If
+                 this parameter is NULL, no indication of whether the
+                 change number was present is returned.
+
+chgnump          This result parameter is filled in with the change
+                 number if one was returned in the EntryChangeNotifica-
+                 tion control (chgnumpresentp will be filled in with a
+                 non-zero value if this parameter is filled in).  If
+                 this parameter is NULL, the change number is not
+                 returned.  The value for this result parameter is
+                 pulled from the optional changeNumber element of the
+                 BER-encoded EntryChangeNotification control value
+                 itself.
+
+The ldap_parse_entrychange_control() function returns an LDAP error code
+that indicates whether an EntryChangeNotification control was found and
+whether the parsing was successful.  LDAP_SUCCESS is returned if all
+goes well, LDAP_CONTROL_NOT_FOUND is returned if the ctrls array does
+not include an EntryChangeNotification control, and another LDAP error
+code that is defined in [CAPI] is returned if a parsing error or other
+problem occurs.
+
+
+
+
+
+
+
+Expires: 12 September 1998                                      [Page 5]
+
+INTERNET-DRAFT        LDAP C Persistent Search API         12 March 1998
+
+
+6.  Security Considerations
+
+In some situations, it may be important to prevent general exposure of
+information about the changes that are made to an an LDAP server.
+Clients should take care to not abuse the Persistent Search feature and
+should be prepared for servers to refuse to service a particular Per-
+sistent Search request due to access control or other site-defined poli-
+cies.
+
+Please see the protocol extension document [PSEARCH] for a discussion of
+related security considerations.
+
+
+7.  Copyright
+
+Copyright (C) The Internet Society (1998). All Rights Reserved.
+
+
+others, and derivative works that comment on or otherwise explain it or
+assist in its implementation may be prepared, copied, published and dis-
+tributed, in whole or in part, without restriction of any kind, provided
+that the above copyright notice and this paragraph are included on all
+such copies and derivative works.  However, this document itself may not
+be modified in any way, such as by removing the copyright notice or
+references to the Internet Society or other Internet organizations,
+except as needed for the  purpose of developing Internet standards in
+which case the procedures for copyrights defined in the Internet Stan-
+dards process must be followed, or as required to translate it into
+languages other than English.
+
+The limited permissions granted above are perpetual and will not be
+revoked by the Internet Society or its successors or assigns.
+
+This document and the information contained herein is provided on an "AS
+IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING TASK
+FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT
+INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FIT-
+NESS FOR A PARTICULAR PURPOSE.
+
+
+
+8.  Bibliography
+
+[CAPI]      M. Smith, T. Howes, A. Herron, C. Weider, M. Wahl, A. Anan-
+            tha, "The C LDAP Application Program Interface", INTERNET-
+            DRAFT, <draft-ietf-ldapext-ldap-c-api-00.txt>, March 1998.
+
+
+
+
+Expires: 12 September 1998                                      [Page 6]
+
+INTERNET-DRAFT        LDAP C Persistent Search API         12 March 1998
+
+
+[KEYWORDS]  S. Bradner, "Key words for use in RFCs to Indicate Require-
+            ment Levels", RFC 2119, March 1997.
+
+[LDAP]      M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
+            Protocol (v3)", RFC 2251, December 1997.
+
+[PSEARCH]   M. Smith, G. Good, T. Howes, R. Weltman, "Persistent Search:
+            A Simple LDAP Change Notification Mechanism", INTERNET-DRAFT
+            <draft-ietf-ldapext-psearch-00.txt>, March 1998.
+
+
+9.  Author's Address
+
+   Mark Smith
+   Netscape Communications Corp.
+   501 E. Middlefield Rd., Mailstop MV068
+   Mountain View, CA 94043
+   USA
+   +1 650 937-3477
+   mcs@netscape.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Expires: 12 September 1998                                      [Page 7]
+
+
+
+1.     Status of this Memo............................................1
+2.     Abstract.......................................................2
+3.     Background and Intended Usage..................................2
+4.     Creating a Persistent Search Control...........................2
+5.     Parsing an Entry Change Notification Control...................4
+6.     Security Considerations........................................6
+7.     Copyright......................................................6
+8.     Bibliography...................................................6
+9.     Author's Address...............................................7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

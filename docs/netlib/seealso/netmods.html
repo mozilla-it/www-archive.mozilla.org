@@ -1,0 +1,627 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+<TITLE>Functional components of Netlib</TITLE>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H2>Functional components of Netlib</H2>
+
+<P>This document attempts to break down the current netlib functionality
+into smaller more maintainable libraries. The current Netlib (circa 7/96)
+can be broken down into the following parts:</P>
+
+<P><A HREF="#url_struct">See also: proposed changes to the URL struct</A></P>
+
+<DL>
+<DT><A HREF="#url_lib">URL parsing library</A></DT>
+
+<DD>URL_Type, MakeAbsoluteURL, SpaceToPlus, EscapeURL, etc.</DD>
+
+<DT><A HREF="#loadurl_lib">URL Loader Library</A></DT>
+
+<DD>Net_GetURL, ProcessNet, InterruptWindow, etc.</DD>
+
+<DT><A HREF="#proto_lib">Protocol library</A></DT>
+
+<DD>Low level HTTP, FTP, etc. + mime header parsing</DD>
+
+<DT><A HREF="#stream_lib">stream registration and setup library</A></DT>
+
+<DD>StreamBuilder, RegisterContentTypeConverter, etc.</DD>
+
+<DT><A HREF="#mime_type_lib">file extension to MIME type mapper</A></DT>
+
+<DD>the cinfo stuff borrowed from the server team</DD>
+
+<DT><A HREF="#cache_lib">Cache library</A></DT>
+
+<DD>Disk and memory cache code</DD>
+
+<DT><A HREF="#stream_converter_lib">Random stream converters</A></DT>
+
+<DD>view source converter, plaintext converter, etc.</DD>
+
+<DT><A HREF="#xp_util_lib">Random XP Utilities</A></DT>
+
+<DD>Help file parser, ScanForURL's, EscapeHTML</DD>
+
+<DT><A HREF="#xfe_stuff">Stuff that belongs in the XFE</A></DT>
+
+<DD>Mailcap parser and UNIX external viewer code</DD>
+
+<DT><A HREF="#msglib_stuff">Stuff that belongs in MSGlib</A></DT>
+
+<DD>Newsgroup handling code</DD>
+</DL>
+
+<P><BR>
+<BR>
+</P>
+
+<H2>Below is each of the libraries and a list of all the current Netlib
+PUBLIC API's sorted under the new library headings</H2>
+
+<P>(note that this list will have to be extended to export previously MODULE_PUBLIC
+api's that were shared only within the Netlib)<BR>
+<BR>
+<A NAME="url_lib"></A></P>
+
+<H2>URL Parsing Library Public API</H2>
+
+<P>All functions are prepended by &quot;URL_&quot;</P>
+
+<UL>
+<LI>ParseURL (const char *url, int wanted)</LI>
+
+<LI>UnEscape (char * str);</LI>
+
+<LI>UnEscapeCnt (char * str)</LI>
+
+<LI>IsLocalFileURL(char *address)</LI>
+
+<LI>MakeAbsoluteURL(char * absolute_url, char * relative_url)</LI>
+
+<LI>Escape (const char * str, int mask)</LI>
+
+<LI>EscapedSize (char, int)</LI>
+
+<LI>SpaceToPlus(char)</LI>
+
+<LI>PlusToSpace(char *str)</LI>
+
+<LI>URL_Type(const char *URL)</LI>
+
+<LI>MakeRelativeURL( char *base_url, char *absolute_url, char **relative_url
+);</LI>
+
+<LI>MakeTargetURL( char *base_url, char *src_url, char **relative_url )</LI>
+
+<LI>URL_AddExternalURLType(char * type);</LI>
+
+<LI>URL_DelExternalURLType(char * type);</LI>
+
+<LI>URL_CheckForExternalURLType(char * url);</LI>
+
+<LI>URL_IsHTTP_URL(char *URL)</LI>
+
+<LI>URL_IsURLSecure(char * address);</LI>
+</UL>
+
+<P><A NAME="url_dep"></A></P>
+
+<H3>URL Lib dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+</UL>
+
+<P><A NAME="urls_lib"></A></P>
+
+<H2>URL Struct Library Public API</H2>
+
+<P>This library will probably get folded into the URL loader library if
+it doesn't get larger.</P>
+
+<P>All functions are prepended by &quot;URLS_&quot;</P>
+
+<UL>
+<LI>NET_AddCoordinatesToURLStruct(URL_Struct * url_struct, int32 x_coord,
+int32 y_coord)</LI>
+
+<LI>AddLOSubmitDataToURLStruct(LO_FormSubmitData * sub_data, URL_Struct
+* url_struct)</LI>
+
+<LI>CreateURLStruct (const char *url, NET_ReloadMethod force_reload)</LI>
+
+<LI>MakeUploadURL( char **full_location, char *location, char *user_name,
+char *password )</LI>
+
+<LI>ParseUploadURL( char *full_location, char **location, char **user_name,
+char **password );</LI>
+</UL>
+
+<P><A NAME="urls_dep"></A></P>
+
+<H3>URLS Lib dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+
+<LI>URL struct</LI>
+</UL>
+
+<P><A NAME="loadurl_lib"></A></P>
+
+<H2>URL Loader Library Public API</H2>
+
+<P>All functions are prepended by &quot;LOADURL_&quot;</P>
+
+<UL>
+<LI>GetURL (URL_Loader_Struct * URL_s, present_struct *output_format, NetContext
+* net_context, void* stream_closure, int32 group_id, Net_GetUrlExitFunc*
+exit_routine)</LI>
+
+<UL>
+<LI>The URL_Loader Struct is defined at the bottom of this document</LI>
+
+<LI>the present_struct<A NAME="present_struct"></A> is a structure that
+replaces the current pesentation type enum</LI>
+
+<LI>The NetContext is a structure that contains function pointers to just
+those callbacks necessary for netlib. The netcontext pointer will contain
+a group parent pointer that can used as a grouping ID and as a key for
+interrupting loads. The Netcontext also contains a pointer to the exoit
+routine</LI>
+
+<LI>stream_closure is an opaque structure pointer that will get passed
+into stream creation functions. It can be used to pass a display context
+to layout for instance.</LI>
+</UL>
+
+<LI>ProcessNet(void)</LI>
+
+<UL>
+<LI>event notification will be based on a condition variable that will
+be set TRUE whenever the netlib has data pending in one of it's thread
+queues.</LI>
+</UL>
+
+<LI>InterruptWindow(NetContext *)</LI>
+
+<LI>SilentInterruptWindow(NetContext *)</LI>
+
+<LI>InterruptStream (URL_Struct *nurl)</LI>
+
+<LI>InterruptSocket (NETSOCK socket)</LI>
+
+<UL>
+<LI>This one may be difficult to do, so if it isn't needed any more it
+will be deprecated</LI>
+</UL>
+
+<LI>AreThereActiveConnectionsForWindow(NETContext)</LI>
+
+<LI>HasNetworkActivity(NetContext *, Bool waiting, Bool background)</LI>
+
+<LI>InitNetLib(int socket_buffer_size, int max_number_of_connections)</LI>
+
+<LI>ShutdownNetLib(void)</LI>
+
+<LI>ChangeMaxNumberOfConnections(int max_number_of_connections)</LI>
+
+<LI>ChangeMaxNumberOfConnectionsPerContext(int max_number_of_connections)</LI>
+
+<LI>ChangeSocketBufferSize (int size)j</LI>
+
+<LI>SetCacheUseMethod(CacheUseEnum method)</LI>
+
+<LI>CheckForTimeBomb(????)</LI>
+
+<LI>PrintNetlibStatus(void)</LI>
+
+<LI>AddExternalURLType(char * type)</LI>
+
+<LI>DelExternalURLType(char * type)</LI>
+
+<LI>SetNewContext(URL_Loader_Struct *URL_s, NetContext* new_context, void
+* stream_closure, Net_GetUrlExitFunc *exit_routine)</LI>
+
+<LI>IsSafeForNewContext(URL_Loader_Struct *URL_s)</LI>
+</UL>
+
+<P><A NAME="loadurl_dep"></A></P>
+
+<H3>Load URL lib dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+
+<LI><A HREF="#url_dep">url lib</A></LI>
+
+<LI><A HREF="#proto_dep">proto lib</A></LI>
+
+<LI><A HREF="#cache_dep">cache lib</A></LI>
+
+<LI><A HREF="#stream_dep">stream lib</A></LI>
+</UL>
+
+<P><A NAME="proto_lib"></A></P>
+
+<H2>Protocol Library Public API</H2>
+
+<P>This library will likely be broken down further into one library per
+protocol.</P>
+
+<P>Each protocol will have it's own directory and will be modeled after
+the JAVA URL Connection API.</P>
+
+<P>All functions are prepended by &quot;PROTO_&quot;</P>
+
+<UL>
+<LI>WarnOnMailtoPost(PRBool warn)</LI>
+
+<LI>SendEmailAddressAsFTPPassword(Bool do_it)</LI>
+
+<LI>UsePASV(Bool do_it)</LI>
+
+<LI>SetPopPassword(const char *password)</LI>
+
+<LI>GetPopUsername(void)</LI>
+
+<LI>SetPopUsername(const char *username)</LI>
+
+<LI>GetPopMsgSizeLimit(void)</LI>
+
+<LI>LeavePopMailOnServer(Bool do_it)</LI>
+
+<LI>GetProxyConfigSource(void)</LI>
+
+<LI>SetNoProxyFailover(void)</LI>
+
+<LI>SetProxyServer(NET_ProxyType type, const char * host_port)</LI>
+
+<LI>SelectProxyStyle(NET_ProxyStyle style)</LI>
+
+<LI>ReloadProxyConfig(MWContext *window_id)</LI>
+
+<LI>SetNewsHost(const char * hostname)</LI>
+
+<LI>SetSocksHost(char * host)</LI>
+
+<LI>SetTCPConnectTimeout(uint32 seconds)</LI>
+
+<LI>ProxyAutoConfig(int fmt, void *data_obj, URL_Struct *URL_s, MWContext
+*w);</LI>
+
+<LI>SetMailRelayHost(char * host)</LI>
+
+<LI>SetIdentifyMeType(IdentifyMeEnum method)</LI>
+
+<LI>SetCookiePrefs(NET_CookiePrefsEnum pref_enum)</LI>
+
+<LI>SaveCookies(char *filename)</LI>
+
+<LI>ToggleTrace(void)</LI>
+
+<LI>SetNumberOfNewsArticlesInListing(int32 number)</LI>
+
+<LI>SetCacheXOVER(XP_Bool value)</LI>
+
+<LI>ParseMimeHeader(MWContext *context, URL_Struct *URL_s, char *name,
+char *value)</LI>
+</UL>
+
+<P><A NAME="proto_dep"></A></P>
+
+<H3>PROTO dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+
+<LI>ssl</LI>
+
+<LI><A HREF="#url_dep">url lib</A></LI>
+
+<LI><A HREF="#mime_dep">mime type lib</A></LI>
+
+<P>These dependancies need to be cleaned up</P>
+
+<LI>msglib</LI>
+
+<LI>fe's</LI>
+</UL>
+
+<P><A NAME="stream_lib"></A></P>
+
+<H2>Stream Library Public API</H2>
+
+<P>All functions are prepended by &quot;NETSTREAM_&quot;</P>
+
+<UL>
+<LI>StreamBuilder ( FO_Present_Types format_out, URL_Struct * anchor, MWContext
+* window_id);</LI>
+
+<LI>NewStream(char *, MKStreamWriteFunc, MKStreamCompleteFunc, MKStreamAbortFunc,
+MKStreamWriteReadyFunc, void *, MWContext *)</LI>
+
+<LI>RegisterContentTypeConverter (char * format_in, FO_Present_Types format_out,
+void * data_obj, NET_Converter * converter_func)</LI>
+
+<LI>RegisterEncodingConverter (char * encoding_in, void * data_obj, NET_Converter
+* converter_func)</LI>
+
+<LI>ClearAllConverters(void)</LI>
+</UL>
+
+<P><A NAME="stream_dep"></A></P>
+
+<H3>Stream lib dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+
+<LI><A HREF="#url_dep">url lib</A></LI>
+</UL>
+
+<P><A NAME="mime_type_lib"></A></P>
+
+<H2>MIME type Library Public API</H2>
+
+<P>All functions are prepended by &quot;MIMETYPE_&quot;</P>
+
+<UL>
+<LI>cinfo_MasterListPointer(void)</LI>
+
+<LI>NET_cinfo_find_type(char *uri)</LI>
+
+<LI>cinfo_find_info_by_type(char *mime_type)</LI>
+
+<LI>cdataRemove(NET_cdataStruct *cd)</LI>
+
+<LI>cdataCreate(void)</LI>
+
+<LI>cdataCommit(char * mimeType, char * cdataString)</LI>
+
+<LI>cinfo_find_ext(char *mime_type)</LI>
+
+<LI>IsOldMimeTypes (XP_List *masterList)</LI>
+
+<LI>PrintFileType(int special_type)</LI>
+
+<LI>InitFileFormatTypes(char * personal_file, char *global_file)</LI>
+
+<LI>cdataAdd(NET_cdataStruct *cd)</LI>
+
+<LI>cdataExist(NET_cdataStruct *old_cd )</LI>
+
+<LI>cdataFree(NET_cdataStruct *cd)</LI>
+
+<LI>CleanupFileFormat(char *filename)</LI>
+</UL>
+
+<P><A NAME="mime_dep"></A></P>
+
+<H3>mime type mapping library dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+</UL>
+
+<P><A NAME="cache_lib"></A></P>
+
+<H2>Cache Library Public API</H2>
+
+<P>All functions are prepended by &quot;CACHE_&quot;</P>
+
+<UL>
+<LI>CacheConverter (FO_Present_Types format_out, void *converter_obj, URL_Struct
+*URL_s, MWContext *window_id)</LI>
+
+<LI>DontDiskCacheSSL(XP_Bool set)</LI>
+
+<LI>CleanupCacheDirectory(char * dir_name, const char * prefix)</LI>
+
+<LI>ChangeCacheFileLock(URL_Struct *URL_s, Bool set)</LI>
+
+<LI>IsURLInDiskCache(URL_Struct *URL_s)</LI>
+
+<LI>IsURLInMemCache(URL_Struct *URL_s)</LI>
+
+<LI>WriteCacheFAT(char *filename, Bool final_call)</LI>
+
+<LI>DestroyCacheDirectory(char * dir_name, char * prefix)</LI>
+
+<LI>SetMemoryCacheSize(int32 new_size)</LI>
+
+<LI>SetDiskCacheSize(int32 new_size)</LI>
+
+<LI>GetMemoryCacheSize(void)</LI>
+
+<LI>GetMaxMemoryCacheSize(void)</LI>
+
+<LI>GetDiskCacheSize(void)</LI>
+
+<LI>NumberOfFilesInDiskCache()</LI>
+
+<LI>RemoveLastMemoryCacheObject(void)</LI>
+
+<LI>RemoveLastDiskCacheObject(void)</LI>
+</UL>
+
+<P><A NAME="cache_dep"></A></P>
+
+<H3>cache lib dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+
+<LI><A HREF="#url_dep">url lib</A></LI>
+
+<LI><A HREF="#stream_dep">stream lib</A></LI>
+</UL>
+
+<P><A NAME="stream_converter_lib"></A></P>
+
+<H2>Client Stream Converter Library Public API</H2>
+
+<P>All functions are prepended by &quot;CSCL_&quot;</P>
+
+<UL>
+<LI>HTTPIndexFormatToHTMLConverter(int format_out, void *data_object, URL_Struct
+*URL_s, MWContext *window_id);</LI>
+
+<LI>HTTPIndexParserInit(void);</LI>
+
+<LI>HTTPIndexParserPut(HTTPIndexParserData *obj, char *data, int32 len)</LI>
+
+<LI>HTTPIndexParserSort(HTTPIndexParserData *data_obj, int sort_method)</LI>
+
+<LI>HTTPIndexParserGetTotalFiles(HTTPIndexParserData *data_obj)</LI>
+
+<LI>HTTPIndexParserGetFileNum(HTTPIndexParserData *data_obj, int32 num)</LI>
+
+<LI>HTTPIndexParserGetTextMessage(HTTPIndexParserData *data_obj)</LI>
+
+<LI>HTTPIndexParserGetHTMLMessage(HTTPIndexParserData *data_obj)</LI>
+
+<LI>ColorHTMLStream (int format_out, void *data_obj, URL_Struct *URL_s,
+MWContext *window_id)</LI>
+
+<LI>PlainTextConverter (FO_Present_Types format_out, void *data_obj, URL_Struct
+*URL_s, MWContext *window_id);</LI>
+
+<LI>CreateMochaConverter(FO_Present_Types format_out, void *data_object,
+URL_Struct *URL_struct, MWContext *window_id)</LI>
+</UL>
+
+<P><A NAME="cscl_dep"></A></P>
+
+<H3>client stream converter lib dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+
+<LI><A HREF="#url_dep">url lib</A></LI>
+
+<LI><A HREF="#stream_dep">stream lib</A></LI>
+</UL>
+
+<P><A NAME="xp_util_lib"></A></P>
+
+<H2>XP Utility Library Public API</H2>
+
+<P>All functions are prepended by &quot;XPUL_&quot;</P>
+
+<UL>
+<LI>RegisterConverters(char * personal_file, char * global_file)</LI>
+
+<LI>GetHTMLHelpFileFromMapFile</LI>
+
+<LI>GetUniqueIdString(void)</LI>
+
+<LI>RegisterMIMEDecoders (void)</LI>
+
+<LI>ScanForURLS(MWContext *context, char * input, char *output, int output_size,
+XP_Bool urls_only_p)</LI>
+
+<LI>EscapeHTML(const char * string)</LI>
+
+<LI>PublishDirectory(MWContext *context, char *local_directory, char *remote_directory)</LI>
+
+<LI>PublishFiles(MWContext *context, char **files_to_publish, char *remote_directory)</LI>
+
+<LI>AssembleAllFilesInDirectory(MWContext *context, char * local_dir_name)</LI>
+
+<LI>UploadDirectory(MWContext *context, char *local_dir, char *remote_dir_url)</LI>
+</UL>
+
+<P><A NAME="xp_dep"></A></P>
+
+<H3>misc XP util dependancies</H3>
+
+<UL>
+<LI>nspr</LI>
+
+<LI><A HREF="#url_dep">url lib</A></LI>
+
+<LI><A HREF="#stream_dep">stream lib</A></LI>
+</UL>
+
+<P><A NAME="xfe_stuff"></A></P>
+
+<H2>Functions that should be moved into the XFE</H2>
+
+<UL>
+<LI>mailcap_MasterListPointer(void);</LI>
+
+<LI>NET_mdataCreate(void);</LI>
+
+<LI>NET_mdataAdd(NET_mdataStruct *md);</LI>
+
+<LI>NET_mdataRemove(NET_mdataStruct *md);</LI>
+
+<LI>NET_mdataFree(NET_mdataStruct *md);</LI>
+
+<LI>NET_mdataStruct* NET_mdataExist(NET_mdataStruct *old_md );</LI>
+
+<LI>CleanupMailCapList(char* filename)</LI>
+
+<LI>RegisterExternalViewerCommand(char * format_in, char * system_command,
+unsigned int stream_block_size)</LI>
+
+<LI>RegisterExternalDecoderCommand (char * format_in, char * format_out,
+char * system_command)</LI>
+
+<LI>ProcessMailcapFile (char *file, Bool is_local)</LI>
+
+<LI>ClearExternalVieweraConverters(void)</LI>
+</UL>
+
+<P><A NAME="msglib_stuff"></A></P>
+
+<H2>Functions that should be moved into the Message Lib</H2>
+
+<UL>
+<LI>RegisterNewsrcFile(char *filename, char *hostname, Bool is_secure,
+Bool is_newsgroups_file)</LI>
+
+<LI>UnregisterNewsHost(const char *host, Bool is_secure)</LI>
+
+<LI>MapNewsrcHostToFilename(char *host, Bool is_secure, Bool is_newsgroups_file);</LI>
+
+<LI>SaveNewsrcFileMappings(void)</LI>
+
+<LI>ReadNewsrcFileMappings(void)</LI>
+
+<LI>FreeNewsrcFileMappings(void)</LI>
+</UL>
+
+<H2><A NAME="url_struct"></A>Changes to the URL struct</H2>
+
+<P>The URL struct can be broken down into two parts.</P>
+
+<P>One part describes what is necessary to load the URL:</P>
+
+<PRE>URL_Load_Struct
+-&gt;address
+-&gt;method
+-&gt;post_data
+-&gt;etc...
+</PRE>
+
+<P>Another part describes the object after it is loaded:</P>
+
+<PRE>URL_Desc_Struct
+-&gt;content_type
+-&gt;content_length
+-&gt;last_modified
+-&gt;etc...
+</PRE>
+
+<P>The URL struct can then be expressed as a combination of the URL_Load_Struct
+and the URL_Desc_Struct.</P>
+
+<P>Comments?<BR>
+<A HREF="mailto:montulli@netscape.com">montulli@netscape.com</A></P>
+
+</BODY>
+</HTML>

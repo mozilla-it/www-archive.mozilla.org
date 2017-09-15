@@ -1,0 +1,445 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+  <title>Addressbook refactoring proposal</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<h1>Modifying Mozilla Address Book Code</h1>
+
+<p>This document explains the process underway to modify the existing code of 
+the Mozilla address book to enable support many types of address book.</p>
+
+<p>Currently the address book implementation only supports one type of address 
+book which utilizes the Mork database infrastructure for storage of address 
+book data. Functionality associated with database is reflected in the design 
+and implementation of address book interfaces, components implementing the 
+interfaces and clients, such as the java script, which use the components.</p>
+
+<p>The address book interfaces and component framework needs to be redesigned 
+such that it is not dependent on one particular implementation of a specific 
+address book type.</p>
+
+<p>Concentration has currently been focused on two key areas:</p>
+
+<ol>
+ <li>Address book directory</li>
+ <li>Address book card</li>
+</ol>
+
+<p>which relate to the content of an address book that are composed of:</p>
+
+<dl>
+ <dt>RDF datasource</dt>
+ <dd>
+  Consists of statements or assertions relating resources to each other via 
+  an arc or semantic link (can be considered a property).
+ </dd>
+ <dt>RDF resources</dt>
+ <dd>Uniquely defined by a URI. RDF resources are instantiated items of content.</dd>
+
+ <dt>Specific interfaces corresponding to content, and implementations of</dt>
+ <dd>
+  An RDF resource implements specific interfaces associated with the content 
+  the resource represent. Thus an RDF datasource can perform specific operations 
+  on a resource to define statements.
+ </dd>
+</dl>
+
+<p>These correspond to three XPCOM components:</p>
+
+<ul>
+  <li>RDF datasource component</li>
+
+  <li>RDF resource component</li>
+  <li>Specific property component</li>
+</ul>
+
+<h2>Card</h2>
+
+<p>If we concentrate on the Address book card area there is an:</p>
+
+<dl>
+ <dt>Card RDF datasource XPCOM component</dt>
+
+ <dd>Instantiating class: <code>nsAbCardDataSource</code>
+ <dd>Registry string: <code>@mozilla.org/rdf/datasource;1?name=addresscard</code></dd>
+ <dt>Card RDF resource XPCOM component</dt>
+ <dd>Instantiating class: <code>nsAbCard</code>
+ <dd>Registry string: <code>@mozilla.org/rdf/resource-factory;1?name=abcard</code></dd>
+
+ <dt>Card property XPCOM component</dt>
+ <dd>Instantiating class: <code>nsAbCardProperty</code></dd>
+ <dd>Registry string: <code>@mozilla.org/addressbook/cardproperty;1</code></dd>
+</dl>
+
+<p>When examining the address book code it became apparent that the latter 
+two parts of content required a closer look. The structure of these components 
+are closely related as can be seen when looking at the class diagram:</p>
+
+<p><img src="sv010011.gif" alt="Graphic1" width="442" height="473"></p>
+
+<p>The components are identified by the note underneath the class, which 
+presents the registry name. The card property component is instantiated 
+when a new card is created which is then 'inserted' in the directory. The 
+card is not associated with an RDF resource until it is 'inserted'.</p>
+
+<p>On the left had side is the path to the <code>nsIRDFResource</code>
+interface and on the right is the path to the specific <code>nsIAbCard</code>
+interface. The latter has specific attributes and methods.</p>
+
+<p>It immediately becomes apparent that the left hand side structure
+contains specifics about data bases because of the <code>nsIAddrDBListener</code>
+inteface. A Card RDF resource component listens to the corresponding
+database, defined by the <code>nsIAddrDatabase</code> interface, where 
+the card is stored so that the component may update if changes occur.</p>
+
+<p>On the right hand side the <code>nsAbCardProperty</code> class 
+implements all the methods and attributes associated with the
+<code>nsIAbCard</code> interface. The <code>nsIAbCard</code> interface 
+contains attributes and methods specific to data base functionality:</p>
+
+<dl>
+ <dd><code>readonly attribute unsigned long key;</code></dd>
+
+ <dd><code>void setRecordKey(in unsigned long key);</code></dd>
+ <dd><code>attribute unsigned long dbTableID;</code></dd>
+ <dd><code>attribute unsigned long dbRowID;</code></dd>
+ <dd><code>void setAbDatabase(in nsIAddrDatabase database);</code></dd>
+ <dd><code>void copyCard(in nsIAbCard srcCard);</code></dd>
+ <dd><code>readonly attribute string cardURI;</code></dd>
+
+</dl>
+
+<p>For different address book types it should be necessary that:</p>
+
+<ol>
+ <li>
+  An instantiated card property component is independent of the address 
+  book implementation
+ </li>
+ <li>
+  Address book implementations should not have to deal to data base 
+  specific methods which may not not have any relation to how the
+  implementation behaves
+ </li>
+</ol>
+
+<p>It was decided that the right hand side required 'refactoring' into 
+general and specific attributes and methods:</p>
+
+<p><img src="sv010013.gif" alt="Graphic2" width="360" height="381"></p>
+
+<p>Specific methods from the original <code>nsIAbCard</code> interface were 
+moved to a new interface called <code>nsIAbDBCard</code> interface. 
+Implementing methods were then moved accordingly. The
+<code>nsAbCardProperty</code> class implements some methods associated with 
+the <code>nsIAbCard</code> interface. This is now defined to be the card 
+property component and is capable of supporting all the required 
+functionality for creating a new card via the Javacript and XUL GUI.</p>
+
+<p>Specific database methods are now implemented by the 
+<code>nsAbDBCardProperty</code> class. The <code>nsAbDBCard</code> class 
+contains the same content as the previous <code>nsAbCard</code> class and 
+the implementation of the <code>nsIRDFResource</code> interface has not changed.</p>
+
+<p>Only the registry string has changed from <code>?name=abcard</code>
+
+to <code>?name=abcardmdb</code>. The implications of this are that every 
+database card RDF resource component instantiate will have a URI scheme 
+<code>abcardmdb</code>. An example URI may look like 
+<code>abcardmdb://abook.mab/Card1</code>. Thus cards originating from the 
+Mozilla address book database are uniquely defined as before.</p>
+
+<p>The consequences of the 'refactoring' are perhaps not as simplistic as 
+previously described. It was necessary to add a new attribute to the 
+<code>nsIAbCard</code> interface for mail list support and modify some 
+other existing interfaces to support the functionality to add a new card to 
+a directory. In addition code which depended on specific methods in the old 
+<code>nsIAbCard</code> interface required modifiction to query the component 
+for the <code>nsIAbDBCard</code> interface. Since this was only required by 
+code related to database functionality this operation was guaranteed to be 
+successful.</p>
+
+<p>Overall the 'refactoring' resulted in minimal changes to existing code and 
+its functionality. No changes were required to the corresponding data source.</p>
+
+<p>Given the new arrangement it is easy to represent cards associated with 
+the LDAP star web top address book:</p>
+
+<p><img src="sv010015.gif" alt="Graphic3" width="385" height="381"></p>
+
+<p>The same pattern as before is literally copied. However, it may not be 
+necessary to be as exact. There may be no need for the 
+<code>nsAbLDAPSWTCardProperty</code> class or a specific card interface 
+<code>nsIAbLDAPSWTCard</code>. It is a requirement that the 
+<code>nsAbLDAPSWTCard</code> class implement the <code>nsIRDFResource</code> 
+
+interface, via inheritance of the <code>nsRDFResource</code> class, and 
+that it has a uniquely defined registry name conforming to the RDF resource 
+factory schema. In this case all LDAP SWT card RDF resource components will 
+have a URI scheme of <code>abcardldapswt</code>.</p>
+
+<h2>Directory</h2>
+
+<p>The same pattern for 'refactoring' the card may be applied to the directory 
+component framework. This is currently underway such that it should 
+straightforward to implement different directory implementations without 
+needing different RDF directory data sources.</p>
+
+<h2>Managing multiple address book types</h2>
+
+<p>Once the framework is in place for managing multiple address book types 
+it is necessary to instantiate address books from preferences, create new 
+address books and delete address books (updating the preferences). This 
+currently assumes that an address book, which corresponds to an directory 
+RDF resource is of a singular type <code>abdirectory</code>, now that there
+are multiple types, for example <code>abdirectorymdb</code> and 
+<code>abdirectoryldapswt</code>, it is necessary to change the previous 
+behaviour.</p>
+
+<p>The code associated with the directory component manages the instantiation 
+of address books and preferences. This code needs to be moved into a new 
+directory component in the new framework. This component will use the existing 
+<code>abdirectory</code> URI scheme. This is like a boot strap component with 
+limited functionality and only makes sense when instantiate with a URI of
+<code>abdirectory://</code>. In XUL files RDF data sources are bound to an RDF 
+resource to obtain an entry into the graph of statements. Since the URI scheme 
+has not changed the XUL needs no modification.</p>
+
+<p>For the instantiation of address books there appears to be a requirement 
+for each directory type to have a corresponding factory component that has a 
+singular create method and takes a set of properties as a parameter. This 
+then disassociates how the preferences are stored from the address book. 
+Currently they are quite tightly bound.</p>
+
+<p>There is a requirement to ensure that the existing method of storing 
+preferences is suitable for future implementations of address books.</p>
+
+<p>Each address book type may require a separate GUI dialog to allow the user 
+to create a new address book of that type.</p>
+
+<h2>LDAP address books</h2>
+
+<p>Two types of LDAP address book have been identified:</p>
+
+<ol>
+
+ <li>
+  Star Webtop LDAP address book<br>
+  Behaviour wise this is equivalent to local address books and corresponds 
+  to a users personal address book.
+ </li>
+ <li>
+  Personnel LDAP address book<br>
+  Behaviour wise this is equivalent to Netscape 4.x LDAP address books. A 
+  query based approach is required to efficiently return a constrained 
+  sub-set of address book cards.
+ </li>
+</ol>
+
+<p>It is considered that the former can easily be integrated into the redesigned 
+framework, albeit with some possible inefficiencies which are related to auto 
+completion of email addresses. These inefficiencies relate to how the address 
+book is queried. Thus it appears that both require some additional interface 
+for query support.</p>
+
+<p>The latter will require more changes to the environment to support GUI based 
+queries. However, the concept of a directory and card need not change, so it 
+should be possible to drag a card from a personnel address book into a personal 
+address book. Additional attributes will need to be added to the directory to 
+indicate query and read only operations.</p>
+
+<p>Both require LDAP client code to communicate the LDAP protocol. Mozilla 
+contains an LDAP C SDK and corresponding XPCOM components which use this SDK. 
+The LDAP address book implementations should ideally use the XPCOM components. 
+It needs to be ensured that these meet the requirements.</p>
+
+<p>Note that the Star Webtop LDAP address book is of a higher priority. The 
+changes to the existing framework will enable easier integration of the 
+personnel LDAP address book. It does not imply that the engineers on the 
+address book project will implement this address book type.</p>
+
+<h2>Multiple data sources</h2>
+
+<p>It remains to be seen if there are any caveats to the approach of having 
+mulitple data resource types and a singular data source. The only concern of 
+current note is the efficient use of the directory interfaces by the singular 
+data source. If this becomes a problem it should be possible to extend 
+components to support additional functionality and:</p>
+
+<ul>
+ <li>
+  modify the singular data source to support multiple directory
+  functionality.
+ </li>
+ <li>
+  create new directory data sources for specific address book types which 
+  conform to the existing directory data source schema. A top level composite 
+  data source will be required to aggregate the multiple data sources.
+ </li>
+</ul>
+
+<h2>Multiple sub-directories</h2>
+
+<p>Currently the hierarchy of the address book structure is limited to a 
+maximum depth of three:</p>
+
+<ol>
+ <li>multiple address books</li>
+ <li>address book</li>
+ <li>mail list</li> 
+</ol>
+
+<p>This may require extending to one more depth to support the concept of 
+address book folders. Otherwise multiple address books of the same type 
+will have to be instantiated which represent each folder.</p>
+
+<p>It is uncertain what modification are required to the address book to 
+support this behaviour. However a 'mail list' is a sub directory of a 
+certain type, so it should be possible (theoretically) to support 
+sub-directories that are not mail lists.</p>
+
+<h2>Plan</h2>
+<h3>Framework</h3>
+
+<ul>
+ <li>Refactor directory framework to enable multiple directory implementations.</li>
+ <li>
+  Refactor modified directory framework to enable boot strap component. All 
+  preference saving code will be in here.
+ </li>
+
+ <li>
+  Modify bootstrap component to instantiate address book types from 
+  corresponding factory components. This ensures that directory implementations 
+  are de-coupled from the preferences. This will require modification to the 
+  <code>nsIAbDirectory</code> interface to remove some associated attributes 
+  and methods.
+ </li>
+</ul>
+
+<h3>Star Webtop LDAP address book</h3>
+
+<ul>
+ <li>Ensure that LDAP C SDK and XPCOM components are suitable</li>
+
+ <li>
+  Decide on <code>vCard</code> or <code>inetOrgPerson</code> schema to be 
+  used in the LDAP server. Mozilla uses a similar schema to 
+  <code>inetOrgPerson</code>. I would prefer if <code>vCard</code> was 
+  used throughout the Mozilla address book framework, however this will 
+  result in many changes to code. Thus for now it is better to leave it 
+  as is. This implies, from a developer perspective, that it would be 
+  better for the LDAP server to use <code>inetOrgPerson</code> since it 
+  is simpler for the LDAP address components to directly map the attributes.
+ </li>
+
+ <li>Implement read only functionality</li>
+ <li>Implement update functionality, delete and new.</li>
+ <li>
+  Implement mail list functionality. This may require additional schema 
+  in the LDAP directory.
+ </li>
+</ul>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 31,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/directory/addrbook-refactoring-proposal.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

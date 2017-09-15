@@ -1,0 +1,325 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+    <title>Proposal for extending the use of Unicode in ECMAScript identifiers</title>
+  <script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+  
+
+  
+    <b><font size="+3">Proposal for extending the use of Unicode in ECMAScript identifiers</font>
+    <br>Written by Michael Ang &lt;<a href="mailto:mang@subcarrier.org">mang@subcarrier.org</a>&gt;<br>
+      Comments to Norris Boyd &lt;<a href="mailto:nboyd@atg.com">nboyd@atg.com</a>&gt;</b>
+  </p>
+
+    <h2>I. Background</h2>
+    <ul>
+      <p>
+	  ECMAScript identifiers are currently specified as being Unicode.  However,
+	  only the first 128 Unicode characters are allowed, effectively restricting
+	  identifiers to ASCII.
+	</p>
+	<p>
+	  Implementations of ECMAScript are currently in use around the world.  Developers
+	  whose native language is not English should be able to have identifiers that
+	  make sense to them. Although arbitrary strings can be used for named property
+	  lookup, allowing ideographs and other Unicode characters in identifiers
+	  will make it easier for global developers to write scripts.
+	</p>
+
+	<p>Since implementations must currently accept Unicode characters,
+	  extending the range of characters allowed to that of the Unicode identifier
+	  class should not be an undue burden.
+	</p>
+	<p>
+	  Java guarantees that escaped Unicode characters occurring in source code
+	  (in the form \uNNNN) will be unescaped before compilation.  This can
+	  lead to problems in dynamic languages, for example when a newline
+	  character is escaped:
+	</p>
+	<p>
+	  Program 1 (note that \u000A is the newline character): <br>
+	  <code>
+	    int foo = 5;\u000Aint bar =6;
+	  </code></p>
+	<p>
+	  Program 2 (equivalent in Java, but not ECMAScript): <br>
+	  <code>
+	    int foo = 5;<br>
+	    int bar = 6;
+	  </code>
+	</p>
+	<p>
+	  Because allowing Unicode escapes in identifiers would complicate interpreter
+	  implementations, this is forbidden.  Note that Unicode escapes are still allowed
+	  in comments and literal strings, but are not decoded.
+	</p>
+	<p>
+	  Section 5.14 of the Unicode Standard v2.0 gives implementation guidelines
+	  for identifiers. Most identifiers legal under these guidelines are
+	  legal in ECMAScript. ECMAScript differs in that no provisions are
+	  given for ignoring formatting characters (which are forbidden).
+	</p>
+    </ul>
+    <h2>II. Recommendations</h2>
+    <ul>
+      <p>
+	  These recommendations are made against the April 22 ECMAScript draft.
+	  Specific changes to the document appear in <b>bold</b> type.
+	</p>
+	<p>
+	  <b>&sect;6 Source Text</b>
+	</p>
+	<ul>
+	  <p>
+	      <i>Amend the first section as follows:</i><br>
+	      &quot;However, non-ASCII Unicode characters may appear
+	      only within <b>identifiers</b>, comments, and string literals.
+	      <b>In identifiers, the exact set of Unicode characters allowed is
+		specified in Section 7.5 and corresponds to those Unicode
+		characters with the property of alphabetic, decimal digit,
+		combining mark,	or ideographic.</b> In string literals, any
+	      Unicode character may also be expressed as a Unicode escape sequence
+	      consisting of six ASCII characters, namely \u plus four hexadecimal
+	      digits. Within a comment, such an escape sequence is effectively ignored
+	      as part of the comment. Within a string literal, the Unicode
+	      escape sequence contributes one character to the string value of the literal.&quot;
+	    </p>
+	</ul>
+	<p>
+	  <b>&sect;7.5 Identifiers</b>
+	</p>
+	<ul>
+	    <p>
+	      <i>Amend the first section as follows:</i><br>
+	      &quot;An identifier is a character sequence of unlimited length, where each character
+	      in the sequence must be a <b>Unicode character with the property of
+		alphabetic (category "L"), decimal digit (category "Nd"), ideographic, or combining.
+		For historical reasons, the underscore (_) character and dollar sign ($) are also supported.
+		The first character may not be a Unicode decimal digit.</b>
+	    </p>
+	    <p>
+	      <b>Two ECMAScript identifiers are the same only if they have the same sequence of Unicode
+		characters (as defined by their Unicode code points). This means that two identifiers
+		with the same
+		external appearance may not be identical.  Composite Unicode characters are treated as distinct
+		from their decomposed equivalents.  For example, LATIN CAPITAL LETTER A (\u0061) followed by
+		COMBINING RING ABOVE (\u030A) is distinct from LATIN CAPITAL LETTER A WITH RING ABOVE (\u00C5).&quot;
+	      </b>
+	    </p>
+	    <p>
+	      <b>The Unicode Standard v2.0 specifies implementation guidlines for identifiers
+		(&sect;5.14 Identifiers).  These significant differences between ECMAScript
+		and these guidelines should be noted:
+	    <ul>
+	      <li>since identifiers are compared based on the sequence of their code points,
+		identifiers that appear identical may not be
+	      <li>no provision is made for ignoring layout and format control characters
+	    </ul>
+	  </b>
+	  </p>
+
+	    <p>
+	      <i>Amend the BNF as follows:</i><br>
+	      <p>
+	      &quot;IdentifierName ::<br>
+	      <ul>
+		IdentifierLetter<br>
+		<b>IdeographicCharacter</b><br>
+		<b>IdentifierName CombiningCharacter</b></br>
+		<b>IdentifierName Extender</b><br>
+		<b>IdentifierName IdeographicCharacter</b><br>
+		IdentifierName IdentifierLetter<br>
+		IdentifierName DecimalDigit<br>
+	      </ul>
+	    </p>
+	    
+	    <p>
+	      <b>CombiningCharacter</b><br>
+	    </p>
+	    <p>
+	      <ul>
+	      <b>A CombiningCharacter is a Unicode character with the normative
+		combining property.</b>
+	    </ul>
+	    </p>
+
+	    <p>
+	      <b>Extender</b><br>
+	    </p>
+	    <p>
+	    <ul>
+		<b>An Extender is a a Unicode character in a set defined
+		  in &sect;5.14 of the Unicode Standard 2.0. (XXX should
+		expand this reference.)</b>
+		</ul>
+	    </p>
+
+	    <p>IdentifierLetter :: one of</p>
+	    <ul>
+		<p>
+		  [ASCII table with _ and $]
+		</p>
+		<p>
+		  <b>Additionally, an IdentifierLetter may be a member of the
+		    Unicode letter class (those Unicode
+		    characters in category "L"), or the Unicode character
+		  FULLWIDTH LOW LINE (U+FF3F).</b>
+		</p>
+	    </ul>
+	    <p>
+
+	      <b>IdeographicCharacter ::</b>
+	    </p>
+	    <p>
+	      <ul>
+	      <b>An IdentifierIdeographic may be a Unicode character with the ideographic property.
+		The ideographic property is an informative property of the Compatibility Han
+		characters, the Unified Han Set, and Hangzhou-style numerals, and the IDEOGRAPHIC
+		NUMBER ZERO.</b>
+	     </ul>
+	    </p>
+
+	    <p>
+	      DecimalDigit :: one of<br>
+	      <ul>
+	      0 1 2 3 4 5 6 7 8 9
+	    </ul>
+	    </p>
+	    <p>
+	      <ul>
+	      <b>Additionally, a DecimalDigit may be a member of the Unicode decimal
+		number class (those Unicode
+		characters in category "Nd".</b>&quot;
+	    </ul>
+	    </p>
+	</ul>
+	<p>
+	  <b>&sect;15.9.1 Regular Expression Pattern Matching</b>
+	</p>
+	<ul>
+	  <p>
+	      The textual descriptions of the \w and \W character classes do not match with the character
+	      ranges given.  The ranges given are what is intended (for historical reasons).
+	    </p>
+	    <p>
+	      <i>Amend the descriptions of \w and \W character classes:</i><br>
+	      <table>
+		<tr>
+		  <td>\w</td><td><b>ASCII letters, digits, and underscore</b>;
+		    equivalent to "[a-zA-Z0-9_]".</td>
+		</tr>
+		<tr>
+		  <td>\w</td><td><b>Any character not an ASCII letter, digit, or
+		      underscore</b>; equivalent to "[<b>^</b>a-zA-Z0-9_]".</td>
+		</tr>
+	      </table>
+	    </p>
+	</ul></li>
+    </ul>
+    <hr>
+    Written by <a href="mailto:mang@subcarrier.org">Michael Ang &lt;mang@subcarrier.org&gt;</a><br>
+    Comments to <a href="mailto:nboyd@atg.com">Norris Boyd &lt;nboyd@atg.com&gt;</a><br>
+
+    <!-- Created: Mon Nov 16 21:37:49 PST 1998 -->
+    <!-- hhmts start -->
+Last modified: Fri Dec 18 18:58:34 PST 1998
+<!-- hhmts end -->
+  
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified May 22,  2000</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/js/UnicodeIdentifiers.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

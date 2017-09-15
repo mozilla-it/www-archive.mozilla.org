@@ -1,0 +1,823 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<meta name="DC.author" content="Darin">
+<meta name="DC.creator" content="Darin">
+<meta name="DC.title" content="Cross-compiling Minimo">
+<meta name="DC.date.created" content="2003-10-30T01:05:03+11:00" scheme="W3CDTF">
+<meta name="DC.date.modified" content="2006-10-13T09:54:03+11:00" scheme="W3CDTF">
+  
+  <title>Cross-Compiling Minimo</title>
+
+<link rel="section" href="#gcc" title="Building the GCC Toolchain">
+<link rel="section" href="#x" title="Building XFree86">
+<link rel="section" href="#pkg" title="Building pkgconfig">
+<link rel="section" href="#gtk" title="Building GTK+-2">
+<link rel="section" href="#idl" title="Building libIDL-2">
+<link rel="section" href="#minimo" title="Building Minimo">
+
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+<p class="crumbs"><em>You are here:</em> <a href="./">Minimo project page</a> 
+&gt; <strong>Cross-Compiling Minimo</strong></p>
+
+<p style="font-style: italic; text-decoration: underline;">This is a history 
+lesson. Please use OpenEmbedded or a scratchbox!</p>
+
+<h1>Cross-Compiling Minimo</h1>
+
+<p>
+This is a step-by-step guide explaining how to cross-compile Minimo for
+ARM-Linux. We cover setup of the GCC toolchain and use that toolchain to
+cross-compile XFree86 and GTK+2 in preparation for cross-compiling Minimo.
+We use a x86-Linux host platform. Finally, we show how to write a 
+mozconfig file for use with the toolchain.
+</p>
+
+<ul class="toc">
+
+  <li><a href="#gcc">Building the GCC Toolchain</a></li>
+
+  <li><a href="#x">Building XFree86</a></li>
+
+  <li><a href="#pkg">Building pkgconfig</a></li>
+
+  <li><a href="#gtk">Building GTK+-2, et al</a></li>
+
+  <li><a href="#idl">Building libIDL-2</a></li>
+
+  <li><a href="#minimo">Building Minimo</a></li>
+
+</ul>
+
+
+
+<h2><a name="gcc" id="gcc">Building the GCC Toolchain</a></h2>
+
+<p>
+Many GCC toolchains are available for the ARM-Linux platform, so the natural
+question is <em>why bother creating one if so many are already available?</em>
+Well, the answer is simply that we wanted to be able to update the toolchain to
+the latest version of GCC ourselves. This proved important as we found older
+versions of GCC to contain code generation bugs for target ARM that caused our
+Minimo builds to crash. Being able to easily upgrade components of the
+toolchain proved quite invaluable ;-)
+</p>
+
+
+<h3>Download the Source</h3>
+
+<p>
+We used the following packages from the GNU project:
+</p>
+
+<ul>
+
+  <li><a class="ex-ref" href="ftp://ftp.gnu.org/pub/gnu/binutils/binutils-2.14.tar.bz2"><code class="filename">binutils-2.14</code></a></li>
+
+  <li><a class="ex-ref" href="ftp://ftp.gnu.org/pub/gnu/gcc/gcc-3.3.1/gcc-3.3.1.tar.bz2"><code class="filename">gcc-3.3.1</code></a></li>
+
+  <li><a class="ex-ref" href="ftp://ftp.gnu.org/pub/gnu/glibc/glibc-2.3.2.tar.bz2"><code class="filename">glibc-2.3.2</code></a></li>
+
+  <li><a class="ex-ref" href="ftp://ftp.gnu.org/pub/gnu/glibc/glibc-linuxthreads-2.3.2.tar.bz2"><code class="filename">glibc-linuxthreads-2.3.2</code></a></li>
+
+  <li><a class="ex-ref" href="ftp://ftp.gnu.org/pub/gnu/gdb/gdb-5.3.tar.gz"><code class="filename">gdb-5.3</code></a></li>
+
+</ul>
+
+<p>
+We also downloaded the Linux headers for our target device. You should be
+sure to get headers that match the exact version of the kernel you will be
+using. In our case, we are using a pre-release version of Familiar Linux
+v0.7 with Linux kernel version:
+</p>
+
+<ul>
+
+  <li><code class="filename">linux-2.4.19-rmk6-pxa1-hh11</code></li>
+
+</ul>
+
+
+<p>
+See <a class="ex-ref" href="http://familiar.handhelds.org/">familiar.handhelds.org</a> 
+for more information on Familiar Linux. We recommend using the latest stable
+version of Familiar Linux. Kernel headers are usually available with the
+distribution. For example, if you are using Familiar Linux v0.7.1 (which
+is the latest stable release at the time of this writing), then you will 
+want to download the following tarball:
+</p>
+
+<ul>
+
+  <li><a class="ex-ref" href="http://familiar.handhelds.org/releases/v0.7.1/base/armv4l/kernel-headers-ipaqpxa-2.4.19-rmk6-pxa1-hh13.tar.gz"><code class="filename">kernel-headers-ipaqpxa-2.4.19-rmk6-pxa1-hh13</code></a></li>
+
+</ul>
+
+<p>
+Of course, this may vary depending on your particular device and Linux
+distribution.
+</p>
+
+
+<p>
+Download all of these packages into the following directory:
+</p>
+
+<p>
+  <code class="filename">/opt/toolchain/src</code>
+</p>
+
+<p>
+The only thing special about this directory is that we will be referring to
+it later on. Also, the build scripts we provide will need to be modified
+if you decide to change this directory location.
+</p>
+
+<p>
+Manually unpack the kernel headers like so:
+</p>
+
+<pre class="code">
+  <code class="command">$ tar xfz kernel-headers-ipaqpxa-2.4.19-rmk6-pxa1-hh13.tar.gz</code>
+
+  <code class="command">$ mkdir linux</code>
+
+  <code class="command">$ mv include linux</code>
+</pre>
+
+
+<h3>Patches and the Build Script</h3>
+
+
+<p>
+Unfortunately, the GNU packages do not build for target ARM cleanly without some
+minor modifications. You'll need the following patches for GCC and GLIBC:
+</p>
+
+
+<ul>
+
+  <li><a href="toolchain/gcc-3.3.1.diff"><code class="filename">gcc-3.3.1.diff</code></a></li>
+
+  <li><a href="toolchain/glibc-2.3.2.diff"><code class="filename">glibc-2.3.2.diff</code></a></li>
+
+</ul>
+
+
+<p>
+Download and place these in the directory next to the GNU packages. Next, download
+our <a href="toolchain/build.sh">build script</a> and place it in the same directory.
+</p>
+
+
+<h3>Build It</h3>
+
+<p>
+Now you are ready to build the GCC toolchain.  
+<strong>It has been reported that this build script does not work when run as root.</strong>
+Verify that you have a few gigabytes handy, and simply execute build.sh, like so:
+</p>
+
+<pre class="code">
+  <code class="command">$ chmod +x build.sh</code>
+
+  <code class="command">$ ./build.sh</code>
+</pre>
+
+<p>The build script will list the build steps it is going to perform and will prompt
+you to begin the build process. If a problem occurs and you need to re-build a
+particular package, you can do so by editing build.sh, and uncommenting the 
+appropriate <code class="command">export SKIP_XXX</code> lines. For example, to 
+begin from GLIBC without recompiling GDB, Binutils, and GCC (first pass), you 
+should edit the top of build.sh to look like:</p>
+
+<pre class="code">
+  <code class="command">export SKIP_GDB=1</code>
+
+  <code class="command">export SKIP_BINUTILS=1</code>
+
+  <code class="command">export SKIP_GCC1=1</code>
+
+  <code class="command">#export SKIP_GLIBC=1</code>
+
+  <code class="command">#export SKIP_GCC2=1</code>
+</pre>
+
+<p>This is very handy when you need to tweak one of the packages 
+(which hopefully you'll be lucky enough to avoid). 
+</p>
+
+
+<h3>Verification</h3>
+
+<p>
+When the build completes, the next step is to verify that the toolchain works.
+The following C program is an excellent test case since it also verifies that
+the system header files were detected and installed correctly. (Mozilla expects
+limits.h to define <var>PATH_MAX</var>, and it will do so if GCC is built 
+correctly.)
+</p>
+
+<pre class="code">      #include &lt;stdio.h&gt;
+      #include &lt;limits.h&gt;
+
+      int main()
+     {
+        printf("PATH_MAX=%u\n", PATH_MAX);
+        return 0;
+      }
+</pre>
+
+<p>
+To compile this program, run the following command (assuming the source file is 
+saved as <code class="filename">test.c</code>):
+</p>
+
+<pre class="code">
+  <code class="command">$ /opt/toolchain/bin/arm-linux-gcc test.c -o test</code>
+</pre>
+
+<p>
+If you get no errors, then you are well on your way to having a working 
+toolchain. You should try running this program on your device to ensure 
+that it works as expected. You may also want to take this moment to 
+try out some sample C and C++ test cases of your own to verify that 
+the toolchain is working.
+</p>
+
+
+<h2><a name="x" id="x">Building XFree86</a></h2>
+
+
+<h3>Download the Source</h3>
+
+<p>
+You only need to download the first 3 packages from the XFree86 distribution.
+We used the following packages:
+</p>
+
+<ul>
+
+  <li><a href="ftp://ftp.xfree86.org/pub/XFree86/4.3.0/source/X430src-1.tgz"><code class="filename">X430src-1.tgz</code></a></li>
+
+  <li><a href="ftp://ftp.xfree86.org/pub/XFree86/4.3.0/source/X430src-2.tgz"><code class="filename">X430src-2.tgz</code></a></li>
+
+  <li><a href="ftp://ftp.xfree86.org/pub/XFree86/4.3.0/source/X430src-3.tgz"><code class="filename">X430src-3.tgz</code></a></li>
+
+</ul>
+
+<p>
+Download these packages into a temporary directory. This doesn't need to be any
+location in particular.
+</p>
+
+<h3>Build Steps</h3>
+
+<p>
+Cross-compiling XFree86 is a little bit involved. The default packages are
+already setup to handle cross-compiling without much hacking, but we found that
+some <em>tweaking</em> was required. We had to modify our toolchain slightly to
+get XFree86 to compile. XFree86 expects to find <code class="filename">cc</code> 
+and <code class="filename">cpp</code> in
+<code class="filename">/opt/toolchain/arm-linux/bin</code>. In our toolchain 
+those executables do not exist, so we had to set the following symlinks:
+</p>
+
+<pre class="code">
+  <code class="command">$ ln -s /opt/toolchain/bin/arm-linux-cpp /opt/toolchain/arm-linux/bin/cpp</code>
+
+  <code class="command">$ ln -s /opt/toolchain/bin/arm-linux-gcc /opt/toolchain/arm-linux/bin/cc</code>
+</pre>
+
+<p>
+Unpack the source files with the following commands:
+</p>
+
+<pre class="code">
+  <code class="command">gzip -d &lt; X430src-1.tgz | tar xf -</code>
+
+  <code class="command">gzip -d &lt; X430src-2.tgz | tar xf -</code>
+
+  <code class="command">gzip -d &lt; X430src-3.tgz | tar xf -</code>
+</pre>
+
+<p>
+You should see a directory named <code class="filename">xc</code>. 
+Next, run the following commands:
+</p>
+
+<pre class="code">
+  <code class="command">$ mkdir build</code>
+
+  <code class="command">$ (cd build &amp;&amp; lndir ../xc)</code>
+</pre>
+
+<p>
+This generates the <code class="filename">build</code> directory. Finally, 
+we need to tell the XFree86 build system to not compile the font packages 
+(because we didn't download them). Run the following command to disable 
+building fonts:
+</p>
+
+<pre class="code">
+  <code class="command">$ echo '#define BuildFonts NO' &gt; build/config/cf/host.def</code>
+</pre>
+
+<p>
+Now you are ready to build XFree86, which is done with the following command:
+</p>
+
+<pre class="code">
+  <code class="command">$ (cd build &amp;&amp; make World CROSSCOMPILEDIR=/opt/toolchain/arm-linux/bin)</code>
+</pre>
+
+
+<h3>Installation</h3>
+
+<p>
+All we really need from our XFree86 build are the <code class="filename">lib</code> and
+<code class="filename">include</code> directories and the 
+<code class="filename">freetype-config</code> script.
+<!--and some of the config scripts in <code class="filename">bin</code>-->
+By default, XFree86 installation will install more than just these components,
+and it will add extra levels of directory hierarchy that we do not need.
+A simple way to deal with this is to let it install everything into a temporary
+directory. Then, we can manually copy the directories that we care about.
+Run this command to install everything under a temporary directory:
+</p>
+
+<pre class="code">
+  <code class="command">$ (cd build &amp;&amp; make install DESTDIR=/tmp/xfree86/dist)</code>
+</pre>
+
+<p>
+In our case, the install fails while installing programs/xterm. This is okay
+since it has already installed the necessary libraries and header files.
+At this point under <code class="filename">/tmp/xfree86/dist/usr/X11R6</code>, 
+you should see <code class="filename">bin</code>, 
+<code class="filename">include</code>, and <code class="filename">lib</code> 
+directories. We moved these second two directories into our toolchain under
+<code class="filename">/opt/toolchain/arm-linux/local/X11R6</code> like so:
+</p>
+
+<pre class="code">
+  <code class="command">$ mkdir -p /opt/toolchain/arm-linux/local/X11R6</code>
+
+  <code class="command">$ cd /tmp/xfree86/dist/usr/X11R6</code>
+
+  <code class="command">$ mv include /opt/toolchain/arm-linux/local/X11R6</code>
+
+  <code class="command">$ mv lib /opt/toolchain/arm-linux/local/X11R6</code>
+</pre>
+
+<p>
+The only executable that we care about is <code class="filename">freetype-config</code>. 
+We put this into <code class="filename">/opt/toolchain/arm-linux/local/bin</code> 
+since that is where other configuration scripts will live when we are done 
+building the toolchain. The XFree86 build process unfortunately encodes absolute 
+paths into this file. Not knowing enough about how to configure XFree86 properly, 
+we needed to manually fix-up this file after installation. You can download this 
+<a href="toolchain/freetype-config.diff">freetype-config.diff patch</a> to
+apply our changes to the generated file.
+</p>
+
+<pre class="code">
+  <code class="command">$ mkdir -p /opt/toolchain/arm-linux/local/bin</code>
+
+  <code class="command">$ cd /opt/toolchain/arm-linux/local/bin</code>
+
+  <code class="command">$ cp /tmp/xfree86/dist/usr/X11R6/bin/freetype-config</code>
+
+  <code class="command">$ patch -p0 &lt; /path/to/freetype-config.diff</code>
+</pre>
+
+<p>
+In addition, the XFree86 installation included a few <tt>.pc</tt> files meant
+to be used with the <code class="filename">pkgconfig</code> utility. Our toolchain does
+not yet have this utility, but we will add it shortly. To complete the
+XFree86 toolchain, we need to manually fix-up the generated <tt>.pc</tt>
+files. Like <code class="filename">freetype-config</code>, these files have absolute paths
+encoded in them. You can download this
+<a href="toolchain/xfree86-pc.diff">xfree86-pc.diff patch</a> to apply our
+changes to the generated <tt>.pc</tt> files.
+</p>
+
+<pre class="code">
+  <code class="command">$ cd /opt/toolchain/arm-linux/local/X11R6/lib/pkgconfig</code>
+
+  <code class="command">$ patch -p0 &lt; /path/to/xfree86-pc.diff</code>
+</pre>
+
+<p>
+Finally, the <code class="filename">libtool</code> program used by 
+Pango (at least) requires that there exist <tt>.la</tt> files for 
+<code class="filename">libfreetype</code> and <code class="filename">libexpat</code>.
+Unfortunately, the XFree86 installation does not create these files. We've
+found these files in our host system and modified them by hand to make them
+work with the toolchain. You can 
+<a href="toolchain/libfreetype.la">download libfreetype.la</a> and
+<a href="toolchain/libexpat.la">download libexpat.la</a>.
+These files need to be copied into 
+<code class="filename">/opt/toolchain/arm-linux/local/X11R6/lib</code>
+alongside their <tt>.so</tt> counterparts.
+</p>
+
+
+
+<h2><a name="pkg" id="pkg">Building pkgconfig</a></h2>
+
+
+<p>To build GTK+-2 (and friends) as well as libIDL-2, we first need to have a
+working installation of pkgconfig in our toolchain.</p>
+
+<h3>Download the Source</h3>
+
+<p>
+We are using the latest release of pkgconfig, which is as of this writing version
+0.15. It can be downloaded from here:
+</p>
+
+<ul>
+
+  <li><a class="ex-ref" href="http://pkgconfig.freedesktop.org/releases/pkgconfig-0.15.0.tar.gz">pkgconfig-0.15.0.tar.gz</a></li>
+
+</ul>
+
+
+<h3>Build Steps</h3>
+
+<p>
+Download our <a href="toolchain/build-pkgconfig.sh">build script</a> 
+to simplify building and installing pkgconfig. Put 
+<code class="filename">build-pkgconfig.sh</code> and the
+downloaded <code class="filename">pkgconfig-0.15.tar.gz</code> in a 
+temporary directory next to one another, and run these commands:
+</p>
+
+<pre class="code">
+  <code class="command">$ chmod +x build-pkgconfig.sh</code>
+
+  <code class="command">$ ./build-pkgconfig.sh</code>
+</pre>
+
+<p>
+Assuming the command completes without any errors, verify that
+<code class="filename">/opt/toolchain/arm-linux/local/bin/pkg-config</code> 
+exists. At this point, there aren't any installed packages that 
+<code class="filename">pkgconfig</code> can access. We need to 
+manually add the <tt>.pc</tt> files from the XFree86 installation, 
+so that <code class="filename">pkgconfig</code> can see those files.
+Here's the commands that need to be run:
+</p>
+
+<pre class="code">
+  <code class="command">$ mkdir -p /opt/toolchain/arm-linux/local/lib/pkgconfig</code>
+
+  <code class="command">$ cd /opt/toolchain/arm-linux/local/lib/pkgconfig</code>
+
+  <code class="command">$ ln -s ../../X11R6/lib/pkgconfig/fontconfig.pc</code>
+
+  <code class="command">$ ln -s ../../X11R6/lib/pkgconfig/xft.pc</code>
+
+  <code class="command">$ ln -s ../../X11R6/lib/pkgconfig/xcursor.pc</code>
+</pre>
+
+<p>
+Now if you run the command
+<code class="command">/opt/toolchain/arm-linux/local/bin/pkg-config --list-all</code> 
+you should see the following output:
+</p>
+
+<pre class="screen">
+  fontconfig Fontconfig - Font configuration and customization library
+
+  xcursor    Xcursor - X Cursor library
+
+  xft        Xft - X FreeType library
+</pre>
+
+
+<h2><a name="gtk" id="gtk">Building GTK+2, et al</a></h2>
+
+<p>This step is mostly automated with a build script.</p>
+
+<h3>Download the Source</h3>
+
+<p>
+We are using the following packages:
+</p>
+
+<ul>
+
+  <li><a class="ex-ref" href="ftp://ftp.gtk.org/pub/gtk/v2.2/glib-2.2.3.tar.bz2">glib-2.2.3.tar.bz2</a></li>
+
+  <li><a class="ex-ref" href="ftp://ftp.gtk.org/pub/gtk/v2.2/atk-1.2.4.tar.bz2">atk-1.2.4.tar.bz2</a></li>
+
+  <li><a class="ex-ref" href="ftp://ftp.gtk.org/pub/gtk/v2.2/pango-1.2.5.tar.bz2">pango-1.2.5.tar.bz2</a></li>
+
+  <li><a class="ex-ref" href="ftp://ftp.gtk.org/pub/gtk/v2.2/gtk+-2.2.4.tar.bz2">gtk+-2.2.4.tar.bz2</a></li>
+
+</ul>
+
+
+<h3>Requirements</h3>
+
+<p>
+You will need an installation of glib-2 on the host machine. In particular,
+you will need the GLIB executables glib-genmarshal, glib-mkenums, etc. If
+you do not have these installed on your host machine, then you should do so
+now.
+</p>
+
+<h3>Build Steps</h3>
+
+<p>
+Next, download the following files:
+</p>
+
+<ul>
+
+  <li><a href="toolchain/build-gtk2.sh">build-gtk2.sh</a></li>
+
+  <li><a href="toolchain/glib-config.cache">glib-config.cache</a></li>
+
+  <li><a href="toolchain/gtk+-config.cache">gtk+-config.cache</a></li>
+
+  <li><a href="toolchain/pangoxft.pc.diff">pangoxft.pc.diff</a></li>
+
+</ul>
+
+<p>
+Put these files next to the downloaded source packages, and run these commands:
+</p>
+
+<pre class="code">
+  <code class="command">$ chmod +x build-gtk2.sh</code>
+
+  <code class="command">$ ./build-gtk2.sh</code>
+</pre>
+
+<p>
+It will compile and install all of the packages.
+</p>
+
+<p>
+To verify that GTK+ is properly compiled, it is a good idea to try building
+some of the test programs that are included with the GTK+ package. Make sure
+these run okay on your device before attempting to build Mozilla!
+</p>
+
+
+
+<h2><a name="idl" id="idl">Building libIDL-2</a></h2>
+
+<p>
+The Minimo build requires a version of <tt>libIDL</tt> that is compiled for 
+the target machine. Though Minimo itself does not use this library, it is 
+needed to build <code class="filename">xpidl</code> for the target machine. 
+It is probably possible to modify the Mozilla build process to skip building 
+<code class="filename">xpidl</code> to avoid this dependency.
+</p>
+
+<h3>Download the Source</h3>
+
+<p>
+We are using the following package:
+</p>
+
+<ul>
+
+  <li><a class="ex-ref" href="ftp://ftp.gnome.org/pub/GNOME/sources/libIDL/0.8/libIDL-0.8.2.tar.bz2">libIDL-0.8.2.tar.bz2</a></li>
+
+</ul>
+
+<h3>Build Steps</h3>
+
+<p>
+Next, download the following files:
+</p>
+
+<ul>
+
+  <li><a href="toolchain/build-libIDL.sh">build-libIDL.sh</a></li>
+
+  <li><a href="toolchain/libIDL-config.cache">libIDL-config.cache</a></li>
+
+</ul>
+
+<p>
+Put these files next to the downloaded source package, and run
+<code class="command">build-libIDL.sh</code>. It will compile and install 
+<code class="filename">libIDL</code>.
+</p>
+
+
+
+<h2><a name="minimo" id="minimo">Building Minimo</a></h2>
+
+<p>
+Now, you are ready to build Minimo for target ARM.
+</p>
+
+<h3>Download the Source</h3>
+
+<p>
+Download the Mozilla source code by following the <a href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code">download source code instructions</a>.
+</p>
+
+<h3>Download required patches</h3>
+
+<p>
+As of the time of this writing, you will need to apply patches to the Mozilla
+source tree to build the crypto module. If you do not want to build the crypto
+module, then you can skip this step. Otherwise, please download the latest 
+patches from <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=209814">bug 209814</a>
+and <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=172651">bug 172651</a>
+and apply those to your tree. Once those bugs are fixed, you can obviously skip
+this step.
+</p>
+
+<h3>Build Steps</h3>
+
+<p>
+Download our <a href="minimo-cc-opt.mozconfig">mozconfig</a> file for
+cross-compiling Minimo for target ARM, and set the following environment
+variables:
+</p>
+
+<pre class="code">
+  <code class="command">$ export MOZ_OBJDIR=/path/to/minimo-cc-opt-build</code>
+
+  <code class="command">$ export MOZCONFIG=/path/to/minimo-cc-opt.mozconfig</code>
+</pre>
+
+<p>
+You can skip setting <tt>MOZ_OBJDIR</tt> if you prefer, but we recommend
+setting this variable to avoid cluttering the source tree with output
+files from the Mozilla build.
+</p>
+
+<p>
+Next, start the build:
+</p>
+
+<pre class="code">
+  <code class="command">$ cd /path/to/mozilla</code>
+
+  <code class="command">$ gmake -f client.mk build</code>
+</pre>
+
+<p>
+Once this build completes, you should be able to run the executable
+<code class="filename">$MOZ_OBJDIR/dist/bin/TestGtkEmbed</code> on the
+iPAQ. Copy all of the files from the <code class="filename">bin</code> 
+directory onto the device, or mount the directory containing these files 
+via NFS (which works quite well for testing purposes). Note that this is
+not yet a complete Minimo build.
+</p>
+
+<p>
+To complete the Minimo build, you need to run the packaging script.
+The packaging script performs the following steps:
+</p>
+
+<ul>
+
+  <li>It eliminates some unnecessary components that reside in
+    <code class="filename">dist/bin</code> after the Minimo build completes,</li>
+
+  <li>Links all <tt>.xpt</tt> files into one single file, and</li>
+
+  <li>Flattens the chrome files and installs a simpler chrome registry 
+  implementation.</li>
+
+</ul>
+
+<p>
+To run the packager script, type the following commands:
+</p>
+
+<pre class="code">
+  <code class="command">cd $MOZ_OBJDIR/embedding/minimo</code>
+
+  <code class="command">make</code>
+
+  <code class="command">cd /path/to/mozilla/embedding/minimo</code>
+
+  <code class="command">./package.sh</code>
+</pre>
+
+<p>
+When these commands complete, you should find a stripped down version
+of Minimo in <code class="filename">$MOZ_OBJDIR/dist/Embed</code>. Again, 
+the executable name is <code class="filename">TestGtkEmbed</code>.
+</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified October 13,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/minimo/build-cross.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

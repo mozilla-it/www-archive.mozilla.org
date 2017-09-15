@@ -1,0 +1,441 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 2 April 2007), see www.w3.org">
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Language" content="en">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="Author" content="Doug Turner">
+
+  <title>XPCOM Component Reuse</title>
+
+  <meta name="DC.date.created" content="2002-06-24T15:52:03+11:00" scheme=
+  "W3CDTF">
+  <meta name="DC.date.modified" content="2007-04-13T09:54:03+11:00" scheme=
+  "W3CDTF">
+
+<script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+  <h1>XPCOM Component Reuse</h1>
+
+  <address class="author">
+    By <a href="mailto:dougt@netscape.com">Doug Turner</a>, and <a href=
+    "mailto:jeev@netscape.com">Ellen Evans</a>
+  </address>
+
+  <h2>Overview</h2>
+
+  <p>Historically if you were a developer who wanted to use some or all of the
+  Mozilla codebase in your own application, you were required to download,
+  build the entire Mozilla tree, and distribute your own copy of Mozilla. While
+  this may have been tedious, it did guarentee that all the components that you
+  acquired in this way were binarily and syntactically compatible.</p>
+
+  <p>Now, however, there are two projects underway at mozilla.org designed to
+  streamline the process through which Mozilla code can be acquired, built, and
+  distributed to end users. On the one hand, mechanisms are being put together
+  to make it possible to download and build limited subsets of the codebase
+  instead of the entire tree. For more information on this effort, see <a href=
+  "/projects/embedding/bootstrap.html">bootstrap.pl: Embed/REQUIRES-based build
+  mechanism</a>.</p>
+
+  <p>On the other hand, mechanisms are also being crafted to allow a single set
+  of core components, the <a href="/projects/embedding/GRE.html">Gecko Runtime
+  Environment</a> (formally MRE), stored in a central place on an end-user's
+  machine, to be used as the support for any number of Gecko-based
+  applications, shrinking application file size and simplifying user
+  installation.</p>
+
+  <p>As useful as these two projects undoubtedly will be, they do increase
+  substantially the likelihood that components from different versions of
+  Mozilla will at some point be required to interact with each other, raising
+  significant issues of compatibility. The following notes are designed to help
+  the developer who may be interested in taking advantage of this new,
+  componetized Mozilla development environment to write code that is less
+  likely to run into problems caused by version and/or compiler
+  incompatibilties. If you are building an application that ships its own
+  internal copy of all necessary Mozilla components, which have been built as a
+  unit, these suggestions may be of less significance.</p>
+
+  <p>The first and most important step you can take is to use, whenever
+  possible, XPCOM interfaces instead of their supporting implemented classes.
+  Because the codebase is open, and because there are a large number of
+  seemingly useful classes already written and easily available (all you need
+  to instantiate an object at runtime is an ID), the temptation to utilize
+  those classes is great. But <em>no</em> implemented class in Mozilla is
+  guarenteed to stay the same from one version to the next. A number of
+  interfaces, on the other hand, <em>are</em> guarenteed not to change in the
+  future. These are interfaces which have been marked @status FROZEN. By
+  designing your code to use by strong preference only those interfaces which
+  have been marked frozen, you increase considerably the chances that a
+  component that you write today will be able to interact seamlessly with a
+  component written six months from now. The public interfaces that have been
+  frozen are listed in the <a href=
+  "/projects/embedding/embedapiref/embedapi.html">Gecko Embedding API
+  Reference</a>. So the best way to ensure continuing syntactic compatibility
+  of components from one version to the next is to use only frozen interfaces.
+  And because interfaces are, in essence, pure abstract classes, using them
+  also promotes longterm binary compatibility.</p>
+
+  <p>But even if you commit to using by strong preference interfaces that have
+  been frozen, it is simply a fact that in <em>some</em> cases, you will need
+  to do something which is not supported by a frozen interface. The code
+  underlying nsCOMPtr, for example, is not frozen, but using this "smart
+  pointer" is highly recommended, as it automates some of the more burdensome
+  and error-prone aspects of COM reference counting. There are a number of
+  XPCOM utility classes, such as nsDebug, that are also not represented through
+  a frozen interface, but which are, nonetheless, close to being essential in
+  many aspects of developing with Mozilla. The string classes also belong to
+  this set of extremely useful but not frozen components. And you may find
+  other examples for your particular situation. In these cases you have
+  basically three options: you can simply manually copy the code into your own
+  application; you can try to convince the Mozilla module owner that the
+  functionality is of such widespread use that it should be exposed through a
+  frozen interface (be aware, though, the process for arriving at the frozen
+  state is often long and complex); or, in the case of the XPCOM utilities and
+  the string classes, you can use a workaround employing special libraries that
+  now exist in the code.</p>
+
+  <h2>The "Glue" Library</h2>
+
+  <p>The XPCOM "glue" library (<a href=
+  "http://lxr.mozilla.org/seamonkey/source/xpcom/glue/">lxr</a>) is built as a
+  normal part of XPCOM. But by linking a standalone version of this into your
+  application or component, you, in essence, get a snapshot copy of this code.
+  While it is a bit expensive in terms of footprint, it does allow you to work
+  in any Mozilla 1.0 environment with confidence. If footprint is of concern,
+  you can trim out the pieces that you do not need. The string library can and
+  should be used in the same manner with the same caveats. The current string
+  <a href="http://lxr.mozilla.org/seamonkey/source/xpcom/string/">code</a> is
+  built without any dependencies on XPCOM. This means that it can be directly
+  included into your component or embedding application.</p>
+
+  <p><img src="glue.jpg" alt="The XPCOM glue code" height="334" width=
+  "498"></p>
+
+  <p>The glue library consists of commonly requested helper classes. Although
+  this article isn't meant as a complete description of how to use the classes
+  in the glue library, here is an overview:</p>
+
+  <ul>
+    <li>Smart pointers
+
+      <ul>
+        <li>See <a href="../nsCOMPtr.html">nsCOMPtr User's Manual</a>.</li>
+
+        <li>Support in the glue library also includes:.
+
+          <ul>
+            <li>do_QueryInterface</li>
+
+            <li>do_CreateInstance</li>
+
+            <li>do_GetService</li>
+
+            <li>do_GetInterface</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+
+    <li>Weak References
+
+      <ul>
+        <li>See <a href="../weak_references.html">nsIWeakReference</a>
+        documentation.</li>
+
+        <li>Support in the glue library also includes:
+
+          <ul>
+            <li>do_QueryReferent</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+
+    <li>nsISupports Support
+
+      <ul>
+        <li>Macros for various implementions of nsISupports.</li>
+
+        <li>Macros for handling reference counting, and object
+        instantation.</li>
+      </ul>
+    </li>
+
+    <li>nsMemory
+
+      <ul>
+        <li>A static class wrapper around the global nsIMemory
+        implemention.</li>
+      </ul>
+    </li>
+
+    <li>nsDebug
+
+      <ul>
+        <li>A static class which provides basic assertion and pre/post
+        condition checking.</li>
+      </ul>
+    </li>
+
+    <li>Generic Module Support
+
+      <ul>
+        <li>See <a href="../generic-factory.html">generic factories</a>
+        documentation.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>Putting it all together</h2>
+
+  <p>If you are building an XPCOM component or embedding Gecko, linking to the
+  glue static library and string library will reduce the dependancies which you
+  may have on XPCOM. In this case be aware you will also have to link to
+  NSPR.</p>
+
+  <p>When building, make sure that the build define XPCOM_GLUE is defined. This
+  will ensures that the proper calling convention is used on the functions in
+  the glue library. If you forget this step, you may have troubles linking.</p>
+
+  <p><img src="safeComponent.jpg" alt="Linked libraries" height="222" width=
+  "388"></p>
+
+  <p>If you use this method, you should double-check all of the dll imports
+  from your component or application. On Windows, for example, run:
+  <code class="command">"dumpbin /imports &lt;FILE&gt;"</code>. This will
+  produce a listing of all the code required to run your component or
+  application. If you see that you require symbols from XPCOM, make sure that
+  they are listed in nsXPCOM.h. If the function is not listed there, chances
+  are you should not be using it.</p>
+
+  <p>Below is a snapshot of the xpcom includes from an embedding example.
+  Clearly, this embedding example must ship its own copy of XPCOM to maintain
+  compatibility.</p>
+
+  <pre class="code">
+Microsoft (R) COFF Binary File Dumper Version 6.00.8447
+Copyright (C) Microsoft Corp 1992-1998. All rights reserved.
+
+Dump of file winEmbed.exe
+
+File Type: EXECUTABLE IMAGE
+
+  Section contains the following imports:
+
+    xpcom.dll
+                411670 Import Address Table
+                4112F4 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                 829  ?get@nsAFlatString@@UBEPBGXZ
+                 25C  ??BnsXPIDLString@@QBEPBGXZ
+                 148  ??1nsDependentString@@UAE@XZ
+                  7D  ??0nsDependentString@@QAE@PBGI@Z
+                 154  ??1nsGetServiceByContractID@@UAE@XZ
+                 82E  ?get@nsString@@UBEPBGXZ
+                 888  NS_ShutdownXPCOM
+                 86C  NS_InitXPCOM2
+                 385  ?AssignWithConversion@nsString@@QAEXPBD@Z
+                 849  ?strcmp@nsCRT@@SAHPBD0@Z
+                 360  ?Append@nsAString@@QAEXABV1@@Z
+                   E  ??0NS_ConvertUTF8toUCS2@@QAE@ABVnsACString@@@Z
+                 127  ??1NS_ConvertUTF8toUCS2@@UAE@XZ
+                   6  ??0NS_ConvertASCIItoUCS2@@QAE@ABVnsAFlatCString@@@Z
+                 36F  ?AppendInt@nsString@@QAEXHH@Z
+                 178  ??1nsString@@UAE@XZ
+                 865  NS_CheckThreadSafe
+                  60  ??0nsCreateInstanceByContractID@@QAE@PBDPAVnsISupports@@PAI@Z
+                 588  ?NS_GetWeakReference@@YAPAVnsIWeakReference@@PAVnsISupports@@PAI@Z
+                  49  ??0nsCAutoString@@QAE@XZ
+                 384  ?AssignWithConversion@nsCString@@QAEXPBGH@Z
+                 13A  ??1nsCAutoString@@UAE@XZ
+                  41  ??0nsAutoString@@QAE@XZ
+                 105  ??0nsString@@QAE@XZ
+                 138  ??1nsAutoString@@UAE@XZ
+                  A0  ??0nsGetInterface@@QAE@PAVnsISupports@@PAI@Z
+                 152  ??1nsGetInterface@@UAE@XZ
+                 5C9  ?PrepareForUseAsOutParam@nsXPIDLString@@IAEPAPAGXZ
+                 124  ??0nsXPIDLString@@QAE@XZ
+                  4E  ??0nsCString@@QAE@XZ
+                 382  ?AssignWithConversion@nsCString@@QAEXABVnsAString@@@Z
+                 3C1  ?CompressWhitespace@nsCString@@QAEXHH@Z
+                 6C1  ?StripChars@nsCString@@QAEXPBD@Z
+                 628  ?ReplaceChar@nsCString@@QAEXDD@Z
+                 82A  ?get@nsCString@@UBEPBDXZ
+                  6C  ??0nsDependentCString@@QAE@PBD@Z
+                 87B  NS_NewNativeLocalFile
+                 143  ??1nsDependentCString@@UAE@XZ
+                 13C  ??1nsCString@@UAE@XZ
+                 185  ??1nsXPIDLString@@UAE@XZ
+                   7  ??0NS_ConvertASCIItoUCS2@@QAE@PBD@Z
+                 125  ??1NS_ConvertASCIItoUCS2@@UAE@XZ
+                  DA  ??0nsQueryInterface@@QAE@PAVnsISupports@@PAI@Z
+                 7EF  ?Warning@nsDebug@@SAXPBD0H@Z
+                 17F  ??1nsSupportsWeakReference@@UAE@XZ
+                 118  ??0nsSupportsWeakReference@@QAE@XZ
+                 866  NS_CurrentThread
+                 4F0  ?GetWeakReference@nsSupportsWeakReference@@UAGIPAPAVnsIWeakReference@@@Z
+                 377  ?Assertion@nsDebug@@SAXPBD00H@Z
+                 56F  ?LogRelease@nsTraceRefcnt@@SAXPAXKPBD@Z
+                 5C7  ?PreCondition@nsDebug@@SAXPBD00H@Z
+                 569  ?LogAddRef@nsTraceRefcnt@@SAXPAXKPBDI@Z
+                  A4  ??0nsGetServiceByContractID@@QAE@PBDPAVnsISupports@@PAI@Z
+</pre>
+
+  <p>However, linking in the standalone glue library and string library we get
+  something much more reusable:</p>
+
+  <pre class="code">
+    xpcom.dll
+                43C6F4 Import Address Table
+                43C3A0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                 888  NS_ShutdownXPCOM
+                 86C  NS_InitXPCOM2
+                 87B  NS_NewNativeLocalFile
+                 86B  NS_GetServiceManager
+                 867  NS_GetComponentManager
+</pre>
+
+  <p>All of these functions are frozen and extern "C". This means that they are
+  unaffected by any changes to the XPCOM library. It is also possible to
+  eliminate these symbols altogether by dynamic loading.</p>
+
+  <h2>Dynamic Loading</h2>
+
+  <p>The glue library (xpcomglue.lib) provides stubs to the public frozen
+  functions that XPCOM provides. The library will dynamically load the public
+  symbols from the XPCOM library, producing two important results. First, the
+  component or application will not have to link with XPCOM for any symbol. In
+  fact having to link to any Gecko library after this dynamic loading happens
+  is an immediate indication that something is wrong. Second, if the glue code
+  can load XPCOM, the same glue code can also unload XPCOM. So an embedding
+  application will able to shut down Gecko when it is not needed and to restart
+  it at will.</p>
+
+  <p>To use this library, you need to initalize the library with the path to
+  the xpcom library proper. If you don't have this path, you can use the
+  default location by passing nsnull:</p>
+
+  <pre class="code">
+extern "C"
+nsresult NS_COM XPCOMGlueStartup(const char* xpcomFile);
+
+extern "C"
+nsresult NS_COM XPCOMGlueShutdown();
+</pre>
+
+  <p>The first function sets up these stub functions. If you do not call this
+  function, any call to a public xpcom function will fail. If you do not want
+  this functionaltiy, you can rebuild this library with the flag
+  "XPCOM_GLUE_NO_DYNAMIC_LOADING".</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified April 12,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/xpcom/glue/Component_Reuse.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,323 @@
+    
+>> Forum: netscape.public.mozilla.seamonkey
+>> Thread: The state of WebShell and the path to it's extinction 
+>> Message 5 of 8
+  Save this thread
+
+back to search results 
+ 
+Subject: The state of WebShell and the path to it's extinction 
+Date: 03/02/2000 
+Author: Travis Bogard <travis@netscape.com> 
+
+  << previous in search  ·  next in search >>  
+
+Hello All,
+
+Over the past few days, weeks, months I have had numerous questions
+asking about the current status of webshell, questions about what
+replaces it and when I will be landing.  Many people have also been
+confused about which interfaces they should be using.  In some cases I
+have been playing catch-up with other people adding new code using the
+old interfaces.  So this mail is written in the hope of giving a little
+insight to people about how things are going.  It should also be useful
+for those wanting to know the right interfaces to use in the new design.
+I plan on doing a brown bag discussion of the design of the system when
+I am done, but for now the hope is this will tide some of you over.
+ 
+Table of Contents:
+1.)  What replaces WebShell?
+2.)  When is the WebShell replacement Landing?
+3.)  What's left to do?
+4.)  How do I embed it?
+5.)  What Interfaces should be used?
+6.)  Typical coding problems.
+7.)  Wrap Up
+ 
+************************************
+1.)  What replaces WebShell?
+************************************
+ 
+So webshell has traditionally been used for 3 reasons.  First webshell
+has provided the basic connection of the loading of a document to the
+presentation.  The basis for the frameset tree.  The connection between
+the DOM and the presentation.  In many ways it's like a traffic officer
+who holds things for everyone so that when one piece of the system needs
+it another can find it.  These jobs are now shouldered by what is called
+docShell.  DocShell provides the lighter weight version of webShell
+whose sole job is addressing our internal needs.
+ 
+This leads us to the second job webShell has become known for and that
+is embedding.  Though docShell could be used for embedding Gecko, it too
+would suffer from the same embedding problems webShell did.  And that is
+the problem of too much internal knowledge and a biased towards internal
+interfaces.  The problem is that at this level some of the problems are
+larger than just embedding and end up making the job of the embedder
+confusing at best and often much more difficult than necessary.  This is
+the whole point of the embedding APIS found at
+"mozilla/embedding/browser". They are the front lines for embedding.
+The embedding APIs in many ways are nothing more than API manglers
+converting a more general docShell view of things into a very browser
+specific view of things.  The embedding layer however often will do
+setup to prepare the docshell to act in browser mode that takes the
+effort off the embedder.
+ 
+The third hat webShell has worn in the past has been that of a general
+dumping ground.  And we will be replacing that will a bit of
+architecture and thought. :) Actually on a serious note, this has been a
+real problem in the past.  Often throughout the code we have a real need
+to get from one piece of the code to another and most often a docShell
+or in the past a webShell was sitting in the middle.  It often seems and
+sometimes is the right place to put some feature.  However, we need to
+be very careful going forward about what we put in the level.  Often the
+wrong thing put here will have a very real impact on our ability to be
+embedded or on our performance. Please come talk to me about things you
+might need to get added here and I'd be happy to discuss how it fits
+into the architecture.  It is likely that some of the various spinoffs
+from docshell (uriloading, session history, progress listeners,
+embedding) might actually be the better place for your code.
+ 
+****************************************************
+2.)  When is the WebShell replacement Landing?
+****************************************************
+ 
+This is a very difficult question to answer because it really depends on
+what you mean by landing?  The reality is the webshell has been landing
+for a long time and is in use in many ways.  But then on the same token,
+the webshell replacements are not all completely in place and landed.
+This has lead to a bit of confusion as to if webshell is still alive or
+not but I think has lead to an overall easier integration of many
+issues.
+ 
+As mentioned, docshell is the main replacement of many of webShell's
+chores. DocShell is in place and actually being called for a number of
+functions. WebShell is now a subclass of docShell and relies on docShell
+for much of it's implementation.  There are still some things that have
+not been moved to docShell (look at section 3).  But the basic process
+has been to land the new way of things in docShell and then at that time
+shave off that functionality from webShell relying completely on the new
+docShell system. The more mature docShell gets, the more we shave off of
+webShell.  The point at which we declare complete victory is when
+webShell offer no other methods or functions of its own on top of
+docShell.  We are getting much closer in this world.
+ 
+Because of many of the interactions webShell has with it's immediate
+owner, there were many changes that had to happen there.  Most notably
+nsWebShellWindow went under the knife as well.  Here too you see a new
+class nsXULWindow and new sets of interfaces nsIXULWindow that replace
+the older nsWebShellWindow and nsIWebShellWindow.  nsWebShellWindow is a
+subclass of nsXULWindow and here too as more features are added to
+nsXULWindow we can get rid of nsWebShellWindow.
+ 
+As for declaring final victory of the complete cleanup, that is taking
+second row to getting the pieces all functional.  In some places where
+the new design can be exposed and provide the functional world without
+doing the cleanup, this path will be chosen.  In places where doing the
+cleanup allows us to get access to the new world, then this path is
+chosen.  The point is getting the functionality accessible takes
+priority over the last bits of tidiness to complete declare webShell
+gone from the system.  I have been very careful not to rush the
+tidiness.  In both the docShell and the xulWindow case, the goal has
+been to use this class line as a very good way to tell the old design
+from the new design.  I would rather have the two classes stay in
+existence for a while than to contaminate the new classes with legacy
+code we blindly move over.  The hope however is that all this cleanup
+can be done in M15 timeframe.
+ 
+************************************
+3.)  What's left to do?
+************************************
+ 
+There are three main tasks left to do in the webShell cleanup.  First
+the url loading code needs to be cleaned up.  Anyone who has ventured
+into webshell knows of the many different functions for starting a load
+and the billion parameters one can pass.  This has been greatly
+simplified with the help of the wonderful work mscott has done with
+uriloading and the reduction of goals with respect to embedding and
+internal use for one object.  Cleaned up URL Loading paves the way for
+hooking up the new session history code. This promises to make life
+simpler for session history loads and frame navigation.  Finally in some
+point here we also must remove the native widget that webShell creates.
+This work is actually very easy and I have done it once.  The problem
+however is that it exposes some tear down bugs that have always been
+there and occasionally rear their ugly head right now.
+ 
+Embedding is another piece that must be hooked up.  Likely this will be
+done before some of the major cleanup in webShell since it provides an
+easy migration path for getting viewer and others abstracted and removed
+from the details of the changes mentioned above.
+ 
+Once these few things are complete, xulWindow can be finished in the
+cleanup.  We will then enter into some new design that expands on the
+architecture in place to provide all the needed functionality for
+embedding (dealing context menus, Focus issues etc).
+ 
+************************************
+4.)  How do I embed it?
+************************************
+ 
+This question is asked of me quite often.  The easy answer is we aren't
+quite there yet.  If you don't care about things constantly changing on
+you it is possible to still embed this in a similar way to the way
+webshell was embedded.  To make this work however you will need to use a
+combination of the old APIs and the new APIs.  There is no documentation
+about which are live and which aren't, but with some time you can learn
+from which old APIs internally SeaMonkey uses and which new ones it
+uses.  Also look in section 5 below at what interfaces are preferred and
+you will know the general direction to go towards.  The basic answer
+however remains, if you can hold off until I can get the embedding
+(mozilla/embedding/browser) object hooked up (probably a week or two)
+then you can be abstracted from many of the changes and actually use it
+to start embedding with fewer changes in your code going forward.
+ 
+****************************************
+5.)  What Interfaces should be used?
+****************************************
+ 
+So there are a number of interfaces that are supported by webShell and
+docShell some are supported because they are the new design, some are
+supported because I haven't had a chance to change over all the call
+sites. I have listed below two sets of interfaces *bad* and *good*.
+This translates to old and new respectively.  If you find any place in
+your code where you old on to one of the bad old interfaces then you can
+make the webshell work land sooner by finding out how you could possibly
+switch over to one of the new good interfaces.  I'd welcome people
+changing places where they internally hold on to an nsIWebShell to be
+holding on to an nsIDocShell for instance.  Now there are a number of
+places in the code where we are forced to QI to an nsIWebShell interface
+to make one call, this is done on purpose as we aren't ready to
+completely get rid of that function.  But the map over to nsIWebShell
+makes for a great search criteria for knowing what still needs to
+change.  Right now however there are too many places that just haven't
+been converted to get rid of their old webShell ways.
+ 
+bad interfaces (These will eventually be completely gone)
+-----------------------------
+nsIWebShell
+nsIWebShellContainer
+nsIWebShellWindow
+nsIWebShellServices
+nsIBrowserWindow
+ 
+good interfaces for interaction with docshell and related or parenting objects
+---------------------------------------------------------------------------- 
+--
+nsIDocShell
+nsIDocShellTreeItem
+nsIDocShellTreeNode
+nsIDocShellTreeOwner
+nsIBaseWindow
+nsIWebNavigation
+nsIScrollable
+nsITextScroll
+nsIInterfaceRequestor
+nsIWebProgress
+nsIWebProgressListener
+nsIXULWindow (Shouldn't ever actually get to one of these from a docShell)
+
+good interfaces for interaction with embedding and related or parenting
+objects
+----------------------------------------------------------------------------
+---
+nsIWebBrowser
+nsIDocShellTreeItem
+nsIBaseWindow
+nsIWebNavigation
+nsIScrollable
+nsITextScroll
+nsIInterfaceRequestor
+nsIWebProgress
+nsIWebProgressListener
+nsIWebBrowserChrome
+
+****************************************
+6.)  Typical coding problems.
+****************************************
+
+There are a number of cases where things have changed in the new world to
+make things easier or the path simply has changed to get to the object you
+are wanting to talk to.  Below are some examples of things you might want to
+do with examples of how they use to be and how they are now.
+
+In the examples we are always dealing with an existing nsCOMPtr<nsIDocShell>
+docShell;
+
+---- Getting to a domWindow from a docShell ----
+nsCOMPtr<nsIDOMWindow> domWindow(do_GetInterface(docShell));
+
+---- Getting an nsIPrompt ----
+nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterace(docShell));
+NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
+
+nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+docShellAsItem->GetTreeOwner(getter_AddRefs(treeOwner));
+
+nsCOMPtr<nsIPrompt> prompt(do_GetInterface(treeOwner));
+
+---- Getting a PresShell or content Viewer----
+nsCOMPtr<nsIPresShell> presShell;
+docShell->GetPresShell(getter_AddRefs(presShell));
+
+nsCOMPtr<nsIContentViewer> contentViewer;
+docShell->GetContentViewer(getter_AddRefs(contentViewer));
+
+---- Getting a document ----
+nsCOMPtr<nsIWebNavigation> webNav(do_QueryInterface(docShell));
+NS_ENSURE_TRUE(webNav, NS_ERROR_FAILURE);
+
+nsCOMPtr<nsIDOMDocument> domDoc;
+webNav->GetDocument(getter_AddRefs(domDoc));
+
+---- Loading a web Page from embedding ----
+nsCOMPtr<nsIWebNavigation> webNav(do_QueryInterface(docShell));
+NS_ENSURE_TRUE(webNav, NS_ERROR_FAILURE);
+
+nsAutoString myURL("http://www.mozilla.org");
+webNav->LoadURI(myURL.GetUnicode());  (note this is from most loads, some
+more detailed loads requiring different parameters may use more internal
+nsIDocShell functions that deal with nsIURIs).
+
+---- Any window management stuff ----
+nsCOMPtr<nsIBaseWindow> docShellAsWin(do_QueryInterface(docShell));
+NS_ENSURE_TRUE(docShellAsWin, NS_ERROR_FAILURE);
+
+docShellAsWin->SetVisibility(PR_TRUE);
+docShellAsWin->SetPositionAndSize(0, 0, 55, 99, PR_FALSE);
+docShellAsWin->Destroy();
+...
+docShellAsWin->AnyOtherInterestingWindowManipulationFoundOnThisInterface()
+
+---- Any interesting interaction with toplevel Window ----
+nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterace(docShell));
+NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
+
+nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+docShellAsItem->GetTreeOwner(getter_AddRefs(treeOwner));
+
+nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_QueryInterface(treeOwner));
+NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
+
+treeOwnerAsWin->SetPosition(8, 90);  // Moves the outer window
+
+(DON'T USE nsIWebShell::GetTopLevelWindow() or walk the nsIWebShellContainer
+stack).
+
+****************************************
+7.)  Wrap Up
+****************************************
+
+I hope this information helps some of you out there.  For those of you
+wanting to help that own a portion of the code, it would be great to get
+conversion from the bad APIs to the newer ones.  Remember webShell will
+be completely going away and thus any thought that crosses your mind as
+webshell being the home will need some rethinking.  Remember that in
+working with all this code, that embedding is a key objective and we
+must be careful not to break embedding by using our internal interfaces
+(nsIXULWindow) when we should be using the more generic interfaces that
+embedders may implement (nsIDocShellTreeOwner).  Please feel free to
+come by and talk with me if you have any questions.
+
+Travis
+
+ 
+ 

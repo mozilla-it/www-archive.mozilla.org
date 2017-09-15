@@ -1,0 +1,298 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Versions</TITLE>
+<LINK rel=stylesheet href="../styles.css">
+<LINK rel=Start href="index.html">
+<LINK rel=Contents href="index.html">
+<LINK rel=Prev href="packages.html">
+<LINK rel=Next href="member-lookup.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>March 1999 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title1>Versions</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="packages.html"><IMG src="../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="member-lookup.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Wednesday, March 24, 1999</P>
+
+<H2>Motivation</H2>
+
+<P>As a package evolves over time it often becomes necessary to change its exported interface. Most of these changes involve
+adding symbols (global and class members), although occasionally a symbol may be deleted or renamed. In a monolithic environment
+where all JavaScript source code comes preassembled from the same source, this is not a problem. On the other hand, if packages
+are dynamically linked from several sources then versioning problems are likely to arise.</P>
+
+<P>One of the most common avoidable problems is collision of symbols. Unless we solve this problem, an author of a library
+will not be able to add even one symbol in a future version of his library because that symbol could already be in use by
+some client or some other library that a client also links with. This problem occurs both in the global namespace and in the
+namespaces within classes from which clients are allowed to inherit.</P>
+
+<H3><A name="collision"></A>Example</H3>
+
+<P>Here's an example of how such a collision can arise. Suppose that a library provider creates a library called <CODE>BitTracker</CODE>
+that exports a class <CODE>Data</CODE>. This library becomes so successful that it is bundled with all web browsers produced
+by the BrowsersRUs company:</P>
+
+<PRE>package BitTracker;
+
+public class Data {
+  public field author;
+  public field contents;
+  function save() {...}
+};
+
+function store(d) {
+  ...
+  storeOnFastDisk(d);
+}</PRE>
+
+<P>Now someone else writes a web page <VAR>W</VAR> that takes advantage of <CODE>BitTracker</CODE>. The class <CODE>Picture</CODE>
+derives from <CODE>Data</CODE> and adds, among other things, a method called <CODE>size</CODE> that returns the dimensions
+of the picture:</P>
+
+<PRE>import BitTracker;
+
+class Picture extends Data {
+  public method size() {...}
+  field palette;
+};
+
+function orientation(d) {
+  if (d.size().h &gt;= d.size().v)
+    return "Landscape";
+  else
+    return "Portrait";
+}</PRE>
+
+<P>The author of the <CODE>BitTracker</CODE> library, who hasn't seen <VAR>W</VAR>, decides in response to customer requests
+to add a method called <CODE>size</CODE> that returns the number of bytes of data in a <CODE>Data</CODE> object. He then releases
+the new and improved <CODE>BitTracker</CODE> library. BrowsersRUs includes this library with its latest NavigatorForInternetComputing
+17.0 browser:</P>
+
+<PRE>package BitTracker;
+
+public class Data {
+  public field author;
+  public field contents;
+  public method size() {...}
+  function save() {...}
+};
+
+function store(d) {
+  ...
+  if (d.size() &gt; limit)
+    storeOnSlowDisk(d);
+  else
+    storeOnFastDisk(d);
+}</PRE>
+
+<P>An unsuspecting user <VAR>U</VAR> upgrades his old BrowsersRUs browser to the latest NavigatorForInternetComputing 17.0
+browser and a week later is dismayed to find that page <VAR>W</VAR> doesn't work anymore. <VAR>U</VAR>'s granddaughter Alyssa
+P. Hacker tries to explain to <VAR>U</VAR> that he's experiencing a name conflict on the <CODE>size</CODE> methods, but <VAR>U</VAR>
+has no idea what she is talking about. <VAR>U</VAR> attempts to contact the author of <VAR>W</VAR>, but she has moved on to
+other pursuits and is on a self-discovery mission to sub-Saharan Africa. Now <VAR>U</VAR> is steaming at BrowsersRUs, which
+in turn is pointing its finger at the author of <CODE>BitTracker</CODE>.</P>
+
+<H3>Solutions</H3>
+
+<P>How could the author of <CODE>BitTracker</CODE> have avoided this problem? Simply choosing a name other than <CODE>size</CODE>
+wouldn't work, because there could be some other page <VAR>W2</VAR> that conflicts with the new name. There are several possible
+approaches:</P>
+
+<UL>
+  <LI><B>Naming conventions</B>. We could require each symbol to be prefixed by the full name of the party from which this
+    symbol originates. Unfortunately, this would get tedious and unnecessarily impact casual uses of the language. Furthermore,
+    this approach is impractical for the names of methods because it is often desirable to share the same method name across
+    several classes to attain polymorphism; this would not be possible if Netscape's objects all used the <CODE>com_netscape_length</CODE>
+    method while MIT's objects used the <CODE>edu_mit_length</CODE> method.</LI>
+  <LI><B>Explicit imports</B>. We could require each client package to import every external symbol it references. This works
+    reasonably well for global symbols but becomes tedious for the names of class members, which would have to be imported
+    separately for each class. Alternatives exist for bulk importing members of a class, but they are somewhat complicated
+    and do not work for interfaces or multiple inheritance.</LI>
+  <LI><B>Versions</B>. We could require package authors to mark the symbols they export with explicit versions. A package's
+    developer could introduce a new version of the package with additional symbols as long as those symbols were made invisible
+    to prior versions.</LI>
+</UL>
+<P>The last approach appears to be the most desirable because it places the smallest burden on casual users of the language,
+who merely have to import the packages they use and supply the current version numbers in the import statements. A package
+author has to be careful not to disturb the set of visible prior-version symbols when releasing an updated package, but authors
+of dynamically linkable packages are assumed to be more sophisticated users of the language and could be supplied with tools
+to automatically check updated packages' consistency.</P>
+
+<H2>Overview</H2>
+
+<P>The versioning system in JavaScript 2.0 only affects exports of symbols. The concept of a version does not apply to a package's
+internal code; it is up to package developers to ensure that newer releases of their packages continue to behave compatibly
+with older ones.</P>
+
+<H3>Terminology</H3>
+
+<P>A <I>version</I> describes the API of a package. A <I>release</I> refers to the entirety of a package, including its code.
+One release can export many versions of its API. A package developer should make sure that multiple releases of a package
+that export version <I>V</I> export exactly the same set of symbols in version <I>V</I>.</P>
+
+<H3>Example</H3>
+
+<P>As an example, suppose that a developer wrote a sorting package <VAR>P</VAR> with functions <CODE>sort</CODE> and <CODE>merge</CODE>
+that called bubble sort in version <CODE>"1.0"</CODE>. In the next release the developer adds a function called
+<CODE>stablesort</CODE> and includes it in version <CODE>"2.0"</CODE>. In a subsequent release the developer changes
+the <CODE>sort</CODE> algorithm to a quicksort that calls <CODE>stablesort</CODE> as a subroutine. That last release of the
+package might look like:</P>
+
+<PRE>public version "1.0" = "";       // The = "" makes version "1.0" be the default
+public version "2.0" &gt; "1.0";
+
+public var serialNumber;
+
+public function sort(Function compare, any[] array) any[] {...}
+public function merge(Function compare, any[] array1, any[] array2) any[] {...}
+public "2.0" function stablesort(Function compare, any[] array) any[] {...}</PRE>
+
+<P>Suppose, further, that client package <VAR>C1</VAR> imports version <CODE>"1.0"</CODE> of <VAR>P</VAR>, client
+package <VAR>C2</VAR> simultaneously imports version <CODE>"2.0"</CODE> of <VAR>P</VAR>, and a search for <VAR>P</VAR>
+yields the latest release described above. There would be only <I>one</I> instance of <VAR>P</VAR> running -- the latest <I>release</I>.
+Both clients would get the same <CODE>sort</CODE> and <CODE>merge</CODE> functions, and both would see the same <CODE>serialNumber</CODE>
+variable (in particular, if client <VAR>C1</VAR> wrote to <CODE>serialNumber</CODE>, then client <VAR>C2</VAR> would see the
+updated value), but only client package <VAR>C2</VAR> would see the <CODE>stablesort</CODE> function. Both clients would get
+the quicksort release of <CODE>sort</CODE>. If client package <VAR>C1</VAR> defined its own <CODE>stablesort</CODE> function,
+then that function would not conflict with <VAR>P</VAR>'s <CODE>stablesort</CODE>; furthermore, <VAR>P</VAR>'s <CODE>sort</CODE>
+would still refer to <VAR>P</VAR>'s <CODE>stablesort</CODE> in its internal subroutine call.</P>
+
+<P>Had only the first release of <VAR>P</VAR> been available, client package <VAR>C2</VAR> would obtain an error because version
+2 of <VAR>P</VAR>'s API would not be available. Client <VAR>C1</VAR> could run normally, although the <CODE>sort</CODE> function
+it calls would use bubble sort instead of the quicksort.</P>
+
+<P>Note that the last release of <VAR>P</VAR> did not change the API so it did not need a new version. Of course, it could
+define a new version if for some reason it wanted clients to be able to demand the last release of <VAR>P</VAR> even though
+its API is the same as the second release.</P>
+
+<H2><A name="version-declaration"></A>Version Declarations</H2>
+
+<H3>Version Names</H3>
+
+<P>A version name <SPAN class=nonterminal>Version</SPAN> is a quoted string literal such as <CODE>"1.2"</CODE> or
+<CODE>"Private Interface 2.0"</CODE>. Two version names are equal if their strings are equal. A special version
+whose name is the empty string <CODE>""</CODE> is called the <I>default version</I>.</P>
+
+<H3>Declaration Syntax</H3>
+
+<P>A package must declare every version it uses except <CODE>""</CODE>, which is declared by default if not explicitly
+declared. A version must be declared before its first use. A given version name may be declared only once per package. A package
+declares a version name <SPAN class=nonterminal>Version</SPAN> using the version declaration:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>VersionDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>version</CODE>&nbsp;<SPAN class=nonterminal>Version</SPAN>&nbsp;[<CODE class=terminal-keyword>&gt;</CODE>&nbsp;<SPAN class=nonterminal>VersionList</SPAN>]&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>version</CODE>&nbsp;<SPAN class=nonterminal>Version</SPAN>&nbsp;[<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>Version</SPAN>]&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>VersionList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>Version</SPAN>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;...&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<SPAN class=nonterminal>Version</SPAN></DIV>
+</DIV>
+<P>A version declaration cannot be nested inside a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>.</P>
+
+<P>If <SPAN class=nonterminal>Visibility</SPAN> is present, it must be either <CODE class=terminal-keyword>private</CODE>, <CODE class=terminal-keyword>package</CODE>,
+or <CODE class=terminal-keyword>public</CODE> (without <SPAN class=nonterminal>VersionsAndRenames</SPAN>). Unlike in other declarations,
+the default is <CODE class=terminal-keyword>public</CODE>, which makes <SPAN class=nonterminal>Version</SPAN> accessible by
+other packages. A <CODE class=terminal-keyword>private</CODE> or <CODE class=terminal-keyword>package</CODE> <SPAN class=nonterminal>Visibility</SPAN>
+hides its <SPAN class=nonterminal>Version</SPAN> from other packages; such a <SPAN class=nonterminal>Version</SPAN> can be used
+only by being included in the <SPAN class=nonterminal>VersionList</SPAN> of another <SPAN class=nonterminal>Version</SPAN>. Also
+unlike other declarations, all <SPAN class=nonterminal>Version</SPAN> declarations are global.</P>
+
+<H3>Version Ordering</H3>
+
+<P>If the <SPAN class=nonterminal>Version</SPAN> being declared is followed by a <CODE class=terminal-keyword>&gt;</CODE> and
+a <SPAN class=nonterminal>VersionList</SPAN>, then the <SPAN class=nonterminal>Version</SPAN> is said to be <I>greater</I> than
+all of the <SPAN class=nonterminal>Version</SPAN>s in the <SPAN class=nonterminal>VersionList</SPAN>. We write <VAR>v1</VAR> :&gt;
+<VAR>v2</VAR> to indicate that <VAR>v1</VAR> is greater than <VAR>v2</VAR> and <VAR>v1</VAR> :<SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT>
+<VAR>v2</VAR> to indicate that either <VAR>v1</VAR> and <VAR>v2</VAR> are the same version or <VAR>v1</VAR> :&gt; <VAR>v2</VAR>.
+Order is transitive, which means that if <VAR>v1</VAR> :&gt; <VAR>v2</VAR> and <VAR>v2</VAR> :&gt; <VAR>v3</VAR>, then <VAR>v1</VAR>
+:&gt; <VAR>v3</VAR>. This order induces a partial order on the set of all versions. It is possible for two versions to be
+unordered with respect to each other, in which case they are not equal and neither is greater than the other.</P>
+
+<P>If the <SPAN class=nonterminal>Version</SPAN> <VAR>v1</VAR> being declared is followed by a <CODE class=terminal-keyword>=</CODE>
+and another <SPAN class=nonterminal>Version</SPAN> <VAR>v2</VAR>, then <VAR>v1</VAR> becomes an alias for <VAR>v2</VAR>, and
+they may be used interchangeably.</P>
+
+<H3><A name="versionRange"></A>Version Ranges</H3>
+
+<P>A <SPAN class=nonterminal>VersionRange</SPAN> specifies a subset of all versions. This subset contains all versions that
+are both greater than or equal to a given <SPAN class=nonterminal>Version<SPAN style=sub-num>1</SPAN></SPAN> and less than or
+equal to a given <SPAN class=nonterminal>Version<SPAN style=sub-num>2</SPAN></SPAN>. A <SPAN class=nonterminal>VersionRange</SPAN>
+can have either of the following forms:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>VersionRange</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>Version</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Version<SPAN style=sub-num>1</SPAN></SPAN>]&nbsp;<CODE class=terminal-keyword>..</CODE>&nbsp;[<SPAN class=nonterminal>Version<SPAN style=sub-num>2</SPAN></SPAN>]</DIV>
+</DIV>
+<P>The first form specifies the one-element set {<SPAN class=nonterminal>Version</SPAN>}. The second form specifies the set
+of all <SPAN class=nonterminal>Version</SPAN>s <VAR>v</VAR> such that <VAR>v</VAR> :<SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT>
+<SPAN class=nonterminal>Version<SPAN style=sub-num>1</SPAN></SPAN> and <SPAN class=nonterminal>Version<SPAN style=sub-num>2</SPAN></SPAN>
+:<SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT> <VAR>v</VAR>. If <SPAN class=nonterminal>Version<SPAN style=sub-num>1</SPAN></SPAN>
+is omitted, the condition <VAR>v</VAR> :<SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT> <SPAN class=nonterminal>Version<SPAN style=sub-num>1</SPAN></SPAN>
+is dropped. If <SPAN class=nonterminal>Version<SPAN style=sub-num>2</SPAN></SPAN> is omitted, the condition <SPAN class=nonterminal>Version<SPAN style=sub-num>2</SPAN></SPAN>
+:<SCRIPT type="text/javascript">document.write(U_ge)</SCRIPT> <VAR>v</VAR> is dropped.</P>
+
+<DIV class=issue>
+
+  <H2>Discussion</H2>
+
+  <H3>Version Numbers 1</H3>
+
+  <P>The original version of this specification allowed both strings and numbers as <SPAN class=nonterminal>Version</SPAN> names.
+  Two version names were equal if their <CODE>toString</CODE> representations were identical, so version names <CODE>2.0</CODE>
+  and <CODE>"2"</CODE> were identical but <CODE>2.0</CODE> and <CODE>"2.0"</CODE> were not. In addition, numbered versions
+  had an implicit order: For any two versions <VAR>v1</VAR> and <VAR>v2</VAR> whose names could be represented as <CODE>number</CODE>s,
+  <VAR>v1</VAR> :&gt; <VAR>v2</VAR> if and only if <VAR>v1</VAR> was numerically greater than <VAR>v2</VAR>. Additionally,
+  every version except <CODE>0</CODE> was greater than version <CODE>0</CODE>. It was an error to define explicit version
+  containment relations that would violate this default order, directly or indirectly.</P>
+
+  <P>Numbered <SPAN class=nonterminal>Version</SPAN> names were dropped for simplicity and to avoid confusion with versions
+  such as <CODE>1.2.3</CODE> (which would be a syntax error unless quoted).</P>
+
+  <H3>Version Numbers 2</H3>
+
+  <P>Another, simpler, approach is to require all <SPAN class=nonterminal>Version</SPAN> names to be nonnegative integers (without
+  quotes). Versions would not need to be declared, and all versions would be totally ordered in numerical order. A disadvantage
+  of this approach is that the total order keeps versions from being branched.</P>
+
+  <H3>Dynamic Version Definitions</H3>
+
+  <P>Currently version definitions are fixed. These could be turned into function calls that define versions and list their
+  relationships. If we can get a variable or constant to hold a set of version names, then we could use these variables rather
+  than specific version names in the <SPAN class=nonterminal>VersionsAndRenames</SPAN> lists after <CODE>public</CODE> keywords.
+  This would provide another level of abstraction and flexibility.</P>
+
+  <H3>Separate Version Definitions</H3>
+
+  <P>Yet another approach is to consolidate all of the information in <SPAN class=nonterminal>VersionsAndRenames</SPAN> into
+  a set of <CODE>export</CODE> statements, say, at the top of the file rather than being interspersed throughout a package
+  along with <CODE>public</CODE> declarations. This would make it easier to see all of the identifiers exported by a particular
+  version of the package, but it would also likely lead to inconsistencies when someone forgets to update an <CODE>export</CODE>
+  statement after inserting another variable, function, field, or method definition. Such errors would likely be caught after
+  a package has been released.</P>
+
+</DIV>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Wednesday, March 24, 1999</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="packages.html"><IMG src="../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="member-lookup.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

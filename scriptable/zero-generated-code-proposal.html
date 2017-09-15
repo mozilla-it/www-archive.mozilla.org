@@ -1,0 +1,387 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+<title>A zero generated code XPConnect proposal</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+<h2><center>A zero generated code XPConnect proposal</center></h2>
+<center><a href="mailto:jband@netscape.com">John Bandhauer</a>
+- 3 Dec 1998</center> <p>
+
+<h3>Introduction</h3>
+<blockquote>
+
+XPConnect is an evolving technology which enables JavaScript code to call
+across XPCOM interfaces into C++ objects and also C++ code to call across XPCOM
+interfaces into JavaScript objects. 
+
+<p>
+
+See <a href="index.html">here</a> for further details about XPConnect
+
+<p>
+
+This proposal is presented as an alternative to my (old and hastily written!)
+<a href="zero-ASM-proposal.html">zero-ASM</a> proposal. This proposal presents a
+plan for implementing XPConnect without any per interface generated code. It
+also suggests putting InterfaceInfo information (generated by the xpidl
+compiler) into a non-compiled XP file format. This is a minimal footprint
+solution at the cost of requiring some platform specific assembly code for
+marshalling params and dispatching calls from C++ to JS and from JS to C++.
+
+<p>
+</blockquote>
+
+<h3>InterfaceInfo files and objects</h3>
+<blockquote>
+
+<a href="xpidl/index.html">XPIDL</a>, the IDL compiler, will generate header
+files for inclusion in C++ code, interface documentation files, and - for
+XPConnect - InterfaceInfo files. InterfaceInfo files will be non-platform
+specific files which contain all pertinent information about the XPCOM interface
+described in the IDL description expressed in a format which can be efficiently
+accessed at runtime. Each InterfaceInfo file will contain information about one
+or more interfaces. We will likely build tools to merge multiple InterfaceInfo
+files together. InterfaceInfo files will be comparable to MS typelib files.
+Tools to convert one to the other may be written. I do not see it as necessary
+to try to be otherwise compatible with Microsoft's typelib implementation.
+
+<p> 
+
+InterfaceInfo files will consist of sets of tables describing interfaces, their
+methods, and the methods' parameters. The tables will be indexed for quick
+access. A main table will link UUIDs to the offsets in the file of the
+information about a given UUID's interface. A constant pool will be used to
+minimize overlap of shared data. Appropriate versioning information will be
+stored.
+
+<p> 
+
+InterfaceInfo files will be platform independent. A factory class will be
+implemented which when given a UUID can return a pointer to an nsIInterfaceInfo
+object. the factory and the nsIInterfaceInfo objects will hide all of the file
+oriented details. 
+
+<p> 
+
+nsIInterfaceInfo objects will contain all the information needed at runtime to
+dynamically build XPConnect glue and allow for introspection of the interface
+hierarchy. nsIInterfaceInfo objects will be reference counted and shared. There
+need be only one implementation; i.e. the same C++ class will be instantiated to
+represent various sorts of InterfaceInfo types. A linked hierarchy representing
+the interface inheritance schema of the target interfaces will be reflected in
+the instantiation of these nsIInterfaceInfo objects; i.e. if nsIFoo inherits
+from nsISupports, then when asked for an nsIInterfaceInfo object for nsIFoo the
+factory will return one to represent nsIFoo and that objects will have setup a
+link to another nsIInterfaceInfo object representing nsISupports.
+
+<p> 
+
+The factory object that provides nsIInterfaceInfo may have access to any number
+of InterfaceInfo files from which it builds the requested nsIInterfaceInfo
+objects.
+
+</blockquote>
+
+<h3>Proxies</h3>
+<blockquote>
+
+XPConnect glue will work by instantiating proxies (aka wrappers). JavaScript
+code accesses C++ XPCOM objects by calling through a JS2CPPProxy object which
+exposes a JavaScript native object interface and forwards calls to the wrapped
+C++ XPCOM object.The proxy is responsible for converting parameters and return
+values and doing appropriate error checking. A CPP2JSProxy object supports C++
+calling JavaScript objects. A primary goal is that objects on either side of the
+interface need not know the implementation language of the object on the other
+side of the interface; The C++ code makes normal XPCOM method calls and the
+JavaScript code interacts with the proxy like it would with any other JavaScript
+object.
+
+<p> 
+
+These two classes of proxies will be able to be instantiated to support any
+XPCOM interface. They use nsIInterfaceInfo objects to configure themselves to
+appropriately wrap objects and forward calls. They handle the details of
+supporting the nsISupports QueryInterface and reference counting transparently.
+These proxies are automatically used to wrap nsISupports derived object pointers
+as they are passed as parameters or return values.
+
+<p> 
+
+<i>NOTE: I'm not real excited about the names JS2CPPProxy and CPP2JSProxy.</i>
+
+</blockquote>
+
+
+<h3>JS2CPPProxy details</h3><blockquote>
+
+The guts of this proposal are the the implementation details of the two kinds of
+proxy. JS2CPPProxy will wrap C++ XPCOM objects to make them accessible from
+JavaScript. It will use information in an associated InterfaceInfo object to
+construct a JavaScript native interface to present JavaScript code with mapped
+methods, property getters/setters, and interface constants. 
+
+<p> 
+
+The proxy is a garbage collected JavaScript native object. It will hold a
+reference to the wrapped XPCOM object which it will release upon finalization.
+
+<p>
+
+Proxies will maintain links to other proxies on the same object so that
+'redundant' QueryInterface calls from the JavaScript code result in sharing of
+proxies.
+
+<p>
+
+Getters, setters, and method stubs will forward their params (either as explicit
+jsvals or as argc/argv for methods) to a method which will use the the
+proxy's associated InterfaceInfo object to determine how to convert and
+validate the params. The output of this conversion could be one of two forms:
+
+<ul> 
+
+<li>If we decide to support IDispatch then the conversion will be to an array of
+variants which is then passed to a shared invoke method which uses some platform
+specific assembly code to marshal arguments, call the target method, check for
+success, and convert the results. This scheme partially decouples the JavaScript
+native object stub stuff from the platform specific invoker, but has a bit of
+extra overhead in building the intermediate array of variants.
+
+<li>Alternately, we could skip the IDispatch part and do data conversions
+one by one directly into the space used for marshalling params for the method
+call. This is somewhat simpler.
+
+</ul>
+
+Here we see the big cost of this whole approach - we would need to port the
+assembly code for marshalling params and calling C++ objects to each platform we
+choose to support. This is not, however, a great deal of code.
+
+</blockquote>
+
+<h3>CPP2JSProxy details</h3><blockquote>
+
+CPP2JSProxy objects will handle wrapping JavaScript objects to be called from
+C++. Others have focused little attention on this part arguing that this is
+not important or rare enough to be codable by hand. I think it is very important
+and will allow JavaScript objects to participate as first class citizens in the
+XPCOM universe.
+
+<p>
+
+These proxies will need to simulate C++ objects. They need vtbls of
+method pointers that masquerade as a C++ implementation of the interface they
+represent. Rather than trying to synthesize these vtbls and stub
+methods on a per interface basis, we can use a shared vtbl and set of stubs for
+all instances of CPP2JSProxy. This vtbl will be long enough to accomodate the
+longest anticipated interface (and a bit longer) - say 500 or 1000 entries with
+some entries at the end being sentinels with 'assert'ing stubs to detect
+overruns. Each stub will push a number indicating which method (slot in the
+vtbl) it represents and then forward the call to a prolog/epilogue free method
+which will then do the work of extracting the params (based on information in
+the InterfaceInfo object associated with the proxy instance) for the given
+method, converting the params, finding and calling the appropriate JavaScript
+method (or getter/setter), and doing the right thing to return results. It will
+fail gracefully when necessary.
+
+<p>
+
+The implementation of the stubs and the shared param extraction code will be
+quite platform specific. On some platforms this can be mostly in C++ with a bit
+of inline assembly. Other platforms may require more of it to be written in
+assembly.
+
+<p>
+
+Finding the method/param information necessary to dispatch a given call will
+sometimes require walking the chain of InterfaceInfo objects. The InterfaceInfo
+object should transparently return method info for any given method 'slot' even
+if that method is part of a superinterface.
+
+</blockquote>
+
+<h3>Finding and instantiating proxies</h3><blockquote>
+
+There needs to be a bridge for using the factory registry from JavaScript. The
+JavaScript code needs to be able to both get at existing factories and register
+factories of its own. The XPConnect runtime should also expose functions by
+which the application could register application level objects for access from
+JavaScript.
+
+<p>
+
+Whenever interface pointers are passes across the XPConnect boundary (in either
+direction) they will be automatically wrapped by proxies. This may require some
+additional QueryInterface invocations for determining identity with 'known'
+wrapped objects and also some tables to map known wrapped objects to their
+wrappers. There are tradeoffs between unfailingly reusing existing wrappers and
+sometimes synthesizing redundant wrappers. This needs to be further worked
+out and may be resolved with the benefit of empirical evidence. Regardless, it
+is critical that the COM identity rules be followed.
+
+</blockquote>
+
+<h3>Additional Issues</h3><blockquote>
+
+It is not clear (to me) if supporting an IDispatch interface is worth the
+trouble
+
+<p>
+
+There are potential cycle problems with reference chains that bridge the gap
+between the reference counted side and the garbage collected side more than
+once.
+
+<p>
+
+What sort of registry is going to be available? Will JavaScript programmers need
+to work in terms UUIDs, or will there be a reliable string to UUID registry that
+we can expose into JavaScript?
+
+<p>
+
+It is not clear if InterfaceInfo objects should be reference counted and
+disposed of immediately when the count goes to zero, allowed to accumulate
+unchecked (though always reused), or 'occasionally' be collect if they have zero
+reference counts. Since they are presumably relatively expensive to build from
+file, we would hate to see patterns where the 'same' object is repeatedly built
+and destroyed.
+
+<p>
+
+<i>TBD add more issues</i>
+
+</blockquote>
+
+<h3>Tradeoffs</h3><blockquote>
+
+The big tradeoff question is: should we use this scheme that gives up no per
+interface code but requires porting to each platform, or a different scheme that
+has per interface code and no porting. (I vote for this scheme)
+
+</blockquote>
+
+<h3>Potential enhancements</h3><blockquote>
+
+We could expose introspection of interfaces
+
+<p>
+
+We could support MSCOM compatible IDispatch (even IDispatchEx?)
+
+<p>
+
+We could build InterfaceInfo inspection tools
+
+<p>
+
+The IDL compiler (or some tool using the InterfaceInfo files) could generate
+JavaScript skeleton and sample code to demonstrate how to either implement or
+access a given interface from JavaScript.
+
+<p>
+
+<i>TBD add more enhancements</i>
+
+</blockquote>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 11,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/scriptable/zero-generated-code-proposal.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

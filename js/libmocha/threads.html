@@ -1,0 +1,392 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <META NAME="Author" CONTENT="MLM">
+   <TITLE>Multithreading libmocha</TITLE>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<CENTER>
+<HR WIDTH="100%"><FONT SIZE=+2>Multiple JavaScript Threads</FONT></CENTER>
+
+<CENTER><FONT SIZE=+1>A design document to fix the OPS bug</FONT></CENTER>
+
+<CENTER>All blame to <A HREF="mailto:mlm@netscape.com">Mike McCool</A>
+(mlm@netscape.com)
+<HR WIDTH="100%"></CENTER>
+<FONT SIZE=+1>1. Overview</FONT>
+<UL>The bug itself is fairly straightforward to understand. Although the
+problem is more generalizable, the OPS problem is easy to describe. First,
+an HTML page requests information about the user via the OPS interface.
+The OPS interface is a Java interface accessed via LiveConnect. The function
+call in question brings up a user dialog, which prompts the user to confirm
+or deny the request for information, much like the Java security dialogs.
+On the Java dialog, there is a help button, which launches a NetHelp window.
+When the NetHelp window opens, the browser hangs.</UL>
+<FONT SIZE=+1>2. Problem Description</FONT>
+<UL>The fundamental core of the problem is that JavaScript programs are
+expected to run to completion. The main reason for this is to avoid race
+conditions - writing essentially multithreaded JavaScript in the browser
+would be a hard thing to keep track of, so the scripts are supposed to
+finish before another script can come in. Many scripts have complex interactions
+between the variables when a page finishes loading, and interrupting the
+script in the middle of its execution can leave data open to partial changes
+("<TT>x=1; y=2</TT>" could be interrupted in the middle leaving <TT>x</TT>
+as <TT>1</TT> and <TT>y</TT> at its previous value.) It is also important
+when the script is modifying the layout of an HTML page or being called
+from an event handler.
+
+<P><IMG SRC="current_model.gif" BORDER=1 HEIGHT=507 WIDTH=673>
+
+<P>There is only one JavaScript thread in the client. This thread can process
+only one script at a time. Using LiveConnect and other mechanisms, there
+are ways to make blocking calls in JavaScript. When a call blocks, the
+script that is currently being parsed stops until the call returns. If
+another script needs evaluation while the original script is blocked, the
+second script blocks until the JavaScript thread lock is available.
+
+<P><B>Note:</B> The terms "Mocha thread" and "JavaScript thread" are used
+interchangably here; the code refers to the thread as the "Mocha thread"
+because JavaScript was originally named "Mocha".</UL>
+<FONT SIZE=+1>2a. Details of JavaScript execution in browser</FONT>
+<UL><B>Code flow</B>
+<BR>
+<UL>The basic model of JavaScript execution is that there are two threads:
+the Mozilla thread, and the JavaScript thread. When a <TT>&lt;SCRIPT></TT>
+tag is encountered, the JavaScript thread is given an event to begin parsing
+and executing the JavaScript code.</UL>
+
+<UL>The Mozilla thread runs the layout engine, which does some internal
+state management to figure out which pages should be laid out when. <TT>ns/lib/layout/layscrip.c</TT>
+contains most of the layout code to deal with the <TT>&lt;SCRIPT></TT>
+tag. <TT>lo_ProcessScriptTag()</TT> processes the script tag, using <TT>lo_ParseScriptLanguage()</TT>
+to figure out what language a script is. If the language is JavaScript,
+it figures out which version and starts the dispatch process.
+
+<P>First, <TT>lo_create_script_blockage()</TT> blocks the layout state
+machine for this page so that no further processing of the HTML happens
+until the <TT>&lt;SCRIPT></TT> tag finishes its evaluation. It fills the
+line buffer with the script data from the standard <TT>&lt;SCRIPT>&lt;/SCRIPT></TT>
+pair. (<TT>javascript:</TT> URLs are handled via a different code path,
+although style sheets end up in <TT>layscrip.c</TT> eventually.) It then
+calls <TT>ET_EvaluateScript()</TT> to hand off the script to the JavaScript
+thread. <TT>lo_ScriptEvalExitFn()</TT> is called when the evaluation is
+finished, which then calls <TT>lo_unblock_script_tag()</TT> to tell layout
+to continue on.
+
+<P><TT>ET_EvaluateScript()</TT> in <TT>ns/lib/libmocha/et_mocha.c </TT>creates
+a new event via <TT>PR_InitEvent()</TT> with the source code buffer and
+an event destructor, sets the event handler functions correctly, translates
+the buffer to <FONT COLOR="#000000">unicode if the charset is non-ascii,</FONT>
+and then adds the event to the mocha event queue by calling <TT>et_event_to_mocha()</TT>
+on it. (Note that there is a comment above the code saying that perhaps
+the buffer should always be translated in the 5.x timeframe.) There are
+two queues to deal with - <TT>lm_InterpretQueue</TT>, and <TT>et_TopQueue</TT>.
+If <TT>document.write()</TT> is not involved, the top queue is equal to
+the interpret queue. It enters the queue monitor, notifies the queue that
+a new event has arrived, and releases the monitor.
+
+<P>In <TT>ns/lib/libmocha/et_mocha.c</TT> the function <TT>lm_wait_for_events()</TT>
+is the function that sits around in the JavaScript thread and just waits
+for events to occur. It calls <TT>et_SubEventLoop()</TT> on the top queue
+in an infinite loop.
+
+<P><TT>et_SubEventLoop()</TT> locks the JS thread, enters the queue monitor,
+and gets the next event. If it gets an event, it exits the queue monitor
+and begins evaluation. It sets the <TT>lm_owner_lock</TT> context to the
+<TT>MWContext</TT> found in the <TT>ETEvent</TT> structure so that the
+code to deal with a script being interrupted (either via a dropped network
+connection or a user hitting the stop button) is able to tell if the current
+script should be stopped in response to the interruption. <TT>PR_HandleEvent()</TT>
+handles the event synchronously, then <TT>et_SubEventLoop()</TT> unlocks
+the JS thread. (If there are no waiting events, it just unlocks the JS
+thread and waits for the next event.)
+
+<P><TT>et_evalbuffer_handler()</TT> was registered by <TT>ET_EvaluateScript()</TT>
+in the Mozilla thread as the event handler, so it is called by <TT>PR_HandleEvent().</TT>
+It gets the <TT>MochaDecoder</TT> from the <TT>MWContext</TT> in the <TT>ETEvent</TT>
+structure, and passes that to <TT>LM_EvaluateBuffer().</TT>
+<UL>&nbsp;</UL>
+<TT>LM_EvaluateBuffer()</TT> gets the <TT>js_context</TT> from the decoder.
+It eventually calls <FONT COLOR="#000000"><TT>JS_EvaluateScriptForPrincipals()</TT>
+or <TT>JS_EvaluateUCScriptForPrincipals()</TT> if it's Unicode.</FONT><TT>JS_EvaluateScriptForPrincipals()</TT> simply inflates the string
+to Unicode and then calls <TT>JS_EvaluateUCScriptForPrincipals()</TT> on
+the buffer, so perhaps the comment in <TT>et_mocha.c</TT> about doing that
+always is a moot point.
+
+<P>In <TT>ns/js/src/jsapi.c</TT> we find <TT>JS_EvaluateScriptForUCPrincipals()</TT>,
+which compiles the script first, then executes it via <TT>js_Execute().</TT>
+Object calls are resolved via initialization of the objects and reflecting
+them into JavaScript via <TT>LM_GetMochaDecoder()</TT> in <TT>ns/lib/libmocha/lm_init.c</TT>,
+which calls <TT>lm_InitWindowContent()</TT> to fill in the decoder structures
+if they haven't been already. See <TT>lm_screen.c</TT> for an example of
+objects reflected into JavaScript. <TT>lm_DefineScreen()</TT> is the function
+that does the initialization and creation of a new <TT>screen</TT> object,
+called from <TT>lm_DefineWindowProps()</TT>. The window level objects and
+Navigator objects are kept on the <TT>MochaDecoder</TT> object. A complete
+list of objects can be found in <TT>ns/include/libmocha.h.</TT> (Note that
+there is only one <TT>navigator</TT> object, which is kept on the <TT>crippled_decoder.</TT>
+The <TT>lm_crippled_decoder</TT> is a bare bones decoder used as a default,
+which keeps the shared <TT>navigator</TT> object.)
+
+<P>After <TT>js_Execute()</TT> is called, the stack unwinds as mentioned
+above, <TT>lo_ScriptEvalExitFn()</TT> is called, <TT>lo_unblock_script_tag()</TT>
+is called, and the layout engine continues laying out the page.
+<BR>&nbsp;</UL>
+<B>Structures</B>
+<BR>
+<UL><TT>MochaDecoder</TT> is defined in <TT>ns/include/libmocha.h</TT>;
+it contains a <TT>JSContext,</TT> an <TT>MWContext</TT>, and a <TT>JSObject</TT>
+for the window, among other things. The name <TT>MochaDecoder</TT> is somewhat
+misleading - it might be better named an <TT>LMWindow.</TT> <TT>MochaDecoder</TT>
+objects are created by <TT>lm_NewWindow()</TT> in <TT>ns/lib/libmocha/lm_win.c</TT>
+which takes an <TT>MWContext</TT> object as its only parameter. If the
+window is a frame, it gets the window's decoder from the history if possible,
+if not, it creates a new <TT>MochaDecoder</TT>. A new <TT>JSContext</TT>
+is created via <TT>JS_NewContext()</TT>, and the JavaScript window object
+is created as well.
+
+<P><TT>JSContext</TT> is private to <TT>ns/js/src/jscntxt.h</TT> and contains
+much of the information the JavaScript engine needs to execute and evaluate
+the bytecode. Others pass the context around as an opaque type. A <TT>JSContext</TT>
+can only have one active <TT>JSScript</TT> running at a time.&nbsp; It
+contains such things as the version of the script, the runtime data, and
+the current stack.
+
+<P><TT>MWContext</TT> is in <TT>ns/include/structs.h</TT>, and it's a bit
+of a dumping ground. It appears to have a reverse link to the <TT>JSContext</TT>
+that is kept in the <TT>MochaDecoder</TT>. There's one <TT>MWContext</TT>
+per window (MW stands for Mozilla Window.)</UL>
+</UL>
+<FONT SIZE=+1>3. Proposed Solutions</FONT>
+<UL><B>1. Multiple JS threads per window group</B>
+<BR>
+<UL>In this example, the deadlock occurs because there is only one JS thread
+per browser. We can, however, create a new thread per window group so that
+JavaScript is evaluated simultaneously in different windows at the same
+time. A window group would be a set of <TT>MWContext</TT> objects such
+as a frameset or any other set of windows that can address each other (such
+as through opener properties).
+
+<P><B>Problems:</B> New thread per window may be overkill in terms of overhead
+(memory, CPU.) This is especially true under Windows 3.x and the Macintosh.
+Need to also have method for one context to access another context's data
+- a way to magically join another JS thread so the scripts can share data.
+(This problem is non-trivial and involves many fun race conditions and
+possible deadlocks.)
+<BR>&nbsp;</UL>
+<B>2. New JS thread upon request</B>
+<UL>In this example, when a deadlock is known to be about to occur, a JS
+programmer can simply request a new thread, and the script will run inside
+that new thread.&nbsp; This avoids the deadlock by allowing a programmer
+to request a new thread before a locking call.
+
+<P><B>Problems:</B> Programmer still needs to know when a deadlock is going
+to occur. Conceivably, if we could detect a deadlock, we could spin a new
+thread automatically to avoid it, but we may be doing the user a favor
+they don't want. We would most likely still need a way to rejoin another
+thread to share data anyway - or perhaps this is an acceptable compromise.
+<BR>&nbsp;</UL>
+<B>3. Suspend JS thread context, run other script, resume previous JS context</B>
+<BR>
+<UL>Rather than creating multiple threads, find a way to save the thread
+state before a blocking call is made. When a new script is evaluated, the
+old script is saved in memory. Once the blocking call returns, the old
+script is retrieved from memory, restored, and continues running.
+
+<P><B>Problems:</B> It's unclear whether we can really do this, because
+saving the entire thread context might end up being more work than just
+creating new threads. Need more data. It's equivalent to doing a stack
+save and restore for an entire thread.
+<BR>&nbsp;</UL>
+We believe that a version of #2 is the most sensible and easiest to implement,
+where a programmer requests a new thread for a new window if the program
+is in a deadlock condition. For the OPS case in particular, the Java code
+could call a new function to create the window which would automatically
+create a new thread. (This thread would then go away when the window is
+closed.) This solves the overhead problem, and allows some degree of handwaving
+with the "joining window groups" problem.</UL>
+<FONT SIZE=+1>4. Implementation details</FONT>
+<UL><B>Overview</B>
+<BR>
+<UL>In this model, we create multiple JavaScript threads in a lazy fashion
+when they are requested by the programmer. A new thread can be created
+for a new window via a new function in JavaScript - <TT>window.spawn()</TT>
+as opposed to <TT>window.open()</TT>.
+
+<P><IMG SRC="proposed_model.gif" BORDER=1 HEIGHT=504 WIDTH=675>
+
+<P>In order to help with the multithreading and keep thread overhead down,
+we create a new structure called an <TT>LM_WindowGroup</TT>. Instead of
+having one <TT>JSContext</TT> per <TT>MWContext</TT>, we keep a single
+<TT>JSContext</TT> per window group and set the correct context before
+we evaluate the script. Each <TT>LM_WindowGroup</TT> has a <TT>PRThread</TT>,
+an <TT>InterpretQueue</TT>, and a <TT>JSLock</TT>.
+
+<P><IMG SRC="structures.gif" BORDER=1 HEIGHT=502 WIDTH=672>
+
+<P>A collection of <TT>MochaDecoder</TT> objects are associated with an
+<TT>LMWindowGroup</TT> not directly but via an entry in the structure defining
+which <TT>LMWindowGroup</TT> they're in. When evaluation occurs, <TT>et_event_to_mocha()</TT>
+calls a function in <TT>libmocha</TT> that determines which of the threads'
+interpreter queues to put the event on. The code to exit a script already
+takes an <TT>MWContext</TT> parameter and shouldn't need any changes.
+
+<P>Note that in the 99% case, the browser will continue to only have a
+single JavaScript thread, but the same problems will still need to be solved
+as if we were creating new ones all the time. We can, however, document
+some behaviors of the new thread spawning rather than having to fix them
+transparently to mimic previous behavior.
+
+<P>The function <TT>window.spawn()</TT> would take the same arguments as
+<TT>window.open()</TT>, and would basically create a new thread and call
+the existing <TT>window.open()</TT> code, with the exception that it will
+not return the window object to the caller. If the newly spawned window
+attempts to do a <TT>window.open()</TT> on an existing window (which is
+now in another thread), we can either give them back the window from the
+other thread (which is subject to a race condition if other scripts in
+that thread are running and modifying that window structure), or we can
+define the function to always return <TT>null</TT> if you attempt to cross
+a thread boundary.
+<BR>&nbsp;</UL>
+<B>Code Flow</B>
+<BR>
+<UL>Code mostly flows the same as it does today, except that when a JavaScript
+event comes in for an <TT>MWContext</TT>, we call <TT>LM_MWContextToGroup</TT>
+on the context to find which group it should belong to. If it hasn't been
+made part of a group yet, we get the default window group, and add it to
+that group.
+
+<P>In the <TT>libmocha</TT> implementations of <TT>win_open</TT> and <TT>win_spawn</TT>,
+we add the window to the parent's window group when the new window is created.
+This way subwindows opened via JavaScript inherit the correct thread.
+
+<P>In <TT>et_event_to_mocha</TT>, we make sure there is an <TT>MWContext</TT>
+for the event, and then use that <TT>MWContext</TT> to figure out which
+group to send the event to.
+
+<P>Code then proceeds again in the same fashion that it does today, with
+the exception that the scripts are now running in separate threads, and
+therefore avoid the deadlock mentioned above.
+<BR>&nbsp;</UL>
+</UL>
+<FONT SIZE=+1>5. Notes</FONT> (Random questions and observations I had
+when reading the code)
+<UL>Passing objects is done by the function <TT>ET_ReflectObject()</TT>
+in <TT>ns/lib/libmocha/et_mocha.c</TT>, and it simply adds an event onto
+the JavaScript event queue via <TT>PR_InitEvent().</TT> See <TT>ns/lib/layout/layblock.c</TT>
+for an example. See also <TT>ET_ReflectFormElement().</TT>
+
+<P><TT>LO_EnumerateForms</TT> in <TT>ns/lib/layout/laymocha.c</TT> comments
+that it can only be safely called while the <TT>JS_Lock</TT> is being held.
+Why, I wonder? What if there's more than one JS thread? Same for <TT>LO_EnumerateFormElements()</TT>
+in the same file. Perhaps this is because there may be JS code in the middle
+of monkeying with the form data. (Chouck says that it's because it adds
+objects to the <TT>JSAtom</TT> tables. If Mocha threads need their own
+tasks, we need to figure out how to join and split them dynamically; if
+not, we need to lock the atom table.
+
+<P>Why does Moz ever want the JS lock?&nbsp; Maybe to add items to the
+interpret queue? (It's for plugins which can execute JavaScript code.)
+
+<P>&nbsp;</UL>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 14,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/js/libmocha/threads.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

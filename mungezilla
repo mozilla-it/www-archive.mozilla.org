@@ -1,0 +1,155 @@
+#!/usr/local/bin/perl
+
+# Converts a tree read from the 1998-04-08 or 1998-03-31 source drops
+# into one that can be used with the cvs-mirror.mozilla.org CVS server.
+
+# The contents of this file are subject to the Netscape Public License
+# Version 1.0 (the "License"); you may not use this file except in
+# compliance with the License. You may obtain a copy of the License at
+# http://www.mozilla.org/NPL/
+#
+# Software distributed under the License is distributed on an "AS IS"
+# basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See the
+# License for the specific language governing rights and limitations
+# under the License.
+#
+# The Original Code is Mozilla Communicator client code, released March
+# 31, 1998.
+#
+# The Initial Developer of the Original Code is Netscape Communications
+# Corporation. Portions created by Netscape are Copyright (C) 1998
+# Netscape Communications Corporation. All Rights Reserved.
+#
+# Contributor(s):
+#
+#   Written by Steve Lamm <slamm@netscape.com>, 27-Apr-98.
+#   Munged slightly by jwz, 27-Apr-98.
+#
+#   Converted for Macintosh by Michael Blakeley <mike@blakeley.com>
+#     30-Apr-1998
+#
+
+require 'find.pl';
+require 'getopts.pl';
+
+# Extract base part of this script's name
+($progname) = $0 =~ /([^\/]+)$/;
+
+sub usage {
+    die
+"$progname: usage: [options]\n",
+"\n",
+"   Converts a tree read from the 1998-04-08 or 1998-03-31 source drops\n",
+"   into one that can be used with the cvs-mirror.mozilla.org CVS server.\n",
+"\n",
+"   Options:\n",
+"      -d <dir>           Search starting directory\n",
+"      -R                 Recurse subdirectories\n",
+"      -h                 Print help (this message)\n",
+"      -n                 Don't actually change any files\n",
+"\n";
+}
+
+# if on a Mac, set some sane defaults
+if ($MacPerl::Version) {
+   
+    $::opt_R = 1; # recursive
+   
+    # use a standard dialog to get the directory name
+    require "StandardFile.pl";
+    $::opt_d = &StandardFile::GetFolder("Choose the source folder");
+
+    # DEBUG: don't do anything
+    $::opt_n = 1;
+   
+} else {
+    # not a Mac - get command-line options
+   
+    &usage if (!&Getopts('d:hRn'));
+    &usage if ($opt_h);		# help option
+}
+
+$pattern1     = '/m/pub/ns';
+$replacement1 = '/cvsroot/mozilla';
+
+$pattern2     = ':pserver:.*@cvsserver:/m/pub';
+$replacement2 = ':pserver:anonymous@cvs-mirror.mozilla.org:/cvsroot';
+
+$rootDir = ($opt_d ? $opt_d : '.');
+
+warn "$progname: in $rootDir:\n";
+warn "\t changing \"$pattern1\" to \"$replacement1\"\n";
+warn "\t changing \"$pattern2\" to \"$replacement2\"\n";
+warn "\n";
+
+&find($rootDir);
+
+
+sub munge {
+    s/$pattern1/$replacement1/;
+    s/$pattern2/$replacement2/;
+    $_;
+}
+
+sub wanted {
+    $prune = 1 if !$opt_R;
+    return if (-l $_ || /^\./ || /(\.orig|~)$/);
+    return if (($_ ne 'Repository') && ($_ ne 'Root'));
+
+    local ($oldname) = $_;
+    local ($newname) = $_;
+    local ($found1) = 0;
+    local ($found2) = 0;
+    local ($tempname) = $oldname.'.orig';
+
+    if (-T $oldname && -s $oldname) {
+	open(FILE, "<$oldname")
+	    || die "Unable to open $oldname\n";
+	while (<FILE>) {
+	    if (/$pattern1/) {
+		$found1 = 1;
+	    }
+	    if (/$pattern2/) {
+		$found2 = 1;
+	    }
+	}
+	close(FILE);
+
+	if ($found1 || $found2) {
+
+	    warn "$progname: rewriting $name\n";
+
+            return if $opt_n;
+
+	    rename($oldname, $tempname)
+		|| die "Unable to rename $oldname as $tempname";
+
+	    open(OUT, ">$newname")
+		|| die "Unable to open $newname for writing\n";
+
+	    open(IN, "<$tempname") 
+		|| die "Unable to open $tempname\n";
+	    
+	    print OUT &munge while(<IN>);
+
+	    close(IN);
+	    close(OUT);
+	    if (-z $newname) {
+		die "$newname has zero size\n."
+		    ."Restore manually from $tempname\n";
+	    } else {
+		unlink($tempname);
+	    }
+
+	    warn "$name: Renaming as $newname\n" if $newname ne $oldname;
+
+	    $_ = $oldname;
+	    return;
+	}
+    }
+    if ($newname ne $oldname) {
+	warn "$name: Renaming as $newname\n";
+	rename($oldname, $newname) || warn "Unable to rename $oldname\n";
+    }
+    $_ = $oldname;
+}

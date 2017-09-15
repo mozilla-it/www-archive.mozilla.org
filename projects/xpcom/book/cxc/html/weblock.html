@@ -1,0 +1,2209 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta name="GENERATOR" content="Quadralay WebWorks Publisher Professional Edition 6.0.5">
+<meta name="TEMPLATEBASE" content="Portable HTML Professional Edition">
+<meta name="LASTUPDATED" content="07/09/03 16:22:46">
+<title>CHAPTER 6 Tutorial: Starting WebLock</title>
+</head>
+
+<body link="#3366CC" vlink="#9999CC" text="#000000" alink="#0000CC" bgcolor="#FFFFFF">
+
+<table width="331" border="0" align="right" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23"
+    border="0" alt="TOC"> </a></td>
+    <td><a href="tools.html"><img src="images/navprev.gif" width="81" height="23"
+    border="0" alt="PREV"> </a></td>
+    <td><a href="weblock_finish.html"><img src="images/navnext.gif" width="81" height="23"
+    border="0" alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23"
+    border="0" alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+<p><img src="images/xpcom.gif"></p>
+<hr align="left">
+
+<blockquote>
+<h1>
+  <a name="998205"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">CHAPTER 6	 Tutorial: Starting WebLock</font>
+</h1><hr>
+
+
+<p>
+  <a name="999060"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In this chapter, we begin to design and implement the web locking functionality itself. We have already created a module that implements most of the generic component functionality (e.g,. registration). This chapter will focus on the functionality that actually handles the web locking.</font>
+</p>
+
+
+<p>
+  <a name="1002199"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Topics covered in this chapter:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1002200"> </a><a href="weblock.html#1001977">"Getting Called at Startup"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006132"> </a><a href="weblock.html#1009278">"Providing Access to WebLock"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006139"> </a><a href="weblock.html#999116">"Creating the WebLock Programming Interface"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006136"> </a><a href="weblock.html#999326">"Defining the Weblock Interface in XPIDL"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1001897"> </a><a href="weblock.html#999697">"Implementing WebLock"</a></font>
+</ul>
+
+<h2>
+  <a name="1001977"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Getting Called at Startup</font>
+</h2>
+
+
+<p>
+  <a name="1001984"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">No person is an island to themselves, and neither are components. The sample component you've built up so far doesn't do anything. After having its registration procedure called, the component does nothing. </font>
+</p>
+
+
+<p>
+  <a name="1006663"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In order to be started up or notified when some event happens, the sample component has to hook into Mozilla, which it can do either by overriding an existing component or by registering for some event that will cause it to start up. <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> does the latter and gets called when a Gecko Profile Startup occurs. When a Gecko application starts up, registered components are created and notified via the general purpose observer interface <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font>.</font>
+</p>
+
+
+<p>
+  <a name="1001988"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Observers</i></font> are objects that are notified when various events occur. Using them is a good way for objects to pass messages to each other without the objects having explicit knowledge of one another. </font>
+</p>
+
+
+<p>
+  <a name="1007070"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Usually, there is one object notifying a group of observers. For example, an object may be created and have its <font  face="Verdana, Arial, Helvetica, sans-serif">observe</font> method called at startup, or it may register to be notified prior to XPCOM shutdown. The method at the core of this interface is <font  face="Verdana, Arial, Helvetica, sans-serif">observe</font>:</font>
+</p>
+
+
+<a name="1003225"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">void observe( in nsISupports aSubject, </font><a name="1002232"> </a>
+<font face="Courier New">   in string aTopic, </font><a name="1003223"> </a>
+<font face="Courier New">   in wstring aData );</font><a name="1003224"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1002219"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There aren't really any restrictions on what the parameters of the observer method may be. These parameters are defined according to the event being observed.  For example, in the case of the XPCOM shutdown observation, <font  face="Verdana, Arial, Helvetica, sans-serif">aSubject</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">aData</font> are not defined, and <font  face="Verdana, Arial, Helvetica, sans-serif">aTopic</font> is defined as the string "xpcom-shutdown".  If your object would like to register for this or other events, it first must implement the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> interface. Once you do this, the observer service implementing <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserverService</font> can notify your object of registered events by means of this interface, as in the figure below.</font>
+</p>
+
+
+<a name="1002329"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="center"><img src="images/weblock2.gif" height="280" width="522">
+</div><br></font>
+
+<a name="1007141"> </a><font face="Times New Roman">Figure 1.  The Observer Interfaces</font>
+<p>
+  <a name="1007142"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The above figure shows the observer service maintaining a list of all registered <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> objects. When the notification is made the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserverService</font> broadcasts the notification from the caller of the <font  face="Verdana, Arial, Helvetica, sans-serif">NotifyObserver()</font> to the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> object's <font  face="Verdana, Arial, Helvetica, sans-serif">Observe()</font> method.  This is a very useful decoupling of different objects. The <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> is a  generic interface for passing messages between two or more objects without defining a specific frozen interface, and its one of the ways in which extensibility is built into XPCOM. </font>
+</p>
+
+
+<p>
+  <a name="1002004"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The implementation of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> interface in the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component is  similar to the implementation for the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font> interface.  Following Example 2, you change the class definition to support the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> interface and change <font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_ISUPPORTS1</font> so that the <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> implementation knows that the component also supports <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font>. The <font  face="Verdana, Arial, Helvetica, sans-serif">WebLock</font> class definition with support for start up observation is below.</font>
+</p>
+
+
+<a name="1002267"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">class WebLock: public nsIObserver {    </font><a name="1002283"> </a>
+<font face="Courier New">public:  </font><a name="1002284"> </a>
+<font face="Courier New">  WebLock();  </font><a name="1002285"> </a>
+<font face="Courier New">  virtual ~WebLock();  </font><a name="1002286"> </a>
+<font face="Courier New"></font><a name="1002287"> </a>
+<font face="Courier New">  NS_DECL_ISUPPORTS</font><a name="1002288"> </a>
+<font face="Courier New">  NS_DECL_NSIOBSERVER</font><a name="1002289"> </a>
+<font face="Courier New">};  </font><a name="1002290"> </a>
+<font face="Courier New"></font><a name="1002291"> </a>
+<font face="Courier New">NS_IMPL_ISUPPORTS1(WebLock, nsIObserver);</font><a name="1002292"> </a>
+<font face="Courier New"></font><a name="1002271"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1002020"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The standard implementation of <font  face="Verdana, Arial, Helvetica, sans-serif">Observe()</font> simply compares the <font  face="Verdana, Arial, Helvetica, sans-serif">aTopic</font> string with the value defined by the event the object is expecting.  When there is a match, you can handle the event any way you see fit. If the object has only registered for one notification, then you can ignore the <font  face="Verdana, Arial, Helvetica, sans-serif">aTopic</font> string and simply handle the event as it occurs. In other words, the <font  face="Verdana, Arial, Helvetica, sans-serif">Observe</font> method should never be called in response to some event for which the object is not registered. </font>
+</p>
+
+
+<a name="1002639"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"></font><a name="1002306"> </a>
+<font face="Courier New">NS_IMETHODIMP</font><a name="1002307"> </a>
+<font face="Courier New">WebLock::Observe(nsISupports *aSubject, </font><a name="1002319"> </a>
+<font face="Courier New">                 const char *aTopic, </font><a name="1002320"> </a>
+<font face="Courier New">                 const PRUnichar *aData)</font><a name="1002321"> </a>
+<font face="Courier New">{</font><a name="1002311"> </a>
+<font face="Courier New">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1002312"> </a>
+<font face="Courier New">}</font><a name="1002313"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1002034"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Notification via the observer service is somewhat indirect. The only way to register directly for a notification via the observer service is to instantiate an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> object. This works for most cases, but consider the case when you have this notification create a component. Since the component hasn't been created yet, there are no instantiated <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> objects that can be passed into the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserverService</font>, nor can the component code do anything until it is loaded. </font>
+</p>
+
+
+<h3>
+  <a name="1007176"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Registering for Notifications</font>
+</h3>
+
+
+<p>
+  <a name="1007177"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserverService</font> interface has methods for registering and unregistering an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> object. These two methods are used to dynamically add or remove an observer to a notification topic. But <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> needs to be  instantiated and added to the observer service automatically, which also implies some sort of persistent data (after all, we want to have the component start up every time the application does).   </font>
+</p>
+
+
+<p>
+  <a name="1007190"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This is where a new service that manages sets of related data comes in handy. This service, the <font  face="Verdana, Arial, Helvetica, sans-serif">nsICategoryService</font>, is what XPCOM and Gecko embedding applications use to persist lists of <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> components that want to have startup notification.</font>
+</p>
+
+
+<p>
+  <a name="1007266"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif">nsICategoryService</font> maintains sets of name-value pairs like the one in <a href="weblock.html#1002041"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 2</i></font></a>. </font>
+</p>
+
+
+<a name="1003249"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"> <div align="center"><img src="images/weblock3.gif" height="172" width="583">
+</div><br></font>
+
+<a name="1002041"> </a><font face="Times New Roman">Figure 2.  The Category Manager</font>
+<p>
+  <a name="1007279"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Every category is identified by a string that represents the name of the category.  Each category contains a set of name-value pairs. For example, you might have a category named "Important People"in which the name-value pairs would be names and phone numbers. The format of the name-value pair is left up to you. </font>
+</p>
+
+
+<p>
+  <a name="1007399"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This data structure is more than enough to support the persisting of components that what to be started up. The category name also maps nicely onto the notion of a notification "topic."  The topic name could be something like "xpcom-startup", for instance, and the name-value pair could contain the Contract IDs required to create the components requesting startup. In fact, this is exactly how categories are used to handle registration with XPCOM for startup notification. You will see the code which does this in the next section. </font>
+</p>
+
+
+<h3>
+  <a name="1007404"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Getting Access to the Category Manager</font>
+</h3>
+
+
+<p>
+  <a name="1006687"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Two fields in the <font  face="Verdana, Arial, Helvetica, sans-serif">nsModuleComponentInfo</font> structure introduced in the last section are addresses for registration and unregistration callbacks. The first callback is called when the component's <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule::RegisterSelf</font> method is called. This callback allows the component to execute any one-time registration code it may need. The inverse of this function is the unregistration callback, where it's a good idea to undo whatever the registration function did. The two functions look like this:</font>
+</p>
+
+
+<a name="1002662"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">static NS_METHOD </font><a name="1002649"> </a>
+<font face="Courier New">WebLockRegistration(nsIComponentManager *aCompMgr,</font><a name="1002650"> </a>
+<font face="Courier New">                    nsIFile *aPath,</font><a name="1002651"> </a>
+<font face="Courier New">                    const char *registryLocation,</font><a name="1002652"> </a>
+<font face="Courier New">                    const char *componentType,</font><a name="1002653"> </a>
+<font face="Courier New">                    const nsModuleComponentInfo *info)</font><a name="1002654"> </a>
+<font face="Courier New"></font><a name="1002655"> </a>
+<font face="Courier New">static NS_METHOD </font><a name="1002656"> </a>
+<font face="Courier New">WebLockUnregistration(nsIComponentManager *aCompMgr,</font><a name="1002657"> </a>
+<font face="Courier New">                      nsIFile *aPath,</font><a name="1002658"> </a>
+<font face="Courier New">                      const char *registryLocation,</font><a name="1002659"> </a>
+<font face="Courier New">                      const nsModuleComponentInfo *info)</font><a name="1002660"> </a>
+<font face="Courier New"></font><a name="1002661"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1002663"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The names of the functions can be anything you wish. Both functions are passed the Component Manager and the path to the component, including the opaque <font  face="Verdana, Arial, Helvetica, sans-serif">registryLocation</font>. These are also parameters in the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> implementation in Example 1. In addition to these parameters, the callback functions are passed the <font  face="Verdana, Arial, Helvetica, sans-serif">nsModuleComponentInfo</font> struct, which is the same structure initially passed into <font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_NSGETMODULE</font>.</font>
+</p>
+
+
+<p>
+  <a name="1002063"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">During registration, the registration callback is where you get the <font  face="Verdana, Arial, Helvetica, sans-serif">nsICategoryManager</font>. Once you have it, you can add the component to the category of components that get started automatically. As a service, the <font  face="Verdana, Arial, Helvetica, sans-serif">nsICategoryManager</font> is accessible via the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font>. Also note that the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font> is passed into the callback. Since the object that implements the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font> interface also implements  <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font>, all you have to do is <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font> to <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font> to get the Service Manager. You can then use the Service Manager to add the component to the category:</font>
+</p>
+
+
+<a name="1002064"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsresult rv;</font><a name="1002451"> </a>
+<font face="Courier New"></font><a name="1002452"> </a>
+<font face="Courier New">nsCOMPtr&lt;nsIServiceManager&gt; servman =</font><a name="1002453"> </a>
+<font face="Courier New">     do_QueryInterface((nsISupports*)aCompMgr, &amp;rv);</font><a name="1002454"> </a>
+<font face="Courier New"></font><a name="1002455"> </a>
+<font face="Courier New">if (NS_FAILED(rv))</font><a name="1002460"> </a>
+<font face="Courier New">     return rv;</font><a name="1002456"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<a name="1002074"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1006721"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">do_QueryInterface</font>
+</h4>
+
+
+<p>
+  <a name="1006737"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The previous code uses the special <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> function <font  face="Verdana, Arial, Helvetica, sans-serif">do_QueryInterface</font> that lets you <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> without having to worry about reference counting,  error handling, and other overhead. The <font  face="Verdana, Arial, Helvetica, sans-serif">do_QueryInterface</font> knows what interface to QI to based on the <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> that is being assigned into. We could have just as easily have used the raw <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface()</font> method, but using <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> is much more economical (see <a href="tools.html#1007052">"Smart Pointers" on page 86</a>).</font>
+</p>
+
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1002075"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once you have a <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font> reference, you can ask it for the service you are interested in. This process is similar to using <font  face="Verdana, Arial, Helvetica, sans-serif">CreateInstance</font> from the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font>, but there is no aggregation parameter since the object has already been constructed.  
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsCOMPtr&lt;nsICategoryManager&gt; catman;</font><a name="1002467"> </a>
+<font face="Courier New">rv = servman-&gt;GetServiceByContractID(NS_CATEGORYMANAGER_CONTRACTID, </font><a name="1002468"> </a>
+<font face="Courier New">                                NS_GET_IID(nsICategoryManager), </font><a name="1002470"> </a>
+<font face="Courier New">                                getter_AddRefs(catman));</font><a name="1002471"> </a>
+<font face="Courier New">if (NS_FAILED(rv))</font><a name="1002472"> </a>
+<font face="Courier New">     return rv;</font><a name="1002473"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+</font>
+</p>
+
+
+<p>
+  <a name="1002085"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There are two service getters on the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font> interface: one that takes a CID and another interface that takes a Contract ID. Here we'll use the latter.  The first parameter to the <font  face="Verdana, Arial, Helvetica, sans-serif">GetServiceByContractID</font> is of course the contract ID, which is defined in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsXPCOM.h</i></font> header file. The next parameter is a nifty macro that returns the IID for the interface name that you pass in. The last parameter assigns an out interface pointer to a <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font>. Assuming there weren't any unexpected errors, the variable <font  face="Verdana, Arial, Helvetica, sans-serif">catman</font> holds the <font  face="Verdana, Arial, Helvetica, sans-serif">nsICategoryManager</font> interface pointer, which you can use to add the component as a startup observer by calling a method on the <font  face="Verdana, Arial, Helvetica, sans-serif">nsICategoryManager</font>. </font>
+</p>
+
+
+<p>
+  <a name="1003507"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next step is to figure out which parameters to pass to the method. There is a category name and a name-value pair, but since the name-value pair meaning is category specific, you need to figure out which category to use.</font>
+</p>
+
+
+<p>
+  <a name="1002089"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There are two startup notifications, both of which create the observer if it isn't already created. The first is provided by XPCOM. This notification will occur during initalization of XPCOM, where all XPCOM services are guaranteed to be available during the calls. Embedding applications may provide other notifications. </font>
+</p>
+
+
+<a name="1005698"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005704"> </a><font face="Times New Roman">TABLE 1.  Common XPCOM Notifications</font></font></i></b></caption>
+  <tr align="center" bgcolor="#CCCCCC">
+    <th><font face="Verdana, Arial, Helvetica, sans-serif" color="#003366"><a name="1005710"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Category</font></font></th>
+    <th><font face="Verdana, Arial, Helvetica, sans-serif" color="#003366"><a name="1005739"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Name</font></font></th>
+    <th><font face="Verdana, Arial, Helvetica, sans-serif" color="#003366"><a name="1005712"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Value</font></font></th>
+    <th><font face="Verdana, Arial, Helvetica, sans-serif" color="#003366"><a name="1005714"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Creates Component</font></font></th>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005716"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">xpcom-startup</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005741"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Any</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005718"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Contract ID</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005720"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Yes</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005722"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">xpcom-shutdown</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005743"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Any</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005724"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Contract ID</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005726"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">No</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005728"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">xpcom-autoregistration</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005745"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Any</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005730"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Contract ID</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005732"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">No</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005786"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">app-startup</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005788"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Any</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005790"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">service, Contract ID</font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1005792"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">*</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1002100"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The table above summaries the popular persistent notifications registered through the category manager. The name of the category itself is a well defined string, but the name-value pairs can be anything.  </font>
+</p>
+
+
+<p>
+  <a name="1002102"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When naming your component in the category, take care to use something that means something and doesn't muddy up the namespace. In this case, "WebLock" is unique and provides context to anyone looking at the category. The value of the name-value part is expected to be the contract ID of the component.  </font>
+</p>
+
+
+<p>
+  <a name="1002104"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Since every category can define the name-value pairs, the application "app-startup" category can support not only services but component instances as well.  For the  app-startup notification, you must explicitly pass the string "service," prior to the component's Contract ID. If you do not, the component will be created and then released after the notification, which may cause the component to be deleted.</font>
+</p>
+
+
+<p>
+  <a name="1002106"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In short, to register the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component as an xpcom-startup observer, do the following:</font>
+</p>
+
+
+<a name="1002108"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsEmbedCString previous;</font><a name="1002524"> </a>
+<font face="Courier New">rv = catman-&gt;AddCategoryEntry("xpcom-startup",</font><a name="1002525"> </a>
+<font face="Courier New">                              "WebLock", </font><a name="1002526"> </a>
+<font face="Courier New">                              WebLock_ContractID,</font><a name="1002527"> </a>
+<font face="Courier New">                              PR_TRUE,  // persist category</font><a name="1002528"> </a>
+<font face="Courier New">                              PR_TRUE,  // replace existing</font><a name="1002537"> </a>
+<font face="Courier New">                              previous);</font><a name="1002529"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1002581"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The unregistration, which should occur in the unregistration callback, looks like this:</font>
+</p>
+
+
+<a name="1002582"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">rv = catman-&gt;DeleteCategoryEntry("xpcom-startup",</font><a name="1002690"> </a>
+<font face="Courier New">                                 "WebLock", </font><a name="1002691"> </a>
+<font face="Courier New">                                  PR_TRUE);  // persist</font><a name="1002692"> </a>
+<font face="Courier New"></font><a name="1002693"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1002680"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">A complete code listing for registering WebLock as a startup observer follows. </font>
+</p>
+
+<pre>
+<font face="Courier New"></font><a name="1009155"> </a>
+</pre>
+
+<a name="1009283"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#define MOZILLA_STRICT_API<br></font>
+
+
+<a name="1009284"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009285"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsIGenericFactory.h"<br></font>
+
+
+<a name="1009286"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009287"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsCOMPtr.h"<br></font>
+
+
+<a name="1009288"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsXPCOM.h"<br></font>
+
+
+<a name="1009289"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsIServiceManager.h"<br></font>
+
+
+<a name="1009290"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsICategoryManager.h"<br></font>
+
+
+<a name="1009291"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009292"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsIObserver.h"<br></font>
+
+
+<a name="1009293"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009294"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsEmbedString.h"<br></font>
+
+
+<a name="1009295"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009296"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#define WebLock_CID \<br></font>
+
+
+<a name="1009297"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{ 0x777f7150, 0x4a2b, 0x4301, \<br></font>
+
+
+<a name="1009298"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{ 0xad, 0x10, 0x5e, 0xab, 0x25, 0xb3, 0x22, 0xaa}}<br></font>
+
+
+<a name="1009299"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009300"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">#define WebLock_ContractID "@dougt/weblock"<br></font>
+
+
+<a name="1009301"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009302"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">class WebLock: public nsIObserver {<br></font>
+
+
+<a name="1009303"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">public:<br></font>
+
+
+<a name="1009304"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  WebLock();<br></font>
+
+
+<a name="1009305"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  virtual ~WebLock();<br></font>
+
+
+<a name="1009306"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009307"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_DECL_ISUPPORTS<br></font>
+
+
+<a name="1009308"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_DECL_NSIOBSERVER<br></font>
+
+
+<a name="1009309"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">};<br></font>
+
+
+<a name="1009310"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009311"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">WebLock::WebLock()<br></font>
+
+
+<a name="1009312"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1009313"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  NS_INIT_ISUPPORTS();<br></font>
+
+
+<a name="1009314"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1009315"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009316"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">WebLock::~WebLock()<br></font>
+
+
+<a name="1009317"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1009318"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1009319"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009320"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_ISUPPORTS1(WebLock, nsIObserver);<br></font>
+
+
+<a name="1009321"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009322"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHODIMP<br></font>
+
+
+<a name="1009323"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">WebLock::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)<br></font>
+
+
+<a name="1009324"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1009325"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return NS_OK;<br></font>
+
+
+<a name="1009326"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1009327"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009328"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">static NS_METHOD WebLockRegistration(nsIComponentManager *aCompMgr,<br></font>
+
+
+<a name="1009329"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          nsIFile *aPath,<br></font>
+
+
+<a name="1009330"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          const char *registryLocation,<br></font>
+
+
+<a name="1009331"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          const char *componentType,<br></font>
+
+
+<a name="1009332"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                          const nsModuleComponentInfo *info)<br></font>
+
+
+<a name="1009333"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1009334"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsresult rv;<br></font>
+
+
+<a name="1009335"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009336"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsCOMPtr&lt;nsIServiceManager&gt; servman = do_QueryInterface((nsISupports*)aCompMgr, &amp;rv);<br></font>
+
+
+<a name="1009337"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv))<br></font>
+
+
+<a name="1009338"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return rv;<br></font>
+
+
+<a name="1009339"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009340"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009341"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsCOMPtr&lt;nsICategoryManager&gt; catman;<br></font>
+
+
+<a name="1009342"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    servman-&gt;GetServiceByContractID(NS_CATEGORYMANAGER_CONTRACTID,<br></font>
+
+
+<a name="1009343"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                    NS_GET_IID(nsICategoryManager),<br></font>
+
+
+<a name="1009344"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                    getter_AddRefs(catman));<br></font>
+
+
+<a name="1009345"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009346"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv))<br></font>
+
+
+<a name="1009347"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return rv;<br></font>
+
+
+<a name="1009348"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009349"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    char* previous = nsnull;<br></font>
+
+
+<a name="1009350"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    rv = catman-&gt;AddCategoryEntry("xpcom-startup",<br></font>
+
+
+<a name="1009351"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                  "WebLock",<br></font>
+
+
+<a name="1009352"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                  WebLock_ContractID,<br></font>
+
+
+<a name="1009353"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                  PR_TRUE,<br></font>
+
+
+<a name="1009354"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                  PR_TRUE,<br></font>
+
+
+<a name="1009355"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                  &amp;previous);<br></font>
+
+
+<a name="1009356"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (previous)<br></font>
+
+
+<a name="1009357"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        nsMemory::Free(previous);<br></font>
+
+
+<a name="1009358"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009359"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return rv;<br></font>
+
+
+<a name="1009360"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1009361"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009362"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">static NS_METHOD WebLockUnregistration(nsIComponentManager *aCompMgr,<br></font>
+
+
+<a name="1009363"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                        nsIFile *aPath,<br></font>
+
+
+<a name="1009364"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                        const char *registryLocation,<br></font>
+
+
+<a name="1009365"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                        const nsModuleComponentInfo *info)<br></font>
+
+
+<a name="1009366"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1009367"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsresult rv;<br></font>
+
+
+<a name="1009368"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009369"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsCOMPtr&lt;nsIServiceManager&gt; servman = do_QueryInterface((nsISupports*)aCompMgr, &amp;rv);<br></font>
+
+
+<a name="1009370"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv))<br></font>
+
+
+<a name="1009371"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return rv;<br></font>
+
+
+<a name="1009372"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009373"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009374"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    nsCOMPtr&lt;nsICategoryManager&gt; catman;<br></font>
+
+
+<a name="1009375"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    servman-&gt;GetServiceByContractID(NS_CATEGORYMANAGER_CONTRACTID,<br></font>
+
+
+<a name="1009376"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                    NS_GET_IID(nsICategoryManager),<br></font>
+
+
+<a name="1009377"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                    getter_AddRefs(catman));<br></font>
+
+
+<a name="1009378"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009379"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    if (NS_FAILED(rv))<br></font>
+
+
+<a name="1009380"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">        return rv;<br></font>
+
+
+<a name="1009381"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009382"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    rv = catman-&gt;DeleteCategoryEntry("xpcom-startup",<br></font>
+
+
+<a name="1009383"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                     "WebLock",<br></font>
+
+
+<a name="1009384"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">                                     PR_TRUE);<br></font>
+
+
+<a name="1009385"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009386"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    return rv;<br></font>
+
+
+<a name="1009387"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">}<br></font>
+
+
+<a name="1009388"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009389"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009390"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009391"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_GENERIC_FACTORY_CONSTRUCTOR(WebLock)<br></font>
+
+
+<a name="1009392"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009393"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">static const nsModuleComponentInfo components[] =<br></font>
+
+
+<a name="1009394"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1009395"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  { "WebLock",<br></font>
+
+
+<a name="1009396"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    WebLock_CID,<br></font>
+
+
+<a name="1009397"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    WebLock_ContractID,<br></font>
+
+
+<a name="1009398"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    WebLockConstructor,<br></font>
+
+
+<a name="1009399"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    WebLockRegistration,<br></font>
+
+
+<a name="1009400"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">    WebLockUnregistration<br></font>
+
+
+<a name="1009401"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  }<br></font>
+
+
+<a name="1009402"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">};<br></font>
+
+
+<a name="1009403"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<a name="1009275"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_NSGETMODULE(WebLockModule, components) <br></font>
+
+
+<h2>
+  <a name="1009278"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Providing Access to WebLock</font>
+</h2>
+
+
+<p>
+  <a name="1009279"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">At this point, the component will be called when XPCOM starts up. <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> has already implemented the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFactory</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font>, and <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> interfaces that handle generic component functionality including being initialized at startup. And it speaks to the Component Manager, Service Manager, Category Manager, and the Component Registrar to register itself properly with XPCOM. </font>
+</p>
+
+
+<p>
+  <a name="1002790"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next step is to expose additional functionality to Gecko applications and other clients to query and control the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component. For example, the user interface needs to be able to enable and disable the web locking functionality, see what sites are in the whitelist, and add or remove sites from that list.  <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> needs to provide an API, and it needs to hook into Gecko in order to implement the actual locking functionality.</font>
+</p>
+
+
+<a name="1007658"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1007668"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The WebLock User Interface</font>
+</h4>
+
+<a name="1007674"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component in this tutorial uses XUL to define the additional browser UI in a cross-platform way, and XUL uses JavaScript to access and control XPCOM components, but Gecko's pluggable UI allows any user interface to call into Gecko and the components you create as easily as you can from XUL. See <a href="weblock_ui.html#1000374">"XUL" on page 149</a> for a discussion of how XUL interacts with JavaScript and XPCOM.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h2>
+  <a name="999116"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Creating the WebLock Programming Interface</font>
+</h2>
+
+
+<p>
+  <a name="999117"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Design is one of the hardest parts of any programming problem. The question the interface for the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component must answer is: How should <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> look to the outside world? What, in other words, is the interaction of clients with the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component? In this section, we enumerate the basic functionality the component should expose and create the single interface that organizes and provides this functionality.</font>
+</p>
+
+
+<p>
+  <a name="999119"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Instead of starting with the implementation, developers use XPIDL (see <a href="quicktour2.html#998518">"XPIDL and Type Libraries" on page 21</a> for more information about XPIDL) to define the interface to the component: how the functionality should be organized, expressed, and exposed to its clients. </font>
+</p>
+
+
+<p>
+  <a name="1007701"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In general, the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> service interface needs to include the following functionality.  </font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999123"> </a>Lock - Enable web locking so that any browser in the Gecko application is restricted to the white list of website domains.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999124"> </a>Unlock - Disable web locking.  This should allow any browser in the Gecko application to browse any website regardless of the white list.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999125"> </a>AddSite - Add the current URL to the white list.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999126"> </a>RemoveSite - Remove the current URL from the white list.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999127"> </a>EnumerateSites - Allows the enumeration of all sites in the white list. <font  face="Verdana, Arial, Helvetica, sans-serif">EnumerateSites</font> might be used in the user interface to provide something like an editable listbox of all sites in the white list.</font>
+</ul>
+
+<p>
+  <a name="999129"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Even this simple outline presents some ambiguity, however. It's certainly not enough to spell out the interface for the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component in this way. For example, <font  face="Verdana, Arial, Helvetica, sans-serif">AddSite</font> is supposed to add the current URL to the white list, but is the URL an input parameter to the method, is it the topmost web page in the Gecko application, or is it something more random-a URL picked from global history or that's been given context in some other way? </font>
+</p>
+
+
+<p>
+  <a name="1003643"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">As a strongly typed and implementation-agnostic language, XPIDL requires that you be quite specific about the APIs, the list of parameters, their order, and their types. XPIDL requires that you spell it all out, in other words. And it's this formality that makes the interfaces in XPCOM effective contracts between services and clients.</font>
+</p>
+
+
+<p>
+  <a name="1003649"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next section shows the interface of the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component, <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font>, in XPIDL. Once the interface has been described in the XPIDL language, the interface file can be used to generate the header files needed for the implementation code,  the binary type library files that let you use the interface of the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component from JavaScript, and even javadoc style HTML documentation.</font>
+</p>
+
+
+<h2>
+  <a name="999326"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Defining the Weblock Interface in XPIDL</font>
+</h2>
+
+
+<p>
+  <a name="1002817"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Most interfaces in the XPCOM world are described in XPIDL. The XPIDL file for the <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font> interface can be used to generate the C++ header file, which you'll need to implement the interface in the component and also a type library that makes the component accessible from JavaScript or other interpreted languages. In Mozilla, JavaScript is the bridge between components and the XUL-based user interface.</font>
+</p>
+
+
+<h3>
+  <a name="1002819"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The XPIDL Syntax</font>
+</h3>
+
+
+<p>
+  <a name="999330"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The XPIDL syntax is a mix of C++ and Java, and of course it's very much like the OMG IDL upon which it is closely based. The XPIDL for <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font> appears in <a href="weblock.html#999349"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 3</i></font></a>.</font>
+</p>
+
+
+<a name="1003699"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsISupports.idl"</font></font><a name="1003709"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">interface nsISimpleEnumerator;</font></font><a name="1003710"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">[scriptable, uuid(ea54eee4-9548-4b63-b94d-c519ffc91d09)]</font></font><a name="1003711"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">interface iWeblock : nsISupports</font></font><a name="1003712"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">{</font></font><a name="1003713"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  void lock();</font></font><a name="1003714"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  void unlock();</font></font><a name="1003715"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  </font></font><a name="1003716"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  // assume strings are UTF-8</font></font><a name="1003717"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  void addSite(in string url);</font></font><a name="1008229"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  void removeSite(in string url);</font></font><a name="1003718"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  attribute nsISimpleEnumerator sites;</font></font><a name="1003719"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">};</font></font><a name="1003720"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+<a name="999349"> </a><font face="Times New Roman">Figure 3.  iWebLock</font>
+<p>
+  <a name="1006825"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first line includes the file <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsISupports.idl</i></font>, which defines the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> interface from which all XPCOM interfaces must derive, and makes it possible for the <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font> interface to subclass that base interface.  </font>
+</p>
+
+<pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">#include "nsISupports.idl"</font></font><a name="999351"> </a>
+</pre>
+
+<p>
+  <a name="999354"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next line of the XPIDL is a forward declaration of the interface <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font>. Again, this is similar to the forward declare in C++ (except that C++ does not have the <font  face="Verdana, Arial, Helvetica, sans-serif">interface</font> keyword seen here).</font>
+</p>
+
+<pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">interface nsISimpleEnumerator;</font></font><a name="999356"> </a>
+</pre>
+
+<p>
+  <a name="1008230"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">See the XPCOM references in Appendix C for more information about the XPIDL syntax.</font>
+</p>
+
+
+<h3>
+  <a name="999358"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Scriptable Interfaces</font>
+</h3>
+
+
+<p>
+  <a name="999359"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The thid line in <a href="weblock.html#999349"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 3</i></font></a> is more complex. The first thing it says is that <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font>  will be <font  face="Verdana, Arial, Helvetica, sans-serif"><i>scriptable</i></font>. </font>
+</p>
+
+<pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">[scriptable, uuid(ea54eee4-9548-4b63-b94d-c519ffc91d09)]</font></font><a name="1007785"> </a>
+</pre>
+
+<p>
+  <a name="1007783"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The rest of the line provides a UUID for this interface. Recall that every interface has a unique number that is assigned to it. In the case of interfaces, the identifier is an IID. In the case of the components, which also require unique identifiers, the identifier is the CID. </font>
+</p>
+
+
+<h3>
+  <a name="999365"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Subclassing nsISupports</font>
+</h3>
+
+
+<p>
+  <a name="999366"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next line in <a href="weblock.html#999349"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Figure 3</i></font></a> names the interface and defines its base interface. <font  face="Verdana, Arial, Helvetica, sans-serif">iWeblock</font> derives from <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font>. XPIDL has no way to define multiple inheritance-something that all scriptable objects must deal with.  </font>
+</p>
+
+<pre>
+<font face="Courier New">interface iWeblock : nsISupports</font><a name="999368"> </a>
+</pre>
+
+<h3>
+  <a name="999371"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Web Locking Interface</font>
+</h3>
+
+
+<p>
+  <a name="1006841"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The body of the block (the stuff between the curly braces) defines the methods and attributes of our interface. There are basically two functional sets on this interface. The first section of the interface controls whether or not <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> checks to see if a web page can be loaded.  If locked, <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> will prevent sites not on the white list from loading.  </font>
+</p>
+
+<pre>
+<font face="Courier New">  void lock();</font><a name="999373"> </a>
+<font face="Courier New">  void unlock();</font><a name="999374"> </a>
+</pre>
+
+<p>
+  <a name="999376"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This interface does not enforce any policy with respect to how the user enables or disables this feature. This allows maximum flexibility in the implementation. Any place in the application can acquire this interface via the Service Manager and call <font  face="Verdana, Arial, Helvetica, sans-serif">unlock</font> or <font  face="Verdana, Arial, Helvetica, sans-serif">lock</font>.  For example, the user interface may bring up a dialog asking the user for a password before calling <font  face="Verdana, Arial, Helvetica, sans-serif">unlock</font>. Another area of code, such as a "Profile Manager" that starts up and lets users choose which profileto use, may unconditionally call <font  face="Verdana, Arial, Helvetica, sans-serif">unlock</font> on such a component when switching a profile.  </font>
+</p>
+
+
+<p>
+  <a name="999383"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next set of functionality manages the white list where acceptable domains are stored: </font>
+</p>
+
+<pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  void addSite(in string url);</font></font><a name="1002841"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  void removeSite(in string url);</font></font><a name="1002842"> </a>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">  attribute nsISimpleEnumerator sites;</font></font><a name="1002849"> </a>
+</pre>
+
+<p>
+  <a name="1002839"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Operations in this set-<font  face="Verdana, Arial, Helvetica, sans-serif">add</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">remove</font>, and <font  face="Verdana, Arial, Helvetica, sans-serif">enumerate</font>-will be called from a user interface that manages the white list and adds the current website to the white list. There is no policy applied to what sites get added or removed to this list, or who can remove a site.</font>
+</p>
+
+
+<p>
+  <a name="999385"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The most interesting method definition is the enumerator. First of all, it does not look like a method at all:</font>
+</p>
+
+<pre>
+<font face="Courier New">readonly attribute nsISimpleEnumerator sites;</font><a name="999387"> </a>
+</pre>
+
+<p>
+  <a name="999389"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This line defines an attribute in the interface. In C++, this is considered a public variable and "compiled" into a Get method (e.g., <font  face="Verdana, Arial, Helvetica, sans-serif">getSites</font>). If an attribute is not marked <font  face="Verdana, Arial, Helvetica, sans-serif">readonly</font>, then both Get and Set methods are generated. </font>
+</p>
+
+
+<p>
+  <a name="1003753"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The getter created by this attribute returns a <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font> interface pointer. This interface allows you to pass a list of elements between interfaces. It has two methods: <font  face="Verdana, Arial, Helvetica, sans-serif">hasMoreElements()</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">getNext()</font>.</font>
+</p>
+
+<pre>
+<font face="Courier New">[scriptable, uuid(D1899240-F9D2-11D2-BDD6-000064657374)]</font><a name="999393"> </a>
+<font face="Courier New">interface nsISimpleEnumerator : nsISupports {</font><a name="999394"> </a>
+<font face="Courier New">  /**</font><a name="999395"> </a>
+<font face="Courier New">   * Called to determine whether or not the enumerator has</font><a name="999396"> </a>
+<font face="Courier New">   * any elements that can be returned via getNext(). This method</font><a name="999397"> </a>
+<font face="Courier New">   * is generally used to determine whether or not to initiate or</font><a name="999398"> </a>
+<font face="Courier New">   * continue iteration over the enumerator, though it can be</font><a name="999399"> </a>
+<font face="Courier New">   * called without subsequent getNext() calls. Does not affect</font><a name="999400"> </a>
+<font face="Courier New">   * internal state of enumerator.</font><a name="999401"> </a>
+<font face="Courier New">   *</font><a name="999402"> </a>
+<font face="Courier New">   * @see getNext()</font><a name="999403"> </a>
+<font face="Courier New">   * @return PR_TRUE if there are remaining elements </font><a name="999404"> </a>
+<font face="Courier New">   * in the enumerator.</font><a name="1001393"> </a>
+<font face="Courier New">   *         PR_FALSE if there are no more elements in the enumerator.</font><a name="999405"> </a>
+<font face="Courier New">   */                                            </font><a name="999406"> </a>
+<font face="Courier New">  boolean hasMoreElements();</font><a name="999407"> </a>
+<font face="Courier New"></font><a name="999408"> </a>
+<font face="Courier New">  /**</font><a name="999409"> </a>
+<font face="Courier New">   * Called to retrieve the next element in the enumerator. The "next"</font><a name="999410"> </a>
+<font face="Courier New">   * element is the first element upon the first call. Must be</font><a name="999411"> </a>
+<font face="Courier New">   * pre-ceeded by a call to hasMoreElements() which returns PR_TRUE.</font><a name="999412"> </a>
+<font face="Courier New">   * This method is generally called within a loop to iterate over</font><a name="999413"> </a>
+<font face="Courier New">   * the elements in the enumerator.</font><a name="999414"> </a>
+<font face="Courier New">   *</font><a name="999415"> </a>
+<font face="Courier New">   * @see hasMoreElements()</font><a name="999416"> </a>
+<font face="Courier New">   * @return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font> if the call succeeded in returning a non-null</font><a name="999417"> </a>
+<font face="Courier New">   *               value through the out parameter.</font><a name="999418"> </a>
+<font face="Courier New">   *         NS_ERROR_FAILURE if there are no more elements</font><a name="999419"> </a>
+<font face="Courier New">   *                          to enumerate.</font><a name="999420"> </a>
+<font face="Courier New">   * @return the next element in the enumeration.</font><a name="999421"> </a>
+<font face="Courier New">   */</font><a name="999422"> </a>
+<font face="Courier New">  nsISupports getNext();</font><a name="999423"> </a>
+<font face="Courier New">};</font><a name="999424"> </a>
+<font face="Courier New"></font><a name="999691"> </a>
+</pre>
+
+<h2>
+  <a name="999697"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Implementing WebLock</font>
+</h2>
+
+
+<p>
+  <a name="999698"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once you have defined the interfaces that the component will implement, you can begin to write the implementation code that will actually carry out the web locking functionality. </font>
+</p>
+
+
+<p>
+  <a name="1001408"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component implements three interfaces:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999699"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999700"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="999701"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font></font>
+</ul>
+
+<p>
+  <a name="999702"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> is the base interface that all XPCOM objects must implement. The <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> interface is for listening to various events that Gecko generates. And the <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font> interface is the interface that actually controls the web locking functionality. The first two have already been implemented as part of the generic module code. Recall from the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Tools</i></font> chapter that implementing these basic interfaces can be easy and straightforward if you use the macros and other utilities that XPCOM provides.</font>
+</p>
+
+
+<h3>
+  <a name="999706"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Declaration Macros</font>
+</h3>
+
+
+<p>
+  <a name="999707"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The class declaration for the <font  face="Verdana, Arial, Helvetica, sans-serif">WebLock</font> class that implements these three interfaces is as follows: </font>
+</p>
+
+
+<a name="1005493"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">class WebLock: public nsIObserver, public iWebLock</font><a name="1005503"> </a>
+<font face="Courier New">{    </font><a name="1005504"> </a>
+<font face="Courier New">  public:  </font><a name="1005505"> </a>
+<font face="Courier New">    WebLock();  </font><a name="1005506"> </a>
+<font face="Courier New">    virtual ~WebLock();  </font><a name="1005507"> </a>
+<font face="Courier New"></font><a name="1005508"> </a>
+<font face="Courier New">    NS_DECL_ISUPPORTS</font><a name="1005509"> </a>
+<font face="Courier New">    NS_DECL_NSIOBSERVER</font><a name="1005510"> </a>
+<font face="Courier New">    NS_DECL_IWEBLOCK</font><a name="1005511"> </a>
+<font face="Courier New">};  </font><a name="1005512"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+<pre>
+<font face="Courier New"></font><a name="999719"> </a>
+</pre>
+
+<p>
+  <a name="999720"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that we derive from the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> interface as well as the <font  face="Verdana, Arial, Helvetica, sans-serif">iWeblock</font> class. We do not need to explicitly derive from <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> as both of these two other interfaces are already subclasses of <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font>:</font>
+</p>
+
+
+<a name="1005520"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/weblock4.gif" height="272" width="444">
+</div><br></font>
+
+<a name="1005529"> </a><font face="Times New Roman">Figure 4.  Interface Hierarchy for WebLock</font>
+<p>
+  <a name="1005543"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The body of the class declaration uses declaration macros that are generated from an XPIDL interface file. Every header generated from an XPIDL file has a similar macro that defines all the methods in that interface. This makes changes to the interface when designing a bit simpler, as you do not have to modify any class declarations. </font>
+</p>
+
+
+<p>
+  <a name="999730"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There are times, of course, when you cannot use these macros-as when two interfaces share the same method signatures. In these cases you have to manually declare the methods in your class. But in practice, manually declaring class methods in XPCOM is the exception and not the rule. The <font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_IWEBLOCK </font>declaration macro expands into the following:</font>
+</p>
+
+
+<a name="1003762"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">  NS_IMETHOD Lock(void); </font><a name="1003772"> </a>
+<font face="Courier New">  NS_IMETHOD Unlock(void); </font><a name="1003773"> </a>
+<font face="Courier New">  NS_IMETHOD AddSite(const char *url); </font><a name="1003774"> </a>
+<font face="Courier New">  NS_IMETHOD RemoveSite(const char *url); </font><a name="1003775"> </a>
+<font face="Courier New">  NS_IMETHOD GetSites(nsISimpleEnumerator * *aSites); </font><a name="1003776"> </a>
+<font face="Courier New">  NS_IMETHOD GetSites(nsISimpleEnumerator * *aSites); </font><a name="1008243"> </a>
+<font face="Courier New">  NS_IMETHOD SetSites(nsISimpleEnumerator *aSites); </font><a name="1008247"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="999734"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Representing Return Values in XPCOM</font>
+</h3>
+
+
+<p>
+  <a name="999742"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The code sample above is the C++ version of the <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font> interface methods. The return result of XPCOM methods generated from XPIDL is always of the type <font  face="Verdana, Arial, Helvetica, sans-serif">nsresult</font>, and  the small macro used in these expansions, <font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMETHOD</font>, actually represents that return type. <font  face="Verdana, Arial, Helvetica, sans-serif">nsresult</font> is returned even when in XPIDL you specify that the method return a <font  face="Verdana, Arial, Helvetica, sans-serif">void</font>. If you require the return result to be something else, the methods are not truly XPCOM methods. If you really want to change the return result type you can use a special flag in your XPIDL that denotes this (see the XPIDL reference at <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.mozilla.org/scriptable/xpidl/</i></font>). However, we suggest that you simply add an out parameter to the method.</font>
+</p>
+
+
+<h3>
+  <a name="999744"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XPIDL Code Generation</font>
+</h3>
+
+
+<p>
+  <a name="999745"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The XPIDL compiler also generates a stub implementation of the interface in a commented section of the generated header file, in which each method returns <font  face="Verdana, Arial, Helvetica, sans-serif">NS_ERROR_NOT_IMPLEMENTED</font>. If you copy the stub implementation from the header file into the source, then rename the dummy class name ("<font  face="Verdana, Arial, Helvetica, sans-serif">_MYCLASS_</font>") to the <font  face="Verdana, Arial, Helvetica, sans-serif">WebLock</font> class name already defined, you should be able to compile the source successfully.</font>
+</p>
+
+
+<h3>
+  <a name="999747"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Getting the WebLock Service from a Client</font>
+</h3>
+
+
+<p>
+  <a name="1006857"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">At this point, you can install the XPCOM component and have other systems use it. The component doesn't do anything useful, of course, but you have written enough of the code to have it recognized and accessed as a component in XPCOM. The code snippet below illustrates how to get the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> service when the component is present:</font>
+</p>
+
+
+<a name="1003795"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsCOMPtr&lt;nsIServiceManager&gt; servMan;</font><a name="1003805"> </a>
+<font face="Courier New">nsresult rv = NS_GetServiceManager(getter_AddRefs(servMan));</font><a name="1003806"> </a>
+<font face="Courier New">if (NS_FAILED(rv))</font><a name="1003807"> </a>
+<font face="Courier New">{</font><a name="1003808"> </a>
+<font face="Courier New">    printf("ERROR: XPCOM error [%x].\n", rv);</font><a name="1003809"> </a>
+<font face="Courier New">    return -1;</font><a name="1003810"> </a>
+<font face="Courier New">}</font><a name="1003811"> </a>
+<font face="Courier New">nsCOMPtr&lt;iWebLock&gt; weblock;</font><a name="1003812"> </a>
+<font face="Courier New">rv = servMan-&gt;GetServiceByContractID("@dougt/weblock",     NS_GET_IID(iWeblock), getter_AddRefs(weblock));</font><a name="1003813"> </a>
+<font face="Courier New"></font><a name="1003814"> </a>
+<font face="Courier New">if (NS_FAILED(rv))</font><a name="1003815"> </a>
+<font face="Courier New">{</font><a name="1003816"> </a>
+<font face="Courier New">    printf("ERROR: XPCOM obtaining service [%x].\n", rv);</font><a name="1003817"> </a>
+<font face="Courier New">    return -1;</font><a name="1003818"> </a>
+<font face="Courier New">}</font><a name="1003819"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="999765"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Implementing the iWebLock Interface</font>
+</h3>
+
+
+<p>
+  <a name="999766"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once the interface is defined, you can focus on implementing the web lock startup functionality itself. The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component starts automatically when XPCOM is started up because it's been registered as a category in XPCOM. When <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> is called, one of the first things it wants to do is read in a file that lists the URLs that the browser is allowed to load. This file can exist anywhere on the local system, but we've placed it next to the application to keep things simple. The first step in this implementation phase, then, is to create the functionality that accesses this <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> white list and uses its data to determine which domains are allowed and which are to be blocked. For this, we need to use the file interfaces available in XPCOM.</font>
+</p>
+
+
+<h5>
+  <a name="999767"> </a><i><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">File Interfaces</font></i>
+</h5>
+
+
+<p>
+  <a name="1002883"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Files and directory are abstracted and encapsulated by interfaces. There are a few reasons for not using strings to represent file locations, but the most important one is that not all file systems can be represented by a series of characters separated by a slash. On the Macintosh platform, for example, files are represented as a triplet-two numbers and one string-so using a string on the Macintosh does not adequately identify files on that operating system.</font>
+</p>
+
+
+<p>
+  <a name="999770"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font>, the file interface in XPCOM, provides most of the functionally that file handling requires. That interface includes members representing the file name, file attributes, permissions, existence, and others. A related interface called <font  face="Verdana, Arial, Helvetica, sans-serif">nsILocalFile</font> provides access to operations specific to local files, but the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> functionality is adequate for the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component. </font>
+</p>
+
+
+<a name="1005551"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/weblocka.gif" height="290" width="444">
+</div><br></font>
+
+<a name="1001455"> </a><font face="Times New Roman">Figure 5.  File Interface Hierarchy</font>
+<a name="1000816"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1003853"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Remote Files and nsIFile</font>
+</h4>
+
+<a name="1003867"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">It is not inconceivable for remote files to be represented by the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> interface. Someone could write an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> implementation that represented FTP files on some server.  The existing code would need to change very little for a <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> implementation to take advantage of files that do not actually exists on disk. This kind of implementation does not exist, but this expandability shows some of the flexibility that interface-based programming can provide.</font><a name="1003854"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Appendix B,</i></font> <font  face="Verdana, Arial, Helvetica, sans-serif"><i>The XPCOM API Reference</i></font>, contains detailed information on <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> and other XPCOM interfaces.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="1002899"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Directory Service</font>
+</h3>
+
+
+<p>
+  <a name="1006403"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The file interfaces are most useful when you can use them to find and manipulate files that are relative to the application. The Directory Service provides directory and file locations in a cross platform uniform way to make this easier. This service, available as <font  face="Verdana, Arial, Helvetica, sans-serif">nsIDirectoryService</font>, stores the location of various common system locations, such as the the directory containing the running process, the user's <font  face="Verdana, Arial, Helvetica, sans-serif">HOME</font> directory, and others. It can be expanded so that applications and components can define and store their own special locations-an application plugin directory, for example,  preference files and/or directories, or other application specific paths. For example, to expose the location of the "white list" file containing all of the URL's that are safe for <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font>, you can add its location to the <font  face="Verdana, Arial, Helvetica, sans-serif">nsDirectoryService</font>, which clients can then query for this infomation.</font>
+</p>
+
+
+<p>
+  <a name="999789"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The Directory Service implements the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIProperties</font> interface, which allows  you to <font  face="Verdana, Arial, Helvetica, sans-serif">Get()</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">Set()</font>, and <font  face="Verdana, Arial, Helvetica, sans-serif">Undefine()</font> interface pointers. In the case of <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font>, these interface pointers will be <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> objects.</font>
+</p>
+
+
+<a name="1005564"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">[scriptable, uuid(78650582-4e93-4b60-8e85-26ebd3eb14ca)]</font><a name="1005574"> </a>
+<font face="Courier New">interface nsIProperties : nsISupports</font><a name="1005575"> </a>
+<font face="Courier New">{</font><a name="1005576"> </a>
+<font face="Courier New">    /**</font><a name="1005577"> </a>
+<font face="Courier New">     * Gets a property with a given name. </font><a name="1005578"> </a>
+<font face="Courier New">     *</font><a name="1005579"> </a>
+<font face="Courier New">     * @return NS_ERROR_FAILURE if a property with that </font><a name="1005580"> </a>
+<font face="Courier New">     * name doesn't exist.</font><a name="1005618"> </a>
+<font face="Courier New">     * @return NS_ERROR_NO_INTERFACE if the </font><a name="1005581"> </a>
+<font face="Courier New">     * found property fails to QI to the </font><a name="1005619"> </a>
+<font face="Courier New">     * given iid.</font><a name="1005582"> </a>
+<font face="Courier New">     */</font><a name="1005583"> </a>
+<font face="Courier New">    void get(in string prop, in nsIIDRef iid, </font><a name="1005584"> </a>
+<font face="Courier New">             [iid_is(iid),retval] out nsQIResult result);</font><a name="1005585"> </a>
+<font face="Courier New"></font><a name="1005586"> </a>
+<font face="Courier New">    /**</font><a name="1005587"> </a>
+<font face="Courier New">     * Sets a property with a given name to a given value. </font><a name="1005588"> </a>
+<font face="Courier New">     */</font><a name="1005589"> </a>
+<font face="Courier New">    void set(in string prop, in nsISupports value);</font><a name="1005590"> </a>
+<font face="Courier New"></font><a name="1005591"> </a>
+<font face="Courier New">    /**</font><a name="1005592"> </a>
+<font face="Courier New">     * Returns true if the property with the given name exists.</font><a name="1005593"> </a>
+<font face="Courier New">     */</font><a name="1005594"> </a>
+<font face="Courier New">    boolean has(in string prop);</font><a name="1005595"> </a>
+<font face="Courier New"></font><a name="1005596"> </a>
+<font face="Courier New">    /**</font><a name="1005597"> </a>
+<font face="Courier New">     * Undefines a property.</font><a name="1005598"> </a>
+<font face="Courier New">     * @return NS_ERROR_FAILURE if a property with that name doesn't</font><a name="1005599"> </a>
+<font face="Courier New">     * already exist.</font><a name="1005600"> </a>
+<font face="Courier New">     */</font><a name="1005601"> </a>
+<font face="Courier New">    void undefine(in string prop);</font><a name="1005602"> </a>
+<font face="Courier New"></font><a name="1005603"> </a>
+<font face="Courier New">    /**</font><a name="1005604"> </a>
+<font face="Courier New">     *  Returns an array of the keys.</font><a name="1005605"> </a>
+<font face="Courier New">     */</font><a name="1005606"> </a>
+<font face="Courier New">    void getKeys(out PRUint32 count, [array, size_is(count), retval]       out string keys);</font><a name="1005607"> </a>
+<font face="Courier New">};</font><a name="1005608"> </a>
+<font face="Courier New"></font><a name="1005609"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<a name="999828"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/weblock5.gif" height="168" width="444">
+</div><br></font>
+
+<a name="1005620"> </a><font face="Times New Roman">Figure 6.  Directory Service Hierarchy</font>
+<p>
+  <a name="999833"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There are two steps involved to find directories or files with the Directory Service (<font  face="Verdana, Arial, Helvetica, sans-serif">nsIDirectoryService</font>). You must know the string key (or property) that refers to the location you are interested in, which is published in the file <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsDirectoryServiceDefs.h</i></font> that comes with the Gecko SDK (for a listing of these locations, see <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Appendix B, the</i></font> <font  face="Verdana, Arial, Helvetica, sans-serif"><i>XPCOM API Reference</i></font>). The string key for the directory containing the application executable is <font  face="Verdana, Arial, Helvetica, sans-serif">NS_XPCOM_CURRENT_PROCESS_DIR</font>. Given this key, you can acquire the directory service, call <font  face="Verdana, Arial, Helvetica, sans-serif">Get()</font>, and pass the key. In the example below, <font  face="Verdana, Arial, Helvetica, sans-serif">theFile</font> will point to the directory that contains the executable.</font>
+</p>
+
+
+<a name="1005636"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsCOMPtr&lt;nsIServiceManager&gt; servMan;</font><a name="1005646"> </a>
+<font face="Courier New">nsresult rv = NS_GetServiceManager(getter_AddRefs(servMan));</font><a name="1005647"> </a>
+<font face="Courier New">if (NS_FAILED(rv)) return -1;</font><a name="1005648"> </a>
+<font face="Courier New"></font><a name="1005649"> </a>
+<font face="Courier New">nsCOMPtr&lt;nsIProperties&gt; directoryService;</font><a name="1005650"> </a>
+<font face="Courier New">rv = servMan-&gt;GetServiceByContractID(
+    NS_DIRECTORY_SERVICE_CONTRACTID, </font><a name="1005651"> </a>
+<font face="Courier New">    NS_GET_IID(nsIProperties), </font><a name="1005652"> </a>
+<font face="Courier New">                                         getter_AddRefs(directoryService));</font><a name="1005653"> </a>
+<font face="Courier New"></font><a name="1005654"> </a>
+<font face="Courier New">if (NS_FAILED(rv)) return -1;</font><a name="1005655"> </a>
+<font face="Courier New"></font><a name="1005656"> </a>
+<font face="Courier New">nsCOMPtr&lt;nsIFile&gt; theFile;</font><a name="1005657"> </a>
+<font face="Courier New">rv = directoryService-&gt;Get(NS_XPCOM_CURRENT_PROCESS_DIR, </font><a name="1005658"> </a>
+<font face="Courier New">                           NS_GET_IID(nsIFile), </font><a name="1005659"> </a>
+<font face="Courier New">                           getter_AddRefs(theFile));</font><a name="1005660"> </a>
+<font face="Courier New"></font><a name="1005661"> </a>
+<font face="Courier New">if (NS_FAILED(rv)) return -1;</font><a name="1005662"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999854"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Most of the useful functionality is exposed by the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIProperties</font> interface, but the directory service also implements <font  face="Verdana, Arial, Helvetica, sans-serif">nsIDirectoryService</font>. This interface allows you to extend and override <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> objects registered with the directory service.  There are currently two ways to add a file location to the directory service: directly and using the delayed method. The direct method is to add a new <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> object using the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIProperties</font> interface, in which case you pass the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> object as an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> to the <font  face="Verdana, Arial, Helvetica, sans-serif">Set()</font> method of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIProperties</font> interface.  </font>
+</p>
+
+
+<p>
+  <a name="1008272"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In the delayed method, you register to be a callback that can provide an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font>. To do this, you must get the implementation like we did above. When you have it, <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> for the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIDirectoryService</font> interface. In this interface, there is a function which allows you to register an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIDirectoryServiceProvider</font> interface. The interface callback looks like this:</font>
+</p>
+
+
+<a name="1008339"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<a name="1008318"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">[scriptable, uuid(bbf8cab0-d43a-11d3-8cc2-00609792278c)]<br></font>
+
+
+<a name="1008319"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">interface nsIDirectoryServiceProvider: nsISupports<br></font>
+
+
+<a name="1008320"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">{<br></font>
+
+
+<a name="1008321"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"> /**<br></font>
+
+
+<a name="1008322"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  * getFile<br></font>
+
+
+<a name="1008323"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *<br></font>
+
+
+<a name="1008324"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  * Directory Service calls this when it gets the first request for<br></font>
+
+
+<a name="1008325"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  * a prop or on every request if the prop is not persistent.<br></font>
+
+
+<a name="1008326"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *<br></font>
+
+
+<a name="1008327"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  * @param prop         The symbolic name of the file.<br></font>
+
+
+<a name="1008328"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  * @param persistent   TRUE - The returned file will be cached by Directory<br></font>
+
+
+<a name="1008329"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *                     Service. Subsequent requests for this prop will<br></font>
+
+
+<a name="1008330"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *                     bypass the provider and use the cache.<br></font>
+
+
+<a name="1008331"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *                     FALSE - The provider will be asked for this prop<br></font>
+
+
+<a name="1008332"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *                     each time it is requested.<br></font>
+
+
+<a name="1008333"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *<br></font>
+
+
+<a name="1008334"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  * @return             The file represented by the property.<br></font>
+
+
+<a name="1008335"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  *<br></font>
+
+
+<a name="1008336"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  */ <br></font>
+
+
+<a name="1008337"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">  nsIFile getFile(in string prop, out PRBool persistent);<br></font>
+
+
+<a name="1008338"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">};<br></font>
+
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="1008342"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Modifying Paths with nsIFile</font>
+</h3>
+
+
+<p>
+  <a name="1004085"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The directory service returns an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> object, but that object points to the application directory and not the file itself. To modify this <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> so that it points to the file, you must call the <font  face="Verdana, Arial, Helvetica, sans-serif">Append</font> method of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font>.  <font  face="Verdana, Arial, Helvetica, sans-serif">Append</font> adds the input string to the path already specified in the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font>. On Unix, for example, calling <font  face="Verdana, Arial, Helvetica, sans-serif">Append("b")</font> on an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> modifies that <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> representing <font  face="Verdana, Arial, Helvetica, sans-serif"><i>/u/home/dougt/a</i></font> to point to <font  face="Verdana, Arial, Helvetica, sans-serif"><i>/u/home/dougt/a/b</i></font>.  The next operation on the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> returns results associated with the "b" path.  If "a" wasn't a directory, further operations would fail, even if the initial <font  face="Verdana, Arial, Helvetica, sans-serif">Append</font> was successful. This is why <font  face="Verdana, Arial, Helvetica, sans-serif">Append</font> is considered a string operation. </font>
+</p>
+
+
+<p>
+  <a name="999862"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component manipulates a file named <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.txt</i></font>. The following snippet adjusts the <font  face="Verdana, Arial, Helvetica, sans-serif">theFile</font> object representing that file:</font>
+</p>
+
+
+<a name="1004198"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsEmbedCString fileName("weblock.txt");</font><a name="1004208"> </a>
+<font face="Courier New">appDir-&gt;AppendNative(fileName);</font><a name="1004209"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="999879"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Manipulating Files with nsIFile</font>
+</h3>
+
+
+<p>
+  <a name="1004230"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once you have an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> object pointing to the file that you're interested in, you can open it and read its contents into memory. There are many ways to do this: You can use Standard ANSI File I/O, or NSPR (see the sidebar "The Netscape Portable Runtime Library" below for a brief description of NSPR), or you can use the networking APIs that Gecko provides. </font>
+</p>
+
+
+<a name="1006077"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1006085"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Netscape Portable Runtime Library</font>
+</h4>
+
+<a name="1006086"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Netscape Portable Runtime Library</i></font> (NSPR) is a platform-independent library that sits below XPCOM. As a layer of abstraction above the operating system, the NSPR allows Gecko applications to be platform independent by providing the following system-level facilities:</font><ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006234"> </a>Threads</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006238"> </a>Thread synchronization</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006239"> </a>File and network I/O</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006240"> </a>Timing and intervals</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006244"> </a>Memory management</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006245"> </a>Shared library linking</font>
+</ul>
+
+<p>
+  <a name="1006368"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The NSPR is included in the Gecko SDK. </font>
+</p>
+
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1006079"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To keep things as simple as possible, we'll read the file into memory using standard ANSI file I/O, but for examples and information about how to use <font  face="Verdana, Arial, Helvetica, sans-serif"><i>necko</i></font>, the Gecko networking libraries, see <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.mozilla.org/projects/netlib/</i></font>.</font>
+</p>
+
+
+<h3>
+  <a name="1007917"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Using nsILocalFile for Reading Data</font>
+</h3>
+
+
+<p>
+  <a name="1007918"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">An <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> object returned from the directory service may also implement the <font  face="Verdana, Arial, Helvetica, sans-serif">nsILocalFile</font> interface, which has a method that will return a <font  face="Verdana, Arial, Helvetica, sans-serif">FILE</font> pointer that can be used in <font  face="Verdana, Arial, Helvetica, sans-serif">fread()</font>. To implement the actual read, you need to allocate a buffer the length of the file, use the <font  face="Verdana, Arial, Helvetica, sans-serif">nsILocalFile</font> interface pointer to obtain a <font  face="Verdana, Arial, Helvetica, sans-serif">FILE *</font>, use this result with <font  face="Verdana, Arial, Helvetica, sans-serif">fread</font>, and close the file pointer.</font>
+</p>
+
+
+<a name="1004338"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+
+<p>
+  <a name="999883"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The following code loads the contents of the file referenced by the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> object <font  face="Verdana, Arial, Helvetica, sans-serif">theFile</font> into the buffer <font  face="Verdana, Arial, Helvetica, sans-serif">buf</font>:</font>
+</p>
+
+
+<a name="1004282"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">    nsCOMPtr&lt;nsILocalFile&gt; localFile = do_QueryInterface(theFile);</font><a name="1004292"> </a>
+<font face="Courier New">    if (!localFile) return -1;</font><a name="1004293"> </a>
+<font face="Courier New"></font><a name="1004294"> </a>
+<font face="Courier New">    PRBool exists;</font><a name="1004295"> </a>
+<font face="Courier New">    rv = theFile-&gt;Exists(&amp;exists);</font><a name="1004296"> </a>
+<font face="Courier New">    if (NS_FAILED(rv)) return -1;</font><a name="1004297"> </a>
+<font face="Courier New"></font><a name="1004298"> </a>
+<font face="Courier New">    char *buf = NULL;</font><a name="1004299"> </a>
+<font face="Courier New"></font><a name="1004300"> </a>
+<font face="Courier New">    if (exists) </font><a name="1004301"> </a>
+<font face="Courier New">    {</font><a name="1004302"> </a>
+<font face="Courier New">        // determine file size:</font><a name="1004303"> </a>
+<font face="Courier New">        PRUint32 fs, numread;</font><a name="1004304"> </a>
+<font face="Courier New">        PRInt64 fileSize;</font><a name="1004305"> </a>
+<font face="Courier New">        rv = theFile-&gt;GetFileSize(&amp;fileSize);</font><a name="1004306"> </a>
+<font face="Courier New">        if (NS_FAILED(rv)) return -1;</font><a name="1008349"> </a>
+<font face="Courier New"></font><a name="1004307"> </a>
+<font face="Courier New">        // Converting 64 bit value to unsigned int</font><a name="1004308"> </a>
+<font face="Courier New">        LL_L2UI(fs, fileSize); </font><a name="1004309"> </a>
+<font face="Courier New"></font><a name="1004310"> </a>
+<font face="Courier New">        FILE* openFile;</font><a name="1004311"> </a>
+<font face="Courier New">        rv = localFile-&gt;OpenANSIFileDesc("rw", &amp;openFile);</font><a name="1004312"> </a>
+<font face="Courier New">        if (NS_FAILED(rv)) return -1;</font><a name="1004313"> </a>
+<font face="Courier New"></font><a name="1004314"> </a>
+<font face="Courier New">        char *buf = (char *)malloc((fs+1) * sizeof(char));</font><a name="1004315"> </a>
+<font face="Courier New">        if ( ! bug ) return -1;</font><a name="1008354"> </a>
+<font face="Courier New">         </font><a name="1004316"> </a>
+<font face="Courier New">        numread = fread(buf, sizeof( char ), fs, openFile);</font><a name="1004317"> </a>
+<font face="Courier New">        </font><a name="1004318"> </a>
+<font face="Courier New">        if (numread != fs)</font><a name="1004319"> </a>
+<font face="Courier New">            ;// do something useful.</font><a name="1004320"> </a>
+<font face="Courier New"></font><a name="1004321"> </a>
+<font face="Courier New">        // ...    </font><a name="1004322"> </a>
+<font face="Courier New">    }</font><a name="1004323"> </a>
+<font face="Courier New"></font><a name="1004324"> </a>
+<font face="Courier New">    if (buf)</font><a name="1004325"> </a>
+<font face="Courier New">        free(buf);</font><a name="1004326"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="999924"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first line of the code calls <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> on <font  face="Verdana, Arial, Helvetica, sans-serif">theFile</font>, and if that succeeds assigns the new interface pointer to <font  face="Verdana, Arial, Helvetica, sans-serif">localFile</font>.  If the <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> call fails, <font  face="Verdana, Arial, Helvetica, sans-serif">localFile</font> will have a value of <font  face="Verdana, Arial, Helvetica, sans-serif">NULL</font>.</font>
+</p>
+
+
+<a name="999926"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="1004560"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that the out parameter of the method <font  face="Verdana, Arial, Helvetica, sans-serif">GetFileSize</font> is a 64 bit integer.  The type of this variable is <font  face="Verdana, Arial, Helvetica, sans-serif">PRInt64</font>, but this type is not represented as a primitive on all platforms. On some platforms, <font  face="Verdana, Arial, Helvetica, sans-serif">PRInt64</font> is a struct with two fields-a high and a low 32 bit integer. So operations on this type must use special macros that do the right thing on each platform. On windows or Linux, for example, it is possible to multiply a <font  face="Verdana, Arial, Helvetica, sans-serif">PRInt64</font> by a long like this:</font>
+</p>
+
+<pre>
+<font face="Courier New">PRInt64 x = 1, y = 2;</font><a name="1004547"> </a>
+<font face="Courier New">y = x * 2;</font><a name="1004548"> </a>
+</pre>
+
+<p>
+  <a name="1004549"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">However, this same snippet will not compile on a platform like Macintosh OS 9, where you need to use macros to perform the calculation:</font>
+</p>
+
+<pre>
+<font face="Courier New">PRInt64 x, y, two;</font><a name="1004550"> </a>
+<font face="Courier New">LL_I2L(x, 1);</font><a name="1004551"> </a>
+<font face="Courier New">LL_I2L(y, 2);</font><a name="1004552"> </a>
+<font face="Courier New">LL_I2L(two, 2);</font><a name="1004553"> </a>
+<font face="Courier New">LL_MUL(y, x, two);</font><a name="1004554"> </a>
+</pre>
+
+<p>
+  <a name="1004555"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">A full listing of NSPR's <font  face="Verdana, Arial, Helvetica, sans-serif">long long</font> support can be found at <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.mozilla.org/projects/nspr</i></font>.</font>
+</p>
+
+
+<p>
+  <a name="1004567"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component doesn't have to deal with files that are longer than 2^32 bytes. Truncating this value to whatever can fit into a 32 bit unsigned integer may not work for every application, but in this case it doesn't really matter.</font>
+</p>
+
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="999943"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Processing the White List Data</font>
+</h3>
+
+
+<p>
+  <a name="1004453"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There are various ways to process the file data itself. The file <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.txt</i></font> consists of URL tokens separated by return characters, which makes them easy to read into a data structure.</font>
+</p>
+
+
+<p>
+  <a name="999945"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The white list file can be read in as soon as the component starts up (i.e., as <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> intercepts the startup notification in the <font  face="Verdana, Arial, Helvetica, sans-serif">Observe</font> method of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font> interface that we implement). Since we have only registered to receive a notification when XPCOM starts up, it's a safe assumption that <font  face="Verdana, Arial, Helvetica, sans-serif">Observe</font> will only called during the startup event, so we can read the file data in the callback.</font>
+</p>
+
+
+<p>
+  <a name="1001144"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">After you've read the data into memory, you need to store it in some way to make data access quick and efficient. </font>
+</p>
+
+
+<a name="1006145"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1006256"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">URL Checking</font>
+</h4>
+
+<a name="1006304"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The way in which URL checking is implemented in the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component  is not at all optimal. The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component manages a simple linked list of URL strings. A linear search through the data in the white list may not be terribly bad if the number of URLs is under a couple of dozen, but it decays as the list grows. There's also a large bottleneck in the network request. URL data is accessed as in the diagram below:</font>
+<a name="1006268"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="center"><img src="images/weblock6.gif" height="128" width="364">
+</div><br></font>
+
+<a name="1006315"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">You might construct hash values for each of the URL strings instead, or add them to some kind of database. But we leave optimizations and real-world performance for web locking to the reader.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h2>
+  <a name="1005676"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">iWebLock Method by Method</font>
+</h2>
+
+
+<p>
+  <a name="1005426"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The implementation of the <font  face="Verdana, Arial, Helvetica, sans-serif">iWeblock</font> interface is straightforward. <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> is designed so that the user interface notifies this service when we should go into lock mode. During this time, any new URL request that is not in our list of "good" URLs will be denied.  Through scriptable access to the <font  face="Verdana, Arial, Helvetica, sans-serif">iWebLock</font> interface, the user interface can also add, remove, and enumerate the list of URLs that it knows about.</font>
+</p>
+
+
+<h3>
+  <a name="1000918"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Lock and Unlock</font>
+</h3>
+
+
+<p>
+  <a name="1005433"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif">lock</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">unlock</font> methods simply set a Boolean representing state in the object. This Boolean value will be used later to determine if we should be denying URL requests:</font>
+</p>
+
+
+<a name="1004599"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">/* void lock (); */</font><a name="1004609"> </a>
+<font face="Courier New">NS_IMETHODIMP WebLock::Lock()</font><a name="1004610"> </a>
+<font face="Courier New">{</font><a name="1004611"> </a>
+<font face="Courier New">    mLocked = PR_TRUE;</font><a name="1004612"> </a>
+<font face="Courier New">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1004613"> </a>
+<font face="Courier New">}</font><a name="1004614"> </a>
+<font face="Courier New"></font><a name="1004615"> </a>
+<font face="Courier New">/* void unlock (); */</font><a name="1004616"> </a>
+<font face="Courier New">NS_IMETHODIMP WebLock::Unlock()</font><a name="1004617"> </a>
+<font face="Courier New">{</font><a name="1004618"> </a>
+<font face="Courier New">    mLocked = PR_FALSE;</font><a name="1004619"> </a>
+<font face="Courier New">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1004620"> </a>
+<font face="Courier New">}</font><a name="1004621"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="1004641"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">AddSite</font>
+</h3>
+
+
+<p>
+  <a name="1005464"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">For <font  face="Verdana, Arial, Helvetica, sans-serif">AddSite</font>, we add a new node to our linked list. The link list nodes contain a <font  face="Verdana, Arial, Helvetica, sans-serif">char*</font> which points to the string URL that we care about and, of course, a pointer to the next element in the list.</font>
+</p>
+
+
+<a name="1004642"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1004652"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">nsMemory for Cross-component Boundaries</font>
+</h4>
+
+<a name="1004663"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">WebLock maintains ownership of all the memory it alloates, so you can use just about any allocator that you want for <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock, </b></font>but this is not always the case. In other places, where allocated buffers cross-interface boundaries, you must ensure that the correct allocator is used-namely <font  face="Verdana, Arial, Helvetica, sans-serif">nsMemory</font>-so that the allocators can match the allocation with the deallocation. </font><a name="1004673"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Suppose you call <font  face="Verdana, Arial, Helvetica, sans-serif">malloc</font> from object A and pass this buffer to another object B, for example. But if object B is using a special allocator that does garbage collection, then when object B deletes a buffer allocated by object A's allocator, the results are unpredictable: probably an assertion will be raised, possibly a memory leak, or a crash.  The <font  face="Verdana, Arial, Helvetica, sans-serif">nsMemory</font> class is a wrapper around the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIMemory</font> interface, whose only implementation is part of XPCOM. When you use <font  face="Verdana, Arial, Helvetica, sans-serif">nsMemory</font>, you are guaranteed to be using this same memory allocator in all cases, and this avoids the problem described here.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="1000940"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">RemoveSite</font>
+</h3>
+
+
+<p>
+  <a name="1005468"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">RemoveSite</font> deletes a node from the linked list:</font>
+</p>
+
+
+<a name="1004716"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">// a simple link list.</font><a name="1008857"> </a>
+<font face="Courier New">struct urlNode</font><a name="1008858"> </a>
+<font face="Courier New">{</font><a name="1008859"> </a>
+<font face="Courier New">    char* urlString;</font><a name="1008860"> </a>
+<font face="Courier New">    struct urlNode* next;</font><a name="1008861"> </a>
+<font face="Courier New">}; </font><a name="1004726"> </a>
+<font face="Courier New"></font><a name="1008865"> </a>
+<font face="Courier New">/* void addSite (in string url); */</font><a name="1008866"> </a>
+<font face="Courier New">NS_IMETHODIMP WebLock::AddSite(const char *url)</font><a name="1004727"> </a>
+<font face="Courier New">{</font><a name="1004728"> </a>
+<font face="Courier New">    // we don't special-case duplicates here</font><a name="1008355"> </a>
+<font face="Courier New">    urlNode* node = (urlNode*) malloc(sizeof(urlNode));</font><a name="1004729"> </a>
+<font face="Courier New">    node-&gt;urlString = strdup(url);</font><a name="1004730"> </a>
+<font face="Courier New">    node-&gt;next = mRootURLNode;</font><a name="1004731"> </a>
+<font face="Courier New">    mRootURLNode = node;</font><a name="1004732"> </a>
+<font face="Courier New">      	</font><a name="1004733"> </a>
+<font face="Courier New">    return NS_ERROR_NOT_IMPLEMENTED;</font><a name="1004734"> </a>
+<font face="Courier New">}</font><a name="1004735"> </a>
+<font face="Courier New"></font><a name="1004736"> </a>
+<font face="Courier New">/* void removeSite (in string url); */</font><a name="1004737"> </a>
+<font face="Courier New">NS_IMETHODIMP WebLock::RemoveSite(const char *url)</font><a name="1004738"> </a>
+<font face="Courier New">{</font><a name="1004739"> </a>
+<font face="Courier New">    // find our entry.</font><a name="1004740"> </a>
+<font face="Courier New">    urlNode* node = mRootURLNode;</font><a name="1004741"> </a>
+<font face="Courier New">    urlNode* prev = nsnull;</font><a name="1004742"> </a>
+<font face="Courier New">    </font><a name="1004743"> </a>
+<font face="Courier New">    while (node)  // test this!</font><a name="1004744"> </a>
+<font face="Courier New">    {</font><a name="1004745"> </a>
+<font face="Courier New">        if (strcmp(node-&gt;urlString, url) == 0) </font><a name="1004746"> </a>
+<font face="Courier New">        {</font><a name="1004747"> </a>
+<font face="Courier New">            free(node-&gt;urlString);</font><a name="1004748"> </a>
+<font face="Courier New">            if (prev)</font><a name="1008356"> </a>
+<font face="Courier New">               prev-&gt;next = node-&gt;next;</font><a name="1004749"> </a>
+<font face="Courier New">            free(node);</font><a name="1004750"> </a>
+<font face="Courier New">            return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1004751"> </a>
+<font face="Courier New">        }</font><a name="1004752"> </a>
+<font face="Courier New">        prev = node;</font><a name="1004753"> </a>
+<font face="Courier New">        node = node-&gt;next;</font><a name="1004754"> </a>
+<font face="Courier New">    }</font><a name="1004755"> </a>
+<font face="Courier New"></font><a name="1004756"> </a>
+<font face="Courier New">    return NS_ERROR_FAILURE;</font><a name="1004757"> </a>
+<font face="Courier New">}</font><a name="1004758"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="1006538"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">SetSites</font>
+</h3>
+
+
+<p>
+  <a name="1007976"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The purpose of <font  face="Verdana, Arial, Helvetica, sans-serif">SetSites</font> is to allow clients to pass an enumeration, or set, of URL strings to add to the white list of URLs. <font  face="Verdana, Arial, Helvetica, sans-serif">SetSites</font> uses an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font> and shows how primitive data can be passed as an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupport</font> object. The <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font> interface is shown in the section <a href="weblock.html#999371">"The Web Locking Interface" on page 105</a>.</font>
+</p>
+
+
+<p>
+  <a name="1000981"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first method returns a Boolean if there are more elements in the set. Internally,  the object knows the number of elements it has in its enumeration, and every time a client calls <font  face="Verdana, Arial, Helvetica, sans-serif">getNext</font>, it decrements a counter-or adjusts a pointer to the next element. When the counter goes to zero or the pointer points to a non-element, <font  face="Verdana, Arial, Helvetica, sans-serif">hasMoreElements</font> will return false.</font>
+</p>
+
+
+<p>
+  <a name="1004844"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">There is no way to reset an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font>. For example, you can't re-enumerate the set. If you need random access to the elements in a <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font>, you can read them from the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font>, store them in an array, and access them there. The <font  face="Verdana, Arial, Helvetica, sans-serif">getNext</font> method returns a <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> interface pointer.  </font>
+</p>
+
+
+<p>
+  <a name="1006019"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When you want to pass primitive data type like numbers, strings, a character, <font  face="Verdana, Arial, Helvetica, sans-serif">void *</font>, and others, the solution is to use <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsISupportsPrimitives</i></font>, which is a set of interfaces that wraps the primitive data types and derives from  <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font>.  This allows types like the strings that represent URLs in the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component to be passed though methods that take an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> interface pointer. This becomes clear when when you see the implementation of <font  face="Verdana, Arial, Helvetica, sans-serif">SetSites</font>:</font>
+</p>
+
+
+<a name="1004939"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHODIMP WebLock::SetSites(nsISimpleEnumerator * aSites)</font><a name="1008834"> </a>
+<font face="Courier New">{</font><a name="1008835"> </a>
+<font face="Courier New">    PRBool more = PR_TRUE;</font><a name="1008836"> </a>
+<font face="Courier New">    while (more) {</font><a name="1008837"> </a>
+<font face="Courier New">        nsCOMPtr&lt;nsISupports&gt; supports;</font><a name="1008838"> </a>
+<font face="Courier New">        aSites-&gt;GetNext(getter_AddRefs(supports));</font><a name="1008839"> </a>
+<font face="Courier New"></font><a name="1008840"> </a>
+<font face="Courier New">        nsCOMPtr&lt;nsISupportsCString&gt; supportsString =            do_QueryInterface(supports);</font><a name="1008841"> </a>
+<font face="Courier New"></font><a name="1008842"> </a>
+<font face="Courier New">        if (supportsString) {</font><a name="1008843"> </a>
+<font face="Courier New">            nsEmbedCString url;</font><a name="1008844"> </a>
+<font face="Courier New">            supportsString-&gt;GetData(url);</font><a name="1008845"> </a>
+<font face="Courier New">            AddSite(url.get());</font><a name="1008846"> </a>
+<font face="Courier New">        }</font><a name="1008847"> </a>
+<font face="Courier New"></font><a name="1008848"> </a>
+<font face="Courier New">        aSites-&gt;HasMoreElements(&amp;more);</font><a name="1008849"> </a>
+<font face="Courier New">    }</font><a name="1008850"> </a>
+<font face="Courier New"></font><a name="1008851"> </a>
+<font face="Courier New">    return NS_OK;</font><a name="1008852"> </a>
+<font face="Courier New">}</font><a name="1004966"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="1001002"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font>
+</h3>
+
+
+<p>
+  <a name="1005476"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font> is called with the <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> of an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupportsCString</font>.  <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font>s are nice because they do whatever <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> calls are necessary under the hood.  For example, we know that the <font  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font> method takes an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> object, but we may not be sure whether the return result supports the interface we want, <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupportsCString</font>. But after <font  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font> returns, the <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> code  takes the out parameter from <font  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font> and tries to <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> it to the <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font>'s type. In this case, if the out parameter of <font  face="Verdana, Arial, Helvetica, sans-serif">GetData</font> does not return something that is <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font>'able to an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupportsCString</font>, the variable will be set to null. Once you know that you have an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupportsCString</font>, you can grab the data from the primitive supports interface.</font>
+</p>
+
+
+<p>
+  <a name="1006148"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To get something you can pass into the <font  face="Verdana, Arial, Helvetica, sans-serif">AddSite</font> method, you need to convert from an <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedCString</font> to a <font  face="Verdana, Arial, Helvetica, sans-serif">const char*</font>. To do this, you can take advantage of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedCString</font> described in <a href="tools.html#1010737">"String Classes in XPCOM" on page 84</a>.</font>
+</p>
+
+
+<h3>
+  <a name="1001004"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">GetSites</font>
+</h3>
+
+
+<p>
+  <a name="1006033"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The implementation of <font  face="Verdana, Arial, Helvetica, sans-serif">GetSites</font> is more involved. You must construct an implementation of <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font> and return it when <font  face="Verdana, Arial, Helvetica, sans-serif">GetSites</font> is called. The class needs to walk the list of <font  face="Verdana, Arial, Helvetica, sans-serif">urlNode</font>'s for every call to <font  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font>, so it makes sense for the constructor itself to take an <font  face="Verdana, Arial, Helvetica, sans-serif">urlNode</font>:</font>
+</p>
+
+
+<a name="1005084"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">class myEnumerator : public nsISimpleEnumerator</font><a name="1005094"> </a>
+<font face="Courier New">{</font><a name="1005095"> </a>
+<font face="Courier New">public:</font><a name="1005096"> </a>
+<font face="Courier New">    NS_DECL_ISUPPORTS</font><a name="1005097"> </a>
+<font face="Courier New">    NS_DECL_NSISIMPLEENUMERATOR</font><a name="1005098"> </a>
+<font face="Courier New"></font><a name="1005099"> </a>
+<font face="Courier New">    myEnumerator(urlNode* node) { mNode = node; }</font><a name="1005100"> </a>
+<font face="Courier New">    virtual ~myEnumerator(void) {}</font><a name="1005101"> </a>
+<font face="Courier New"></font><a name="1005102"> </a>
+<font face="Courier New">protected:</font><a name="1005103"> </a>
+<font face="Courier New">    urlNode* mNode;</font><a name="1005104"> </a>
+<font face="Courier New">    nsCOMPtr&lt;nsIComponentManager&gt; mCompMgr;</font><a name="1005105"> </a>
+<font face="Courier New">};</font><a name="1005106"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1001019"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif">myEnumerator</font> class is going to implement the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> interface and also <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font>. The only state that it needs to maintain is the current URL node-the one that will be return on the next call to <font  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font>. There is also an <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> to the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIComponentManager</font>, which is used in every call to <font  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font> so that you can create <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupportsCString</font> objects and cache the interface pointer as an optimization.</font>
+</p>
+
+
+<h3>
+  <a name="1001020"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">HasMoreElements</font>
+</h3>
+
+
+<p>
+  <a name="1005483"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">HasMoreElements</font> is simple. All you need to do is make sure that <font  face="Verdana, Arial, Helvetica, sans-serif">mNode</font> isn't null:</font>
+</p>
+
+
+<a name="1005170"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHODIMP</font><a name="1005180"> </a>
+<font face="Courier New">myEnumerator::HasMoreElements(PRBool* aResult)</font><a name="1005181"> </a>
+<font face="Courier New">{</font><a name="1005182"> </a>
+<font face="Courier New">    if (!aResult)</font><a name="1005183"> </a>
+<font face="Courier New">        return NS_ERROR_NULL_POINTER;</font><a name="1005184"> </a>
+<font face="Courier New"></font><a name="1005185"> </a>
+<font face="Courier New">    if (!mNode) {</font><a name="1005186"> </a>
+<font face="Courier New">        *aResult = PR_FALSE;</font><a name="1005187"> </a>
+<font face="Courier New">        return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1005188"> </a>
+<font face="Courier New">    }</font><a name="1005189"> </a>
+<font face="Courier New"></font><a name="1005190"> </a>
+<font face="Courier New">    *aResult = PR_TRUE;</font><a name="1005191"> </a>
+<font face="Courier New">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1005192"> </a>
+<font face="Courier New">}</font><a name="1005193"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1001036"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">GetNext</font> needs to create an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupportsCString</font> so that you can pass the URL string out through the nsISupports parameter. You must also move <font  face="Verdana, Arial, Helvetica, sans-serif">mNode</font> to point to the next <font  face="Verdana, Arial, Helvetica, sans-serif">urlNode</font>.  </font>
+</p>
+
+
+<a name="1001037"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHODIMP</font><a name="1005234"> </a>
+<font face="Courier New">myEnumerator::GetNext(nsISupports** aResult)</font><a name="1005235"> </a>
+<font face="Courier New">{</font><a name="1005236"> </a>
+<font face="Courier New">    if (! aResult)</font><a name="1005237"> </a>
+<font face="Courier New">        return NS_ERROR_NULL_POINTER;</font><a name="1005238"> </a>
+<font face="Courier New"></font><a name="1005239"> </a>
+<font face="Courier New">    *aResult = nsnull;</font><a name="1005240"> </a>
+<font face="Courier New"></font><a name="1005241"> </a>
+<font face="Courier New">    if (!mNode)</font><a name="1005242"> </a>
+<font face="Courier New">        return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_ERROR_FAILURE</font>;</font><a name="1005243"> </a>
+<font face="Courier New"></font><a name="1005244"> </a>
+<font face="Courier New">    if (!mCompMgr) {</font><a name="1005245"> </a>
+<font face="Courier New">        NS_GetComponentManager(getter_AddRefs(mCompMgr));</font><a name="1005246"> </a>
+<font face="Courier New">        if (!mCompMgr) </font><a name="1005247"> </a>
+<font face="Courier New">            return NS_ERROR_UNEXPECTED;</font><a name="1005248"> </a>
+<font face="Courier New">    }</font><a name="1005249"> </a>
+<font face="Courier New"></font><a name="1005250"> </a>
+<font face="Courier New"></font><a name="1005251"> </a>
+<font face="Courier New">    nsISupportsCString* stringSupports;</font><a name="1005252"> </a>
+<font face="Courier New">    mCompMgr-&gt;CreateInstance(kSupportsCStringCID, </font><a name="1005253"> </a>
+<font face="Courier New">                             nsnull, </font><a name="1005254"> </a>
+<font face="Courier New">                             NS_GET_IID(nsISupportsCString), </font><a name="1005255"> </a>
+<font face="Courier New">                             (void**)&amp;stringSupports);</font><a name="1005256"> </a>
+<font face="Courier New">    if (!stringSupports)</font><a name="1005257"> </a>
+<font face="Courier New">        return NS_ERROR_UNEXPECTED;</font><a name="1005258"> </a>
+<font face="Courier New"></font><a name="1005259"> </a>
+<font face="Courier New">    </font><a name="1005260"> </a>
+<font face="Courier New">    nsEmbedCString str(mNode-&gt;urlString);</font><a name="1005261"> </a>
+<font face="Courier New">    stringSupports-&gt;SetData(str);</font><a name="1005262"> </a>
+<font face="Courier New">    </font><a name="1005263"> </a>
+<font face="Courier New">    *aResult = stringSupports; // addref'ed above.</font><a name="1005264"> </a>
+<font face="Courier New"></font><a name="1005265"> </a>
+<font face="Courier New">    mNode = mNode-&gt;next;</font><a name="1005266"> </a>
+<font face="Courier New"></font><a name="1005267"> </a>
+<font face="Courier New">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1005268"> </a>
+<font face="Courier New">}</font><a name="1005269"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1001074"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In the actual <font  face="Verdana, Arial, Helvetica, sans-serif">GetSites</font> call, all you have to do is create an instance of <font  face="Verdana, Arial, Helvetica, sans-serif">myEnumerator</font> and return it. </font>
+</p>
+
+
+<p>
+  <a name="1006598"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Before, we created a class and registered it with the component manager. When a client outside of the code wanted to acquire the implementation of an interface, the actual object creation was hidden in the XPCOM code. Here, however, you instantiate your own implementation of a <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font>.  This is a  simple thing to do, but it requires that you pay special attention to the <font  face="Verdana, Arial, Helvetica, sans-serif">NS_ADDREF</font>.</font>
+</p>
+
+
+<a name="1005308"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHODIMP WebLock::GetSites(nsISimpleEnumerator * *aSites)</font><a name="1005318"> </a>
+<font face="Courier New">{</font><a name="1005319"> </a>
+<font face="Courier New">    myEnumerator* enumerator = new myEnumerator(mRootURLNode);</font><a name="1005320"> </a>
+<font face="Courier New">    if(!enumerator) return NS_ERROR_OUT_OF_MEMORY;</font><a name="1005321"> </a>
+<font face="Courier New">    </font><a name="1008377"> </a>
+<font face="Courier New">    NS_ADDREF(*aSites = enumerator);</font><a name="1008378"> </a>
+<font face="Courier New">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1005323"> </a>
+<font face="Courier New">}</font><a name="1005324"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<a name="1005400"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1005398"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">AddRef, Releasing, and Deleting Objects</font>
+</h4>
+
+<a name="1005399"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Never forget to <font  face="Verdana, Arial, Helvetica, sans-serif">AddRef</font> an XPCOM object which you instantiate via <font  face="Verdana, Arial, Helvetica, sans-serif">new</font>. All code that uses or is based on XPCOM requires objects that are alive to have a reference count of at least one. Ignoring this fact can cause real trouble. </font><a name="1006619"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">A related warning is that you should never delete an XPCOM object with <font  face="Verdana, Arial, Helvetica, sans-serif">delete</font>. It can take hours to find the source of crashes that are caused when one part of a system is deleting XPCOM objects instead of releasing them.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1005401"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that in the implementation above, <font  face="Verdana, Arial, Helvetica, sans-serif">myEnumerator</font> may become invalid if another thread concurrently accesses the linked list. The enumeration represents only one way to walk the linked listed of URL strings. If you require that the enumeration be a snapshot of the list of URL strings, then you have to rework this implementation so that the enumerator owns a copy of the linked list.</font>
+</p>
+
+
+<p>
+  <a name="1001085"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">At component shutdown, you also need to write the linked list to disk and release the memory occupied by the linked list. We leave these as exercises for the reader.</font>
+</p>
+</blockquote>
+
+<hr>
+
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+  <td><font size="1"><font face="courier"> Copyright (c)
+  2003 by Doug Turner and Ian Oeschger. This material may be
+  distributed only subject to the terms and conditions set forth in
+  the <a href="http://www.opencontent.org/openpub/">Open Publication
+  License</a>, v1.02 or later. Distribution of substantively modified
+  versions of this document is prohibited without the explicit
+  permission of the copyright holder. Distribution of the work or
+  derivative of the work in any standard (paper) book form is
+  prohibited unless prior permission is obtained from the copyright
+  holder.</td>
+  </tr>
+</table>
+
+<table width="331" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23" border="0"
+    alt="TOC"> </a></td>
+    <td><a href="tools.html"><img src="images/navprev.gif" width="81" height="23" border="0"
+    alt="PREV"> </a></td>
+    <td><a href="weblock_finish.html"><img src="images/navnext.gif" width="81" height="23" border="0"
+    alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23" border="0"
+    alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+</body>
+</html>

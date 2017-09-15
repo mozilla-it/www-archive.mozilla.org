@@ -1,0 +1,371 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <title>Character Set Converters</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<center><b><font size=+3>Character Set Converters</font></b>
+<br><b>by Catalin Rotaru &lt;<a href="mailto:cata@netscape.com">cata@netscape.com</a>></b>
+<br><b>Last Modified: 14/Dec/1998</b></center>
+
+<h3>
+Introduction</h3>
+From an user point of view, a human-readable string is an array of characters.
+But, in order to store this text in a computer, an encoding (character
+set) must be used. Internally, NGLayout uses Unicode. However, a different
+character set may be used by the page author, and a different one may be
+used by the font author. So our system must be able to first convert data
+from the input character set into the internal encoding (Unicode), and
+then into the output character set in order to do the rendering. This is
+what the Character Set Converters are for: convert data between various
+encodings. One thing to keep in mind is that a character set is not a converter.
+A character set is a name, a label for an encoding. A type, if you want.
+A converter is a piece of code able to convert data between two different
+encodings.
+<h3>
+Design &amp; Architecture</h3>
+The Character Set Converter module contains 2 main components
+<ul>
+<li>
+The <b>ConverterManager</b> - implementing <tt><font color="#990000">nsICharsetConverterManager</font></tt></li>
+
+<ul>
+<li>
+This guy is responsible with managing all those converters.</li>
+
+<li>
+It will: solve charset aliases into cannonical names, maintain a mapping
+between converters and the charsets they convert from and into, return
+a list of all the encodings for which we have a converter, and so on.</li>
+</ul>
+
+<li>
+The <b>Converter(s)</b> - implementing <tt><font color="#990000">nsICharsetConverter</font></tt>
+and its factory implementing <tt><font color="#990000">nsICharsetConverterInfo</font></tt></li>
+
+<ul>
+<li>
+The converter converts between two character sets</li>
+
+<li>
+The Charset Converter Info is a little description of the converter - which
+charsets is it converting between.</li>
+</ul>
+</ul>
+
+<h3>
+Extensibility</h3>
+Our main goal for the new model is to have full drop-in extensibility for
+the converters and their corresponding charsets. That means that if an
+user adds a plugin Converter(FooCharset => Unicode), that charset will
+have full rights, for example it will apear in the [View.Character Set]
+menu and the converter will be used to decode incoming data encoded in
+the FooCharset.
+<br>&nbsp;&nbsp;&nbsp; The reason for this goal is that usually encodings
+are grouped in a per-language basis. Instead of gathering all the known
+converters and ship a converter library containing all known charstets
+(this can get quite big in time!), we'd rather offer a basic distribution
+containing the most used converters and per-language support throught SmartUpdate
+or Plugins. This also give users the possibility to add converters for
+the Foo legacy enconding, which is not known or used enough to be included
+in a Netscape distribution.
+<p>XXX Further documentation to be added here as the extensibility mechanisms
+are solved at XPCOM level.
+<h3>
+High-level API</h3>
+This API is expected to be used by most of the users. It should give very
+easy access to the most common converters functions. It should be at the
+stream level: for example something like new UnicodeInputStream(String
+* aCharset), or new String(byte * aBuffer, String * aCharset). You get
+the idea: type safety and all, simplicity - the Converter Manager is well
+hidden under the hood, you can very well ignore it if you don't need the
+extra functionality. Hell, you don't even know you are using a Converter!
+<p>XXX Further documentation to be added here as the high level API is
+designed.
+<h3>
+Low-level API</h3>
+This API is the most powerful and the most general one. It gives you direct
+access to the converters. The downside is that you must be extra careful
+here with the data types, and you have to manage more complexity.
+<p>First you get a character set converter from the converter manager using
+the following API:
+<p><tt><font color="#990000">/**</font></tt>
+<br><tt><font color="#990000">&nbsp;* Interface for a Manager of Charset
+Converters.</font></tt>
+<br><tt><font color="#990000">&nbsp;*</font></tt>
+<br><tt><font color="#990000">&nbsp;* @created&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+17/Nov/1998</font></tt>
+<br><tt><font color="#990000">&nbsp;* @author&nbsp; Catalin Rotaru [CATA]</font></tt>
+<br><tt><font color="#990000">&nbsp;*/</font></tt>
+<br><tt><font color="#990000">class nsICharsetConverterManager : public
+nsISupports</font></tt>
+<br><tt><font color="#990000">{</font></tt>
+<br><tt><font color="#990000">public:</font></tt>
+<p><tt><font color="#990000">&nbsp; /**</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * Finds a Converter between
+the source and the destination character</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * sets.</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aSrc&nbsp;&nbsp;&nbsp;
+[IN] the known name/alias of the source character set</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aDest&nbsp;&nbsp; [IN]
+the known name/alias of the destination character set</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aResult [OUT] the character
+set converter</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @return&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NS_CONVERTER_NOT_FOUND if no converter was found for</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+these charsets</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; */</font></tt>
+<br><tt><font color="#990000">&nbsp; NS_IMETHOD GetConverter(const nsString
+* aSrc, const nsString * aDest,</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsICharsetConverter
+** aResult) = 0;</font></tt>
+<p><tt><font color="#990000">&nbsp; /**</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * Returns a list of character
+sets for which we have converters (from the</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * given charset into them).</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aCharset&nbsp;&nbsp;&nbsp;
+[IN] the name/alias of the source character set</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aResult&nbsp;&nbsp;&nbsp;&nbsp;
+[OUT] a NULL-terminated array of pointers to Strings</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; */</font></tt>
+<br><tt><font color="#990000">&nbsp; NS_IMETHOD GetCharsetsConvertedFrom(const
+nsString * aCharset,</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsString **
+aResult) = 0;</font></tt>
+<p><tt><font color="#990000">&nbsp; /**</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * Returns a list of character
+sets for which we have converters (from them</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * into the given charset).</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aCharset&nbsp;&nbsp;&nbsp;
+[IN] the name/alias of the destination character set</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aResult&nbsp;&nbsp;&nbsp;&nbsp;
+[OUT] a NULL-terminated array of pointers to Strings</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; */</font></tt>
+<br><tt><font color="#990000">&nbsp; NS_IMETHOD GetCharsetsConvertedInto(const
+nsString * aCharset,</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsString **
+aResult) = 0;</font></tt>
+<p><tt><font color="#990000">&nbsp; /**</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * Resolves the cannonical name
+of a character set. If the given name is</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * unknown to the resolver, a
+new identical string will be returned! This</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * way, new &amp; unknown charsets
+are not rejected and they are treated as</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * no-aliases charsets.</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aCharset&nbsp;&nbsp;&nbsp;
+[IN] the known name/alias of the character set</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aResult&nbsp;&nbsp;&nbsp;&nbsp;
+[OUT] the cannonical name of the character set</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; */</font></tt>
+<br><tt><font color="#990000">&nbsp; NS_IMETHOD GetCharsetName(const nsString
+* aCharset,</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; nsString **
+aResult) = 0;</font></tt>
+<br><tt><font color="#990000">};</font></tt>
+<p><font color="#000000">Then you use the Converter with the following
+API:</font>
+<p><tt><font color="#990000">/**</font></tt>
+<br><tt><font color="#990000">&nbsp;* Interface for a Charset Converter.</font></tt>
+<br><tt><font color="#990000">&nbsp;*</font></tt>
+<br><tt><font color="#990000">&nbsp;* XXX Compare this interface with the
+one from the C++ standard</font></tt>
+<br><tt><font color="#990000">&nbsp;*</font></tt>
+<br><tt><font color="#990000">&nbsp;* @created&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+23/Nov/1998</font></tt>
+<br><tt><font color="#990000">&nbsp;* @author&nbsp; Catalin Rotaru [CATA]</font></tt>
+<br><tt><font color="#990000">&nbsp;*/</font></tt>
+<br><tt><font color="#990000">class nsICharsetConverter : public nsISupports</font></tt>
+<br><tt><font color="#990000">{</font></tt>
+<br><tt><font color="#990000">public:</font></tt>
+<p><tt><font color="#990000">&nbsp; /**</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * Converts the data from one
+character set to another.</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aDest&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+[IN/OUT] the destination data buffer</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aDestOffset [IN] the
+offset in the destination data buffer</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aDestLength [IN/OUT]
+the length of destination data buffer; after</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+converstion will contain the number of bytes written</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aSrc&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+[IN] the source data buffer</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aSrcOffset&nbsp; [IN]
+the offset in the source data buffer</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aSrcLength&nbsp; [IN/OUT]
+the length of source data buffer; after</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+converstion will contain the number of bytes read</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param finish&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+[IN] if this is the last buffer in this conversion;</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+the converter has the possibility to write some extra</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+data, flush its final state (but only if success!)</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @return&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+error code</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; */</font></tt>
+<br><tt><font color="#990000">&nbsp; NS_IMETHOD Convert(char * aDest, PRInt32
+aDestOffset, PRInt32 * aDestLength,</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const char
+* aSrc, PRInt32 aSrcOffset, PRInt32 * aSrcLength,</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRBool finish)
+= 0;</font></tt>
+<p><tt><font color="#990000">&nbsp; /**</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * Resets the charset converter
+so it may be reused on a different buffer.</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; */</font></tt>
+<br><tt><font color="#990000">&nbsp; NS_IMETHOD Reset() = 0;</font></tt>
+<br><tt><font color="#990000">};</font></tt>
+<p><font color="#000000">The converter discovery mechanism uses the following
+description API, which is implemented by the Converter factory:</font>
+<p><tt><font color="#990000">/**</font></tt>
+<br><tt><font color="#990000">&nbsp;* Interface for getting the Charset
+Converter information.</font></tt>
+<br><tt><font color="#990000">&nbsp;*</font></tt>
+<br><tt><font color="#990000">&nbsp;* @created&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+08/Dec/1998</font></tt>
+<br><tt><font color="#990000">&nbsp;* @author&nbsp; Catalin Rotaru [CATA]</font></tt>
+<br><tt><font color="#990000">&nbsp;*/</font></tt>
+<br><tt><font color="#990000">class nsICharsetConverterInfo : public nsISupports</font></tt>
+<br><tt><font color="#990000">{</font></tt>
+<br><tt><font color="#990000">public:</font></tt>
+<p><tt><font color="#990000">&nbsp; /**</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * Returns the character set
+this converter is converting from.</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aCharset&nbsp;&nbsp;&nbsp;
+[OUT] a name/alias for the source charset</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; */</font></tt>
+<br><tt><font color="#990000">&nbsp; NS_IMETHOD GetCharsetSrc(nsString
+** aCharset) = 0;</font></tt>
+<p><tt><font color="#990000">&nbsp; /**</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * Returns the character set
+this converter is converting into.</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; *</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; * @param aCharset&nbsp;&nbsp;&nbsp;
+[OUT] a name/alias for the destination charset</font></tt>
+<br><tt><font color="#990000">&nbsp;&nbsp; */</font></tt>
+<br><tt><font color="#990000">&nbsp; NS_IMETHOD GetCharsetDest(nsString
+** aCharset) = 0;</font></tt>
+<br><tt><font color="#990000">};</font></tt>
+<h3>
+How to write and add a new Character Set Converter</h3>
+XXX Further documentation to be added here as the API is freezed. Until
+then, if you want to write a new converter, you can get almost all the
+data you need from the source code! For the rest, please contact me, I'd
+be more that happy to help and assist you.
+<h3>
+Issues</h3>
+1) Right now a charset is a string, a label. Should this be an interface
+(ICharset)?
+<br>2) Right now the alias resolution service is done by the CharsetConverterManager.
+Should this be in a different, independent service (CharsetManager)?
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December 14,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/intl/charset-converters.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

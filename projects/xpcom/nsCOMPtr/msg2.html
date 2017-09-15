@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<HTML>
+	<HEAD>
+    <TITLE>getter_AddRefs and friends</TITLE>
+    <LINK REL=StyleSheet HREF="http://www.mozilla.org/projects/xpcom/Standard.css" TYPE="text/css">
+	</HEAD>
+	<BODY>
+		<H1><code>getter_AddRefs</code> and friends (Re: <code>nsCOMPtr</code> questions)</H1>
+
+<DIV class=author-note>
+	<P>by <A HREF="http://www.meer.net/ScottCollins/">Scott Collins</A><!-- /P -->
+	<P>last modified 25 October 1999</P>
+</DIV>
+
+<div class="document-label">
+	<p>
+		<strong>Document Status</strong>: <span class="warning"><strong>Retired</strong></span>.
+		This document is now obsolete.
+		Coincidentally, the information in this document is <em>mostly</em> accurate.
+		The only change is that one can, again,
+			initialize from or assign raw [XP]COM interface pointers
+			into an an <code>nsCOMPtr</code>.
+		This is a synonym for saying <code>dont_QueryInterface()</code>.
+		Please use the
+			<a href="http://www.mozilla.org/projects/xpcom/nsCOMPtr.html"><code>nsCOMPtr</code> User's Manual</a>
+			as your reference.
+	</p>
+</div>
+
+<DIV class="document-label">
+	<STRONG>Abstract:</STRONG>
+	An email message that describes <code>getter_AddRefs</code>
+		and alternatives.
+	It is a followup to <A href="msg1.html">this message</A>.
+</DIV>
+
+<H2>The Message</H2>
+
+<PRE>
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+One thing to note about my previous message is that the examples were
+slightly simplified for the purpose of expounding on |getter_AddRef|s.
+ In reality, the first two example assignments aren't actually legal.
+
+    // Good for talking about |AddRef| but not actually legal...
+  nsCOMPtr&lt;X&gt; x1 = aRawX;
+                     // ...
+
+  nsCOMPtr&lt;X&gt; x2 = CreateAnX();
+                     // Oops!...
+
+You aren't allowed to assign a raw pointer _directly_ into an
+|nsCOMPtr| without saying whether you will allow |QueryInterface| to
+be called.  In both these cases, we don't need |QueryInterface| since
+|aRawX| is supposedly of the exact right type, and |CreateAnX()|
+produces a value of the exact right type.  So we would actually say:
+
+  nsCOMPtr&lt;X&gt; x1 = dont_QueryInterface( aRawX );
+  nsCOMPtr&lt;X&gt; x2 = dont_QueryInterface( CreateAnX() );
+
+The functions available for this role are
+
+  do_QueryInterface( X* );
+
+    // the pointer is |QueryInterface|d for the COM correct interface,
+    //  and it is |AddRef|ed (by |QueryInterface|) as part of the
+    //  assignment.  Use this when the type you are assigning is is
+    //  different than your |nsCOMPtr|, e.g.,
+
+    Y* y;
+      // ...
+    nsCOMPtr&lt;X&gt; x = do_QueryInterace(y);
+                        
+
+
+  do_QueryInterface( X*, nsresult* );
+
+    // as above, but the error result of |QueryInterface| is available
+    //  to you, e.g.,
+
+    nsresult status;
+    nsCOMPtr&lt;X&gt; x = do_QueryInterface(y, &amp;status);
+    if ( NS_SUCCEEDED(status) )
+      // ...
+
+
+  dont_QueryInterface( X* );
+
+    // the minimal action: my pointer is exactly the right type, I
+    //  PROMISE.  So just assign it in.  It _will_ be |AddRef|ed,
+    //  e.g.,
+
+    X* x;
+      // ...
+    nsCOMPtr&lt;X&gt; x = dont_QueryInterface(x);
+
+    // Note, this is not appropriate for inheritance, e.g.,
+
+    class X { ... };
+    class Z : public X { ... };
+
+    Z* z;
+      // ...
+    nsCOMPtr&lt;X&gt; x = dont_QueryInterface(z);
+      // Wrong!  The |X| that C++ extracts from this instance may not
+      //  be the one |QueryInterface| would give you.  You must use
+      //  |do_QueryInterface|
+
+    nsCOMPtr&lt;X&gt; x = do_QueryInterface(z); // Right!
+
+
+  getter_AddRefs( X* );
+
+    // the _really_ minimal action: my pointer is exactly the right
+    //  type, I PROMISE.  So just assign it in.  And by the way, the
+    //  thing that made the pointer already |AddRef|ed it for you.
+    //  E.g.,
+
+    X* CreateAnX();
+      // ...
+    nsCOMPtr&lt;X&gt; x = getter_AddRefs( CreateAnX() );
+
+
+  dont_AddRef( X* );
+    // A deprecated synonym for |getter_AddRefs()| in case you happen
+    //  to see it in code.
+
+This chart summarizes the calls
+
+                   |AddRef|                 don't |AddRef|
+               ---------------------------------------------
+allow QI           |do_QueryInterface|      ???
+
+don't allow QI     |dont_QueryInterface|    |getter_AddRefs|
+
+
+So what do you do if you have to apply more than one of these?  Well
+the only combination that you don't get `out of the box' (see the
+chart above) is when you want to |QueryInterface|, but you _don't_
+want to |AddRef|.  E.g., in this situation:
+
+  Z* CreateAZ();
+    // ...
+  nsCOMPtr&lt;X&gt; x = ???
+
+Well, you can't really mix those two because in COM it is _interfaces_
+not objects that are ref-counted.  Ergo, you must say:
+
+  Z* CreateAZ();
+    // ...
+  nsCOMPtr&lt;Z&gt; z = getter_AddRefs( CreateAZ() ); //
+  nsCOMPtr&lt;X&gt; x = do_QueryInterface(z);
+
+...and in fact, if you don't otherwise need to keep the |Z| around,
+you can contain its life with
+
+  nsCOMPtr&lt;X&gt; x;
+
+  {
+    nsCOMPtr&lt;Z&gt; z = getter_AddRefs( CreateAZ() );
+    x = do_QueryInterface(z);
+  }
+
+...and if our compilers were better on the marginal platforms, you
+could even reduce it to
+
+  nsCOMPtr&lt;X&gt; x = do_QueryInterface(
+                    nsCOMPtr&lt;Z&gt;( getter_AddRefs(CreateAZ()) )
+                  );
+
+Hope this helps,
+______________________________________________________________________
+Scott Collins              &lt;<A href="http://www.meer.net/ScottCollins?Netscape">http://www.meer.net/ScottCollins?Netscape</A>&gt;
+
+
+
+
+
+-----BEGIN PGP SIGNATURE-----
+Version: PGP Personal Privacy 6.0.2
+Comment: get my key at &lt;<A href="http://www.meer.net/ScottCollins/#key">http://www.meer.net/ScottCollins/#key</A>&gt;
+
+iQA/AwUBNx9wi/GmojMuVn+fEQJ8WgCeJktjSOeFAngObqS2gaX0jM2QrW0AoJSB
+7iMGA0my9dV5ZirRmsIKJQ4p
+=cOVU
+-----END PGP SIGNATURE-----
+</PRE>
+
+<DIV class="author-note">
+  <HR>
+    <A HREF="http://validator.w3.org/check?uri=http://www.mozilla.org/projects/xpcom/nsCOMPtr/msg2.html">
+      <IMG BORDER=0 align=left SRC="http://validator.w3.org/images/vh40.gif" ALT="Valid HTML 4.0!" HEIGHT=31 WIDTH=88>
+    </A>
+    <A HREF="http://www.w3.org/Style/CSS/Buttons">
+      <IMG BORDER=0 align=left SRC="http://www.w3.org/Style/CSS/Buttons/cssos" ALT="CSS" HEIGHT=31 WIDTH=88>
+    </A>
+    Copyright&copy; 1999 by Netscape; use is subject to the <A HREF="http://www.mozilla.org/NPL/">NPL</A>.
+</DIV>
+	</BODY>
+</HTML>

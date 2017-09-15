@@ -1,0 +1,92 @@
+<html>
+<head>
+<script>
+
+var argv = null;
+function getArg(argName)
+{
+  var value = "<unknown>";
+
+  if (!argv)
+  {
+    var url = new String(document.location);
+    var index = url.indexOf("?");
+    var argv = url.slice(++index);
+  }
+
+  argName += "=";
+  var argIndex = argv.indexOf(argName) 
+  if (argIndex != -1)
+  {
+    value = argv.slice(argIndex + new String(argName).length);
+    var nextArgIndex = value.indexOf("&");
+    if (nextArgIndex != -1)
+      value = value.slice(0, nextArgIndex);
+  }
+
+  return value;
+}
+
+function getArgInt(argName)
+{
+  var value = parseInt(getArg(argName));
+  if (isNaN(value))
+    value = 0;
+
+  return value;
+}
+
+function openNext(endLoadTime)
+{
+  window.opener.close();
+
+  // get args: load start time, accumulator, total num windows
+  var start = getArgInt("start");
+  var accum = getArgInt("accumulator");
+  var total = getArgInt("total")
+  var index = parseInt(window.name); // index of window opened/win number
+
+  // figure out the delta load time and increment accumulator
+  var delta = endLoadTime - start;
+  accum += delta;
+
+/*
+  document.writeln("<pre>");
+  document.writeln("start: "+start);
+  document.writeln("endlt: "+endLoadTime);
+  document.writeln("delta: "+delta);
+  document.writeln("accum: "+accum);
+  document.writeln("total: "+total);
+  document.writeln("index: "+index);
+  document.writeln("</pre>");
+*/
+
+  // are we last window?
+  if (index >= total)
+  {
+    // yes, then compute average 
+    var avg = accum/total;
+
+    document.writeln("<pre>");
+    document.writeln("avg open time for "+total+" windows: " + avg + " (ms)");
+    document.writeln("</pre>");
+  }
+  else
+  {
+    // no, then construct url and open new window 
+    var name = new String(++index);
+    var url = "kid.html";
+    url += "?accumulator=" + accum;
+    url += "total=" + total;
+    url += "&start=" + new Date().valueOf();
+
+    window.open(url, name);
+  }
+}
+
+</script>
+</head>
+
+<body onload="var d = new Date(); openNext(d.valueOf());">
+</body>
+</html>

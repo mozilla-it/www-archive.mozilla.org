@@ -1,0 +1,148 @@
+<html>
+<head>
+<title>DOM, CSS and Fonts - Sample Code: Animating Fonts with DOM</title>
+<script>
+	////////////////////////////////////////////////////////////////////////////////
+	// Produced by Marcio Galli for Netscape Communications.
+	// Uses DOM 1 to dynamically create a set of text elements using 
+	// the same content for all the texts but with different sizes. 
+	// Then an animation loop uses Math.cos() and Math.sin() functions
+	// to start a wave effect. 
+	//
+	// References:
+	//
+	// http://www.mozilla.org/docs/dom/technote/tn-dom-table/index.html
+	// http://dmoz.org/Computers/Programming/Languages/JavaScript/W3C_DOM/
+	// http://www.geckonnection.com
+	//
+
+	//**********************************************************************
+	// This is the default string to create and animate.
+	// You can change this before calling q1() to make it
+	// dynamic with your customization.
+	//
+	var defaultString=".........................";
+
+	parentID="area";  	// This is the div element where all text will be created. 
+
+	vala=160;		// Initial color value that will be used to red and green color channels.
+	valc=255;		// Initial color value that will be used to the blue color channel.
+	cc1=0;			// Aux value to calculate color. 
+	cc2=0;			// Aux value to calculate color. 
+
+	fontsize=70;		// Font size. 
+	posleft=120;		// Left position of the div that contains the texts. 
+	postop=50;		// Top position of the div that contains the texts. 
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Creating all text dynamically with DOM Level 1.
+	// Use of getElementById, createElement, createTextNode, setAttribute and
+	// appendChild. See more info at www.dmoz.org at W3C DOM category.
+	//
+	function q1() {
+
+		// For statement to create 7 texts. 
+		for(i=0;i<7;i++) {
+
+			// Each text is created inside the parentID div element. 
+			node=document.getElementById(parentID);
+
+			// Creates the DIV element. 
+			beforediv=document.createElement("DIV");
+
+			// cc1 and cc2 values that will be used to generate the color values. 
+			cc1=255*(i/11);
+			cc2=160*(i/11);
+
+		   	gfx1=parseInt(vala-cc2);		// Original color intensity value minus cc2.
+		   	gfx2=parseInt(valc-cc1);		// Original color intensity value minus cc1. 
+			
+			// Creates the style attributes string. 
+			str="position:absolute;top:"+postop+"px;left:"+posleft+"px;color:rgb("+gfx1+","+gfx1+","+gfx2+");width:260px;height:100px;font-size:"+fontsize+"pt;";
+	
+			// Sets the style attribute using str as its value. 
+			if (navigator.userAgent.indexOf("Gecko")>-1)
+
+				beforediv.setAttribute("style",str);
+			else
+				beforediv.style.cssText = str;
+
+			// Sets the id attribute using "object"+i as its value. 
+			beforediv.setAttribute("id","object"+i);
+
+			// Creates the text node. 
+			newText=document.createTextNode(defaultString);
+
+			// Appends the text node in the new div element. 
+			beforediv.appendChild(newText);
+
+			// Appends the new div element in the node object (div id="area"). 
+			node.appendChild(beforediv);
+
+			// Sets attributes to the next iteration. 
+			fontsize+=2;
+			posleft+=5;
+			postop-=(3-((i/20)*2));
+
+		}
+
+		// Call to start the wave animation effect. 
+		setTimeout("a3danimation()",100);	
+	
+	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////
+	// Variables used as parameters for the a3danimation function. 
+	//	
+
+	ox=100;			// Reference parameter for the initial left position. 
+	oy=100;			// Reference parameter for the initial top position. 
+	pi=3.141516*2;		// Approximation of the PI value. 
+	ccounter=0;		// Animation counter. 
+	ww=10;			// Parameter for the animation. 
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Wave Animation 
+	// 
+	function a3danimation() {
+		ww-=.1;		// ww parameter decreases slowly. 
+		ccounter++;	// counter increases by one. 
+
+		// Animation has 350 steps. In the end the animation starts again - see else 
+		// statement...
+		//
+		if(ccounter<350) {
+			// This for statement changes the position of the 7 div areas that contain the text.
+			for(i=0;i<7;i++) {
+
+				// Calculates the posx and posy position based on sine and cosine functions and
+				// pi, ccounter, i and ww parameters. 
+				//
+				pis=pi*(ccounter/70)+(i/ww);
+				posx=i*10+ox-20+(Math.cos(pis)*5*i*ww/20);
+				posy=oy+(Math.sin(pis)*10*i*ww/5);
+
+				// Sets the left and top position for each object based on i value. 
+				document.getElementById("object"+i).style.left=posx+"px";
+				document.getElementById("object"+i).style.top=posy+"px";
+			}
+			// Call a3danimation again...
+			setTimeout("a3danimation()",30);
+		} else {
+			// Resets animation parameters...
+			ccounter=0;
+			ww=10;
+			// Call a3danimation again...
+			setTimeout("a3danimation()",30);
+		}
+	}
+</script>
+
+</head>
+<body onload="q1()" bgcolor="#a0a0ff" text="white">
+<!-- This is the area in which the text elements will be created. -->
+<div id="area" style="position:absolute;left:100px;top:050px;color:rgb(0,0,255)">
+</div>
+
+</body>
+</html>

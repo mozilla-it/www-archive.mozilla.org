@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Namespaces</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="interfaces.html">
+<LINK rel=Next href="packages.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>July 2000 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Core Language</DIV>
+    <DIV class=title1>Namespaces</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="interfaces.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="packages.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Tuesday, June 6, 2000</P>
+
+<H3>Namespace Definition</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamespaceDefinition"></A><SPAN class=nonterminal>NamespaceDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>namespace</CODE>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<A href="interfaces.html#N-ExtendsList" class=nonterminal>ExtendsList</A></DIV>
+</DIV>
+
+<P>This defines a new namespace named <A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A>.</P>
+
+<H3><A name="use-statement"></A>Use Statement</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-UseStatement"></A><SPAN class=nonterminal>UseStatement</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>use</CODE>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<CODE class=terminal-keyword>namespace</CODE>&nbsp;<A href="#N-NonassignmentExpressionList" class=nonterminal>NonassignmentExpressionList</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NonassignmentExpressionList"></A><SPAN class=nonterminal>NonassignmentExpressionList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="expressions.html#N-NonAssignmentExpression">NonAssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NonassignmentExpressionList" class=nonterminal>NonassignmentExpressionList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<SPAN class=nonterminal><A href="expressions.html#N-NonAssignmentExpression">NonAssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+</DIV>
+
+<P>This makes the contents of each listed namespace accessible without a qualifier.</P>
+
+<H3>General Name Lookup</H3>
+
+<P>When performing the member lookup <VAR>x</VAR><CODE>.</CODE><VAR>q1</VAR><CODE>::</CODE><VAR>q2</VAR><CODE>::</CODE><VAR>q3</VAR><CODE>::</CODE><VAR>n</VAR>,
+all properties of <VAR>x</VAR> named <VAR>n</VAR> are gathered into a set <VAR>S</VAR>. All properties except those that belong
+to each of the namespaces, classes, or interfaces <VAR>q1</VAR>, <VAR>q2</VAR>, <VAR>q3</VAR> are dropped. Then, all properties
+defined in a namespace <VAR>N</VAR> that neither is <CODE>use</CODE>d by a lexically enclosing scope nor is one of the namespaces
+<VAR>q1</VAR>, <VAR>q2</VAR>, <VAR>q3</VAR> (or their supernamespaces) are dropped. If only one property remains, then that's
+the one that is chosen. If multiple properties remain, then ones defined in the a namespace that is <CODE>use</CODE>d in the
+innermost enclosing scope are chosen. If multiple properties still remain, then the ones defined in the most specific class
+are chosen (this gives object-oriented semantics). If multiple properties still remain, an error occurs.</P>
+
+<P>If the above member lookup was done on behalf of the <A href="expressions.html#bracket-operator"><CODE>[]</CODE> operator</A>,
+all <CODE>nonindexable</CODE> properties of <VAR>x</VAR> would also have been dropped from the set <VAR>S</VAR>.</P>
+
+<P>When performing the variable lookup <VAR>q1</VAR><CODE>::</CODE><VAR>q2</VAR><CODE>::</CODE><VAR>q3</VAR><CODE>::</CODE><VAR>n</VAR>,
+all entities named <VAR>n</VAR> defined in lexically enclosing scopes (such that the variable lookup is in the definitions'
+<A href="definitions.html#static-extent">static extents</A>) are gathered into a set <VAR>S</VAR>. All entities except those
+that belong to each of the namespaces, classes, or interfaces <VAR>q1</VAR>, <VAR>q2</VAR>, <VAR>q3</VAR> are dropped. Then,
+all <CODE>implicit</CODE> entities defined in a namespace <VAR>N</VAR> that neither is <CODE>use</CODE>d by a lexically enclosing
+scope nor is one of the namespaces <VAR>q1</VAR>, <VAR>q2</VAR>, <VAR>q3</VAR> (or their supernamespaces) are dropped. All
+<CODE>explicit</CODE> entities defined in a namespace <VAR>N</VAR> that is not one of the namespaces <VAR>q1</VAR>, <VAR>q2</VAR>,
+<VAR>q3</VAR> (or their supernamespaces) are dropped. If only one entity remains, then that's the one that is chosen. If multiple
+entities still remain, then the ones defined in the most specific scope are chosen (inner definitions hide outer ones). If
+multiple entities still remain, an error occurs.</P>
+
+<H3>Class Extensions</H3>
+
+<P>Under limited circumstances it is possible to add methods to an existing class <VAR>C</VAR> even if <VAR>C</VAR> is in
+an already defined package. To do this one creates a new namespace <VAR>N</VAR> and places the methods qualified with <VAR>C</VAR>
+into <VAR>N</VAR>. Such methods have no special access privileges to view <VAR>C</VAR>'s internals (for example, they can't
+see <VAR>C</VAR>'s original <CODE>private</CODE> or <CODE>package</CODE> members), and they can only be used by code that
+<CODE>use</CODE>s <VAR>N</VAR>. Because the slots of <VAR>C</VAR>'s instances are already fixed, it is not possible to add
+instance variables this way, but it is possible to add getters and setters when extending <VAR>C</VAR>.</P>
+
+<P>An extension is useful to add methods to system classes, as in the following code in some user package <CODE>P</CODE>:</P>
+
+<PRE>namespace StringExtension;
+attribute SE = namespace(StringExtension);
+
+SE function String::scramble():String {...}
+SE function String::unscramble():String {...}
+
+use namespace StringExtension;
+
+var x:String = "abc".scramble();</PRE>
+
+<P>Once the class extension is evaluated, methods <CODE>scramble</CODE> and <CODE>unscramble</CODE> become available on all
+strings in code within the scope of a <CODE>use</CODE>&nbsp;<CODE>namespace</CODE> &nbsp;<CODE>StringExtension</CODE>. There
+is no possibility of name clashes with extensions of class <CODE>String</CODE> in other, unrelated packages because the names
+<CODE>scramble</CODE> and <CODE>unscramble</CODE> only acquire their special meanings when qualified by the namespace <CODE>StringExtension</CODE>.</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Tuesday, June 6, 2000</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="interfaces.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="packages.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+</BODY>
+</HTML>

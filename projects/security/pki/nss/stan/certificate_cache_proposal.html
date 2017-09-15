@@ -1,0 +1,219 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../../../images/mozilla-16.png" type="image/png">
+
+  <title>Certificate Cache Proposal</title>
+<script src="../../../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+    <br>
+       
+<h2>Stan Certificate Cache Proposal</h2>
+    <br>
+    In NSS versions prior to NSS 3.4, the certificate "cache" was both a
+cache   and a storage facility for temporary certs.&nbsp; The cache consisted
+of  an in-memory DBM database.&nbsp; The entries of the database were exactly
+ like cert7.db: one matched certificateKey to certificate, the second matched
+ subject to set of certificateKeys, the third mapped nickname to subject,
+and the last mapped email address to subject.<br>
+    <br>
+    In order to do a lookup from a high-level index like nickname, one had
+ to  walk from nickname to subject to set of certKeys to set of certificates.<br>
+    <br>
+    In 3.4 and beyond, the certificate cache was split into a proper cache
+ and  a certificate store.&nbsp; The store was associated with NSSCryptoContext.&nbsp;
+  The cache became a PLHashTable.&nbsp; There four indices remained the same,
+  but subject and nickname entries became a list of certificates, and email
+  entries became a list of list of certificates (set of matching subjects).<br>
+    <br>
+    This design makes the assumption that certificate pointers are unique,
+and enforces this assumption.&nbsp;   It has the following drawbacks:<br>
+    <br>
+       
+<ol>
+      <li>When a cert is stored in the cache, it is propogated to all indices:
+  a reference is stored in the issuer/serial, subject, and nickname or email
+  address entries.</li>
+      <li>Certs stay in the cache until the last reference is freed.&nbsp;
+ Then  they leave the cache immediately, though they may be needed again
+right  away.&nbsp;  In this sense, the cache is still not a true cache.</li>
+      <li>The cache must be explictly kept consistent with token insertion
+ and  removal.</li>
+      <li>The cache can grow to an unlimited size.<br>
+      </li>
+       
+</ol>
+    <br>
+    <br>
+    Here are design ideas I have heard for the Stan cache:<br>
+    <br>
+       
+<ul>
+      <li>It should be a true fixed-size cache, preferably something using
+ an  LRU scheme.</li>
+      <li>It should cache searches, not just certs.&nbsp; That is, it should
+  remember if a search has been performed, and return the result of that
+search.&nbsp;   The caller can test whether the reply is up-to-date, and
+if so, avoid actually   going out to tokens to perform searches.&nbsp; This
+would avoid costly database   lookups for common searches.<br>
+      </li>
+       
+</ul>
+    <br>
+    <br>
+    With that in mind, I propose the following:<br>
+    <br>
+       
+<ol>
+      <li>The cache still consists of four mappings.&nbsp; Each of these
+mappings   is a separate LRU.&nbsp; The mappings are independent of one another.&nbsp;
+  They are:                 
+    <ul>
+        <li>issuer/serial --&gt; certificate</li>
+        <li>subject --&gt; array of certificates</li>
+        <li>nickname --&gt; array of certificates</li>
+        <li>email --&gt; array of certificates</li>
+                   
+    </ul>
+      By independent, I mean that a cert that was stored in the cache by
+ subject will <u>only</u> be stored in the subject cache.<br>
+     <br>
+   </li>
+      <li>What is stored is the result of a search, whether there are any 
+certs  or not.&nbsp; In pseudocode:<br>
+    <br>
+   <code>&nbsp; certs = find_subject_certs_in_cache(cache, subject);<br>
+    &nbsp; if (up_to_date(certs)) {<br>
+    &nbsp;&nbsp;&nbsp; return certs;<br>
+    &nbsp; }<br>
+    &nbsp; certs = find_subject_certs_on_tokens(tokens, subject);<br>
+    &nbsp; add_subject_certs_to_cache(certs);<br>
+    &nbsp; return certs;<br>
+    </code><br>
+  Even if certs is NULL after the token search, the result is cached.&nbsp;
+  The next time the search is performed, the reply comes from the cache.&nbsp;
+  No tokens are involved.<br>
+     <br>
+   </li>
+    <li>Cache entries are kept "up-to-date" with respect to token events.&nbsp;
+  An entry in the cache can go stale if:        
+    <ul>
+      <li>a cert is deleted from a token</li>
+      <li>a cert is imported to a token</li>
+      <li>a token is removed</li>
+      <li>a token is inserted</li>
+         
+    </ul>
+    Handling the first two events is straightforward, the cache is notified 
+of the event.&nbsp;  Handling the last two events would be done via a series 
+counter.&nbsp; Every time  a token is removed or inserted, the series counter 
+is incremented.&nbsp; When entries are put into the cache, they are given 
+the value of the series counter at the time of the search.&nbsp; The cache's 
+response is considered valid as long as that value matches the current counter. 
+&nbsp;For a system that uses no removable devices, the series counter would 
+always  be 1, and the cache responses would always be correct.<br>
+     <br>
+   </li>
+   <li>Using an LRU scheme means that certificate pointers are no longer
+ unique.&nbsp; NSS must no longer rely on this assumption.<br>
+       </li>
+</ol>
+     
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../../../security/">Security Updates</a></li>
+<li><a href="../../../../../contact/">Contact Us</a></li>
+<li><a href="../../../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December 12,  2002</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/security/pki/nss/stan/certificate_cache_proposal.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

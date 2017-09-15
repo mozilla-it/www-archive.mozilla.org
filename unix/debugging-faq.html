@@ -1,0 +1,838 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 6 November 2007), see http://tidy.sourceforge.net/">
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Language" content="en">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+
+  <title>Debugging Mozilla on Linux FAQ</title>
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+  <h1>Debugging Mozilla on Linux FAQ</h1>
+
+  <p>This is the debugging Mozilla on Linux FAQ. It details some tricks
+  that you can use to make it easier to debug and to work around some of
+  the problems that GDB has.</p>
+
+  <p>GDB has problems that Mozilla exacerbates. The most serious of these
+  problems is GDB's memory usage when debugging Mozilla's components. GDB
+  can grow up to several hundred meg in size while debugging Mozilla. To
+  work around this problem, it's necessary to load each of Mozilla's
+  component libraries only when needed. This process is <a href=
+  "#lot_o_mem">described</a> in this FAQ. You will see this problem if you
+  have less than 256 meg of ram in your computer.</p>
+
+  <p>Many distributions use a version of GDB that is somewhat old. The most
+  recent version of GDB that is available at the time that this document is
+  being written is version 5.0. Version 5.0 is much more usable than
+  previous version for debugging Mozilla. It includes fixes for slow symbol
+  loading and includes better thread functionality than previous versions.
+  However, issues with regards to gdb's high memory usage with Mozilla are
+  not solved with the 5.0 release of GDB.</p>
+
+  <p>You can get a more recent copy of GDB from the <a href=
+  "http://sourceware.cygnus.com/gdb/">GDB site at sourceware</a>.</p>
+
+  <ol class="toc">
+    <li><a href="#how_do_i">How do I debug Mozilla on Linux?</a></li>
+
+    <li><a href="#lot_o_mem">The debugger uses a lot of memory. How do I
+    fix it?</a></li>
+
+    <li><a href="#load_libs">How do I load shared libraries?</a></li>
+
+    <li><a href="#show_libs">How do I see what libraries I already have
+    loaded?</a></li>
+
+    <li><a href="#slow_loading">GDB is taking forever to load a shared
+    library. What the hell is it doing?</a></li>
+
+    <li><a href="#break_on_lib_load">How do I set a breakpoint in a library
+    that hasn't been loaded?</a></li>
+
+    <li><a href="#break_on_comp_load">How do I set a breakpoint when a
+    component is loaded?</a></li>
+
+    <li><a href="#gdbinit">This is hard. Give me a .gdbinit that
+    works.</a></li>
+
+    <li><a href="#cant_set_bp">I can't set a breakpoint. Why not?</a></li>
+
+    <li><a href="#debian">Debian's GDB doesn't work. What do I do?</a></li>
+
+    <li><a href="#pruichar">How do I display PRUnichar's?</a></li>
+
+    <li><a href="#nsString">How do I display an nsString?</a></li>
+
+    <li><a href="#interface_type">How do I determine the concrete type of
+    an object pointed to by an interface pointer?</a></li>
+
+    <li><a href="#error_loading_libs">"run" or "prun" in GDB fails with
+    "error in loading shared libraries."</a></li>
+
+    <li><a href="#args">How do I pass arguments over to the app using
+    GDB?</a></li>
+
+    <li><a href="#prun_args">How do I pass arguments in prun?</a></li>
+
+    <li><a href="#assert">Mozilla is aborting. Where do I set a breakpoint
+    to find out where it is exiting?</a></li>
+
+    <li><a href="#sig32">I keep getting a SIG32 in the debugger. How do I
+    fix it?</a></li>
+
+    <li><a href="#assertion">How can I debug race conditions and/or how can
+    I make something different happen at NS_ASSERTION time?</a></li>
+
+    <li><a href="#jprof">What performance tools do I have on
+    Linux?</a></li>
+
+    <li><a href="#env_vars">How do I run the debugger to debug Mozilla in
+    emacs/xemacs?</a></li>
+
+    <li><a href="#gdb_5">I'm feeling brave (or my old gdb isn't working at
+    all). How can I try out gdb 5.0?</a></li>
+
+    <li><a href="#insight">gdb 5 used to work for me, but now Mozilla won't
+    start. What can I do?</a></li>
+
+    <li><a href="#valgrind">Mozilla crashes at startup when running under
+    Valgrind. What can I do?</a></li>
+
+    <li><a href="#questions">I have questions. Who do I ask?</a></li>
+
+    <li><a href="#add">I want to add to this FAQ. Who do I send my
+    additions to?</a></li>
+  </ol>
+
+  <dl class="qandaset">
+    <dt id="how_do_i">1. How do I debug Mozilla on Linux?</dt>
+
+    <dd>
+      <p>The <code>mozilla</code> script that is launches the browser can
+      also be used to launch the debugger as well. You can use it like
+      this:</p>
+      <pre class="sreen">
+[blizzard@gunhead bin]$ <kbd>cd mozilla/dist/bin</kbd>
+[blizzard@gunhead bin]$ <kbd>./mozilla -g</kbd>
+</pre>
+
+      <p>This will actually launch ddd, a graphical front-end on gdb.
+      Redhat 6.2 doesn't install ddd by default, so you may get an error
+      message. In this case,</p>
+      <pre class="screen">
+[blizzard@gunhead bin]$ <kbd>setenv LD_LIBRARY_PATH .</kbd>
+</pre>
+
+      <p>(csh), or</p>
+      <pre class="screen">
+[blizzard@gunhead bin]$ <kbd>LD_LIBRARY_PATH=.; export LD_LIBRARY_PATH</kbd>
+</pre>
+
+      <p>(bash), then run</p>
+      <pre class="screen">
+[blizzard@gunhead bin]$ <kbd>gdb mozilla-bin</kbd>
+</pre>
+
+      <p>Using GDB is well beyond the scope of this document. There is
+      documentation available on your system if you have GDB installed in
+      the form of info pages. You might want to use the gnome help browser
+      to read that docuementation as many people find the info reader on
+      Linux hard to use.</p>
+
+      <p>Additionally, you can use a graphical front end to GDB like
+      <a href="http://www.gnu.org/software/ddd/">ddd</a> or <a href=
+      "http://sourceware.cygnus.com/insight/">insight</a>.</p>
+
+      <p>Here are some other sites that have more information:</p>
+
+      <ul>
+        <li><a href=
+        "http://www.gnu.org/manual/gdb-4.17/html_mono/gdb.html">http://www.gnu.org/manual/gdb-4.17/html_mono/gdb.html</a></li>
+
+        <li><a href=
+        "http://www.cs.tu-bs.de/softech/ddd/ddd-tips.html">http://www.cs.tu-bs.de/softech/ddd/ddd-tips.html</a></li>
+
+        <li><a href=
+        "http://www.cs.tu-bs.de/softech/ddd/ddd-faq.html">http://www.cs.tu-bs.de/softech/ddd/ddd-faq.html</a></li>
+      </ul>
+    </dd>
+
+    <dt id="lot_o_mem">2. The debugger uses a lot of memory. How do I fix
+    it?</dt>
+
+    <dd>
+      <p>As mentioned in the introduction of this FAQ GDB uses a lot of
+      memory when loading Mozilla's shared libraries. The solution to this
+      is to delay loading shared libraries until they are actually
+      needed.</p>
+
+      <p>However, you need to make sure that the base libraries like libc
+      and pthreads are loaded before you tell GDB to stop loading shared
+      libraries. If you don't allow those libraries to be loaded then GDB
+      will not be able to properly debug threads on Linux. Mozilla uses
+      pthreads for its networking library so you need to be able to work in
+      a threaded environment.</p>
+
+      <p>The best way to do this is to set a breakpoint in main, let the
+      program run until main and then turn off automatic library loading.
+      From there you can allow the program to continue running. Here's an
+      example:</p>
+      <pre class="code">
+[blizzard@gunhead mozilla]$ cd dist/bin/
+[blizzard@gunhead bin]$ ./mozilla -g
+.//run-mozilla.sh -g ./mozilla-bin
+MOZILLA_FIVE_HOME=/home/blizzard/src/mozilla/mozilla/dist/bin
+  LD_LIBRARY_PATH=/home/blizzard/src/mozilla/mozilla/dist/bin
+       SHLIB_PATH=/home/blizzard/src/mozilla/mozilla/dist/bin
+          LIBPATH=/home/blizzard/src/mozilla/mozilla/dist/bin
+      MOZ_PROGRAM=./mozilla-bin
+      MOZ_TOOLKIT=
+        moz_debug=1
+     moz_debugger=
+/usr/bin/gdb ./mozilla-bin -x /tmp/mozargs22288
+GNU gdb 19991004
+Copyright 1998 Free Software Foundation, Inc.
+GDB is free software, covered by the GNU General Public License, and you are
+welcome to change it and/or distribute copies of it under certain conditions.
+Type "show copying" to see the conditions.
+There is absolutely no warranty for GDB. Type "show warranty" for details.
+This GDB was configured as "i386-redhat-linux"...
+(gdb) <strong>b main</strong>
+Breakpoint 1 at 0x804ec45: file nsAppRunner.cpp, line 811.
+(gdb) <strong>r</strong>
+Starting program: /home/blizzard/src/mozilla/mozilla/dist/bin/./mozilla-bin
+
+Breakpoint 1, main (argc=1, argv=0xbffff894) at nsAppRunner.cpp:811
+811       InstallUnixSignalHandlers(argv[0]);
+(gdb) <strong>set auto-solib-add 0</strong>
+(gdb) <strong>c</strong>
+Continuing.
+nsNativeComponentLoader: autoregistering begins.
+[...]
+</pre>
+
+      <p>It's easy to define a function for gdb to do this for you
+      automatically. You can add this function to the .gdbinit file in your
+      home directory:</p>
+      <pre class="screen">
+def prun
+        tbreak main
+        run
+        set auto-solib-add 0
+end
+</pre>
+    </dd>
+
+    <dt id="load_libs">3. How do I load shared libraries?</dt>
+
+    <dd>
+      <p>If you have turned off automatic shared library loading, you will
+      have to load them when you need them. GDB has a command to load
+      libraries while the program is running. This is the
+      <code>sharedlibrary</code> command. It can be shortened to
+      <code>shar</code> when used in GDB. The argument to the command is a
+      regular expression for the libraries to be loaded.</p>
+
+      <p>Here's what it looks like in the 4.18 version of the debugger:</p>
+      <pre class="screen">
+^C
+Program received signal SIGINT, Interrupt.
+0x404ccdeb in __sigsuspend (set=0xbf5ffbc0)
+    at ../sysdeps/unix/sysv/linux/sigsuspend.c:48
+48      ../sysdeps/unix/sysv/linux/sigsuspend.c: No such file or directory.
+Current language:  auto; currently c
+(gdb) <strong>shar glib</strong>
+Reading symbols from /usr/lib/libglib-1.2.so.0...done.
+(gdb)
+</pre>
+
+      <p>Here's what it looks like in a version 5.x of the debugger ( yet
+      unreleased ):</p>
+      <pre class="screen">
+^C
+Program received signal SIGINT, Interrupt.
+[Switching to Thread 2051 (runnable)]
+0x404ccdeb in __sigsuspend (set=0xbf5ffbac)
+    at ../sysdeps/unix/sysv/linux/sigsuspend.c:48
+48      ../sysdeps/unix/sysv/linux/sigsuspend.c: No such file or directory.
+Current language:  auto; currently c
+(gdb) <strong>shar gtk</strong>
+Reading symbols from /usr/lib/libgtk-1.2.so.0...done.
+Loaded symbols for /usr/lib/libgtk-1.2.so.0
+Reading symbols from /usr/lib/gtk/themes/engines/libthinice.so...done.
+Loaded symbols for /usr/lib/gtk/themes/engines/libthinice.so
+(gdb)
+</pre>
+
+      <p>As you see above, it's possible to load more than one library with
+      the same load command in GDB.</p>
+    </dd>
+
+    <dt id="show_libs">4. How do I see what libraries I already have
+    loaded?</dt>
+
+    <dd>
+      <p>You can see what libraries you already have loaded with the
+      <code>info sharedlibrary</code> command:</p>
+      <pre class="screen">
+(gdb) <strong>info shar</strong>
+From        To          Syms Read   Shared Object Library
+0x4044a000  0x4044d08c  Yes         /lib/libdl.so.2
+0x4044e000  0x4048ff90  Yes         /usr/lib/libstdc++-libc6.1-1.so.2
+0x40491000  0x404ad9d8  Yes         /lib/libm.so.6
+0x404ae000  0x405a285c  Yes         /lib/libc.so.6
+0x40000000  0x40013ed0  Yes         /lib/ld-linux.so.2
+0x40607000  0x4061554c  No          /usr/lib/libz.so.1
+0x40763000  0x4088af74  No          /usr/lib/libgtk-1.2.so.0
+0x4088b000  0x408c04d4  No          /usr/lib/libgdk-1.2.so.0
+[...]
+</pre>
+    </dd>
+
+    <dt id="slow_loading">5. GDB is taking forever to load a shared
+    library. What the hell is it doing?</dt>
+
+    <dd>
+      <p>Versions of GDB earlier than 5 ( yet unreleased ) use a very slow
+      algoritm for walking the list of already loaded symbols as it adds
+      symbols to its symbol table. This has been fixed in version 5 of GDB.
+      There isn't a fix for older versions.</p>
+    </dd>
+
+    <dt id="break_on_lib_load">6. How do I set a breakpoint in a library
+    that hasn't been loaded?</dt>
+
+    <dd>
+      <p>Unfortunately, there isn't a way to set a breakpoint in GDB in a
+      library that hasn't been loaded. If you are actually intersted in
+      setting a breakpoint in a real component when it's loaded please see
+      the section on <a href="#break_on_comp_load">setting a breakpoint
+      when a component is loaded</a>.</p>
+
+      <p>If you are completely desperate and have to set a breakpoint in a
+      library when it's loaded you can set a breakpoint on the symbol
+      <code>_dl_open</code>. This function is called when a new library is
+      loaded. You can set your breakpoint after you see that your library
+      has been loaded.</p>
+    </dd>
+
+    <dt id="break_on_comp_load">7. How do I set a breakpoint when a
+    component is loaded?</dt>
+
+    <dd>
+      <p>There's a faculity in XPCOM that allows you to set an environment
+      variable that triggers the program to drop into the debugger when it
+      loads a certain component.</p>
+
+      <p>You have to set the <code>XPCOM_BREAK_ON_LOAD</code> environment
+      variable before you run Mozilla. You set the variable to a string
+      that contains the names of libraries you might want to load. For
+      example, if you wanted to stop when a library named
+      <code>raptor</code> or <code>necko</code> is loaded, you can set the
+      variable to <code>raptor:necko</code>. Here's an example:</p>
+      <pre>
+(gdb) <kbd>set env XPCOM_BREAK_ON_LOAD raptor:necko</kbd>
+(gdb) <kbd>prun</kbd>
+</pre>
+    </dd>
+
+    <dt id="gdbinit">8. This is hard. Give me a .gdbinit that works.</dt>
+
+    <dd>
+      <p>Ok. <a href=".gdbinit">Here's one.</a> It's got four function
+      def's in it.</p>
+
+      <ul>
+        <li>"prun" to start the browser and disable library loading.</li>
+
+        <li>"pmail" which will launch mail.</li>
+
+        <li>"pu" which will display a (PRUnichar *) string.</li>
+
+        <li>"ps" which will display a nsString.</li>
+      </ul>
+    </dd>
+
+    <dt id="cant_set_bp">9. I can't set a breakpoint. Why not?</dt>
+
+    <dd>
+      <p>You probably can't set a breakpoint because the library in which
+      that breakpoint is located hasn't been loaded. If you know the
+      library has actually been loaded into Mozilla but you can't set the
+      breakpoint see the section on <a href="#load_libs">loading shared
+      libraries</a>. If the library hasn't been loaded yet you will have to
+      wait until it is. If you want to set a breakpoint as soon as the
+      library is loaded, see the section on <a href=
+      "#break_on_comp_load">breaking when a component is loaded</a> and
+      <a href="#break_on_lib_load">breaking on a library load</a>.</p>
+    </dd>
+
+    <dt id="debian">10. Debian's GDB doesn't work. What do I do?</dt>
+
+    <dd>
+      <p>[submitted by <a href="mailto:bruce@cybersight.com">Bruce
+      Mitchener</a>]<br>
+      Debian's unstable distribution currently uses glibc 2.1 and GDB 4.18.
+      However, there is no package of GDB for Debian with the appropriate
+      threads patches that will work with glibc 2.1. I was able to get this
+      to work by getting the GDB 4.18 RPM from Red Hat's rawhide server and
+      installing that. It has all of the patches necessary for debugging
+      threaded software. These fixes are expected to be merged into GDB,
+      which will fix the problem for Debian Linux.</p>
+    </dd>
+
+    <dt id="pruichar">11. How do I display PRUnichar's?</dt>
+
+    <dd>
+      <p>Several people have suggested ways to do this:</p>
+
+      <ul>
+        <li>
+          <pre>
+(gdb) <strong>print ((PRUnichar*)uri.mBuffer)[0]@16</strong>
+$47 = {114, 100, 102, 58, 110, 117, 108, 108, 0, 0, 8, 0, 0, 0, 37432,
+16514}
+</pre>
+        </li>
+
+        <li>
+          <pre>
+(gdb) <strong>print aURI</strong>
+$1 = (const PRUnichar *) 0x855e6e0
+(gdb) <strong>x/32ch aURI</strong>
+0x855e6e0:      104 'h' 116 't' 116 't' 112 'p' 58 ':'  47 '/'  47 '/'  119 'w'
+0x855e6f0:      119 'w' 119 'w' 46 '.'  109 'm' 111 'o' 122 'z' 105 'i' 108 'l'
+0x855e700:      108 'l' 97 'a'  46 '.'  111 'o' 114 'r' 103 'g' 47 '/'  115 's'
+0x855e710:      116 't' 97 'a'  114 'r' 116 't' 47 '/'  0 '\0'  25 '\031'       0 '\0'
+(gdb)
+</pre>
+        </li>
+
+        <li>
+          <p>Define helper functions in your .gdbinit</p>
+          <pre class="code">
+# define "pu" command to display PRUnichar * strings (100 chars max)
+def pu
+  set $uni = $arg0
+  set $i = 0
+  while (*$uni &amp;&amp; $i++&lt;100)
+    if (*$uni &lt; 0x80)
+      print *(char*)$uni++
+    else
+      print /x *(short*)$uni++
+    end
+  end
+end
+
+# define "ps" command to display nsString/nsAutoString/nsCString/nsCAutoString
+def ps
+  set $ns = $arg0
+  if ($ns-&gt;mCharSize)
+    pu $ns-&gt;mUStr
+  else
+    print $ns-&gt;mStr
+  end
+end
+</pre>
+
+          <p><a href="#gdbinit">This is hard. Give me a .gdbinit that
+          already has the functions.</a></p>
+        </li>
+
+        <li>
+          <p>Define a small helper function "punichar" in #ifdef NS_DEBUG
+          code somewhere.</p>
+        </li>
+      </ul>
+    </dd>
+
+    <dt id="nsString">12. How do I display an nsString?</dt>
+
+    <dd>
+      <p>You can call the ToNewCString() method on the nsString in
+      question. It leaks a little memory but it shouldn't hurt anything if
+      you only do it a few times in one gdb session. ( from
+      akkana@netscape.com )</p>
+      <pre>
+(gdb) p string.ToNewCString()
+</pre>
+    </dd>
+
+    <dt id="interface_type">13. How do I determine the concrete type of an
+    object pointed to by an interface pointer?</dt>
+
+    <dd>
+      <p>You can determine the concrete type of any object pointed to by an
+      XPCOM interface pointer by looking at the mangled name of the symbol
+      for the object's vtable:</p>
+      <pre>
+(gdb) <strong>p aKidFrame</strong>
+$1 = (nsIFrame *) 0x85058d4
+(gdb) <strong>x/wa *(void**)aKidFrame</strong>
+0x4210d380 &lt;__vt_14<strong>nsRootBoxFrame</strong>&gt;: 0x0
+(gdb) <strong>p *(nsRootBoxFrame*)aKidFrame</strong>
+ <var>[ all the member variables of aKidFrame ]</var>
+</pre>
+
+      <p>(If you're using gcc 3.x, the output is slightly different from
+      the above (which is for gcc 2.9x), but just pay attention to the
+      vtable symbol (which in this case would be
+      <code>_ZTV14nsRootBoxFrame</code>) rather than the mangled name of
+      the first virtual function, since some classes may not override the
+      first virtual function (although they usually do, since it's
+      <code>QueryInterface</code>).)</p>
+
+      <p>Note that you won't get anything useful if the shared library
+      containing the implementation of the object you're looking at is not
+      loaded. See "<a href="#load_libs">How do I load shared
+      libraries?</a>" and "<a href="#show_libs">How do I see what libraries
+      I already have loaded?</a>".</p>
+    </dd>
+
+    <dt id="error_loading_libs">14. "run" or "prun" in GDB fails with
+    "error in loading shared libraries."</dt>
+
+    <dd>
+      <p>Attempting to run mozilla-bin inside GDB fails with an error
+      message similar to the following:</p>
+      <pre class="code">
+Starting program:
+/u/dmose/s/mozilla/mozilla-all/mozilla/dist/bin/./mozilla-bin
+/u/dmose/s/mozilla/mozilla-all/mozilla/dist/bin/./mozilla-bin: error
+in loading shared libraries: libraptorgfx.so: cannot open shared
+object file: No such file or directory
+</pre>
+
+      <p>Your LD_LIBRARY_PATH is probably being reset by your .cshrc or
+      .profile. From the GDB manual:</p>
+
+      <p><em>*Warning:* GDB runs your program using the shell indicated by
+      your 'SHELL' environment variable if it exists (or '/bin/sh' if not).
+      If your 'SHELL' variable names a shell that runs an initialization
+      file -- such as '.cshrc' for C-shell, or '.bashrc' for BASH--any
+      variables you set in that file affect your program. You may wish to
+      move setting of environment variables to files that are only run when
+      you sign on, such as '.login' or '.profile'.</em></p>
+    </dd>
+
+    <dt id="args">15. How do I pass arguments over to the app using
+    GDB/ddd?</dt>
+
+    <dd>
+      <p>You should now be able to convey arguments using <kbd>./mozilla -g
+      your-list-of-arguments</kbd> For example you can call the mozilla
+      script like this if you want to launch mail at startup:
+      <kbd>./mozilla -g -mail</kbd></p>
+    </dd>
+
+    <dt id="prun_args">16. How do I pass arguments in prun?</dt>
+
+    <dd>
+      <p>Set the arguments in GDB before calling prun. Here's an example on
+      how to do that:</p>
+      <pre>
+(gdb) <strong>set args http://www.mozilla.org</strong>
+(gdb) <strong>prun</strong>
+</pre>
+    </dd>
+
+    <dt id="assert">17. Mozilla is aborting. Where do I set a breakpoint to
+    find out where it is exiting?</dt>
+
+    <dd>
+      <p>On Linux there are two possible symbols that are causing this.
+      They are <code>PR_ASSERT()</code> and <code>NS_ASSERTION()</code>. To
+      catch the program before it exits to see where it's asserting you can
+      stop at two places:</p>
+      <pre>
+(gdb) <strong>b abort</strong>
+(gdb) <strong>b exit</strong>
+</pre>
+    </dd>
+
+    <dt id="sig32">18. I keep getting a SIG32 in the debugger. How do I fix
+    it?</dt>
+
+    <dd>
+      <p>If you are getting a SIG32 while trying to debug Mozilla you might
+      have turned off shared library loading before the pthreads library
+      was loaded, e.g. by having <code>set auto-solib-add 0</code> in your
+      <code>.gdbinit</code> file.</p>
+
+      <p>In this case you can either:</p>
+
+      <ul>
+        <li>Remove it and use the method explained in the section about
+        <a href="#lot_o_mem">GDB's memory usage</a> instead.</li>
+
+        <li>Use <code>handle SIG32 noprint</code> either in gdb or in your
+        <code>.gdbinit</code> file.</li>
+      </ul>
+
+      <p>Alternatively the problem might lie in your pthread library. If
+      this library has its symbols stripped, then GDB can't hook into
+      thread events, and you end up with SIG32 signals. You can check if
+      your libpthread is stripped by checking the output of <code>file
+      /lib/libpthread*</code> for <code>'stripped'.</code> To fix this
+      problem for Gentoo Linux, you can re-emerge glibc after adding
+      <code>"nostrip"</code> to your <code>FEATURES</code> in
+      <code>/etc/make.conf</code>.</p>
+    </dd>
+
+    <dt id="assertion">19. How can I debug race conditions and/or how can I
+    make something different happen at NS_ASSERTION time?</dt>
+
+    <dd>
+      <p>[submitted by Dan Mosedale]<br>
+      Since Linux is unable to generate useful core files for
+      multi-threaded applications, tracking down race-conditions that don't
+      show up under the debugger can be a bit tricky.</p>
+
+      <p>Unless you've given the <code>--enable-crash-on-assert</code>
+      switch to <code>configure</code>, you can now change the behavior of
+      NS_ASSERTION (actually nsDebug::Break) using the XPCOM_DEBUG_BREAK
+      environment variable. The following values are accepted:</p>
+
+      <dl>
+        <dt><code>warn</code></dt>
+
+        <dd>This is equivalent to the default of simply spitting an error
+        message to stderr and ringing the bell.</dd>
+
+        <dt><code>stack</code></dt>
+
+        <dd>In addition to ringing the bell and printing a warning, a stack
+        trace is written to stderr.</dd>
+
+        <dt><code>suspend</code></dt>
+
+        <dd>The process-group is sent a <code>SIGSTOP</code> signal. This
+        suspends all threads so that you can attach to the process with the
+        debugger before the conditions that caused the assertion
+        disappear.</dd>
+
+        <dt><code>abort</code></dt>
+
+        <dd>This makes <code>NS_ASSERTION</code> act like
+        <code>assert(3)</code> and is equivalent to using
+        <code>--enable-crash-on-assert</code>.</dd>
+      </dl>
+    </dd>
+
+    <dt id="jprof">20. What performance tools do I have on Linux?</dt>
+
+    <dd>
+      <p>The amazing <a href="mailto:jim_nance@yahoo.com">Jim Nance</a> has
+      written a tool called <a href=
+      "http://www.mozilla.org/performance/jprof.html">jprof</a> that uses
+      sampling to do performance analysis. Other tools are listed on the
+      <a href=
+      "http://www.mozilla.org/performance/tools.html#profiling">performance
+      tools page</a>.</p>
+
+      <p>Unfortunately, there aren't tools like Quantify available for
+      Linux. You will have to go run <a href="quantify.html">Quantify</a>
+      on <a href="solaris.html">Solaris</a> for that.</p>
+    </dd>
+
+    <dt id="env_vars">21. How do I run the debugger in emacs/xemacs?</dt>
+
+    <dd>
+      <p>Emacs and XEmacs contain modes for doing visual debugging that
+      many programmers use. However, you might want to set up environment
+      variables to make sure that when running the debugger and Mozilla
+      they know where to load symbols from and where to find
+      components.</p>
+
+      <p>The easiest way to set up those environment variables is to use
+      the <code>run-mozilla.sh</code> script that's in the dist/bin
+      directory of your build. This script will set up the environment that
+      you need to run the editor, shell or debugger. Another trick is to
+      use the script to run /bin/bash ( or your favorite shell ) to set up
+      a shell that has the right setup and then you can run any commands
+      you want inside it.</p>
+      <pre>
+[blizzard@gunhead bin]$ <strong>./run-mozilla.sh /bin/bash</strong>
+MOZILLA_FIVE_HOME=/home/blizzard/src/mozilla/build/dist/bin
+  LD_LIBRARY_PATH=/home/blizzard/src/mozilla/build/dist/bin
+     LIBRARY_PATH=/home/blizzard/src/mozilla/build/dist/bin
+       SHLIB_PATH=/home/blizzard/src/mozilla/build/dist/bin
+          LIBPATH=/home/blizzard/src/mozilla/build/dist/bin
+       ADDON_PATH=/home/blizzard/src/mozilla/build/dist/bin
+      MOZ_PROGRAM=/bin/bash
+      MOZ_TOOLKIT=
+        moz_debug=0
+     moz_debugger=
+[blizzard@gunhead bin]$
+</pre>
+    </dd>
+
+    <dt id="gdb_5">22. I'm feeling brave (or my old gdb isn't working at
+    all). How can I try out gdb 5.0?</dt>
+
+    <dd>
+      <p>You can try <a href=
+      "http://people.redhat.com/blizzard/software/">http://people.redhat.com/blizzard/software/</a>.
+      But no guarantees!</p>
+    </dd>
+
+    <dt id="insight">23. gdb 5 used to work for me, but now Mozilla won't
+    start. What can I do?</dt>
+
+    <dd>
+      <p>A recent threading change (see <a href=
+      "http://bugzilla.mozilla.org/show_bug.cgi?id=57051">bug 57051</a> for
+      defails) caused a problem on some systems: Mozilla would get partway
+      through its initialization, then die before showing a window.</p>
+
+      <p>A recent change to gdb has fixed this problem. Download and build
+      <a href=" http://sources.redhat.com/insight/">the latest version of
+      Insight</a>, or if you don't want a GUI, <a href=
+      "http://sources.redhat.com/gdb/">the latest version of gdb</a>.</p>
+    </dd>
+
+    <dt id="valgrind">24. Mozilla crashes at startup when I run it under
+    Valgrind. What can I do?</dt>
+
+    <dd>
+      <p>GTK 2 builds of Mozilla bring in ORBit, which is sensitive to the
+      memory alignment used by malloc(). The system implementation aligns
+      to 8 bytes, while Valgrind aligns to 4 bytes by default. This causes
+      ORBit to crash.</p>
+
+      <p>To run Mozilla under Valgrind, it is recommended that you use the
+      <code>--alignment=8</code> option to Valgrind.</p>
+    </dd>
+
+    <dt id="questions">25. I have questions. Who do I ask?</dt>
+
+    <dd>
+      <p>Post your questions to this newsgroup:</p>
+
+      <p><a href=
+      "news://news.mozilla.org/netscape.public.mozilla.unix">news://news.mozilla.org/netscape.public.mozilla.unix</a>.</p>
+
+      <p>If you are trying to debug Mozilla on UNIX, we'll gladly help.</p>
+    </dd>
+
+    <dt id="add">26. I want to add to this FAQ. Who do I send my additions
+    to?</dt>
+
+    <dd>
+      <p>Post your additions to this newsgroup:</p>
+
+      <p><a href=
+      "news://news.mozilla.org/netscape.public.mozilla.unix">news://news.mozilla.org/netscape.public.mozilla.unix</a></p>
+
+      <p>Or send mail to <a href=
+      "mailto:blizzard@mozilla.org">blizzard@mozilla.org</a>.</p>
+    </dd>
+  </dl>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 17,  2008</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/unix/debugging-faq.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

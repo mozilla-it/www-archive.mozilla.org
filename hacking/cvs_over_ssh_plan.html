@@ -1,0 +1,200 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+	<title>Moving to CVS over SSH</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+<?xml version="1.0"?>
+
+
+
+
+
+<h1>Moving to CVS over SSH</h1>
+
+<h2>The Goal</h2>
+<p>
+  ...a more secure source repository for Mozilla.
+  In light of recent attacks on other open source projects,
+    we think it's time to take steps to harden our repository.
+</p>
+<p>
+  In the end, we want a system where anyone can
+    check out the code anonymously (or as anonymously as reasonable) at any time;
+    but where commits are authenticated and secure.
+  It would be a bonus if checkouts were proof against man-in-the-middle modifications,
+    but that seems like a very unlikely attack,
+    and it's not something for which we'll sacrifice other important features.
+</p>
+
+<h2>The Plan</h2>
+<p>
+  There are two levels of SSH to which we might aspire.
+  The first, very convenient, level is what one might call `half-authenticated'.
+  At this level, one connects to a public service on a remote machine through SSH.
+  That remote machine allows anyone to connect to that service,
+    and requires no credentials to establish such a connection.
+  The convenient part of this scheme is that repository users wouldn't need to generate key-pairs,
+    sending one to mozilla.org to register on the server,
+    and distributing their private key to each machine from which they wish to commit to the repository.
+</p>
+<p>
+  The second level is fully authenticated.
+  The client `knows' the server, and the server `knows' the client.
+  Only clients known to the server may connect over SSH.
+  This level is more secure and less convenient.
+  To commit evil code to the repository, an attacker must acquire both
+    a CVS account/password <strong>and</strong>
+    the private half of an SSH key registered on the server (and probably the password to unlock that).
+  I can imagine a case where the attack is even more difficult because the CVS account/password must match the SSH user;
+    though I'm certain this is not the default setup.
+</p>
+<p>
+  This second level has a higher administrative overhead on both sides of the table.
+  Some person or process at mozilla.org has to register keys with the server.
+  Each person who wants commit access must generate a key pair and somehow submit the public key to mozilla.org.
+</p>
+<p>
+  The first approach may be considered no more secure than our current scheme by some
+    (though it would mean CVS passwords no longer fly about in the clear).
+  The second may be considered too annoying.
+  Therefor, the jury is still out on which approach we will end up using.
+  Here are the steps we are taking:
+</p>
+<ul>
+  <li>
+    We need a web-based tool for key submission, that is, if we play to try the fully authenticated approach.
+    At this moment, Leaf is modifying our Despot tool to do this, at least for people who currently have commit access.
+  </li>
+  <li>
+    We need a web page describing the plan, the policy, and the mechanics of the switch.
+    It needs to point to the key submission tool, if that's the way we go, and when such a tool is available.
+    It needs to contain or at least point to documentation about how to actually use CVS over SSH.
+    This is the start of such a page.
+  </li>
+  <li>
+    We need to point to that web page from (some subset of)
+      the top of tinderbox,
+      commiters mail,
+      the front page of bugzilla,
+      the front page of mozilla.org,
+      the hacking page,
+      and add a pointer in bugmail and hookmail.
+  </li>
+  <li>
+    We have a tentative deadline for the switch.
+    We will mail this deadline to the list of current committers,
+      but otherwise avoid publicly tantalizing black-hats.
+  </li>
+</ul>
+
+<h2>In the Interim...</h2>
+<p>
+  A couple people are already on the fully-authenticated plan.
+  We can, with some effort, add people one-by-one if: they already have commit access; and they send us an SSH public key.
+</p>
+
+<h2>Questions and Feedback</h2>
+<p>
+...should be sent to
+  <a href="mailto:scc@mozilla.org">Scott Collins</a>, <a href="mailto:leaf@mozilla.org">Leaf</a>,
+  and/or <a href="mailto:staff@mozilla.org">mozilla.org staff</a>
+</p>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 12,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/hacking/cvs_over_ssh_plan.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,293 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+<TITLE>grendel database requirements</TITLE><script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+<BASE TARGET=_top>
+
+<H1 ALIGN=CENTER>grendel database requirements
+<BR><FONT SIZE="3">by <a href="mailto:terry@mozilla.org">Terry Weissman</A>
+<BR>16-Oct-1997
+</FONT></H1>
+
+<P>Note: this does not include address book needs! <A
+HREF="mailto:lesters">Lester Schueler</A> is working on a separate document
+to cover our needs there, which is very different.
+
+<P><H2>what we need to store.</H2>
+<UL>
+
+  <P>Usually, when I hear people talking about using databases in Xena, they
+  seem to be talking about a convenient place to store a few dozen or a few
+  hundred objects. But Grendel is different in three ways:
+
+  <UL>
+
+    <P><LI> We already have a place to store the messages, and that's largely
+    outside of our control. Messages live on IMAP or NNTP servers. Or they
+    live in Berkeley mail folders. We could conceivably replace the Berkeley
+    mail folders with something else, but there are sound interoperability
+    reasons why we want to keep using them. Anyway, we can't replace the IMAP
+    or NNTP servers. So, we're not looking for a database to store the
+    messages themselves.</LI>
+
+    <P><LI> What we need is a way to <I>index</I> the messages. That is,
+    given a set of criteria, we need to find the set of messages that satisfy
+    the criteria. We would expect the returned messages to be in the form of
+    pointers into the actual message store; we can then chase the pointers to
+    get the messages themselves. The database would contain enough
+    information to build a summary line for that message.</LI>
+
+    <P><LI> We need to be able to store hundreds of thousands of messages. (If
+    you think that number is too high, then you aren't thinking about
+    news.)</LI>
+
+  </UL>
+
+  <P>Most traditional databases that I'm familiar with let you store records
+  of data. Each record consists of several fields. A few of the fields are
+  special "key" fields, that you can do fast searches on.
+
+  <P>We can use this kind of traditional database, but it turns out every
+  field we store will need to be a key field, because we want to do sorting
+  and searching based on any of these fields.
+
+  <P>And we have a lot of fields to store:
+
+  <TABLE COLS=3>
+   <TR VALIGN=TOP>
+    <TD>
+     <UL>
+      <LI>Message-id</LI>
+      <LI>Folder this message is stored in</LI>
+      <LI>Date</LI>
+      <LI>From</LI>
+     </UL>
+    </TD>
+    <TD>
+     <UL>
+      <LI>List of "To" recipients</LI>
+      <LI>List of "Cc" recipients</LI>
+      <LI>List of "Bcc" recipients</LI>
+      <LI>Subject</LI>
+      <LI>References</LI>
+     </UL>
+    </TD>
+    <TD>
+     <UL>
+      <LI>Priority</LI>
+      <LI>Size</LI>
+      <LI>Flags (read/unread, flagged, replied, forwarded, etc.)</LI>
+      <LI><I>And I'm sure I'm missing some</I></LI>
+     </UL>
+    </TD>
+   </TR>
+  </TABLE>
+
+  <P>Actually, the set of headers to store should probably be
+  user-customizable; some users (like jwz) will want to store every possible
+  header.
+
+</UL>
+<P><H2>reliability needs.</H2>
+<UL>
+
+  <P>Much or all of what we'll store in the database is just cached
+  information from the messages themselves. So, theoretically, if the
+  database blows up, we can recreate it. Practically, though, this would suck
+  a lot, as many users would have enough data that it will take hours or days
+  to recreate the data.
+
+</UL>
+<P><H2>performance needs.</H2>
+<UL>
+
+  <P>It's gotta fly. Both reading and writing have to be pretty much
+  instantaneous for the common cases. And the common cases are pretty broad.
+
+  <P>We don't believe it is possible to write a database that has all the
+  indexing we need, and all the reliability we need, and still get all the
+  performance we need. So, we've figured out two dodges to help:
+
+  <UL>
+
+    <P><LI><B>Use 3.0-style summary files for the common case.</B> 
+
+    <BR>We won't even use a spiffy database for the usual case of ``show me
+    all the messages in this folder.''  Instead, we'll maintain a file for
+    each folder that contains all the info we need about that folder;
+    whenever the user opens up a folder, we inhale into memory the entire
+    contents of the relevant file. This is a proven technique that covers the
+    vast majority of common cases really well. It has some scaling problems,
+    though, and it definitely doesn't allow for the nifty cross-folder views
+    and searches that we really want to do. So, we still want a database to
+    handle those new features.
+
+    <P>We would love to be proven wrong, and to just throw away the summary
+    file code and use the database for everything. But we are not yet
+    convinced that this will ever work, and so we're not prepared to count
+    on it.
+
+    <P><LI><B>Update the database in a background thread.</B> 
+
+    <BR>(Any database gurus will probably laugh as I clumsily describe what
+    has got to be a standard database technique. If it's not a standard
+    technique, I deserve a patent.) Whenever changes are made that need to be
+    stored in the database, don't immediately commit them to the database,
+    because this is slow and will block the user from doing anything else
+    that requires the database until it completes. Instead, note them down in
+    a log file, and have a background thread incrementally commit the
+    changes. Any database queries would check for entries in the log file,
+    and merge in results from there. This technique results in database
+    changes to apparently happen instantaneously; the cost is that any
+    immediate queries will run slightly slower as they merge in the
+    uncommitted changes from the log file.
+
+  </UL>
+
+  <P>The first dodge helps us avoid the need for fast queries for the
+  database, but we'll still want it as fast as possible for the new features
+  that aren't handled well by summary files.
+
+  <P>The second dodge helps us avoid the need for fast updates to the
+  database, but a slow database will still definitely suck in a lot of ways,
+  especially when the user does things like move thousands of messages from
+  one folder to another, or receives a ton of new mail, or imports an entire
+  new folder, or needs to rescan a whole folder (see below).
+
+</UL>
+<P><H2>other gotchas.</H2>
+<UL>
+
+  <P>We have to be able to quickly throw out and rebuild large chunks of
+  data, because at any time we may detect that everything we once knew about
+  a folder is suddenly invalid. If another application has changed an IMAP
+  folder or a Berkeley mail folder, we can detect the fact that a change
+  happened, but we can't know what changed. We have no choice but to throw
+  out everything in the database that relates to the folder, and recreate
+  it. Just the "throwing out" part can be a real expensive operation on many
+  databases.
+
+  <P>Another nasty consequence of this is that it means the database is
+  probably not a good place to write down any extra information about the
+  messages.  It's tempting to put annotations and extra status information
+  solely in the database, without writing it in anywhere in the real message
+  itself.  But because folders can be changed out from under us without
+  warning, it is also tempting to consider the entire database as just a
+  cache, where anything can be thrown out and recreated at will. These goals
+  tend to be conflicting.
+
+</UL>
+<P><H2>fitting in with RDF.</H2>
+<UL>
+
+  <P>One bit of good news is that RDF's view of data is a model that works
+  well for our needs. A really fast database that directly implements the RDF
+  model can be directly used by our stuff. The main lack there would be the
+  ability to sort the resulting query in any way; as near as I can tell, RDF
+  does not support sorting of results. But I think we can live without the
+  database sorting its results.
+
+</UL>
+<P><H2>truly ambitious stuff.</H2>
+<UL>
+
+  <P>We haven't thought a lot about it, but we'd love a database that would
+  support full body text indexing on messages. Yow.
+
+</UL>
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September  8,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/grendel/dbreqs.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

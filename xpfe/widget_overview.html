@@ -1,0 +1,241 @@
+<HTML>
+<HEAD>
+   <META NAME="Author" CONTENT="Rod Spears">
+   <TITLE>Widget Overview</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000"
+      LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1 ALIGN=CENTER>The Widget Toolkits</H1>
+
+<H2>
+<HR WIDTH="100%"></H2>
+
+
+<H2>Table of Contents</H2>
+
+
+<OL>
+<LI>
+<A HREF="#Introduction">Introduction</A>
+
+<LI>
+<A HREF="#Background">Background</A>
+
+<LI>
+<A HREF="#Overview">Overview</A>
+
+<LI>
+<A HREF="#Toolkit Requirements">Toolkit Requirements</A>
+
+<LI>
+<A HREF="#Interfaces and Inheritance">Interfaces and Inheritance</A>
+
+<LI>
+<A HREF="#Event Processing">Event Processing</A>
+
+<LI>
+<A HREF="#Roadmap">Roadmap</A>
+</OL>
+
+<H2>
+<HR WIDTH="100%"></H2>
+
+
+<H2><A NAME="Introduction"></A>Introduction</H2>
+
+The document is intended to be read by those with a familarity with with
+on or more of the first-tier toolkits and XPCOM.
+<H2><A NAME="Background"></A>Background</H2>
+
+The MS-Windows toolkit was the first widget toolkit developed for Raptor.
+It was developed just as XPCOM was making its way into Raptor. The original
+toolkit supported multiple inheriteance of interfaces and XPCOM aggregation
+(individual widgets were being aggregated with Raptor "views").
+
+<P>Just after the X11/Motif toolkit was developed on both IRIX and Linux
+and the Viewer was up and running, the aggregation of views with widgets
+was removed from the architecture. This left a lot of baggage in the Windows
+and Motif implementations. As we started the Mac port of the toolkit we
+decided to greatly simplify the widget hierarchy and architecture in order
+to make it easier to maintain the existing toolkits and port to new toolkit
+down the road. Aggregation was removed and we decided all "widget" interfaces
+would inherit directly from nsISupports.
+
+<P>These issues will be addressed in more depth later.
+<BR>
+<H2><A NAME="Overview"></A>Overview</H2>
+
+In the past there were three (or more) separate "front-end" code bases
+developed for the browser, composer, etc. The main toolkits being MS-Windows,
+X-Windows and Macintosh. A separate graphical user interface or GUI was
+created with platform specific code. A simple view of the architecture
+was as follows:
+<CENTER>
+
+<P><IMG SRC="oldhier.gif" HEIGHT=177 WIDTH=533></CENTER>
+
+<P>As new features were added to the product, this often meant the work
+had to be done separately for each platform. An advantage to this approach
+was that platform specific Look &amp; Feel was guarenteed for for the set
+of common control that existed across platform. It may or may not have
+been guarenteed for customed widgets developed for each platform.
+
+<P>NGLayout is fully based on XPCOM and all implementation exists behind
+a set of public interfaces. In NGLayout all platform specific code is contained
+in the Widget and GFX libraries. The GFX library is responsible for graphics
+and rendering primitives. The Widget library encompasses all windowing
+and GUI components necessary for creating HTML forms and the GUI interface
+on given platform. This approach has many advantages:
+<UL>
+<LI>
+The implementation for any given GUI implementation is hidden from the
+developer of XP applications.
+
+<LI>
+The platform specific code is small, easy to maintain and very isolated.
+
+<LI>
+The widget toolkit maintanance is reduced and it requires fewer platform
+secific developers to add new features and maintain it.
+
+<LI>
+New custom widgets can be written in an "XP" fashion using GFX. This means
+they will automatically run on all platforms.
+</UL>
+The challenge of the XP widget toolkits are:
+<UL>
+<LI>
+Platform specific Look &amp; Feel is a bigger challenge for all XP widgets.
+
+<LI>
+Not all native GUI toolkits contains the same functionality.
+</UL>
+
+<P>
+The NGLayout widget toolkit is as follows:
+<CENTER>
+
+<P><IMG SRC="newhier.gif" HEIGHT=280 WIDTH=525></CENTER>
+
+<P>The current "test" Viewer application contains platform specific code
+for application start up and for implementing menus. It continues to be
+this way today, more for historical reasons than anything else. Recently,
+the cross-platform Viewer, with Navigator 4.x chrome, was created almost
+entirely from the widget toolkit interfaces (XPFE). The only exception
+is application start up and this will soon be cross-platform also.
+
+<P>All NGLayout-based applications will be created completely from the
+cross-platform set of APIs.
+<BR>
+<H2><A NAME="Toolkit Requirements"></A>Toolkit Requirements</H2>
+
+In general, the toolkit should be small, fast, and not rely on third party
+toolkits like MFC.
+
+<P>The third party toolkits typically:
+<UL>
+<LI>
+Unneccesarily add to the size of the toolkit
+
+<LI>
+Cannot be distributed under our free source agreement
+
+<LI>
+Their scope can be too large. Sometimes it is necessary to include most
+all the of the class hierarchy to use just a few of the classes.
+
+<LI>
+They do too much. One of the advantages of third party toolkits is that
+they make creating GUIs easier by hiding and abstracting the event processing.
+This can cause problems when integrating it into the low-level event processing
+of NGLayout.
+
+<LI>
+They add a dependency into our development effort and we become "locked"
+into their technology.
+</UL>
+
+<H2><A NAME="Interfaces and Inheritance"></A>Interfaces and Inheritance</H2>
+
+In the widget toolkit the nsIWidget interface is responsible for all basic
+widget functionality. For example, SetBounds, GetBounds, SetEnabled, IsEnabled
+etc. The nsIXXXWidget interface would specify widget specific behavior.
+For example, the nsIRadioButton would have an unique "IsChecked" method.
+
+<P>On the surface mulitple inheritance of interfaces seems like a very
+useful approach. On MS-Windows all widgets are windows. If we take a look
+at a specific example, several issues will emerge. For instance, a nsIRadioButton
+inherits from nsIWidget. The interface hierarchy could be: nsIWidget->nsIRadioButton.
+The implementation hierarchy would then be nsWindow->nsRadiobutton.
+<CENTER>
+
+<P><IMG SRC="widgetinherit.gif" HEIGHT=220 WIDTH=550></CENTER>
+
+<P><B>Here are the issues:</B>
+<UL>
+<LI>
+Virtual base classes cannot be used because they are not supported by all
+C++ compilers.
+
+<LI>
+Since we are not using virtual base classes, each of the nsIWidget's methods
+must be qualified for the nsRadioButton. Otherwise the compiler asks: "Does
+the method come from nsIWidget that nsIRadioButton derives from? Or does
+the method come from the nsIWidget that the nsWindow derives from?"
+
+<LI>
+All of the widgets that derive from nsIWidget must qualify each method
+for the nsIWidget. This can be done using one macro for the header file
+specification and an other macro for the implementation, but this gets
+very ugly. The nsIWidget interface has quite a number of methods and the
+macro would be quite large.
+
+<LI>
+The Windows toolkit was originally developed with way and it became a maintanence
+nightmare.
+</UL>
+
+<P>
+A minor point was also made that a developer using the hierarchy
+knows that he only needs to look at two interfaces for any given widget:
+the nsIWidget interface and the interface for the specific widget. This
+is an important point when detailed documentation is not available.
+<BR>
+<H2><A NAME="Event Processing"></A>Event Processing</H2>
+
+The widget toolkit has two personalities. It needs to act as a low-level
+toolkit inside of NGLayout's layout engine and a high-level toolkit when
+used for XPFE. This dicotomy constrains how the widgets behave and this
+affects event processing in several important ways.
+
+<P>The most important, is that when the widgets live inside the layout
+engine they are to do as little as possible, they must dispatch all their
+events and then wait to be told what to do. JavaScript is a key member
+in the event processing chain and JS must be able reject certain events
+if it chooses.
+
+<P>For example, when a user clicks on a radiobutton, the radiobutton must
+first dispatch the click event and then wait to be told whether it's clicked
+or not clicked. The view/frame system or JavaScript determines wether the
+radiobutton should process the click event and whether its value should
+set or cleared. In many toolkits, radiobutton processing is done automatically,
+so in many ways the native toolkit does more than it should.
+
+<P>
+<H2><A NAME="Roadmap"></A>Roadmap</H2>
+
+The widget toolkit has been ported to MS-Windows, Motif, and Macintosh.
+Others toolkits will follow whether they are developed internall or externally.
+
+<P>Currently, most all the widgets are developed from the native platform
+widgets with the exception of the Toolbar, the Toolbar Manager, the ImageButton,
+and the MenuButton (a button with an assosicated drop down menu).
+
+<P>Overtime we hope to develop many more cross-platform widgets on top
+of GFX that will enable developers to provide their own Look &amp; Feel.
+These lightweight will not require a back-end native widget.
+
+<P>
+</BODY>
+</HTML>

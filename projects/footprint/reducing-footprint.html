@@ -1,0 +1,782 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<meta name="DC.author" content="Alec Flett">
+<meta name="DC.creator" content="Alec Flett">
+<meta name="DC.title" content="Reducing Footprint">
+<meta name="DC.description" content="This document describes techniques that can be used to reduce Mozilla's footprint. It provides brief descriptions of a few tools and more elaborate descriptions of how to use them to improve footprint and performance.">
+<meta name="DC.date.created" content="2003-05-21T15:51:03+11:00" scheme="W3CDTF">
+<meta name="DC.date.modified" content="2006-09-06T09:54:03+11:00" scheme="W3CDTF">
+
+    <title>Reducing Footprint</title>
+    <link rel="StyleSheet" href="../xpcom/Standard.css" type="text/css">
+
+<link rel="section" href="#Introduction" title="Introduction">
+<link rel="section" href="#TraceMalloc" title="Trace-Malloc tools">
+<link rel="section" href="#SpaceTrace" title="SpaceTrace">
+<link rel="section" href="#HeapReduction" title="Heap Reduction Techniques">
+
+  <script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+  
+    <h1>Reducing Footprint</h1>
+    <address class="author">by Alec Flett &lt;<a href="mailto:alecf@flett.org">alecf@flett.org</a>&gt;</address>
+
+    <!-- table of contents -->
+    <ol class="toc">
+      <li><a rel="section" href="#Introduction">Introduction</a></li>
+      <li><a rel="section" href="#TraceMalloc">Trace-Malloc tools</a>
+        <ul>
+          <li><a href="#TraceMallocSetup">Setting up TraceMalloc</a></li>
+        </ul>
+      </li>
+      <li><a rel="section" href="#SpaceTrace">SpaceTrace</a></li>
+      <li><a rel="section" href="#HeapReduction">Heap Reduction Techniques</a></li>
+    </ol>
+
+    <div class="chapter-header"><a name="Introduction">Introduction</a></div>
+    <p>
+      This document describes techniques that can be used to reduce
+      Mozilla's footprint. It provides brief descriptions of a few
+      tools and more elaborate descriptions of how to use them to
+      improve footprint and performance. It does not serve as a
+      definitive reference for these tools.
+    </p>
+
+    <p>
+      The following tools are available:
+    </p>
+    <ul>
+      <li> Trace-Malloc: collection of heap allocation data at runtime</li>
+      <li> SpaceTrace: HTML-based analysis of Trace-Malloc logs</li>
+      <li> Codesighs: summary of code size on a symbol-by-symbol basis</li>
+    </ul>
+    
+    <div class="chapter-header"><a name="TraceMalloc">Trace-Malloc tools</a></div>
+    <p>
+      Trace-Malloc is a library which takes control of all
+      calls the standard heap allocation/deallocation routines including
+      <code>malloc</code>, <code>free</code>, <code>new</code>, and
+      <code>delete</code>. As each allocation or deallocation occurs,
+      it logs the stack of the event to a log file. This log file is
+      then processed by a variety of tools which can be used to
+      analyze heap usage over one run of mozilla. It can also be used
+      for embedded applications to analyze memory usage in that
+      application. Most commonly, <a href="#SpaceTrace">SpaceTrace</a>
+      is used to analyze this data.
+    </p>
+    <p>
+      Trace-Malloc is usually enabled with a command line switch. When
+      not activated, Trace-Malloc <em>does not slow down your
+      application</em>. It is recommended that you enable it in all of your
+      builds if you plan on doing any footprint work. You can activate
+      it in your build at runtime using the command line switch.
+    </p>
+    <p>
+      The Trace-Malloc library has been ported to Linux and
+      Windows. If you're interested in porting it to other platforms
+      such as OS X, see the source in <a href="http://lxr.mozilla.org/mozilla/source/tools/trace-malloc/">LXR</a>
+    </p>
+    
+
+    <div class="section-header"><a name="TraceMallocSetup">Setting up Trace-Malloc</a></div>
+
+    <p>
+      Setting up Trace-Malloc is as simple as setting an environment
+      variable before building your tree. On windows, just type:
+    </p>
+
+    <p><kbd>&gt; set NS_TRACE_MALLOC=1</kbd></p>
+    <p>On Linux, just type:</p>
+    <p><kbd>&gt; setenv NS_TRACE_MALLOC 1</kbd></p>
+
+    <p>
+      If you're doing this on an existing tree, be sure to clobber and
+      rebuild after setting this environment variable. Setting this
+      variable will also build all the Trace-Malloc tools and place
+      them in <code>dist/bin</code>
+    </p>
+
+    <p>
+      Once you have a Trace-Malloc capable build, activating it is as
+      simple as launching mozilla with the --trace-malloc command
+      line option:
+    </p>
+
+    <p><kbd>
+      &gt; mozilla --trace-malloc=tm.log
+    </kbd>
+    </p>
+
+    <p>
+      Some of the embedding applications support trace malloc, though
+      the command line switch may be slightly different. For example,
+      to use trace-malloc with <code>MFCEmbed</code>, you need to type:
+    </p>
+
+    <p><kbd>
+      &gt; mfcembed -trace-malloc tm.log
+    </kbd>
+    </p>
+
+    <p>
+      You will notice that your build runs slower, because every
+      allocation is being logged to the file specified. After running
+      some tests, shut down mozilla cleanly so that the log file is
+      closed correctly.
+    </p>
+    
+    <p>
+      <em>Note:</em>As mentioned above, Trace-Malloc builds run like any other
+      build, unless enabled on the command line. If you permanently set the above
+      variables in the System Control Panel or in your .tcshrc, then
+      all of your builds will be Trace-Malloc capable.
+    </p>
+    
+    <div class="chapter-header"><a
+        name="SpaceTrace">SpaceTrace</a></div>
+    <p>
+      SpaceTrace is a tool to analyze the log file generated by
+      Trace-Malloc. It loads the entire log file into memory and
+      colates call stacks to determine which codepaths were
+      responsible for what allocations. It then provides a web-based
+      interface to this data so that the callstacks can be browsed
+      with any web browser.
+    </p>
+
+    <div class="section-header">Running SpaceTrace</div>
+    <p>
+      To run spacetrace, just point it at the log file you generated:
+    </p>
+    <p><kbd>&gt; spacetrace tm.log</kbd></p>
+
+    <p>
+      SpaceTrace will sit there for a little while gathering and
+      analyzing the data. When it is ready, it will print a message to
+      the console.
+    </p>
+    <p><kbd>&gt; spacetrace tm.log</kbd><br>
+      <code>
+        spacetrace: server accepting connections at http://localhost:1969/<br>
+        Peak memory used: 2,080,448 bytes<br>
+        Total calls     : 60,870 [51,246 + 3,813 + 5,811]<br>
+      </code>
+    </p>
+
+    <div class="section-header"><a name="UsingSpaceTrace">Using SpaceTrace</a></div>
+    <p>
+      Using spacetrace is incredibly simple. Just point your browser
+      to the URL given, <code>http://localhost:1969/</code>
+    </p>
+
+    <p>The initial connection may take a few seconds while SpaceTrace
+      applies the default filter settings. Once the page loads, it
+      will present a menu describing a series of reports. The most
+      interesting report is probably the <em>Top Callsites
+        Report</em> which gives the "most important" allocations
+      according to the filter settings. The filter settings can be set
+      from the <em>Options</em> link at the top of the page.
+    </p>
+
+    <p>The rest of this chapter will describe how to find specific
+      types of allocations, and how they affect footprint. They
+      reference specific settings on the <em>Options</em> page.</p>
+    
+    <div class="section-header"><a
+        name="SpaceTraceSmallAllocations">Pattern: Short-lived Allocations</a></div>  
+
+    <p>
+      Short-lived allocations are allocations that a function makes
+      temporarily and then frees very soon afterwards. Code should
+      avoid using the heap for temporary space and should consider
+      using the stack instead, which is by nature temporary and has
+      virtually no runtime cost.
+    </p>
+    <p><strong>Why is this bad?</strong>
+      Allocating memory has a runtime cost, in order to reserve space
+      in the heap for the memory. Freeing this memory also has a cost
+      associated with it, and both of these costs can add up. In
+      addition, temporary allocations unnecessarily fragment the heap,
+      making future allocations slower and possibly occupy more space
+      than they need to.
+    </p>
+    <p>
+      To find short-lived allocations, go to the <em>Options</em> page
+      and use the following options:
+    </p>
+    <ul>
+      <li>OrderBy: 3 (or 1)</li>
+      <li>LifetimeMin: 0</li>
+      <li>LifetimeMax: 1 (or 2 for a larger set)</li>
+    </ul>
+
+    <p>
+      This will show you all allocations lasting less than a
+      second. After setting these options, go to the <em>Top
+        Callsites Report</em>. You can look at callsites that
+      allocate either the most number of times, or the most
+      memory. Each allocation has a fixed overhead runtime cost, and
+      it is recommended that you first look at reducing allocations at
+      callsites that allocate many times. Usually a single large temporary
+      allocation is not harmful, but 1000 small allocations of the
+      same amount will slow down the application.
+    </p>
+
+    <p>
+      How do you reduce short-lived allocations? There are a number of
+      techniques:
+    </p>
+    <ul>
+      <li><a href="#StackBuffers">Use stack-based buffers</a> (stack is cheap, if you
+        know the size at compile time)</li>
+      <li><a href="#PreAllocate">Pre-allocate</a> (preallocate before a loop, and/or
+        pass around a pre-allocated buffer in a closure)</li>
+    </ul>
+
+    <div class="section-header">Pattern: Small allocations</div>
+    <table class="data small info-box">
+      <caption>Heap overhead of small allocations</caption>
+      <thead>
+        <tr>
+          <th>
+            Allocation bytes
+          </th>
+          <th>
+            Actual bytes
+          </th>
+          <th>
+            Potential Overhead
+          </th>
+        </tr>
+        </thead>
+      <tbody>
+        <tr>
+          <td>1-16</td>
+          <td>24</td>
+          <td class="severe-danger">96%</td>
+        </tr>
+        <tr>
+          <td>17-32</td>
+          <td>40</td>
+          <td class="severe-danger">67%</td>
+        </tr>
+        <tr>
+          <td>33-48</td>
+          <td>56</td>
+          <td class="minor-danger">41%</td>
+        </tr>
+        <tr>
+          <td>47-64</td>
+          <td>72</td>
+          <td class="minor-danger">35%</td>
+        </tr>
+        <tr>
+          <td>65-80</td>
+          <td>88</td>
+          <td class="no-danger">26%</td>
+        </tr>
+        <tr>
+          <td>81-96</td>
+          <td>104</td>
+          <td class="no-danger">22%</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <p>
+      Another cause of bloat is groups of very small
+      allocations. Small allocations are often found in groups -
+      allocating many small objects to store one logical set of data.
+    </p>
+    <p><strong>Why is this bad?</strong> In
+      most heap implementations, a single allocation will be rounded
+      up to the nearest 8 bytes. For example, a 17-byte allocation
+      will actually allocate a 24-byte slot. In addition, each
+      allocation has a fixed
+      8-byte overhead. So the total cost of that 17 byte allocation is
+      32 bytes!
+    </p>
+    <p>
+      This only gets worse when allocating many small objects. For example, allocating 1000 12-byte objects will actually use
+      24,000 bytes: 12 rounds up to 16, and with an 8 byte overhead,
+      that's 24 bytes per object. If all those objects were allocated
+      in one block of 12*1000 objects, it would use only 12,008 bytes. That's a 50%
+      difference!
+    </p>
+    <p>
+      To find these allocations, set the following options:      
+    </p>
+    <ul>
+      <li>OrderBy: 3</li>
+      <li>SizeMin: 0</li>
+      <li>SizeMax: 48</li>
+      <li>LifetimeMin: 0</li>
+      <li>LifetimeMax: 4294967295 (the default maximum)</li>
+    </ul>
+    <p>
+      After setting these options, go to the <em>Top Callsites
+        Report</em>. The callsites you see are responsible for small
+      allocations. This table shows the inherent overhead of small allocations.
+    </p>
+
+    <p>
+      Are there more efficient ways to allocate this data? Absolutely!
+      Here are just a few:
+    </p>
+    <ul>
+      <li><a href="#Arenas">Arenas</a> (avoids 8-byte overhead, possible roundup issues)n</li>
+      <li><a href="#nsFixedSizedAllocator">nsFixedSizedAllocator</a> (for allocating more than 1
+        type of small object)</li>
+      <li><a href="#ArraysOfObjects">Arrays</a> (allocate all your objects at once in an array)</li>
+    </ul>
+    
+    <div class="chapter-header"><a name="HeapReduction">Heap Reduction
+      Techniques</a></div>
+
+    <p>This section describes some common heap-reduction
+      techniques. They are listed in order of increasing complexity.</p>
+    <div class="section-header"><a name="StackBuffers">Stack-based
+        Buffers</a></div>
+    <p>
+      Stack-based buffers can provide a temporary, fixed sized chunk
+      of memory that has virtually no cost when "allocating" or
+      "freeing" the buffer. For example:
+    </p>
+    <pre class="wrong-source-code">
+
+    #define NS_HEADER_SIZE 128
+
+    void CreateBitmap() {
+        // within this call to CreateBitmap, this buffer is temporary
+        char *header = malloc(NS_HEADER_SIZE);
+        LoadBitmap(header);
+        free(header);
+    }
+    </pre>
+
+    <p>Since we know the size of the buffer at compile time, we can
+      skip the heap allocation entirely:
+    </p>
+    <pre class="source-code">
+
+    #define NS_HEADER_SIZE 128
+
+    void CreateBitmap() {
+      // we don't need to free the buffer whatsoever
+      char header[NS_HEADER_SIZE];
+      LoadBitmap(&amp;header);
+    }
+    </pre>
+
+    <p>This technique is not limited to buffers. It can also be
+      applied to class instantiation. Instead of using <code>operator
+        new</code> to allocate a temporary object, you can create the
+      object on the stack.
+    </p>
+    <pre class="wrong-source-code">
+
+    void ShowImage() {
+        // another case where the object is temporary
+        nsBitmap* bitmap = new nsBitmap();
+        bitmap-&gt;Fill();
+        DisplayImage(bitmap);
+        delete bitmap;
+    }
+    </pre>
+
+    <p>Instead, just allocate the object directly on the stack by
+      declaring it without the pointer:
+    </p>
+    <pre class="source-code">
+
+    void ManipulateElements() {
+        // bitmap is cleaned up when ManipulateElements returns
+        nsBitmap bitmap;
+        bitmap.Fill();
+        DisplayImage(&amp;bitmap);
+    }
+    </pre>
+    
+    <p>This technique can be extended to objects within classes as well. See the section
+    on <a href="#InlineObjects">Inlining objects within objects</a>.</p>
+
+    
+    <div class="section-header"><a name="InlineObjects">Inline Objects-in-Objects</a></div>
+
+      <p>Similar to <a href="#StackBuffers">Stack-based buffers</a>,
+      inlining an object within another object can reduce the number
+      of allocations, which in turn reduces the amount of memory
+      used. When the containing object is stack based, then the inner
+      object is also stack based.
+      </p>
+    <p>For example, if your class uses the deprecated nsHashtable and
+      the hashtable is always used, it
+      should be inlined.
+    </p>
+    <pre class="wrong-source-code">
+
+    class nsPropertyList {
+    public:
+        nsPropertyList() { mProperties = new nsHashtable; }
+        ~nsPropertyList() { delete mProperties; }
+        ...
+
+    private:
+        nsHashtable* mHashtable;
+    }
+    </pre>
+
+    <p>The author of that class might have thought they were being
+      smart, because the size of nsPropertyList is very small, only 4
+      bytes to hold the pointer to the hashtable. The problem is that
+      each nsPropertyList unconditionally allocates a nsHashtable,
+      which means we have an extra 8 bytes for the allocation, plus
+      the 16-byte minimum slot in the heap, depending on the size of
+      nsHashtable. If <code>sizeof(nsHashtable)</code> is 20 bytes,
+      then there is an overhead of 32 bytes for that allocation.
+    </p>
+    <pre class="wrong-source-code">
+
+    // results in two allocations, a total of
+    // (8+16) + (8+24) = 56 bytes in the heap
+    nsPropertyList *list = new nsPropertyList;
+
+    // even this stack based class also allocates
+    // 8+24 = 32 bytes in the heap
+    nsPropertyList list;
+    </pre>
+    
+    <p>Instead, inline the class:</p>
+    <pre class="source-code">
+    
+    class nsPropertyList {
+    public:
+        nsPropertyList() {  }
+        ~nsPropertyList() { }
+        ...
+
+    private:
+        nsHashtable mHashtable;
+    }
+    </pre>
+    
+    <p>Now those examples result in much less overhead:</p>
+    <pre class="source-code">
+
+    // results in one allocation, a total of
+    // (8+24) = 32 bytes in the heap
+    nsPropertyList *list = new nsPropertyList;
+
+    // this stack based class probably doesn't even use the heap!
+    nsPropertyList list;
+    </pre>
+
+    <p>
+      Finally, the the <em><code>nsAuto*</code></em> classes are
+      designed to be used on the stack. They usually have a small,
+      fixed size temporary buffer that will be used if the data to be
+      stored is small enough. When the data is too large, it will
+      overflow into a heap allocated buffer. For example,
+      nsCAutoString is a version of nsCString designed to work on the heap.
+    </p>
+
+    <pre class="wrong-source-code">
+    // causes allocation to store the string data for |name|
+    nsCString name = firstName;
+
+    // may cause that buffer to grow, with a reallocation
+    name.AppendInt(1234, 10);
+
+    // may cause the buffer to grow yet again!
+    name += ':';
+    </pre>
+
+    <p>
+    Most of the above allocations can probably be avoided with the use
+    of nsCAutoString:
+    </p>
+
+    <pre class="source-code">
+
+    // has a 64-character buffer on the stack - no allocation if
+    // |firstName| is shorter than 64 characters.
+    nsCAutoString name = firstName;
+
+    // If we have less than 59 characters, no allocation occurs
+    name.AppendInt(1234, 10);
+    name += ':';
+    </pre>
+    <div class="section-header"><a name="ArraysOfObjects">Arrays</a></div>
+    <p>
+      It is very common to need to allocate a group of objects all at
+      once. C++ provides an easy (and obvious!) way of allocating an
+      array of objects. This may seem obvious, but sometimes people
+      forget when they are writing code, or they use a more complex
+      array format then they need. For example, this loop creates a
+      list of nodes, to be processed in another method:
+    </p>
+
+    <pre class="wrong-source-code">
+
+    void ProcessNodes(const nsVoidArray&amp; nodes);
+
+        ...
+        nsVoidArray nodes;
+        for (i=0; i &lt; count; i++) {
+            nsNode* node = new nsNode;
+            nodes.AppendElement((void*)node);
+        }
+        ProcessNodes(nodes);
+        ...
+    </pre>
+
+    <p>
+    Instead, allocate all the objects at once. This also makes
+    deleting the objects easier. Note that in this example the
+    signature for ProcessNodes has changed to accept the more
+    primitive node type.
+    </p>
+
+    <pre class="source-code">
+
+    void ProcessNodes(const nsNode[] nodes, PRUint32 nodeCount);
+
+        ...
+        nsNode* nodes = new nsNode[count];
+        ProcessNodes(nodes, count);
+        ...
+
+    </pre>
+    <p>
+    (still to add - dealing with non-default constructors, references
+    to arenas)
+    </p>
+    <div class="section-header"><a name="PreAllocate">Pre-Allocating
+        temporary space</a></div>
+    <p>
+      When a method is called that requires a temporary buffer, it is
+      often helpful to pre-allocate that temporary buffer before
+      calling the method. This allows a single buffer to be used for
+      multiple calls to a method, such as in a loop. 
+    </p>
+    <pre class="wrong-source-code">
+
+    void ParseString(const char* data);
+
+        ...
+        while (!feof(file)) {
+            PRUint32 count = GetLineLength(file);
+    
+            // allocate a new buffer each time through the loop - yikes!
+            const char* buffer = malloc(count * sizeof(char));
+            ReadLine(file, buffer, count);
+            ParseString(buffer);
+    
+            // and now we have to free it!
+            free(buffer);
+        }
+        ...
+    </pre>
+
+    <p> As you can see, this is going to result in many
+      allocations. With slightly more complex code, you can save
+      yourself these frequent allocations. Just grow the buffer on demand.
+    </p>
+
+    <pre class="source-code">
+
+    void ParseString(const char* data);
+
+        ...
+        const char* buffer;
+        PRUint32 bufferLength = 0;
+        while (!feof(file)) {
+            PRUint32 count = GetLineLength(file);
+
+            // grow the buffer if necessary (could also use realloc() here)
+            if (count > bufferLength) {
+                if (bufferLength > 0)
+                    free(buffer);
+                buffer = malloc(count * sizeof(char));
+                bufferLength = count;
+            }
+
+            ReadLine(file, buffer, count);
+            ParseString(buffer);
+    
+        }
+        // only free the last buffer
+        if (bufferLength > 0)
+            free(buffer);
+        ...
+    </pre>
+    
+    <p>
+      Using nsAutoString and nsCAutoString is a great way to have an
+      automatically growing buffer. But a common mistake is to put an
+      nsAutoString inside a loop
+      rather than outside. When the object is inside the loop, it is
+      constructed and deconstructed for each iteration through the
+      loop.
+    </p>
+
+    <pre class="wrong-source-code">
+
+    void ParseString(const nsACString&amp; data);
+
+        ...
+        while (!feof(file)) {
+    
+            // makes a new string each time through the loop - yikes!
+            nsCAutoString buffer;
+            ReadLine(file, buffer);
+
+            ParseString(buffer);
+    
+            // and now it will be destroyed
+        }
+        ...
+    
+    </pre>
+    <p>
+      Instead, keep the string object outside the loop, and you'll get
+      the same behavior as the raw <code>malloc</code> example above.
+    </p>
+    <pre class="source-code">
+
+    void ParseString(const nsACString&amp; data);
+
+        ...
+        nsCAutoString buffer;
+        while (!feof(file)) {
+    
+            // reuses the string each time through the loop
+            ReadLine(file, buffer);
+
+            ParseString(buffer);
+
+            // this assumes that ReadLine() overwrites its input
+            // string. Otherwise you'd have to truncate
+            // the string at the end of the loop.
+        }
+        ...
+    </pre>
+
+    <p>
+    (add an even more complex example when using in-place enumeration,
+    storing a temporary buffer in the closure)
+    </p>
+    
+    <div class="section-header"><a name="Arenas">Arenas</a></div>
+    <p>
+    </p>
+    
+    <div class="section-header"><a name="nsFixedSizeAllocators">nsFixedSizedAllocator</a></div>
+    <p>
+    </p>
+    
+  
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September  5,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/footprint/reducing-footprint.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

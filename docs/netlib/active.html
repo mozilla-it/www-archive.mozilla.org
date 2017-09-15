@@ -1,0 +1,58 @@
+<HTML>
+<HEAD>
+   <TITLE>netlib ActiveEntries</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+netlib ActiveEntries</H1>
+ActiveEntry defined: ns/lib/libnet/mkgeturl.h
+<BR>TCP_ConData defined: ns/lib/libnet/mktcp.h
+<BR>URL_Struct defined: ns/include/net.h
+
+<P>An ActiveEntry represents a url that is currently being loaded. The
+url load may be successful or it may fail, but, at some point it is an
+ActiveEntry, receiving cycles.
+
+<P>An ActiveEntry maintains all the data required by various steps throughout
+the netlib url loading process. When <A HREF="NET_GetURL.html">NET_GetURL()</A>
+is called for a url, an ActiveEntry is created for that url. At this point,
+the ActiveEntry is initialized to hold the url itself (URL_Struct), the
+exit routine to be called when the load is complete (Net_GEtUrlExitFunc*),
+the window id to associate the load with a given window (MWContext*), the
+url type (int), and the output format (FO_Present_Types). The ActiveEntry
+is then placed in the netlib net_EntryList. Once it is determined that
+the url is not in the cache, the ActiveEntries protocol implementation
+pointer is set to the protocol implementation for the given scheme/protocol,
+and that protocol implementation's initialize member is called, with the
+current ActiveEntry as an argument.
+
+<P>A protocol implementation's initialization member then sets the ActiveEntries
+connection data (TCP_ConData) which maintains info such as the current
+state of the load (see netlib State Machines), the file descriptor/socket,
+long with other connection related information. Before the initialization
+member returns, it makes an initial call the protocol implementation's
+process routine (see netlib Process function) to initiate the actual load.
+Who knows, perhaps the load can complete in one call to the process function.
+
+<P>So, after a successful call to <A HREF="NET_GetURL.html">NET_GetURL()</A>,
+an ActiveEntry for the url passed into <A HREF="NET_GetURL.html">NET_GetURL()</A>
+resides in the global netlib net_EntryList. The net_EntryList is global
+to all of netlib, so it is accessible to all the various protocol implementations.
+At this point the url load has begun. An active entry exists with information
+about a url and the connection it's going to use to send/receive data.
+
+<P>In order for the load to continue, the front end must call <A HREF="NET_ProcessNet.html">NET_ProcessNet()</A>
+continuously until all url loads are complete. One of <A HREF="NET_ProcessNet.html">NET_ProcessNet()</A>'s
+arguments is a file descriptor. NET_ProcessNet() matches this file descriptor
+up with whichever active entry has the same file descriptor and calls that
+active entries protocol implementation's process member.
+
+<P>Once processing is complete the ActiveEntry is deallocated and removed
+from the netlib net_EntryList. This step can be part of the protocol implementation's
+process routine or by a call to the implementation's cleanup member.
+
+<P><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

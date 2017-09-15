@@ -1,0 +1,293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Declarations</TITLE>
+<LINK rel=stylesheet href="../styles.css">
+<LINK rel=Start href="index.html">
+<LINK rel=Contents href="index.html">
+<LINK rel=Prev href="types.html">
+<LINK rel=Next href="variables.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>February 1999 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title1>Declarations</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="types.html"><IMG src="../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="variables.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Thursday, February 18, 1999</P>
+
+<H1>Execution Model</H1>
+
+<P>JavaScript 2.0 follows the <I>streaming execution model</I> -- the entire program is processed in one pass. Unlike in JavaScript
+1.x, declarations take effect only when they are executed. A declaration that is never executed is ignored.</P>
+
+<P>The streaming execution model considerably simplifies the language and allows a JavaScript 2.0 interpreter to treat programs
+read from a file identically to programs typed in via an interactive console. Also, a JavaScript 2.0 interpreter or just-in-time
+compiler may start to execute a script even before it has finished downloading all of it. This was not possible in JavaScript
+1.x because the interpreter was required to scan the entire program for declarations in one pass before executing any of the
+code in the following pass. Streaming also simplifies the execution model for web pages that contain multiple JavaScript scripts
+and permits one to safely coalesce adjacent <TT>SCRIPT</TT> tags on a page or divide a single <TT>SCRIPT</TT> tag into several.</P>
+
+<P>One of the most significant advantages of streaming is that it allows JavaScript 2.0 scripts to turn parts of themselves
+on and off based on dynamically obtained information. For example, a script or library could define additional functions and
+classes if it runs on an environment that supports CSS unit arithmetic while still working on environments that do not.</P>
+
+<P>The streaming execution model requires identifiers naming functions and variables to be defined before they are used. A
+use occurs when an identifier is read, written, or called, at which point that identifier is resolved to a variable or a function
+according to the scoping rules. A reference from within a control statement such as <CODE>if</CODE> and <CODE>while</CODE>
+is resolved only when execution reaches the reference. References from within the body of a function are resolved only after
+the function is called and execution reaches those references.</P>
+
+<P>According to these rules, the following program is correct and would print <CODE>7</CODE>:</P>
+
+<PRE>function f(int a) int {
+  return a+b;
+}
+
+var int b = 4;
+print(f(3));</PRE>
+
+<P>Assuming that variable <CODE>b</CODE> is predefined by the host if <CODE>featurePresent</CODE> is true, this program would
+also work:</P>
+
+<PRE>function f(int a) int {
+  return a+b;
+}
+
+if (!featurePresent) {
+  package var int b = 4;
+}
+
+print(f(3));</PRE>
+
+<P>On the other hand, the following program would produce an error because <CODE>a</CODE> is referenced before it is defined:</P>
+
+<PRE>print(f(3));
+
+function f(int a) int {
+  return a+b;
+}</PRE>
+
+<P>Defining mutually recursive functions is not a problem as long as one defines all of them before calling them.</P>
+
+<P class=issue>Should we define a more eager identifier resolving mechanism for some functions (for example all functions
+that are not declared <CODE>volatile</CODE> and do not contain a call to <CODE>eval</CODE>)? This would let the compiler resolve
+all of the identifiers in a function at the first time the function is called.</P>
+
+<H1>Declarations</H1>
+
+<P>Several different kinds of declarations that can be present in JavaScript 2.0 programs:</P>
+
+<DIV><B><A href="variables.html">Variable declarations</A></B></DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>VariableDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>var</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;[<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression</SPAN>]&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;...&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;[<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression</SPAN>]&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>const</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression</SPAN>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;...&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression</SPAN>&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+</DIV>
+<DIV><B><A href="functions.html">Function declarations</A></B></DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>FunctionDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;[<CODE class=terminal-keyword>getter</CODE>&nbsp;|&nbsp;<CODE class=terminal-keyword>setter</CODE>]&nbsp;<CODE class=terminal-keyword>function</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Parameters</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>traditional</CODE>&nbsp;<CODE class=terminal-keyword>function</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;...&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+</DIV>
+<DIV><B><A href="classes.html#member-definitions">Field, method and constructor declarations</A></B></DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>MemberDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>field</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;[<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression</SPAN>]&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;...&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;[<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression</SPAN>]&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;[<CODE class=terminal-keyword>getter</CODE>&nbsp;|&nbsp;<CODE class=terminal-keyword>setter</CODE>]&nbsp;[<CODE class=terminal-keyword>final</CODE>]&nbsp;[<CODE class=terminal-keyword>override</CODE>]&nbsp;<CODE class=terminal-keyword>method</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Parameters</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;[<CODE class=terminal-keyword>getter</CODE>&nbsp;|&nbsp;<CODE class=terminal-keyword>setter</CODE>]&nbsp;[<CODE class=terminal-keyword>final</CODE>]&nbsp;[<CODE class=terminal-keyword>override</CODE>]&nbsp;<CODE class=terminal-keyword>method</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Parameters</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>constructor</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Parameters</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+</DIV>
+<DIV><B><A href="classes.html">Class declarations</A></B></DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>ClassDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>class</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;[<CODE class=terminal-keyword>extends</CODE>&nbsp;<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>class</CODE>&nbsp;<CODE class=terminal-keyword>extends</CODE>&nbsp;<SPAN class=nonterminal>TypeExpression</SPAN>&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+</DIV>
+<DIV><B><A href="versions.html#version-declaration">Version declarations</A></B></DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>VersionDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>version</CODE>&nbsp;<SPAN class=nonterminal>Version</SPAN>&nbsp;[<CODE class=terminal-keyword>&gt;</CODE>&nbsp;<SPAN class=nonterminal>VersionList</SPAN>]&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+</DIV>
+<P><A name="scope-rules"></A>All of these declarations share several common scoping rules:</P>
+
+<OL>
+  <LI>A declaration without a <SPAN class=nonterminal>Visibility</SPAN> prefix applies locally to the current <SPAN class=nonterminal>Block</SPAN>
+    scope (which may be the current package if the declaration is at the top level of a <SPAN class=nonterminal>Program</SPAN>,
+    or a class if the declaration is at the top level of a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>).
+    A declaration with a <SPAN class=nonterminal>Visibility</SPAN> prefix applies either to the current package (if outside
+    a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>)
+    or to the current class (if inside a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>).</LI>
+  <LI>A declaration that applies to a scope can be referenced lexically from anywhere within that scope unless shadowed by
+    a more local declaration.</LI>
+  <LI>A declaration that applies to a scope lasts until that scope is exited. No other declaration may be executed for the
+    same identifier applying to the same scope (with the exceptions that both a <CODE>getter</CODE> and a <CODE>setter</CODE>
+    may be defined with the same name and that versions have a namespace separate from other declarations).</LI>
+  <LI>If code executing inside a scope <VAR>s</VAR> has already made an attempt to resolve identifier <VAR>i</VAR> and that
+    resolution either bound <VAR>i</VAR> to a definition of <VAR>i</VAR> in a scope enclosing <VAR>s</VAR> or failed because
+    <VAR>i</VAR> wasn't defined, then no declaration of <VAR>i</VAR> applying to scope <VAR>s</VAR> may be executed.</LI>
+</OL>
+<P>Rules 3 and 4 state that once an identifier is resolved to a variable or function in a scope, that resolution cannot be
+changed. This permits efficient compilation and avoids confusion with programs such as:</P>
+
+<PRE>const int b = 7;
+
+function f() int {
+  function g() int {return b}
+
+  var a = g();
+  const int b = 8;
+  return g() - a;
+}</PRE>
+
+<H2>Scopes</H2>
+
+<P>Most lexical scopes are established by <SPAN class=nonterminal>Block</SPAN> productions in the grammar. Lexical scopes nest,
+and a declaration in an inner scope can shadow declarations in outer ones.</P>
+
+<P class=issue><A name="collapse-scopes"></A>Do we want to collapse all block scopes into one inside functions? On one hand
+this complicates the language conceptually and surprises Java and C++ programmers. On the other hand, this would match JavaScript
+1.x better and simplify closure creation when a closure is created nested inside several blocks in a function.</P>
+
+<H2><A name="declaration-visibility"></A>Declaration Visibility</H2>
+
+<P>A declaration with a <SPAN class=nonterminal>Visibility</SPAN> prefix does not apply to the current <SPAN class=nonterminal>Block</SPAN>.
+Instead, it applies either to the current package (if outside a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>)
+or to the current class (if inside a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>).
+In addition to making the declaration global in this way, <SPAN class=nonterminal>Visibility</SPAN> also specifies the declaration's
+visibility from other packages or classes. <SPAN class=nonterminal>Visibility</SPAN> can take one of the following forms:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT><SPAN class=nonterminal>Visibility</SPAN>&nbsp;&nbsp;</TH>
+    <TH valign=TOP align=LEFT>Access allowed from</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE class=terminal-keyword>private</CODE></TD>
+    <TD valign=TOP>only within current class</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE class=terminal-keyword>package</CODE></TD>
+    <TD valign=TOP>only within current package</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><CODE class=terminal-keyword>public</CODE>&nbsp;<SPAN class=nonterminal>VersionsAndRenames</SPAN>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>within any package that imports this package</TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<P>Declarations at the top level of a <SPAN class=nonterminal>Program</SPAN> or at the top level of a <SPAN class=nonterminal>ClassDefinition</SPAN>'s
+<SPAN class=nonterminal>Block</SPAN> may omit <SPAN class=nonterminal>Visibility</SPAN>,
+in which case they are treated as if they had <CODE class=terminal-keyword>package</CODE> visibility. When used outside a
+<SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>,
+<CODE class=terminal-keyword>private</CODE> is equivalent to <CODE class=terminal-keyword>package</CODE>.</P>
+
+<P>In the example below the comments indicate the scope and visibility of each declaration:</P>
+
+<P class=indent><CODE>var&nbsp;a0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;variable<BR>
+<CODE>private&nbsp;var&nbsp;a1&nbsp;=&nbsp;true;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;variable<BR>
+<CODE>package&nbsp;var&nbsp;a2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;variable<BR>
+<CODE>public&nbsp;var&nbsp;a3;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;global&nbsp;variable<BR>
+<BR>
+<CODE>if&nbsp;(a1)&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;var&nbsp;b0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;block<BR>
+<CODE>&nbsp;&nbsp;private&nbsp;var&nbsp;b1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;package&nbsp;var&nbsp;b2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;public&nbsp;var&nbsp;b3;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;global&nbsp;variable<BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>public&nbsp;function&nbsp;F()&nbsp;{&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;global&nbsp;function<BR>
+<CODE>&nbsp;&nbsp;var&nbsp;c0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;function<BR>
+<CODE>&nbsp;&nbsp;private&nbsp;var&nbsp;c1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;package&nbsp;var&nbsp;c2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;public&nbsp;var&nbsp;c3;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;global&nbsp;variable<BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>function&nbsp;G()&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;function<BR>
+<CODE>&nbsp;&nbsp;var&nbsp;d0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Never&nbsp;defined&nbsp;because&nbsp;<CODE>G</CODE>&nbsp;isn't&nbsp;called<BR>
+<CODE>&nbsp;&nbsp;private&nbsp;var&nbsp;d1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Never&nbsp;defined&nbsp;because&nbsp;<CODE>G</CODE>&nbsp;isn't&nbsp;called<BR>
+<CODE>&nbsp;&nbsp;package&nbsp;var&nbsp;d2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Never&nbsp;defined&nbsp;because&nbsp;<CODE>G</CODE>&nbsp;isn't&nbsp;called<BR>
+<CODE>&nbsp;&nbsp;public&nbsp;var&nbsp;d3;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Never&nbsp;defined&nbsp;because&nbsp;<CODE>G</CODE>&nbsp;isn't&nbsp;called<BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>class&nbsp;C&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;class<BR>
+<CODE>&nbsp;&nbsp;var&nbsp;e0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;class&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;private&nbsp;var&nbsp;e1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Class-visible&nbsp;class&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;package&nbsp;var&nbsp;e2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;class&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;public&nbsp;var&nbsp;e3;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;class&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;field&nbsp;e4;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;private&nbsp;field&nbsp;e5;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Class-visible&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;package&nbsp;field&nbsp;e6;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;public&nbsp;field&nbsp;e7;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;instance&nbsp;variable<BR>
+<BR>
+<CODE>&nbsp;&nbsp;function&nbsp;H()&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;class&nbsp;function<BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;var&nbsp;f0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;function<BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;private&nbsp;var&nbsp;f1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Class-visible&nbsp;class&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;package&nbsp;var&nbsp;f2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;class&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;public&nbsp;var&nbsp;f3;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;class&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;private&nbsp;field&nbsp;f4;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Class-visible&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;package&nbsp;field&nbsp;f5;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;public&nbsp;field&nbsp;f6;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;}</CODE><BR>
+<CODE>&nbsp;&nbsp;public&nbsp;method&nbsp;I()&nbsp;{}&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;class&nbsp;method<BR>
+<BR>
+<CODE>&nbsp;&nbsp;H();</CODE><BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>F();</CODE></P>
+
+<H3><A name="VersionsAndRenames"></A>Versioning Public Identifiers</H3>
+
+<P>A <CODE>public</CODE> declaration's identifier is exported to other packages. To help avoid accidental collisions between
+identifiers declared in different packages, identifiers can be selectively exported depending on the version requested by
+an importing package. An identifier declaration with a version number newer than that requested by the importer will not be
+seen by that importer. The <A href="versions.html">versioning facilities</A> also include additional facilities that allow
+robust removal and renaming of identifiers.</P>
+
+<P><SPAN class=nonterminal>VersionsAndRenames</SPAN> describes the set of versions in which an identifier is exported, together
+with a possible alias for the identifier:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>VersionsAndRenames</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<CODE class=terminal-keyword>&lt;</CODE>&nbsp;<SPAN class=nonterminal>VersionRange</SPAN>&nbsp;[<CODE class=terminal-keyword>:</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>]&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;...&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<SPAN class=nonterminal>VersionRange</SPAN>&nbsp;[<CODE class=terminal-keyword>:</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>]&nbsp;<CODE class=terminal-keyword>&gt;</CODE>]</DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>VersionRange</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>Version</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Version</SPAN>]&nbsp;<CODE class=terminal-keyword>..</CODE>&nbsp;[<SPAN class=nonterminal>Version</SPAN>]</DIV>
+</DIV>
+<P>Suppose a client package <VAR>C</VAR> imports version <VAR>V</VAR> of package <VAR>P</VAR> that exports identifier <VAR>N</VAR>
+with some <SPAN class=nonterminal>VersionsAndRenames</SPAN>. If the <SPAN class=nonterminal>VersionsAndRenames</SPAN>'s <SPAN class=nonterminal>VersionRange</SPAN>
+<A href="versions.html#versionRange">includes</A> version <VAR>V</VAR>, then package <VAR>C</VAR> can use the corresponding
+<SPAN class=nonterminal>Identifier</SPAN> alias to access package <VAR>P</VAR>'s <VAR>N</VAR>. If the <SPAN class=nonterminal>Identifier</SPAN>
+alias is omitted, then package <VAR>C</VAR> can use <VAR>N</VAR> to access package <VAR>P</VAR>'s <VAR>N</VAR>. Multiple <SPAN class=nonterminal>VersionRange</SPAN>s
+operate independently.</P>
+
+<P>In most cases <SPAN class=nonterminal>VersionsAndRenames</SPAN> is just a version number between <CODE>&lt;</CODE> and <CODE>&gt;</CODE>:</P>
+
+<PRE>public&lt;1.2&gt; const z = 3;</PRE>
+
+<P>If <SPAN class=nonterminal>VersionsAndRenames</SPAN> is omitted, version <CODE>1.0</CODE> is assumed.</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Thursday, February 18, 1999</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="types.html"><IMG src="../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="variables.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

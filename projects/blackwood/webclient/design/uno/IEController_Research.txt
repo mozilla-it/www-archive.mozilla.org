@@ -1,0 +1,632 @@
+Research document
+
+Ed Burns, Daniel Boelzle
+
+Search for:
+
+PROBLEM
+
+QUESTION
+
+PENDING
+
+REF
+
+to get annotations.
+
+Depth first call stack traversal
+================================
+
+I endeavor to understand the implementation of the IE browser wrapper by
+using the debugger to traverse the code while it executes.  Whenever I
+encounter a new class, I look into the documentation to find out what
+this class does.
+
+extern "C" void * SAL_CALL component_getFactory(
+	const sal_Char * pImplName, void * pServiceManager, void * pRegistryKey )
+{
+	void * pRet = 0;
+	
+	OUString aImplName( OUString::createFromAscii( pImplName ) );
+	Reference< XSingleServiceFactory > xFactory;
+	if (pServiceManager && aImplName.equals(IExplorerLoader_Impl::getImplementationName_Static() ))
+	{
+		xFactory = createSingleFactory( 
+			reinterpret_cast< XMultiServiceFactory*>(pServiceManager), 
+			IExplorerLoader_Impl::getImplementationName_Static(), IExplorerLoader_Impl_CreateInstance, 
+			IExplorerLoader_Impl::getSupportedServiceNames_Static() );
+
+		if(xFactory.is())
+		{
+			xFactory->acquire();
+			pRet= xFactory.get();
+		}
+	}
+
+	return pRet;
+}
+
+
+// component_GetFactory called when the user types a URL into the text
+// field.
+
+
+Reference<XInterface> IExplorerLoader_Impl_CreateInstance( const
+Reference<XMultiServiceFactory> & rSMgr ) {
+  
+  Called from CPPUHELPER1MSC, when user types an http url into the
+  staroffice text field and presses enter.  XMultiServiceFactory:
+  objects support this interface for creating components by a specifying
+  string (i.e. the service name).  Here, I think the argument is some
+  global factory.  The rSMgr argument gets stored in
+  IExplorerLoader_Impl's m_multiServiceFactory ivar.
+
+}
+
+IExplorerLoader_Impl::load() { udk-0-9-1\comp\ie\source\ctrl\loader.cxx
+
+  class IExplorerLoader_Impl: public WeakImplHelper2< XFrameLoader,
+     						      XServiceInfo> {
+
+    QUESTION: what is WeakImplHelper2 I suspect it's something that
+    makes life easier for those implementing the argument subclasses.
+
+    ANSWER: Yes, you are right. WeakImplHelperN<> are template classes
+    to quickly implement uno objects, like this:
+
+       #include <cppuhelper/implbase3.hxx>
+       ...
+
+       class MyObject : public cppu::WeakImplHelper3< XFoo, XBar, XAnything >
+       {
+	       ...
+       };
+
+       You then only have to implement the given methods, no 
+       queryInterface(),
+       acquire(), release(), nor
+       the XTypeProvider interface (used for reflection purposes) has to
+       be implemented.
+
+       There are some other related helpers like
+
+       WeakAggImplHelperN<>	  is implemented object is to be aggregated
+
+       ImplHelperN<>		  only implements queryInterface() and the 
+				  XTypeProvider interface,
+				  lifetime is left to sub class implementation.
+
+  XFrameLoader defines two methods, load() and cancel(), that enable a
+  component to participate in the StarOffice container hierarchy.
+
+  XServiceInfo provides information regarding which services are
+  implemented.  Defines three methods, getImplementationName(),
+  getSupportedServiceNames(), supportsService().  For
+  IExplorerLoader_Impl, the implementation name is:
+  L"stardiv.extbrowser.InternetExplorer.V10" SupportedServiceNames is
+  L"stardiv.one.frame.FrameLoader".  
+}
+
+  QUESTION: Where are XUnoTunnel and Sequence defined?
+
+  ANSWER: com.sun.star.lang.XUnoTunnel is generated like any other interface
+   
+    by the cppumaker tool to com/sun/star/lang/XUnoTunnel.hpp, but I
+    heard from Kay, that they gave you a highly banana hacked version of
+    the IE integration, because you dont have the solar environment we
+    normally build in.  He said your udk api still does not have the
+    XUnoTunnel interface, the next will, therefore the XUnotunnel code
+    is not compiled (there is a #ifdef).
+
+    The cppumaker tool generated a pair .hdl and .hpp files: .hdl files
+    declare types, inline implementation are in .hpp, so .hpp include
+    anything, but .hdl ONLY include other declarations (.hdl files),
+    thus resolving include dependencies.
+
+    The com::sun::star::uno::Sequence<> template class:
+    com/sun/star/uno/Sequence.hxx (hxx, because it is no generated one)
+
+    com::sun::star::uno::Sequence, com::sun::star::uno::Reference,
+    com::sun::star::uno::Type and com::sun::star::uno::Any are hosted
+    under cppu/inc/com/sun/star/uno/...
+
+    .h files declare types, inline implementation are in .hxx, so .h
+    does NOT include .hxx files, thus resolving include dependencies.
+
+  rArg Property names:
+
+  debug: edburns: arg: 2: ReadOnly
+  debug: edburns: arg: 1: Referer
+  debug: edburns: arg: 0: FileName
+
+  load() passes the value of the Referer property, which happens to be
+  private:user, to the IExplorerController_Impl ctor, along with the
+  m_multiServiceFactory ivar from the loader's constructor.
+
+  IExplorerController_Impl::IExplorerController_Impl( const OUString & rReferer, const Reference<XMultiServiceFactory>& rMSF )
+	  : _pIWebBrowser2( NULL )
+	  , _pWBContainer( NULL )
+	  , _bIsDisposed( FALSE )
+	  , _aReferer( rReferer ),
+	  m_multiServiceFactory(rMSF),
+	  _aListeners( *Mutex::getGlobalMutex())
+  {
+
+    shortly calls updateDummySocket() "// that nasty dummy socket stuff to
+    avoid dialer hang up" {
+
+      holdDummySocket() {
+
+	Looks like this just opens a socket, saves the result in ivar
+	s_hDummySocket.
+
+      }
+
+    }
+
+    ::OleInitialize(NULL);
+
+  } // IExplorerController_Impl ctor
+
+  Saves the new instance in automatic var Reference<XController> xCtrl.
+  Reference is probably like nsCOMPtr.  XController looks like it's from
+  MVC.
+  file:///D:/Projects/udk-0-9-1/doc/api/_com.sun.star.frame.XController.html
+
+  void SAL_CALL IExplorerController_Impl::attachFrame( const Reference< XFrame >& xFrame ) throw(RuntimeException)
+{
+      ... 
+      Reference<XWindow> _xParent = xFrame->getContainerWindow();
+      ...
+      // XWindow has nothing to do with The X Window System.  It's a c++
+      // version of java.awt.Window.
+      ...
+      else // create new ie window
+      {
+        ...
+
+        // _REF1_ we create a new window to wrap the IE controller,
+        // passing the HWND on to the Container_Impl ctor.
+
+	  //  Purpose:    This is the one, the big kahuna.  Container_Impl is the
+	  //              MSJ OLE Controls container that contains a single
+	  //              OLE Control, the WebBrowser OC.  It contains
+	  //              sub-objects which implement the various interfaces
+	  //              we have to support (could have used multiple inheritance,
+	  //              but this seemed more straightforward for our needs).
+
+          #pragma warning(disable:4355)
+          Container_Impl::Container_Impl( const HWND hWndBrowser, IExplorerController_Impl* pController, IDispatch* pExt )
+	: _hWndBrowser(hWndBrowser)
+          , _CS(this)
+          //  	, _OCS(this)
+          //  	, _AS(this)
+    , _IPF(this)
+    , _IPS(this)
+    , _OCtr(this)
+    , _OCT(this)
+	, m_DocHostUIHandler(this, pExt)
+    , _pActiveObj( NULL )
+    , _Ref( 1 )	 // !
+    , _pUnk( NULL )
+	, _pIWebBrowser2( NULL )
+    , _pOC( NULL )
+    , _pVO( NULL )
+    , _pOO( NULL )
+    , _pIPO( NULL )
+    , _state( OS_PASSIVE )
+    , _dwMiscStatus( 0 )
+    , _fModelessEnabled( TRUE )
+	, m_pController( pController )
+	, _aWBCookie( 0 )
+           {
+              InitPixelsPerInch(); // initialize the HIMETRIC routines
+           }
+           #pragma warning(default:4355)
+
+         this new Control_Impl instance is saved in the
+         IExplorerController_Impl pWBContainer ivar
+
+         ...
+
+          if (FAILED(_pWBContainer->CreateBrowserOC( (IDispatch *)this
+)))
+          pWBContainer->CreateBrowserOC() {
+
+	    ...
+
+             // we create a new window, as a child of the window created
+             // in attachFrame.  This is saved as the ControlImpl
+             // _hWndFrame ivar.  
+
+	     // This is where the IWebBrowser2 is instantiated.  this is
+             // also where we make the connection between the
+             // IExplorerController_Impl's IDispatch inheritance, and
+             // the IWebBrowser2 instance.  This enables that status
+             // messages, such as "Connecting to Site..." etc to flow to
+             // the browser.
+
+            ...
+	    
+	    // Essential COM page 361
+
+	    // advise sink 
+	    IConnectionPointContainer * pConnCtr;
+	    if (SUCCEEDED(hr = _pIWebBrowser2->QueryInterface( IID_IConnectionPointContainer, (void **)&pConnCtr )))
+	    {
+		    IConnectionPoint * pConnPt;
+		    if (SUCCEEDED(hr = pConnCtr->FindConnectionPoint( DIID_DWebBrowserEvents2, &pConnPt )))
+		    {
+			    pConnPt->Advise( pSink, &_aWBCookie ); // DO THE HOOKUP!
+			    pConnPt->Release();
+		    }
+		    pConnCtr->Release();
+	    }
+            ...
+
+          } // CreateBrowserOC
+
+          ...
+
+	  // I think this is where the window created at _REF1_ gets
+	  // attached to the parent.
+          xFrame->setComponent( _xChildWin, static_cast< XController *>(this));
+
+          ...
+
+	  HRESULT Container_Impl::SetSize( LPRECT prc, BOOL fMoveFrameWindow){
+            sets the size of the WebBrowser OC space (the HTML area)
+          }
+
+	  ...
+
+	  // XStatusIndicator is a nifty controller that can be used to
+	  // send status to the frame.  This is probably used to display
+          // progress messages, however, not the standard "Connecting to
+          // site...", "Downloading from..." messages.  They are handled
+          // using COM's IDispatch method.
+
+	  Reference<XStatusIndicatorSupplier> xSupplier( xFrame, UNO_QUERY);
+	  _xStatusIndicator = xSupplier->getStatusIndicator();
+
+      } // create a new ie window
+
+    } // attachFrame
+
+    ...
+
+    dispatchURL( m_multiServiceFactory, xFrame, L"_tool:_menubar", 
+                aToolBoxRes ) 
+
+      sal_Bool dispatchURL( Reference<XMultiServiceFactory> xFactory, 
+                            const Reference<XFrame> & xFrame, 
+                            const OUString & rTargetFrameName, 
+                            const OUString & rURL,
+		            const Sequence<PropertyValue > & rArgs )
+      {
+      // D:\Projects\udk-0-9-1\comp\ie\source\ctrl\idisp.cxx
+
+      //  rUrl: .component:resource\ie56801.res/261
+
+        ...
+        Reference<XURLTransformer> xTrans( 
+   xFactory->createInstance( L"com.sun.star.util.URLTransformer" ), 
+                            UNO_QUERY );
+
+        // XURLTransformer file:///D:/Projects/udk-0-9-1/doc/api/_com.sun.star.util.XURLTransformer.html
+        // supports parsing and assembling of URLs. 
+        
+        // I think this just tells the frame to load the resource file
+
+      } // dispatchURL
+  
+    ...
+
+    pIE->navigate( rURL, rArgs ); // initial URL
+
+    
+
+
+} // IExplorerLoader_Impl::load
+  
+QUESTION: Are these defined in a cryptic pre-processor macro?
+
+  queryInterface
+  acquire
+  release
+  getImplementation
+  getIdlClasses
+
+ANSWER: This is old smart uno (uno2), getImplementation() is replaced by
+the XUnoTunnel interface, and getIdlClasses() is deprecated
+(XTypeProvider is now used instead).
+
+PROBLEM: mozilla draws its own scrollbars.  No API for scrolling.
+
+PROBLEM: does mozilla have an IPersist mechanism?
+
+After load, this is called:
+
+Reference< XModel > SAL_CALL IExplorerController_Impl::getModel(  ) throw(RuntimeException)
+{
+	OSL_ENSHURE( !_bIsDisposed, "### component was already disposed!" );
+	
+	return (XModel *)this;
+}
+
+// XModel: file:///D|/Projects/udk-0-9-1/doc/api/_com.sun.star.frame.XModel.html
+// subclass of XComponent.  
+
+OUString IExplorerController_Impl::getURL(void)
+	throw (RuntimeException)
+{
+	OSL_ENSHURE( !_bIsDisposed, "### component was already disposed!" );
+	
+	return getURL( _pIWebBrowser2 );
+}
+
+// This returns a null string.
+// It's called twice, still null.
+
+void SAL_CALL IExplorerController_Impl::addStatusListener( const Reference< XStatusListener >& xControl, const URL& aURL ) throw(RuntimeException)
+{
+	// ignore add...() calls if we are in dispose() call, disposing all listeners... 
+
+// aURL is .uno:Title
+
+...
+
+  StatusDispatch stat( aURL, xControl); // just a struct with two members.
+  _aStatusListeners.push_front( stat);
+
+  // aStatusListeners is a StatusDispatchArr, which is defined with this
+  // funky ass macro
+  // SV_DECL_PTRARR_DEL( StatusDispatchArr, StatusDispatchPtr, 4, 4 );
+  // QUESTION: What does SV_DECL_PTRARR_DEL do?
+
+  // ANSWER: An old stl-vector alike implementation, will be replaced by an
+  // stl container soon. There is a declaration macro, and also an
+  // implementation macro for the c file.
+
+
+	FeatureStateEvent aStatusEvent;
+	aStatusEvent.Source		= (XDispatch *)this;
+	aStatusEvent.FeatureURL	= aURL;
+	// default disable all
+	aStatusEvent.IsEnabled	= FALSE;
+	aStatusEvent.Requery	= FALSE;
+
+  // struct FeatureStateEvent : lang::EventObject { 
+  //      util::URL FeatureURL; 
+   //     string FeatureDescriptor; 
+   //     boolean IsEnabled; 
+   //     boolean Requery; 
+  //      any State; };  
+  // file:///D|/Projects/udk-0-9-1/doc/api/_com.sun.star.frame.html#com::sun::star::frame::FeatureStateEvent
+
+  // I guess this means that no features are enabled at this time
+
+} // addStatusListener
+
+
+...
+
+
+STDMETHODIMP IExplorerController_Impl::Invoke(
+	DISPID           dispidMember,
+	REFIID           riid,
+	LCID             lcid,
+	WORD             wFlags,
+	DISPPARAMS FAR * pdispparams,
+	VARIANT    FAR * pvarResult,
+	EXCEPINFO  FAR * pExcepInfo,
+	UINT       FAR * puArgErr )
+{
+
+
+}
+
+STDMETHODIMP_(ULONG) IExplorerController_Impl::Release(VOID)
+{
+//	UINT32 nRef = OWeakObject::m_refCount.referenced();
+	sal_uInt32 nRef = OWeakObject::m_refCount;
+	OWeakObject::release();
+	return --nRef;
+}
+
+
+// We then continue with the pattern Invoke, Release, Release for a
+// while.  These calls to invoke come from the IWebBrowser2 system.
+// They provide status on the progress of the load.  For example, the
+// following messages are printed out as a result of Invoke:
+
+// aCurrentStatusText: (2 items remaining) Downloading picture http://javaweb.eng/productcenter/images/new/sun02.gif...
+// aCurrentStatusText: (1 item remaining) Downloading picture http://javaweb.eng/productcenter/images/new/product.center.banner.new.jpg...
+
+// PROBLEM: we'll have to figure out how to replicate this since we don't
+// use IDispatch.
+
+// Then it's time to add more status listeners, in order:
+//  .uno:SaveAs .uno:Save .uno:Reload .uno:PrintDefault .uno:Cut .uno:Copy
+// .uno:Paste .uno:BrowseForward .uno:BrowseBackward .uno:Cancel .uno:EditDoc
+// .uno:CurrentURL
+
+// QUESTION: where does the caller of addStatusListener get the list of
+// URLs on which to invoke addStatusListenr?  From the resources dll?
+
+// ANSWER: 
+// Yes from the loaded resource (.res, like in app.src, line 101) and
+// there are some common urls for common menu items (most of the used
+// ones from ctrl.cxx, line 336-357). Matthias Bauer (mba@stardiv.de)
+// will send you the list of internal command urls.
+
+
+// Invoke, Release, Release, a few more times.
+
+// finally getURL returns the url I typed in, rURL: http://javaweb/
+
+// Then more addStatusListener properties, in order: 
+// .uno:PageSetup .uno:Print .uno:Properties .uno:SourceView .uno:SelectAll 
+// .uno:SearchDialog
+
+// then the page displays
+
+
+Additional information:
+
+IPersistFile * IExplorerController_Impl::getIPersistFile(void) const
+{
+	IPersistFile * pFile = NULL;
+	IDispatch * pDisp;
+	if (_pIWebBrowser2 && SUCCEEDED(_pIWebBrowser2->get_Document( &pDisp )) && pDisp)
+	{
+		pDisp->QueryInterface( IID_IPersistFile, (void **)&pFile );
+		pDisp->Release();
+	}
+	OSL_ENSHURE( pFile, "### cannot retrieve IPersistFile from document!" );
+	return pFile;
+}
+
+QUESTION: how do you know that the IDispatch from get_Document
+implements IPersistFile?
+
+ANSWER: 
+
+This is like very very often a search thru the web (www.codeguru.com for
+example), try and error, reading news etc.  I have spent a lot of nervs
+on the IE integration.
+
+PROBLEM: Mozilla needs something analogous to IPersistFile
+
+PROBLEM: Mozilla needs something analogous to execCmd, IOleCommandTarget
+
+QUESTION: Why are there two copies of ctrl.hxx?  One in inc/ie one in
+source/ctrl?  They are slightly different files.
+
+ANSWER:
+
+I didnt have a look on that source for a month now, I initially made
+some work for UNO3, then Jochen Lingner (jl@stardiv.de) continued while
+I was on vacation, then Kay made some changes for you while Jochen was
+on vacation :) I think one of the files is not in use, I guess the one
+inc/ie/ctrl.hxx, because no header file are shared anymore in the ie
+project.  Rename the header file and try to build it.
+
+QUESTION: Is there any way to enable printfs to go to the console in
+soffice.exe?
+
+ANSWER:  
+
+I didnt verify this, but someone said you can pipe your printf output
+into some file (take stderr, so it will be flushed immediately):
+soffice.exe >& mylog.log
+
+QUESTION: where is OThread::isTerminationRequested()?  It's mentioned in
+the docs, but it doesn't exist.
+
+ANSWER:
+
+is called OThread::schedule() instead, telling you if your thread 
+should terminate, like
+
+void MyThread::run()
+{
+	while (! schedule())
+		do some work
+}
+
+QUESTION: How does Star know when to gray out or enable the back and
+forward buttons?
+
+ANSWER: By implementing IDispatch to respond to the events
+CSC_NAVIGATEFORWARD and CSC_NAVIGATEBACK. 
+
+idisp.cxx
+
+STDMETHODIMP IExplorerController_Impl::Invoke()
+{
+
+// ...
+
+		if (nVal == CSC_NAVIGATEFORWARD)
+		{
+			::VariantInit( &varg );
+			if (FAILED(hresult = DispGetParam( pdispparams, 1, VT_BOOL, &varg, puArgErr )))
+				return hresult;
+			fireCommandStatus( L"BrowseForward", V_BOOL( &varg ) );
+			::VariantClear( &varg );
+		}
+
+// ...
+
+}
+
+QUESTION: When do you have do put the ifdefs around an #include
+
+#ifndef _CPPUHELPER_IMPLBASE3_HXX_
+#include <cppuhelper/implbase3.hxx>
+#endif
+
+Usually such things are in the header itself.
+
+ANSWER: it reduces the time needed to compile, since the pre-processor doesn't have to process the include file.
+
+QUESTION: It appears unoidl->rdbmerge->cppumaker does nothing with CONST
+definitions defined in the idl.  For, example, the following idl class:
+
+interface DocumentLoadEvent: WebclientEvent
+{
+    
+    const long START_DOCUMENT_LOAD_EVENT_MASK = 1;
+    const long END_DOCUMENT_LOAD_EVENT_MASK = 1 << 2;
+    const long START_URL_LOAD_EVENT_MASK = 1 << 3;
+    const long END_URL_LOAD_EVENT_MASK = 1 << 4;
+    const long PROGRESS_URL_LOAD_EVENT_MASK = 1 << 5;
+    const long STATUS_URL_LOAD_EVENT_MASK = 1 << 6;
+    const long UNKNOWN_CONTENT_EVENT_MASK = 1 << 7;
+    const long FETCH_INTERRUPT_EVENT_MASK = 1 << 8;
+
+};
+
+produces the following c++ class:
+
+class DocumentLoadEvent : public ::org::mozilla::webclient::wrapper_native::uno::WebclientEvent
+{
+public:
+};
+
+What happend do the constants?
+
+ANSWER: correct, nothing is done with consts
+
+QUESTION: Is it possible to produce implementations using IDL, or only
+interfaces?
+
+QUESTION: How are javascript:openThisURL() urls dealt with in mozilla?
+REF:NEWWINDOW
+
+ANSWER:
+
+http://lxr.mozilla.org/seamonkey/source/dom/src/jsurl/nsJSProtocolHandler.cpp
+jsurl.dll
+
+The important thing is in dom\src\base\nsGlobalWindow.cpp:2445
+nsGlobalWindow::OpenInternal().
+
+ if ((nsnull != mWebShell) && 
+      (NS_OK == mWebShell->GetContainer(webShellContainer)) && 
+      (nsnull != webShellContainer)) {
+
+This has changed for M15.  The functionality is still in
+nsGlobalWindow::OpenItnernal, but it's different.  Af of 05 May 2000,
+it's at line 2524.
+
+QUESTION: How do we hook up find in page?
+
+REF:FIND
+
+ANSWER: There's no API to the StarOffice find dialog.  It won't be
+possible expose an API by the May 9 deadline, so I don't know what to do
+regarding this capability.  One possibility would be to include the UI
+for the find dialog in the component.
+

@@ -1,0 +1,779 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Developing a Generic Web Browser API</title>
+
+
+                <STYLE TYPE="text/css">
+                <!--
+                BODY { BACKGROUND-COLOR: #ffffff; FONT-FAMILY: arial, times
+                new roman, sans-serif; }
+                A:link, A:visited, A:active { TEXT-DECORATION: none; FONT-WEIGHT:
+                bold; COLOR: #0000FF}
+
+                H1, H2 { TEXT-ALIGN: center; FONT-WEIGHT: bold; }
+                H3, H4, H5 { TEXT-ALIGN: left; FONT-WEIGHT: bold; }
+                H6 { TEXT-ALIGN: center; FONT-WEIGHT: bold; FONT-SIZE: small; }
+                H6.CAPTION { TEXT-ALIGN: center; FONT-WEIGHT: bold; FONT-SIZE:
+                small; FONT-STYLE: italic; }
+
+                P { TEXT-INDENT: 1em; }
+                P.CODE { TEXT-INDENT: 0; COLOR: #FF0000; }
+
+                UL, OL, DL { MARGIN-LEFT: 2em; FONT-SIZE: medium; }
+                UL { list-style: square; }
+                LI { FONT-SIZE: small; FONT-WEIGHT: bold; }
+                UL EM, OL EM { FONT-WEIGHT: bold; }
+                CODE, CITE { FONT-WEIGHT: bold; }
+                DD { MARGIN-TOP: 5em; margin-left: 5em }
+
+                BLOCKQUOTE { MARGIN-LEFT: 1em; MARGIN-RIGHT: 1em }
+                IMG { VERTICAL-ALIGN: top; ALIGN: center; }
+                SUP { COLOR: #0000FF; FONT-SIZE: small; }
+                -->
+                </STYLE>
+
+  </head>
+
+  <body>
+
+<CODE>$Id: webclient.html,v 1.10 1999/11/20 00:15:38 edburns%acm.org Exp $</CODE><P></P>
+
+    <H1>Developing a Generic Web Browser API</H1>
+
+<H6>
+
+<P>
+
+      Edward J. Burns &lt;ed.burns@sun.com&gt;
+
+</P>    
+
+<P>
+
+      Sun Microsystems Inc, Palo Alto, CA 94303, USA
+
+</P>
+
+</H6>
+
+
+
+    <H3>Abstract</H3>
+
+<P>
+
+      This paper provides an account of the author's experiences in
+      implementing Webclient: an open source, generic web browser API in
+      Java.  Webclient uses technology from an existing web browser,
+      initially Mozilla, to implement the API.  The author discusses the
+      motivation, origins, goals, and possible future directions for
+      Webclient, the pro's and cons of working with mozilla, the
+      processes used in developing Webclient, and gives a technical
+      overview of the existing prototype implementation.
+
+</P>
+
+    <H3>Keywords</H3>
+
+<P>
+
+      Browsers, Java, components
+</P>
+      
+    <h3>1. Introduction</h3>
+
+<P>
+      
+      The term "browser wars" was coined to describe the battle for
+      controlling the world's web browsing experience.  The primary
+      combatants in the browser wars are Netscape and Microsoft.  In
+      this paper, the author will relate his experiences in developing a
+      product, called Webclient, that leverages the output of browser
+      wars, rather than participating in them.  The mission statement of
+      Webclient is: "to provide the premier browser-neutral Java API
+      that enables generic web browsing capability." [<A
+      HREF="#Ref1">1</A> ] The motivation for Webclient is to give Java
+      developers a world class web browsing component which they can
+      embed in their applications.
+      
+</P>    
+
+
+<P>
+
+      Webclient is a generic web browser API.  The "browser-neutral" in
+      the mission statement means that the actual implementation is
+      provided by an existing, possibly native code, browser, such as
+      Mozilla or Microsoft Internet Explorer. The ability to wrap an
+      existing browser provides several benefits:
+
+</P>
+
+    <UL>
+      
+      <LI>Webclient puts the burden of "keeping up with the
+	  Joneses" where it belongs, on those who have the business need
+	  and the resources to keep up with current standards and
+	  rendering demands.  </LI>
+      
+      <LI>The flexible API allows one to provide an
+	  implementation for application specific circumstances, for
+	  example, small footprint devices. </LI>
+      
+      <LI>Webclient gives developers who are building application GUIs
+          with Java world-class HTML rendering capabilities. By
+          world-class we mean: super-fast, fully-functional, and
+          fully-standard-supporting, well supported, widely used, well
+          tested, etc.</LI>
+      
+    </UL>
+
+<P>
+
+      Webclient's design incorporates scalability, with respect to the
+      underlying implementation.  The underlying browser doesn't have to
+      implement the full Webclient specification.  For example, assume
+      that the underlying browser implementation doesn't support
+      printing, yet printing is in the Webclient API.  The Webclient
+      design calls for the Webclient software to "decay gracefully" in
+      this case.  That is, it is not an error to invoke methods that
+      don't have an implementation.
+
+</P>
+
+<H3>2. Related Work</H3>
+
+<P>
+
+      Webclient is certainly not the first web browsing component
+      available to Java application developers, but it is the first to
+      rely entirely on an underlying browser for its implementation.
+      While it is possible to use Microsoft's WebBrowser ActiveX control
+      from Java, this requires the use of extra tools to bridge the two
+      environments.  Webclient tightly integrates with the underlying
+      browser, without requiring any extra tools to bridge the gap.
+      There are some significant drawbacks this approach.  If the
+      underlying browser is not written in Java, as in the case of
+      Mozilla and Internet Explorer, there are issues the end user must
+      confront, as well as issues that the Webclient developers must
+      confront.  The end user issues include increased memory and disk
+      footprint.  At runtime the process must include a Java virtual
+      machine as well as the footprint of the native browser.  The user
+      must also install more components: a Java VM, the Webclient
+      software, and the native browser.  Of course installer programs
+      can facilitate this process.  Issues for the Webclient developers
+      when wrapping a native browser include: differing APIs between
+      different browsers, dealing with memory management, and increased
+      complexity of build environment.  These concerns disappear when
+      the underlying browser is already in Java.  The only remaining
+      concern in this case is the differing APIs, which are hidden
+      beneath the consistent Webclient API in any case.
+      
+</P>
+
+<P>
+      The following browsers were examined during the development of
+      Webclient.
+
+</P>
+
+	<UL>
+
+	  <LI> ICE Browser: <A HREF="http://www.icesoft.no/ICEBrowser/">http://www.icesoft.no/ICEBrowser/</A>
+          </LI>
+
+	  <LI> CLUE: <A HREF="http://www.coolclue.com/cluehome.html">http://www.coolclue.com/cluehome.html</A>
+          </LI>
+
+	  <LI> HotJava bean: <A HREF="http://www.sun.com/software/htmlcomponent/index.html">http://www.sun.com/software/htmlcomponent/index.html</A>
+          </LI>
+
+	  <LI> Swing JEditorPane: <A HREF="http://java.sun.com/products/jfc/swingdoc-api-1.1/javax/swing/JEditorPane.html">http://java.sun.com/products/jfc/swingdoc-api-1.1/javax/swing/JEditorPane.html</A>
+          </LI>
+
+	</UL>
+
+<P>
+
+      All of the above browsers are pure Java, and each has its pros and
+      cons.  The ICE Browser is small, modular, and fast, but currently
+      can only correctly render well formed HTML.  The CLUE browser is
+      too early in its development to be considered comparable to
+      Netscape or IE.  The HotJava bean is a well known, proven product,
+      written by some of the people working on Webclient, but its
+      development has been terminated by Sun.  A prototype
+      implementation of Webclient with a HotJava core has been
+      developed, however.  The JEditorPane ships with version 1.2 of
+      Sun's Java Development Kit, but also falls short of Netscape and
+      IE in the quality of its browsing experience.  Thus, the author
+      believes the best way to deliver a high quality browsing
+      experience is to rely on products that have already proven their
+      success in the marketplace.
+
+</P>
+
+<H3>3. Building on Shifting Sands</H3>
+
+<P>
+
+      It is said that only a fool builds on sand, but with the author's
+      funding coming from a source that advocated using Mozilla (the
+      Sun-Netscape alliance [<A HREF="#Ref11">11</A>]), there was little
+      choice but to try to use it in its early and evolving state.  The
+      developers of Webclient have continually felt the pain of this
+      decision.  This section will detail some of the problems found in
+      depending on an evolving open source project, and how they were
+      dealt with.
+
+</P>
+
+<P>
+
+      First there is the very matter of "bootstrapping" the whole system.
+      This involves initializing the component system, setting up system
+      paths, and loading dependent libraries.  The specifics of how this
+      is done change frequently, and Webclient must be continually
+      updated to the latest method of bootstrapping.  There are several
+      other concerns related to the changing Mozilla implementation, and
+      a strategy for dealing with these changes is detailed below.
+
+</P>
+
+<P>
+
+      To minimize the impact of basing Webclient on an evolving
+      open-source project, a strategy was adopted: Webclient would only
+      depend on "milestone releases".  The Mozilla web browser project
+      was being developed in an iterative fashion, and is in the habit
+      of releasing semi-regular development milestones.  A milestone is
+      a snapshot of the Mozilla source tree at a time when the software
+      was known to be stable in some way.  Since the beginning of 1999,
+      Mozilla has released a new milestone every 33 days on average.
+      The idea was that Webclient would depend only on milestone
+      releases.  When a new milestone was released, Webclient would take
+      a temporary hit and "upgrade" the new release.  This approach
+      would shield Webclient from changes in the Mozilla source code and
+      any destabilizing affects these changes may have for Webclient.
+
+</P>
+
+<P>
+
+      This approach works fine, as long as there are no "show stopper"
+      bug fixes in Mozilla on which Webclient depends, and the
+      milestones come out regularly and frequently.  Unfortunately,
+      there were times when neither condition was met.
+
+</P>
+
+<P>
+
+      For example, the "bin directory" bug.  While Mozilla had included
+      in its charter the embedding of the browser in another
+      application, the code didn't actually reflect that behavior.
+      There were several cases in the code where Mozilla would make an
+      assumption about the location of dynamic libraries (executable
+      code that is loaded into memory by a program while it is running)
+      based on the location of the main executable program.  These
+      assumptions are only valid when the main executable program is the
+      Mozilla browser.  The assumptions break down when the main
+      executable program is the Java runtime, or any program other than
+      the Mozilla main executable program.  This is the "bin directory"
+      bug.  An ugly workaround for this bug had been developed in
+      Webclient, but it hindered Webclient's deployability.  After the
+      initial release of Webclient source code, interest in the project
+      had been steadily increasing, and requiring everyone to implement
+      an inconvenient workaround was a big enough problem that it had to
+      be dealt with.
+
+</P>
+
+<P>
+
+      The Webclient team implemented a fix in Mozilla that allows the
+      bin directory to be specified at the beginning of the
+      initialization sequence.  Unfortunately, due to schedule slippage
+      at Netscape, the code that implemented this fix wouldn't be in a
+      milestone release for an unacceptably long time.  A decision was
+      made to take Webclient off the track of depending only on
+      milestone releases and instead depend on the "latest" Mozilla.
+      This decision proved to have unfortunate consequences.  Frequent
+      behavior changes would break Webclient, forcing the Webclient team
+      to engage in software sleuthing to discover the nature of the
+      change and to make allowances for it in the Webclient code.
+
+</P>
+
+<P>
+
+      This problem can be solved by using version control software that
+      supports the concept of "integration workspaces".  Webclient could
+      depend on a Mozilla-Webclient integration workspace, that would be
+      synchronized to each milestone release.  The integration workspace
+      would be immune from normal Mozilla development changes, but it is
+      possible to accept certain specific changes that are needed.  For
+      example, the changes that fix the "bin directory" bug.  When the
+      milestone release containing the desired bug fix does come out,
+      the integration workspace would be synchronized with the milestone
+      release.
+
+</P>
+
+<P>
+
+      Unfortunately, none of the popular freely available source code
+      control systems support the concept of integration workspaces.
+      However, it is possible to get the same end result by simply
+      having another Mozilla tree, and designating it as an integration
+      workspace.  This possibility is currently being investigated.
+
+</P>
+
+<P>
+
+      A more general problem than the "bin directory" bug is the lack of
+      features inherent in an iteratively evolving system.  For example,
+      there are things in the Webclient API that are not implemented in
+      any current browser.  This means that Webclient must follow the
+      iterative development pattern of any evolving software on which it
+      depends.
+
+</P>
+
+<H3>4. Software Development Processes </H3>
+
+<P>
+
+      There hasn't been much formal process in the Mozilla development
+      effort, but Webclient has used four process-like tools in its
+      development: requirements specification, requirements analysis,
+      formal document review, and document change control.  The first
+      two processes are intended to be done in an iterative fashion,
+      independently.  That is, the requirements specification document
+      may go through several iterations independent of the requirements
+      analysis document, and vice versa.  The latter two processes are
+      applied to a document for each iteration.
+      
+</P>
+
+<P>
+
+      The first step in the requirements specification process was to
+      produce a template document which would be filled in during the
+      course of the specification task.  This template underwent its own
+      iterative development cycle and informal document review by peers
+      and the Mozilla community, via Mozilla newsgroups.  The template
+      was initially based on [<A HREF="#Ref2">2</A>] and the finished
+      product is available at [<A HREF="#Ref3">3</A>].
+
+</P>
+
+<P>
+
+      After completing the template, the requirements specification
+      process started in earnest, taking input from several sources: the
+      existing prototype, Netscape Navigator 4.x, Microsoft Internet
+      Explorer 5.0, and the author's experience base.  The author did a
+      "feature traversal" of Netscape and IE to gather requirements for
+      the specification.  The spec was written from the perspective of
+      an ideal web browser API.  No consideration was given to the
+      feasibility of the features mentioned in the spec, that is left
+      for requirements analysis.  Once the first draft was complete,
+      several key customers were personally contacted and asked to
+      review the specification.  A request for review was also sent out
+      to the relevant newsgroups and mailing lists.  After integrating
+      feedback from all who would give it, the spec underwent a formal
+      document review process among Sun employees, after which point it
+      was placed under change control.  The final requirements
+      specification document can be found in [<A HREF="#Ref4">4</A>].
+
+</P>
+
+<P>
+
+      The change control process requires the creation of a "Change
+      Control Board", or CCB.  This is a group of people who hold a
+      stake in the software and/or would be impacted by changes to the
+      specification.  The CCB should meet to discuss proposed changes to
+      the document, similar to the process employed by the IETF, W3C,
+      and many other standards bodies.  However, the CCB process used
+      for Webclient is lightweight, and much less formal.
+
+</P>
+
+<P>
+      
+      The requirements analysis process takes the requirements
+      specification document and, for each target browser (Mozilla, IE,
+      Hot Java, etc.), determines how much of the spec can be built
+      using that browser.  This process has only been carried out for
+      Mozilla, but carrying it out for other browsers is
+      straightforward.  The analysis document was created as a sort of
+      questionnaire, broken down into sections corresponding to the
+      sections of the requirements spec.  The analysis work for each
+      section was assigned to volunteers, some of whom were not Sun
+      employees.  The volunteers had to answer the following questions
+      in each section:
+      
+</P>
+
+    <OL>
+      
+      <LI> How long did it take to prepare the analysis for this
+	section?
+      </LI>
+
+      <LI> What is the analogous code in the native environment? 
+      </LI>
+
+      <LI> What modifications or workarounds need to be made in order to
+      use the native code for the current functional grouping within an
+      interface? 
+
+	<A NAME="feasibility">For</A> each functional grouping within an interface, use the
+      following scale to rate the feasibility of exposing this feature
+      to Webclient: 
+
+	<OL>
+
+	  <LI> No brainer: the feature is already exposed
+	  </LI>
+
+	  <LI> It's glue code: the feature exists, but isn't exposed
+	  </LI>
+
+	  <LI> Needs work: the basic infrastructure for the feature is
+	  there, but some significant changes need to be made in order
+	  to expose the feature.
+	  </LI>
+
+	  <LI> Redesign required: the existing architecture doesn't
+	  allow for this feature to be exposed.
+	  </LI>
+
+	  <LI> Impossible: a prohibitively large amount of work is
+	  required to expose the feature.
+	  </LI>
+
+	</OL> 
+
+    </OL> 
+
+<P>
+
+      As each section was completed, it was integrated back into the
+      analysis document until the entire requirements spec had been
+      analyzed.  The feasibility scale ratings and estimated
+      implementation time can be used to guide the scheduling of the
+      implementation work.  The final result of the analysis process is
+      available in [<A HREF="#Ref5">5</A>].
+
+</P>
+
+
+<P>
+
+      The author believes that the above processes (document review,
+      requirements specification, requirements analysis, and change
+      control) are well suited to web facilitated open-source software
+      development.  Web based tools that automate these processes would
+      be very valuable to future open source projects.
+
+</P>
+
+<H3>5. Technical Overview</H3>
+
+<P>
+
+      The Webclient API as listed in the requirements specification
+      provides interfaces for accessing the following browser
+      functionality: accessing bookmarks, find in page, w3c DOM access,
+      copy selection to clipboard, view source, save current page,
+      history access and manipulation, navigation, cache access and
+      manipulation, preferences access, and printing.  These APIs
+      provide enough depth of control to meet most accessibility
+      guidelines.  The complete Webclient API is too long to include
+      here, but it can be found in [<A HREF="#Ref4">4</A>].
+</P>
+
+<P>
+
+      The current prototype implementation does not conform to the spec
+      and provides a greatly reduced subset of its functionality.  The
+      methods available in the current Webclient implementation are
+      listed below.
+
+</P>
+
+<P></P>
+
+    <CENTER>
+
+      <IMG SRC="prototype-methods.gif">
+
+    </CENTER>
+
+<P></P>
+
+<P>
+
+      As mentioned in the Introduction, the Webclient API is designed to
+      be backed by an existing, possibly native code browser.  In order
+      to provide this functionality, obviously an abstraction layer is
+      required.  The abstraction is provided by a "Shim" class [<A
+      HREF="#Ref6">6</A>], specific to the underlying browser.  The shim
+      class hides all the browser specific implementation details from
+      the higher level Webclient classes.  The relationships between the
+      Webclient classes and interfaces can be seen in the following UML
+      diagram.
+
+</P>
+
+<P></P>
+
+    <CENTER>
+      <IMG SRC="classdiag.gif"></IMG>
+    </CENTER>
+
+<P></P>
+
+<P>
+
+      There is not much code in Webclient, and most of it can be found
+      in the shim class.  For mozilla, the complexity of the shim class
+      lies in passing events between Mozilla and Java.  This is
+      accomplished by means of a message queue thread, whose sole
+      purpose is to process and dispatch events.  Aside from events, the
+      only thing the shim does is initialize the mozilla component
+      system, and create the underlying nsIWebShell instances as
+      necessary.  The Microsoft WebBrowser control has similar methods
+      to nsIWebShell and the shim class for IE should be similar to the
+      one for Mozilla.
+
+</P>
+
+<P>
+
+      Webclient must confront the same thorny issues that any other
+      cross-platform native code project must confront.  Where possible,
+      Webclient relies on Netscape's abstraction layers [<A
+      HREF="#Ref7">7</A>].  However, there have been some situations
+      where this was not possible.  In these cases, a simple #ifdef
+      solution was employed, to conditionally compile code depending on
+      the current platform.
+
+</P>
+
+<H3>6. Summary and Future Directions</H3>
+
+<P>
+
+      The current Webclient prototype illustrates that it is possible
+      and useful to provide a generic API on top of an underlying web
+      browser.  This approach provides flexibility, scalability, and
+      increased performance for the end user's browsing experience.
+      Because Webclient is based in Java, the work of embedding browsing
+      behavior into an application is much simpler for the end user than
+      in native environments.
+
+</P>
+
+<P>
+
+      Part of the impetus for submitting this paper to the World Wide
+      Web Conference is to put the following question before the WWW
+      development community: Would it be useful to have an official
+      standardized web browser API?  This API may do for web browsing
+      what the DOM API has done for document access.  The API in the
+      Webclient requirements specification [<A HREF="#Ref4">4</A>] could
+      serve as a starting point for this standard.
+
+</P>
+
+<H3>Acknowledgements</H3>
+
+<P>
+
+      Malini Minasandram, George Drapeau, and John Pampuch gave the
+      Webclient team the freedom to work on the project outside the
+      scope of the immediate needs of the group.  The author would like
+      to thank Kirk Baker and Ian Wilkinson for their initial work and
+      continued support, Frank Mitchell for his ideas and critique, all
+      the members of the Webclient team, the Mozilla organization, and
+      the management of America Online for continuing to support
+      Mozilla.
+
+</P>
+
+<H3>Appendix</H3>
+
+<H4>Historical Background</H4>
+
+<P>
+
+      Webclient was born of an open source (MPL [<A HREF="#Ref8">8</A>])
+      project, the Mozilla web browser, and continues to be developed as
+      such.  In a simple definition, an open source software project has
+      at least the following attributes:
+
+</P>
+
+    <UL>
+
+	  <LI> Free distribution of the software
+	  </LI>
+
+	  <LI> Access to the source code 
+	  </LI>
+
+	  <LI> A mechanism for accepting from the public, any changes
+	  and enhancements to the software.
+	  </LI>
+
+	</UL>
+
+<P>
+
+      A more rigorous definition of open source software can be found in
+      [<A HREF="#Ref9">9</A>].  The Mozilla web browser project was
+      started by Netscape in late March of 1998, in an attempt to
+      leverage the power of open source as seen in the development of
+      the Linux operating system [<A HREF="#Ref10">10</A>].  Netscape
+      hopes to use the output of the Mozilla web browser project as the
+      heart of its Communicator 5.0 product.  One of the many side
+      effects of the open source nature of the Mozilla project was that
+      for the first time, there was a possibility for cross platform
+      applications to embed world class browsing behavior without having
+      to provide that behavior from scratch.  The embedding of Mozilla
+      into a larger application was taken into the charter of the Mozilla
+      project and there are several projects underway now that aim to
+      leverage Mozilla in this way.
+
+</P>
+
+<P>
+
+      While the success of the open source strategy for Mozilla is
+      debatable (most of the engineers working on Mozilla are employed
+      by Netscape for the sole purpose of working on Mozilla), there
+      have been important contributions by the general software
+      development community.  One of these was the RaptorCanvas project,
+      started by Kirk Baker and Ian Wilkinson in April of 1999.
+      RaptorCanvas intended to embed the Mozilla WebShell interface into
+      Java.  Sun Microsystems took an interest in Kirk and Ian's work in
+      July of 1999 (after the Sun/AOL/Netscape deal [<A
+      HREF="#Ref11">11</A>]).  The project was renamed Webclient, and
+      hosted the project at mozilla.org, along side the code for the
+      Mozilla web browser.  Sun expanded Webclient's charter to be more
+      general than wrapping only Mozilla: making plans for wrapping the
+      WebBrowser ActiveX control from Microsoft, and the Hot Java
+      Browser Bean from Sun.  However, Mozilla would be the first and
+      most important target browser to wrap.  The first prototype
+      implementation of Webclient was checked in to mozilla.org in early
+      August 1999.
+      
+</P>
+
+
+
+
+<H3>References</H3>
+
+<P>
+
+[<A NAME="Ref1">1</A>] E.J. Burns, Java API for WebShell, at <i>mozilla.org</i> <A HREF="http://www.mozilla.org/projects/blackwood/webclient/index.html#Overview">http://www.mozilla.org/projects/blackwood/webclient/index.html#Overview</A>.
+
+
+</P>
+
+<P>
+
+[<A NAME="Ref2">2</A>] R. Pressman, <i>Software Engineering, A Practitioner's Approach</i>, 3rd. Ed., McGraw-Hill, New York, NY 1992
+
+</P>
+
+<P>
+
+[<A NAME="Ref3">3</A>] L. Martin, Requirements Specification Guide, at <i>mozilla.org</i> <A HREF="http://www.mozilla.org/projects/blackwood/templates/requirements-spec-guide.html">http://www.mozilla.org/projects/blackwood/templates/requirements-spec-guide.html</A>.
+
+</P>
+
+<P>
+
+[<A NAME="Ref4">4</A>] E. Burns, A. Sunhachawee, L. Garin, F. Mitchell, A. Tripp, I. Khavkine, Webclient Requirements Specification, at <i>mozilla.org</i> <A HREF="http://www.mozilla.org/projects/blackwood/webclient/RequirementsSpec.html">http://www.mozilla.org/projects/blackwood/webclient/RequirementsSpec.html</A>.
+
+</P>
+
+<P>
+
+[<A NAME="Ref5">5</A>] E. Burns, A. Sunhachawee, F. Mitchell, K. Baker, J. Visvanathan, Webclient Requirements Analysis, at <i>mozilla.org</i> <A HREF="http://www.mozilla.org/projects/blackwood/webclient/RequirementsAnalysis.html">http://www.mozilla.org/projects/blackwood/webclient/RequirementsAnalysis.html</A>.
+
+</P>
+
+<P>
+
+[<A NAME="Ref6">6</A>] Merriam Webster Co. shim, noun: a thin often
+tapered piece of material (as wood, metal, or stone) used to fill in
+space between things (as for support, leveling, or adjustment of fit),
+<i>WWWebster Dictionary</i> <A
+HREF="http://www.m-w.com/netdict.htm">http://www.m-w.com/netdict.htm</A>.
+
+
+</P>
+
+<P>
+
+[<A NAME="Ref7">7</A>] M. Cusumano, D. Yoffie, What Netscape Learned from Cross-Platform Software, <i>Comm. ACM</i> 42(10): 72-78, October 1999.
+
+</P>
+
+<P>
+
+[<A NAME="Ref8">8</A>] Mozilla Public License, at <i>mozilla.org</i> <A HREF="http://www.mozilla.org/MPL/MPL-1.1.html">http://www.mozilla.org/MPL/MPL-1.1.html</A>.
+
+</P>
+
+<P>
+
+[<A NAME="Ref9">9</A>] B. Perens, The Open Source Definition, at <i>opensource.org</i> <A HREF="http://www.opensource.org/osd.html">http://www.opensource.org/osd.html</A>.
+
+</P>
+
+<P>
+
+[<A NAME="Ref10">10</A>] Netscape Press Release, at <i>netscape.com</i> <A HREF="http://www.netscape.com/newsref/pr/newsrelease558.html">http://www.netscape.com/newsref/pr/newsrelease558.html</A>.
+
+</P>
+
+<P>
+
+[<A NAME="Ref11">11</A>] America Online to Acquire Netscape..., AOL Press Release, at <i>aol.com</i> <A HREF="http://media.web.aol.com/media/press.cfm">http://media.web.aol.com/media/press.cfm</A>.
+
+</P>
+
+<H3>Vitae</H3>
+
+<P>
+
+      <B>Edward J. Burns</B> is the technical lead of the webclient team
+      at Sun Microsystems.  He has a long history of participating in
+      WWW conferences, starting with WWW2 in Chicago while a student
+      programmer at NCSA.  He coined the term "webcast" at the WWW3
+      conference in Darmstadt, using his experimental software to
+      multicast webpages to conference attendees over the MBONE.  He
+      received a B.S. in Computer Science from the University of
+      Illinois at Urbana-Champaign in 1995.  Home Page: <A
+      HREF="http://purl.oclc.org/NET/edburns/">http://purl.oclc.org/NET/edburns/</A>
+
+</P>
+
+
+    <hr>
+    <address><a href="mailto:Ed Burns <ed.burns@sun.com>"></a></address>
+<!-- Created: Mon Nov 15 12:08:53 Pacific Standard Time 1999 -->
+<!-- hhmts start -->
+Last modified: Fri Nov 19 16:06:27 Pacific Standard Time 1999
+<!-- hhmts end -->
+  </body>
+</html>

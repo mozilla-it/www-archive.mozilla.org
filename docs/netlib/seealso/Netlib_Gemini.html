@@ -1,0 +1,185 @@
+<HTML>
+<HEAD>
+   <TITLE>Netlib Gemini</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<CENTER>
+<H1>
+<IMG SRC="mozilla_bungee.gif" HEIGHT=144 WIDTH=71></H1></CENTER>
+
+<CENTER>
+<H1>
+Gemini Networking Layer</H1></CENTER>
+
+<CENTER><I><FONT SIZE=-1>Last updated by Rick Potts on 1/26/98</FONT></I></CENTER>
+
+<H3>
+Assumptions:</H3>
+Gemini needs to use the same networking paradigm as Gromit to allow easy
+integration.  It is unlikely that Gromit will abandon its current
+asynchronous <I>push</I> networking model provided by NetLib-1.
+<H3>
+Objectives:</H3>
+
+<OL>
+<LI>
+Repackage the NetLib code into a stand-alone component which is shared
+by both Gromit and Gemini.</LI>
+
+<LI>
+Move the network processing performed by NetLib onto its own thread(s).</LI>
+
+<BR>This allows other threads to receive data even when the UI thread is
+blocked
+<LI>
+Allow streams to process the pushed data either on the NetLib thread or
+to marshal it onto the requesting thread.</LI>
+
+<BR>Streams being processed by non-threadsafe code can marshal the data
+to prevent re-engineering  existing code.
+<LI>
+Create new APIs providing synchronous URL loading which can be used by
+newer code (such as java) that runs on different threads...</LI>
+
+<LI>
+Incrementally shore up the NetLib code so it is more maintainable and efficient
+over time...</LI>
+</OL>
+
+<UL><IMG SRC="new-netlib.gif" HEIGHT=268 WIDTH=521>
+<BR><B>Diagram of the new NetLib threading model:</B></UL>
+
+<H3>
+Milestones:</H3>
+
+<OL TYPE=I>
+<LI>
+Repackage NetLib as a stand-alone component.  This requires defining
+a strict public API which will isolate the underlying implementation from
+its consumers.</LI>
+
+<LI>
+Deal with threading issues and requirements.</LI>
+
+<LI>
+TBD...</LI>
+</OL>
+
+<H3>
+ Issues:</H3>
+
+<OL>
+<LI>
+Exposed or shared data structures:</LI>
+
+<UL>
+<LI>
+MWContext.  This structure is only used for progress notifications
+and displaying error messages.</LI>
+
+<LI>
+URL_Struct.  There is a whole pile 'o stuff in this structure!
+I doubt that it is all strictly URL related!</LI>
+
+<LI>
+NET_StreamClass</LI>
+</UL>
+
+<LI>
+Threading...</LI>
+</OL>
+
+<H3>
+Functionality provided by the current NetLib-1:</H3>
+
+<OL>
+<LI>
+Networking  <I>engine</I> which loads URLs for the following protocols:</LI>
+
+<UL>
+<LI>
+HTTP</LI>
+
+<LI>
+FTP</LI>
+
+<LI>
+SMTP</LI>
+
+<LI>
+LDAP</LI>
+
+<LI>
+IMAP</LI>
+
+<LI>
+File</LI>
+
+<LI>
+Gopher</LI>
+
+<LI>
+Pop3</LI>
+
+<LI>
+News</LI>
+
+<LI>
+Mailbox</LI>
+
+<LI>
+Address book</LI>
+
+<LI>
+Memory Cache</LI>
+
+<LI>
+Javascript</LI>
+</UL>
+
+<LI>
+Proxy support (what does this involve?)</LI>
+
+<LI>
+Maintains stream converters and decoders for MIME type conversions.</LI>
+
+<LI>
+Memory and disk cache support.</LI>
+
+<LI>
+URL parsing utilities.</LI>
+
+<LI>
+Asynchronous DNS lookup</LI>
+
+<LI>
+Hooks for global history.</LI>
+
+<LI>
+Hooks for network progress notifications.</LI>
+
+<LI>
+Other stuff ?</LI>
+</OL>
+
+<H3>
+Overview of current NetLib-1 operations</H3>
+In NetLib all URLs are loaded <I>asynchronously</I>.  A URL load is
+started by calling NET_GetURL(...) which  places the request on the
+net_EntryList or on a wait queue if there are too many active connections.
+URL loads are driven by repeatedly invoking the NET_ProcessNet(...) function.
+NET_ProcessNet(...) walks the net_EntryList and reads any data available
+for each ActiveEntry.  This data is ultimately <I>pushed</I> out the
+associated stream via calls to the stream's put_block(...) function.
+
+<P><IMG SRC="netlib-1.gif" HEIGHT=452 WIDTH=560>
+
+<P>Netlib also maintains lists of converters and decoders which provide
+stream factories for various MIME types.  Whenever a stream is created
+these lists are consulted to determine the appropriate type of stream to
+create for given data...
+<BR><IMG SRC="netlib-2.gif" HEIGHT=380 WIDTH=685>
+<BR>
+</BODY>
+</HTML>

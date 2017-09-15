@@ -1,0 +1,389 @@
+<HTML>
+<HEAD>
+   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+   <META NAME="Author" CONTENT="Charles Manske">
+   <META NAME="GENERATOR" CONTENT="Mozilla/4.05 [en] (WinNT; U) [Netscape]">
+   <TITLE>Composer Background and Architecture</TITLE>
+</HEAD>
+<BODY>
+This document was last modified March
+30, 11:45am.
+<H1>
+Composer Module Summary</H1>
+
+<BLOCKQUOTE><FONT SIZE=+1><A HREF="#Background">Background</A></FONT>
+<BR><FONT SIZE=+1><A HREF="#Architecture">Architecture</A></FONT>
+<BR>&nbsp;&nbsp;&nbsp; <A HREF="#Cross-platform">Cross platform</A>
+<BR>&nbsp;&nbsp;&nbsp; <A HREF="#XP Notes and Warnings">XP Notes and Warnings</A>
+<BR>&nbsp;&nbsp;&nbsp; <A HREF="#Windows Front End">Windows Front End</A>
+<BR>&nbsp;&nbsp;&nbsp; <A HREF="#Mac Front">Mac Front End</A>
+<BR>&nbsp;&nbsp;&nbsp;<A HREF="#UNIX Front End"> UNIX Front End</A>
+<BR><FONT SIZE=+1><A HREF="#Future Plans">Future Plans</A></FONT></BLOCKQUOTE>
+
+<H2>
+<A NAME="Background"></A>Background</H2>
+The first Netscape HTML editor was first introduced in "Navigator Gold
+2.0" in 1996, where the "Gold" aspect was essentially the Editor. With
+version 3.0, Mac and UNIX versions were available. With Communicator 4.0,
+the editor was renamed "Composer" and was used to write mail messages as
+well (the "Message Composer").
+<BR>Composer was designed to be:
+<UL>
+<LI>
+Easy to use</LI>
+
+<LI>
+Easy to implement</LI>
+
+<LI>
+Mostly WYSIWYG (What-you-see-is-what-you-get)</LI>
+
+<LI>
+Able to edit any HTML document (Legal or not)</LI>
+
+<LI>
+Produce legal HTML</LI>
+
+<LI>
+Produce HTML e-mail</LI>
+</UL>
+Composer was not designed to be:
+<UL>
+<LI>
+A web site editor.</LI>
+
+<LI>
+A high end page layout tool.</LI>
+</UL>
+
+<H2>
+<A NAME="Architecture"></A>Architecture</H2>
+Most generally, there are two layers to the implementation: the Cross Platform
+("Backend" or "XP" ) system and the Front End ("FE") code specific to each
+platform.&nbsp; We will use the term "Editor" to refer to the components
+common to the Page Composer module and Mail Message Composer modules --
+the XP Editor core and the View class shared by the Page and Message components.&nbsp;
+The Editor XP system consists entirely of C++ objects internally, but the
+interface to each front end is through the global "EDT_" C functions. Likewise,
+callbacks to each Front End are global "FE_" functions, even though the
+Front Ends are written mostly in C++.
+<H3>
+<A NAME="Cross-platform"></A>Cross platform ("Backend" or "XP" code)</H3>
+The Editor API (as well as shared string definitions) header files are
+in include:
+<BR>&nbsp;
+<CENTER><TABLE BORDER CELLPADDING=3 COLS=2 WIDTH="500" >
+<TR>
+<TD WIDTH="100">edt.h&nbsp;</TD>
+
+<TD WIDTH="400">Main API declarations - all global functions begin with
+"EDT_"</TD>
+</TR>
+
+<TR>
+<TD>edttypes.h</TD>
+
+<TD>Structures, data types, global defines. Structure names begin with
+"EDT_". Defines and data types begin with "ED_"</TD>
+</TR>
+
+<TR>
+<TD>fe_proto.h</TD>
+
+<TD>Function declarations common to each platform's front end. All begin
+with "FE_"</TD>
+</TR>
+
+<TR>
+<TD>allxpstr.h</TD>
+
+<TD>Message strings shared by all platforms. [In Windows: After adding
+or changing strings, copy this file to "allxpstr.rc" for use by the resource
+compiler.]</TD>
+</TR>
+</TABLE></CENTER>
+&nbsp;
+<UL>EDT.H and EDTTYPES.H are exclusively used by Composer, others files
+include declarations for other modules as well. There are also some Composer-specific
+defines and structure members contained in STRUCTS.H; most notably, those
+in the important MWContext global structure</UL>
+The cross platform code is mostly contained in these files in lib/layout:
+<CENTER><TABLE BORDER COLS=2 WIDTH="500" >
+<TR>
+<TD WIDTH="100">editor.h&nbsp;</TD>
+
+<TD WIDTH="400"></TD>
+</TR>
+
+<TR>
+<TD>fsfile.h&nbsp;</TD>
+
+<TD>The "Tape File System" used for file IO</TD>
+</TR>
+
+<TR>
+<TD>streams.h&nbsp;</TD>
+
+<TD>File and memory data streams</TD>
+</TR>
+
+<TR>
+<TD>edttypep.h&nbsp;</TD>
+
+<TD>Defines for data types to editor classes</TD>
+</TR>
+</TABLE></CENTER>
+&nbsp;
+<BR>&nbsp;Implementation files used exclusively by Composer:
+<CENTER><TABLE BORDER COLS=2 WIDTH="500" >
+<TR>
+<TD WIDTH="100">editor.cpp&nbsp;</TD>
+
+<TD WIDTH="400">Implementation that maps global EDT_ functions to CEditBuffer
+methods and other editor objects.</TD>
+</TR>
+
+<TR>
+<TD>edtbuf.cpp&nbsp;</TD>
+
+<TD>Edit buffer - contains and manages the HTML data object tree</TD>
+</TR>
+
+<TR>
+<TD>edtele.cpp&nbsp;</TD>
+
+<TD>HTML data objects</TD>
+</TR>
+
+<TR>
+<TD>edtcmd.cpp&nbsp;</TD>
+
+<TD>Interface for "commands" that can be undone (from an early attempt
+at multiple-level undo system - this layer should be eliminated if we stick
+with single-level undo!)</TD>
+</TR>
+
+<TR>
+<TD>edtjava.cpp&nbsp;</TD>
+
+<TD>Java-related code for Editor Plugins</TD>
+</TR>
+
+<TR>
+<TD>edtsave.cpp&nbsp;</TD>
+
+<TD>File and image loading, saving, and publishing</TD>
+</TR>
+
+<TR>
+<TD>edtutil.cpp&nbsp;</TD>
+
+<TD>Misc. helpers and classes used by selection, object sizing, autosave
+timer, etc.</TD>
+</TR>
+
+<TR>
+<TD>fsfile.cpp&nbsp;</TD>
+
+<TD>Tape file system implementation</TD>
+</TR>
+
+<TR>
+<TD>streams.cpp&nbsp;</TD>
+
+<TD>File and memory streams implementation</TD>
+</TR>
+</TABLE></CENTER>
+&nbsp;
+
+<P>Other files in lib/layout include Composer-specific code dealing with
+layout in a Composer view window. One way to find most of the Composer-specific
+areas is to search for "#ifdef EDITOR" in the source files.
+<H3>
+<A NAME="XP Notes and Warnings"></A>XP Notes and Warnings</H3>
+
+<UL>
+<LI>
+The main "trick" to producing an editable document is the hook into the
+output of the HTML parser, which constructs a hierarchical tree of CEditElement
+(and derived classes) objects from the HTML tokens.&nbsp; We then "relayout"
+by iterating over the tree of edit elements to produce HTML tokens which
+are fed to the layout engine, which constructs its data structures as lists
+of layout element structures. The layout engine, of course, directs the
+front ends to render the data on screen.</LI>
+
+<LI>
+When a user modifies the document by typing or inserting or deleting elements,
+the Editor elements are modified first, then fed through the same relayout
+mechanism.</LI>
+
+<LI>
+There is a very tight and complicated entanglement between the layout code
+and the editor -- the former understands where the user current selection
+is (what element the user clicks on)</LI>
+
+<LI>
+<I>(This discussion to be expanded soon!)</I></LI>
+
+<UL>
+<LI>
+<I>Rules for keeping edit elements and layout elements in synch</I></LI>
+
+<LI>
+<I>Explain file IO and the "Tape file system"</I></LI>
+</UL>
+</UL>
+
+<H3>
+<A NAME="Windows Front End"></A>Windows Front End</H3>
+The Windows Front End is an MFC-based architecture mostly adhering to the
+Document/Frame/View model, except that CDocument is not as important as
+it normally is in MFC programs. The CFrame- derived classes contain the
+User Interface elements such as toolbars, status line, and menus (the "chrome")
+-- here is the class hierarchy:
+<BR><B>CFrameWnd -> CNSGenFrame -> CGenericFrame -> CMainFrame -> CEditFrame</B>
+<BR>The Browser window is a CMainFrame object. Likewise, there is a hierarchy
+of View classes:
+<BR><B>CView -> CGenericView -> CNetscapeView -> CNetscapeEditView</B>
+<BR>Most of the Windows messages are routed to the CNetscapEditView.
+<H4>
+<A NAME="WinFE Notes"></A>Winfe Notes and Warnings</H4>
+
+<UL>
+<LI>
+Window creation, loading of contents, and file saving is managed in CEditFrame
+and CGenericFrame (all Editor-specific CGenericFrame methods are implemented
+in edframe.cpp.)&nbsp; To edit a URL given just the URLstring, simply call
+the Windows-global function FE_LoadURL(MWContext *pContext, BOOL bEdit)
+with bEdit = TRUE. This function will also load the URL into a Browser
+window if bEdit = FALSE.&nbsp; This function will bring up an existing
+window if the URL is already being edited, and compartmentalizes all the
+requirements such as hooks for Composer Plugins (which require Java).</LI>
+
+<LI>
+The Editor shares the Browser code for many purposes, such as network interface,
+printing, etc., thus the MWContext type (a member of the MWContext structure)
+for an Edit document is "MWContextBrowser", the same as for the Browser
+module. Thus "MWContextBrowser" does not uniquely identify the Browser
+-- use EDT_IS_EDITOR(pMWContext) if you don't want an Editor.&nbsp; Ideally,
+this should be changed from MWContextBrowser to MWContextEditor to match
+usage on other platforms.</LI>
+
+<LI>
+Be careful if you add or change the chrome in a browser frame (CMainFrame)
+This is a common error that happens among Netscape developers - they forget
+to check if we are in a browser or editor frame (use IsEditFrame() or EDT_IS_EDITOR(pMWContext)
+if you have a pointer to a MWContext struct.</LI>
+</UL>
+
+<H3>
+<A NAME="Mac Front"></A>Mac Front End</H3>
+The Macintosh Front End is mostly written in C++ based on PowerPlant classes.&nbsp;
+The main editor functionality can be found in CEditView.cp (based on class
+CHTMLView) and CEditorWindow.cp (based on class CBrowserWindow).
+<H3>
+<A NAME="UNIX Front End"></A>UNIX Front End</H3>
+<I>(To be completed)</I>
+<H2>
+<A NAME="Future Plans"></A>Future Plans</H2>
+This is a short version of the many ideas Netscape designers and engineers
+have suggested, as well as input from our customers:
+<UL>
+<LI>
+Complete work in progress. It is important to realize that this code release
+is happening in the middle of our previously planned development cycle.
+Thus there are key areas that are "works in progress":</LI>
+
+<UL>
+<LI>
+Table editing. We have selection and enhanced cell, row, column property
+dialogs mostly done. We need to complete:</LI>
+
+<UL>
+<LI>
+Dynamic resizing of table, row, and column height and width</LI>
+
+<LI>
+Copy/Paste and Drag&amp;Drop of selected table elements.</LI>
+
+<LI>
+Convert/reformat selected paragraphs into a table.</LI>
+</UL>
+
+<LI>
+Improve the performance of HTML layout based on Mariner enhancements. This
+includes <I>much</I> faster table layout and incremental rendering.</LI>
+</UL>
+
+<LI>
+Lists:</LI>
+
+<UL>
+<LI>
+Fix problems with copy/pasting and indenting/outdenting of list items.</LI>
+
+<LI>
+Make it easier to end a list by hitting Enter key twice</LI>
+
+<LI>
+Make it easier to start a list by entering a specified character.</LI>
+</UL>
+
+<LI>
+Copy data from a Browser or Mail Message in HTML format so it can retain
+attributes when pasted into Composer. This entails converting the layout
+elements into something like CEditElements and using the Netscape's HTML
+clipboard format, or producing a new format consisting of raw HTML text
+that is reparsed when pasted into Composer.</LI>
+
+<LI>
+Change the Editor API to conform to the HTML 4.0 Document Object Model
+(DOM). This should be done in coordination with adding the DOM API to the
+current layout engine.</LI>
+
+<LI>
+Replace current layout engine with a new systems conforming to HTML 4.0
+DOM.</LI>
+
+<LI>
+Improve WYSIWYG behavior, such as wrapping text around images, support
+for Cascading Style Sheets (CSS), floating layers, etc.&nbsp; This will
+probably require a new layout engine.</LI>
+
+<LI>
+Add support for HTML elements currently displayed as "Unknown HTML":</LI>
+
+<UL>
+<LI>
+Forms</LI>
+
+<LI>
+Frames</LI>
+
+<LI>
+Plugins</LI>
+
+<LI>
+Java Applets</LI>
+
+<LI>
+Layers</LI>
+</UL>
+
+<LI>
+XML Editing (modify HTML tag handling to conform to XML standards.)</LI>
+
+<LI>
+<FONT COLOR="#000000">Multi-level undo.</FONT></LI>
+
+<LI>
+<FONT COLOR="#000000">JavaScript plug-ins. (Possibly using the HTML 4.0
+DOM).</FONT></LI>
+
+<LI>
+<FONT COLOR="#000000">And fix outstanding bugs!</FONT></LI>
+
+<BR>&nbsp;</UL>
+
+</BODY>
+</HTML>

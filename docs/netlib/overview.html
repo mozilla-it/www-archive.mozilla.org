@@ -1,0 +1,74 @@
+<HTML>
+<HEAD>
+   <TITLE>netlib</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+<A NAME="netlib overviewTTL"></A>
+
+<H1>
+netlib</H1>
+<FONT SIZE=+1>A</FONT>t the heart of Netscape client products lies the
+Netscape Network Library (netlib). The underlying mission of any network
+library is to move data (html files, images, etc.) over a network connection.
+You'll soon learn that Netscape's netlib responsibilities have grown over
+the years to encompass more functionality than simple data movement, however,
+the mission core remains the same.
+
+<P><FONT SIZE=+1>A</FONT> necessity of any network based client app is
+to send and receive data over a connection. This is accomplished in netlib
+by making a call to <A HREF="NET_GetURL.html">NET_GetURL()</A>. Among <A HREF="NET_GetURL.html">NET_GetURL()'s</A>
+arguments is a URL_Struct which contains the actual url to be retrieved.
+When a call to <A HREF="NET_GetURL.html">NET_GetURL()</A> is made, a connection
+is established between the client making the request and the host machine
+named in the url, a request is sent in a particular format specified by
+the protocol (i.e. http, ftp), and data is received by the client, from
+the host machine. Now, there is a considerable amount of activity that
+takes place to accomplish this, and there are many issues to consider before
+retrieving the data; should a proxy be used to retrieve the data, does
+the data already reside locally (in part or in whole) in the cache, how
+do we give focus back to the calling application while data is in transit
+(you don't want your application to lock up, waiting for the data, do you?),
+and so on. These issues are part of netlib's responsibility to resolve
+and take appropriate action. These issues are discussed in pertinent sections
+of this documentation.
+
+<P><FONT SIZE=+1>O</FONT>nce data has been retrieved over the network,
+it has to be interpreted, otherwise it's meaningless. Once data is received
+(or before data is sent), it is in a stream. Content type converters register
+themselves as stream handlers, and do the interpretation. Content type
+converters are registered with a call to NET_RegisterContentTypeConverter().
+This registration call associates a function pointer with a particular
+stream type (mime-type), which is called when a stream of this type arrives.
+It then becomes the responsibility of the converter, not netlib's, to interpret
+the data coming down the stream. Recall that netlib simply moves the data
+back and forth, it doesn't know anything about it. Perhaps the data coming
+in is html in which case whichever converter registered itself to handle
+html for the given context (<A HREF="streams.html">see Streams for more
+info.</A>) will handle it. In the browser context, the converter would
+wind up displaying the data in the browser window.
+<BR>
+<BR><FONT SIZE=+1>R</FONT>arely is a client in an environment in which
+it establishes only one connection to retrieve only one url. Most of today's
+web pages consist of some html text and multiple images. This fact requires
+netlib to be able to process many urls "simultaneously." Simultaneously
+as far as perception is concerned. This can be accomplished in several
+ways. One solution would be to create a new thread for each url to retrieve,
+and call <A HREF="NET_GetURL.html">NET_GetURL()</A> on each new thread.
+For many reasons, this is not what netlib does. Another solution, which
+netlib employs, involves a list of urls currently being processed (active
+urls), which netlib maintains (adds a url to the list when a call to <A HREF="NET_GetURL.html">NET_GetURL()</A>
+is made, and removes a url from it when it's been completed) and continuously
+processes. If there are active entries in this list, netlib "processes"
+one of them for a timeslice, then passes focus back to the loop. The loop
+is aware that active entries still exist, and calls back into netlib (via
+a call to <A HREF="NET_ProcessNet.html">NET_ProcessNet()</A>) so more processing
+occurs. This looping continues until all active entries are gone (all urls
+have been retrieved). Netlib runs in the main mozilla thread and is not
+designed for multithread use, it instead relies on this loop-back call
+mechanism and the asynchronous nature of each <A HREF="protoImps.html">protocol
+implementation</A> to handle multiple connections simultaneously.
+<BR>
+<BR><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

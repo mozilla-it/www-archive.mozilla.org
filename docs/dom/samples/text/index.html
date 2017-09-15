@@ -1,0 +1,258 @@
+<html>
+<head>
+<title>DOM Level 1 - Exotic Demos - The Dynamic 3D Text Illusion</title>
+
+<script>
+
+	////////////////////////////////////////////////////////////////////////////////
+	// Produced by Marcio Galli for Netscape Communications.
+	// Uses DOM 1 to dynamically create a set of text elements using 
+	// the same content for all the texts, but with different sizes. 
+	//
+	// Each vertical slice that you see in the demo
+	// comes from a text with a clipped area.
+	//
+
+	// The demo uses DOM Level 1 to create the text elements dynamically and
+	// change style property. References:
+	//
+	// http://www.mozilla.org/docs/dom/technote/tn-dom-table/index.html
+	// http://dmoz.org/Computers/Programming/Languages/JavaScript/W3C_DOM/
+	// http://www.geckonnection.com
+	//
+
+	var clipright=853;			// Right margin clipped area.
+	var clipleft=2;				// Left margin clipped area.
+	var fontsize=40;			// Font size.
+	var posleft=50;				// Initial left position.
+	var postop=200;				// Initial top position.
+	var defaultString="gecko!";		// Default string.
+
+	parentID="area";			// parent div element where the images
+						// will be created. 
+
+
+	// The generator function for creating all text elements inside divs.
+	function generator() {
+
+		// 90 texts are created...
+		for(i=0;i<90;i++) {
+			// node represents the area whose div 
+			// elements include the text that will be created. 
+			//
+			node=document.getElementById(parentID);
+
+			// Creates a div. 
+			beforediv=document.createElement("DIV");
+
+			// Prepares the attribute string using postop, posleft, clipright and clipleft.
+			str="position:absolute;top:"+postop+"px;left:"+posleft+"px;width:860px;height:600px;font-size:"+fontsize+"pt;clip:rect(0px,"+clipright+"px,0px,"+clipleft+"px);overflow:hidden;";
+
+			// Sets the style attribute with the created str. 
+			beforediv.setAttribute("style",str);
+	
+			// Sets the id name. 
+			beforediv.setAttribute("id","object"+i);
+
+			// Creates the text node. 
+			newText=document.createTextNode(defaultString);
+
+			// Appends the new created text as a child of the the new div element. 
+			beforediv.appendChild(newText);
+
+			// Appends the new created div element as a child of the area div. 
+			node.appendChild(beforediv);
+
+
+			// Defines correct positioning for the next iteration...
+			// Try changing the approach. :-)
+
+//			// Approach one 
+//			clipright-=9;
+//			clipleft+=9;
+//			fontsize+=4;
+//			posleft-=5;
+//			postop-=4;
+
+			// Approach two 
+			clipright-=9+((i/90)*10);
+			clipleft+=9+((i/90)*10);
+			fontsize+=4-((i/90)*3);
+			posleft-=(4+((i/90)*10));
+			postop-=4;
+
+			// Approach three 
+//			clipright-=8;
+//			clipleft+=8;
+//			fontsize+=4;
+//			posleft-=5;
+//			postop-=4;
+		}
+	}
+
+
+	// 
+	// start function. This function is called in the onload event in the body tag. 
+	//
+	function start() {
+		setTimeout("anim()",dec); 
+	}
+
+
+	///////////////////////////////////////////////////////////////////////////////////
+	// Now the animation. This is the animation of the panel in which the user types
+	// the text string. Note that the panel comes from the top, then opens the window
+	// to edit. After user hits enter the pane closes and goes back to the top. At this 
+	// point, the generator function is called. 
+	//
+	// This  procedure uses DOM and CSS to set positioning 
+	// and hide/show state for div elements. The generator function in the top of
+	// the source code uses DOM Level 1 functions to create new HTML elements dynamically. 
+	//
+
+	dec=20;		// Global variable used for the animation. 
+
+	// ------------------------- animation 1 part 1/2 ---------------------------------
+	// First step of the animation procedure.
+	// Animates the pane from the top to the correct position. 
+	function anim() {
+		// The dec counter is initialized with 20. This number is decreased by
+		// one for each iteration until it reaches 0. 
+
+		dec--;
+		if(dec>0) {
+			yy=parseInt(document.getElementById("lw").style.top);
+
+			// NOTE that the top position is based on the dec counter. 
+			// This is to make a gradual slowing effect. The velocity is decreased for
+			// each iteration. :-)
+			tt=yy+dec;
+			document.getElementById("lw").style.top=tt+"px";
+
+			setTimeout("anim()",dec);
+		} else {
+			// End the first animation, then call the second animation,
+			// initializing the dec counter to 13. 
+			//
+			dec=13;
+			setTimeout("anim2()",dec);
+		}
+	}
+
+
+	// ------------------------- animation 1 part 2/2 ---------------------------------
+	// Second step of the animation procedure.
+	// Animates the left and right sub panes. Open. 
+	//
+	function anim2() {
+		// The dec counter is initialized with 13. This number is decreased by
+		// one for each iteration until it reaches 0. Same process again, but now,
+		// the code is animating the left and right sub panes. 
+		//
+		dec--;
+		if(dec>0) {
+			x1=parseInt(document.getElementById("balll").style.left);
+			x2=parseInt(document.getElementById("ballr").style.left);
+			document.getElementById("balll").style.left=x1-dec+"px";
+			document.getElementById("ballr").style.left=x2+dec+"px";
+			setTimeout("anim2()",dec);
+		} else {
+			// The form (which includes the text field) is positioned 
+			// in the correct place. The form was hidden in the -200 
+			// position. 
+			// 
+			// Note: This is not the best way to hide an element. You can
+			// hide / unhide with style also.
+			//document.getElementById("areaform").style.visibility="visible";
+
+			document.getElementById("areaform").style.left="225px";
+
+		}
+	}
+
+
+	// Lognow function starts the reverse of the anim1 and anim2 function by 
+	// starting the anim3 and anim4 animation process. 
+	//
+	function lognow() {
+
+		// sets the dec 
+		dec=13;
+		// hides the form. 
+		document.getElementById("areaform").style.visibility="hidden";
+		// start log now animation..
+		setTimeout("anim3()",dec);
+	}
+
+	// ------------------------- animation 2 part 1/2 ---------------------------------
+	// First step of the animation procedure.
+	// Animates the left and right sub panes. Closes. 
+	//
+	function anim3() {
+		// The reverse animation of the anim2
+		dec--;
+		if(dec>0) {
+			x1=parseInt(document.getElementById("balll").style.left);
+			x2=parseInt(document.getElementById("ballr").style.left);
+			document.getElementById("balll").style.left=x1+dec+"px";
+			document.getElementById("ballr").style.left=x2-dec+"px";
+			setTimeout("anim3()",dec);
+		}
+			else { 
+			dec=24;
+			setTimeout("anim4()",dec);
+		}
+	}
+
+	// ------------------------- animation 2 part 2/2 ---------------------------------
+	// Second step of the animation procedure.
+	// Animates the pane from the top to the correct position. 
+	//
+	function anim4() {
+		// This is the reverse animation of anim1.
+		dec--;
+		if(dec>0) {
+			yy=parseInt(document.getElementById("lw").style.top);
+			tt=yy-dec;
+			document.getElementById("lw").style.top=tt+"px";
+			setTimeout("anim4()",dec);
+		} else {
+
+			// Sets the value of defaultString with textfield at the end 
+			defaultString=document.forms[0].login.value;
+
+			// Calls generator to generate the characters. 
+			generator();
+		}
+	}
+
+
+
+</script>
+</head>
+<body bgcolor="white"  onload="start()">
+<ul><ul><ul><ul><ul><ul>enter your ID in the test field to log in!!! I mean -- your name!! :-)
+<div id="area" style="position:absolute;left:100px;top:100px;">
+</div>
+
+<div id="lw" style="position:absolute;top:-90px;left:-105px;">
+<div id="ballr" style="position:absolute;left:83px;top:0px">
+<a href="" onclick="lognow();return false;">
+<img src="ballright.jpg" border=0></a>
+</div>
+<div id="balll" style="position:absolute;left:0px;top:1px">
+<a href="" onclick="lognow();return false;"><img src="ballleft.jpg" border=0></a>
+</div>
+
+<div id="areaform" style="position:absolute;left:-225px;top:20px">
+        <form name="f" onsubmit="lognow();return false;" style="width:100px;height:20px">
+        <input type=text name="login" value="gecko!" size=7>
+        </form>
+</div>
+<div id="helix" style="position:absolute;left:240px;top:-205px">
+<img src="helix.gif">
+</div>
+</div>
+
+</body>
+</html>

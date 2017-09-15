@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+# "cheapj10n" stands for "cheap Japanization". Sometimes users may
+# need to use a newer version of Communicator which does not yet have
+# the official Japanese AppDefault file, Netscape.ad.
+# In such a case, if you apply this script to the English 'Netscape.ad'
+# all the fontLists will be replaced by generic font names for Japanese.
+# When you use the modified file, Communicator will be enabled for
+# Japanese display and input in all the relevant places.
+# Menus and dialogs  will remain in English, but otherwise you should have full
+# Japanese functionalities.
+# This script adds versionLocale 'ja' (SJIS) or 'ja_euc' (EUC). They are not
+# equivalent to platform-specific locale names and need not be changed from
+# platform to platform.
+# The cheapj10n'ed file must be used under the Japanese locale on your
+# Unix operating system. It will not work well if you don't have a full 
+# Japanese locale installed.  
+# If you experience a problem with this script, write to:
+# intlfeedback@netscape.com
+#
+# You can prepare a cheap localization file for your locale by finding
+# general enough font names for your locale. If you do, please send your
+# modified files to:
+# intlfeedback@netscape.com
+# so that others can benefit from your work.
+# Thank you.
+# Netscape International Client Product Group
+#
+LANG=C; export LANG
+ 
+echo ""
+echo "    *********************************"
+echo "    *                               *"
+echo "    *  cheapj10n version 6.0        *"
+echo "    *                               *"
+echo "    *********************************"
+echo ""
+sleep 1
+
+out=$1.cheapj10n_euc
+outsjis=$1.cheapj10n_sjis
+iso88591=-sony-fixed-medium-r-normal--16-120-100-100-c-80-iso8859-1
+jisx0201=-sony-fixed-medium-r-normal--16-120-100-100-c-80-jisx0201.1976-0
+jisx0208=-jis-fixed-medium-r-normal--16-150-75-75-c-160-jisx0208.1983-0
+echo creating $out and $outsjis
+sleep 1
+
+echo override all fontLists
+cat $1 > $out
+
+# sspitzer & alecf
+# look for all occurrences of "fontList:" without "!" (avoid comments)
+# then append the overriden fontLists hard coded with the japanese fonts
+grep 'fontList:' $1 | grep -v '^!' | awk -F: '{ printf "%s:\\\n%s;\\\n%s;\\\n%s:\n", $1, "'$iso88591'", "'$jisx0201'", "'$jisx0208'" }' >> $out
+sleep 1
+
+echo installing a Japanese font fallback
+echo 'Netscape*fontList:\' >> $out
+echo $iso88591';\' >> $out
+echo $jisx0201';\' >> $out
+echo $jisx0208':' >> $out
+sleep 1
+
+cp $out $outsjis
+echo 'Netscape*versionLocale: ja_euc' >> $out
+echo 'Netscape*versionLocale: ja' >> $outsjis
+sleep 1
+
+echo ""
+echo Don\'t forget to:
+echo ""
+sleep 1
+
+echo "        setenv XENVIRONMENT $out"
+echo "OR      setenv XENVIRONMENT $outsjis"
+echo "        --------------------------------------"
+echo ""

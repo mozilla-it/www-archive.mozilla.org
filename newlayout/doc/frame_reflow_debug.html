@@ -1,0 +1,318 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+ <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+  <style type="text/css">
+  body {font-family:arial}
+.log {background-color:silver; color:blue}
+  </style>
+  <title> Debugging Frame Reflow</title>
+ <script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+ 
+ 
+<h1>Debugging Frame Reflow HowTo</h1>
+<h2>General Overview</h2>
+<p> The frame reflow can be logged with the debug capabilties implemented in <a href="http://lxr.mozilla.org/seamonkey/source/layout/html/base/src/nsFrame.cpp"><code>nsFrame.cpp</code></a>. 
+It provides the following information for each frame at the
+start of its reflow
+<ul>
+<li><a href="reflow.html#reflowreason">reflow reason</a>
+<li><a href="reflow.html#reflowstate">available width, available height</a>
+<li><a href="reflow.html#reflowstate">computed width, computed height</a>
+<li>the previous and the next frame in flow
+<li>and a count number.
+</ul>
+<p>When the frame's reflow is finished the following information is displayed :</p>
+<ul>
+<li><a href="reflow.html#reflowmetrics">reflow metric (desired)  width, height</a>
+<li><a href="block-and-line.html#maxElementWidth">max. element width</a>
+<li><a href="block-and-line.html#mMaximumWidth">maximum width</a>
+<li>frame status
+<li>overflow area
+</ul>
+
+<h2>Getting the log</h2>
+<ul>
+<li>Make sure that your build is a <b>debug</b> <a href="http://www.mozilla.org/build/configure-build.html">build</a>  (in short you need <code>ac_add_options --enable-debug</code> in your <code>.mozconfig</code> file).
+<li>Create a text file (for instance <code>reflow_rules.txt</code>).
+<li>Enter this line  in the text file <pre>* 1</pre>
+<li>This should look like: <br><img src="reflowrules.png" alt="reflow rules file">
+<li>point the <code>GECKO_DISPLAY_REFLOW_RULES_FILE</code> enviroment variable to the path of the <code>reflow_rules.txt</code> file.<br>
+<img src="reflowenvironment.png" alt="set the environment variable">
+<li> Run <code>mozilla &gt; logfile.txt</code> and load your testcase. The
+logfile will contain all the promised information.
+</ul>
+<h2>Log File analyis</h2>
+<p>The logfile for a simple table like</p>
+<pre>
+&lt;!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;meta http-equiv="content-type" content="text/html; charset=ISO-8859-1"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;table width="100"&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;foo&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<p> will create the following log:</p>
+<table class="log"><tr><td>
+<pre>
+VP 00B97C30 r=0 a=9180,4470 c=9180,4470 cnt=856 
+ scroll 00B97EE0 r=0 a=9180,4470 c=9180,4470 cnt=857 
+ scroll 00B97EE0 r=0 a=9180,4470 c=9180,4470 cnt=858 
+  canvas 00B97C6C r=0 a=9180,UC c=9180,4470 cnt=859 
+   area 02D7AFE4 r=0 a=9180,UC c=9180,UC cnt=860 
+    text 02D7B150 r=0 a=9180,UC c=UC,UC cnt=861 
+    text 02D7B150 d=0,0 
+    block 02D7B210 r=0 a=9180,UC c=8940,UC cnt=862 
+    block 02D7B210 d=8940,0 
+   area 02D7AFE4 d=9180,120 
+  canvas 00B97C6C d=9180,4470 
+ scroll 00B97EE0 d=9180,4470 
+ scroll 00B97EE0 d=9180,4470 
+VP 00B97C30 d=9180,4470 
+VP 00B97C30 r=1 a=9180,4470 c=9180,4470 cnt=863 
+ scroll 00B97EE0 r=1 a=9180,4470 c=9180,4470 cnt=864 
+ scroll 00B97EE0 r=1 a=9180,4470 c=9180,4470 cnt=865 
+  canvas 00B97C6C r=1 a=9180,UC c=9180,4470 cnt=866 
+   area 02D7AFE4 r=1 a=9180,UC c=9180,UC cnt=867 
+    block 02D7B210 r=1 a=9180,UC c=8940,UC cnt=868 
+     text 02D7B3F8 r=0 a=8940,UC c=UC,UC cnt=869 
+     text 02D7B3F8 d=0,0 
+     tblO 02D7B5F0 r=0 a=8940,UC c=0,0 cnt=870 
+      tbl 02D7B7EC r=0 a=8940,UC c=1500,UC cnt=871 
+       rowG 00B984A4 r=0 a=UC,UC c=UC,UC cnt=872 
+        row 02D7BAF8 r=0 a=UC,UC c=UC,UC cnt=873 
+         cell 02D7BC98 r=0 a=UC,UC c=UC,UC cnt=874 
+          block 02D7BCF8 r=0 a=UC,UC c=UC,UC cnt=875 
+           text 02D7BE84 r=0 a=UC,UC c=UC,UC cnt=876 
+           text 02D7BE84 d=300,285 me=300 
+          block 02D7BCF8 d=300,300 me=300 
+         cell 02D7BC98 d=330,330 me=330 
+        row 02D7BAF8 d=UC,330 
+       rowG 00B984A4 d=UC,330 
+       colG 02D7BFB0 r=0 a=UC,UC c=UC,UC cnt=877 
+        col 02D7C0D8 r=0 a=0,0 c=1500,UC cnt=878 
+        col 02D7C0D8 d=0,0 
+       colG 02D7BFB0 d=0,0 
+       rowG 00B984A4 r=2 a=1500,UC c=1500,UC cnt=879 
+        row 02D7BAF8 r=2 a=1500,UC c=1500,UC cnt=880 
+         cell 02D7BC98 r=2 a=1440,UC c=1410,UC cnt=881 
+          block 02D7BCF8 r=2 a=1410,UC c=1410,UC cnt=882 
+          block 02D7BCF8 d=1410,300 
+         cell 02D7BC98 d=1440,330 
+        row 02D7BAF8 d=1500,330 
+       rowG 00B984A4 d=1500,330 
+       colG 02D7BFB0 r=2 a=1500,UC c=1500,UC cnt=883 
+        col 02D7C0D8 r=0 a=0,0 c=1500,UC cnt=884 
+        col 02D7C0D8 d=0,0 
+       colG 02D7BFB0 d=0,0 
+      tbl 02D7B7EC d=1500,390 
+     tblO 02D7B5F0 d=1500,390 
+     text 02D7C130 r=0 a=8940,UC c=UC,UC cnt=885 
+     text 02D7C130 d=0,0 
+    block 02D7B210 d=8940,390 
+   area 02D7AFE4 d=9180,630 
+  canvas 00B97C6C d=9180,4470 
+ scroll 00B97EE0 d=9180,4470 
+ scroll 00B97EE0 d=9180,4470 
+VP 00B97C30 d=9180,4470 
+</pre>
+</td></tr></table>
+<p>
+The first line shows the reflow of the viewport (<code class="log">VP</code>). This viewport has the address <code class="log">00B97C30</code>. It is the initial reflow: <code class="log">r=0</code>. Other reflow reasons are: </p>
+<table>
+<tr><td>1</td><td>incremental reflow</td></tr>
+<tr><td>2</td><td>resize reflow</td></tr>
+<tr><td>3</td><td>style change reflow</td></tr>
+<tr><td>4</td><td>dirty reflow.</td></tr>
+</table>
+
+<p>The available width is 9180 twips. The available height is 4470 twips (<code class="log">a=9180,4470</code>). The computed width is 9180 twips. The computed height is 4470 twips (<code class="log">c=9180,4470</code>). The line count is 856 (<code  class="log">cnt=856</code>).
+<p>
+Below this is a line that reads:<p><code class="log">tblO 02D7B5F0 r=0 a=8940,UC c=0,0 cnt=870</code></p><p> Here the <code class="log">UC</code> shows that on initial reflow the available height for the outer table frame is unconstrained.
+<p>
+The table cell requires its children to compute the MES. It is reported back from the block as:
+<p><code class="log">block 02D7BCF8 d=300,300 me=300</code></p>
+<p>The  block max. element size is 300 twips.
+<p> The second table reflow is started at 
+<p><code class="log">rowG 00B984A4 r=2 a=1500,UC c=1500,UC cnt=879</code></p>
+<p>where the previous information is used. 
+The block has been required to compute the max. element size only once and it reports now:
+<p> <code class="log">block 02D7BCF8 d=1410,300</code></p>
+<p>The block shows the same address as the previous one. 
+<p>Frames with children that overflow  the parent have the <code>NS_FRAME_OUTSIDE_CHILDREN</code> flag set. For these frames 
+the overflowarea  is displayed as  <code class="log">block 025ED8F0 d=8940,1020 o=(0,0) 9180 x 1020</code>. The overflow area is specified as (x,y) origin and width x height.
+<p> The reflow finishes at the same level where it started.
+
+<h2>Advanced reflow debugging</h2>
+<p>The previously described technique dumps the data for every frame. Sometimes the log is clearer if only the main frames are shown.
+The entries in the reflow log can be controlled on a frame level.  For instance adding <code>text 0</code> to the rules in <code>reflow_rules.txt</code> would hide the text entries from the reflow. The display of the following frames can be turned on by adding a line with the frame name and  <code>1</code>  or turned off by adding a line with the frame name and <code>0</code>:</p>
+<table cellspacing="5">
+ <tr><th style="text-align:left">short name</th><th style="text-align:left">layout tag</th></tr>
+ <tr><td>area</td><td>area</td></tr>
+ <tr><td>block</td><td>block</td></tr>
+ <tr><td>br</td><td>br</td></tr>
+ <tr><td>bullet</td><td>bullet</td></tr>
+ <tr><td>button</td><td>gfxButtonControl</td></tr>
+ <tr><td>hr</td><td>hr</td></tr>
+ <tr><td>frameI</td><td>htmlFrameInner</td></tr>
+ <tr><td>frameO</td><td>htmlFrameOuter</td></tr>
+ <tr><td>img</td><td>image</td></tr>
+ <tr><td>inline</td><td>inline</td></tr>
+ <tr><td>letter</td><td>letter</td></tr>
+ <tr><td>line</td><td>line</td></tr>
+ <tr><td>select</td><td>select</td></tr>
+ <tr><td>obj</td><td>object</td></tr>
+ <tr><td>page</td><td>page</td></tr>
+ <tr><td>place</td><td>placeholder</td></tr>
+ <tr><td>posInline</td><td>positionedInline</td></tr>
+ <tr><td>canvas</td><td>canvas</td></tr>
+ <tr><td>root</td><td>root</td></tr>
+ <tr><td>scroll</td><td>scroll</td></tr>
+ <tr><td>caption</td><td>tableCaption</td></tr>
+ <tr><td>cell</td><td>tableCell</td></tr>
+ <tr><td>bcCell</td><td>bcTableCell</td></tr>
+ <tr><td>col</td><td>tableCol</td></tr>
+ <tr><td>colG</td><td>tableColGroup</td></tr>
+ <tr><td> tbl</td><td>table</td></tr>
+ <tr><td>tblO</td><td>tableOuter</td></tr>
+ <tr><td>rowG</td><td>tableRowGroup</td></tr>
+ <tr><td>row</td><td>tableRow</td></tr>
+ <tr><td>textCtl</td><td>textInput</td></tr>
+ <tr><td>text</td><td>text</td></tr>
+ <tr><td>VP</td><td>viewport</td></tr>
+</table>
+<p>Once the problem is reduced to a single frame level, placing a breakpoint at <code>DisplayReflowEnterPrint</code> in <a href="http://lxr.mozilla.org/seamonkey/source/layout/html/base/src/nsFrame.cpp"><code>nsFrame.cpp</code></a> is a very efficient way to step through
+ the reflow tree.
+
+<h2>Other reflow debug options</h2>
+
+<h3>GECKO_DISPLAY_REFLOW_FLAG_PIXEL_ERRORS</h3>
+<p>
+Setting this option via <code>set GECKO_DISPLAY_REFLOW_FLAG_PIXEL_ERRORS = 1</code> enables a verification for each coordinate value that the coordinates are aligned at pixel boundaries.
+<table class="log"><tr><td>
+<pre>
+              row 0268A594 r=0 a=UC,UC c=UC,20 cnt=870 
+VALUE 20 is not a whole pixel 
+               cell 0268A6C0 r=0 a=UC,UC c=UC,15 cnt=871 
+                block 0268A764 r=0 a=UC,UC c=UC,UC cnt=872 
+                block 0268A764 d=0,0 me=0 
+               cell 0268A6C0 d=0,0 me=0 
+              row 0268A594 d=UC,20 
+VALUE 20 is not a whole pixel 
+             rowG 0268A02C d=UC,695 
+VALUE 695 is not a whole pixel</pre>
+</td></tr></table>
+<p>
+While unaligned values at the entrance of a frame reflow can be ignored,  when they appear at the exit of a routine this can cause display errors like stray lines. OS2 is very vulnerable to pixel alignement errors as text is drawn on pixel boundaries.
+
+<h3>GECKO_DISPLAY_REFLOW_INDENT_UNDISPLAYED_FRAMES</h3>
+<p>
+Setting this option via <code>set GECKO_DISPLAY_REFLOW_INDENT_UNDISPLAYED_FRAMES = 1</code> will cause an advance of the indent even for frames which are blocked via the reflow rules file.  
+ 
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December  4,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/newlayout/doc/frame_reflow_debug.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

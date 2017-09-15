@@ -1,0 +1,773 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+  <title>How to find leaks of XPCOM objects</title>
+  <style type="text/css">
+
+p { margin-left: 5em; }
+pre { margin-left: 8em; }
+
+.prompt { color: #999; background: white; }
+
+p.byline { margin: 0; font-weight: bold; }
+
+  </style>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel nomenu">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mBody" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+
+<!-- vim:sw=2:ts=2:et:tw=72:
+-->
+
+
+
+
+
+<div align="center">
+<h1>How to find leaks of XPCOM objects</h1>
+<p class="byline">by David Baron, &lt;<a href="mailto:dbaron@dbaron.org">dbaron@dbaron.org</a>&gt;, July 2000</p>
+</div>
+
+<div>[ Up to <a href="tools.html">Tools</a>, <a href="./">Performance</a> ]</div>
+
+<p>
+  The sections later in this document on object graphs that include
+  JavaScript objects are somewhat out of date (since the XPCDOM
+  landing).  See the <a href="leak-brownbag.html">leak brownbag</a> for
+  more up-to-date information.  &mdash;November 2001
+</p>
+
+<hr>
+
+<p>
+
+  This document describes how to find leaks of <a href="../projects/xpcom/">XPCOM</a> objects using
+  the XPCOM logging facilities in <code><a
+  href="http://lxr.mozilla.org/mozilla/source/xpcom/base/nsTraceRefcnt.h">nsTraceRefcnt</a></code>
+  along
+  with the refcount balancer.  These tools are most easily used
+  on Linux.  The stack tracing tools do not work on Windows and
+  the nsCOMPtr logging facilities are not yet enabled on Windows or
+  Macintosh.  They are built by default in <em>debug</em> builds of Mozilla.
+  The Perl scripts used are available by checking out
+  <code><a
+  href="http://lxr.mozilla.org/mozilla/source/tools/rb/">mozilla/tools/rb</a></code>.
+
+</p>
+
+<p>
+
+  This document includes examples of how I would debug a leak
+  (on Linux).  The environment variables that I set are cumulative.
+  The example chosen is intentionally one of the most difficult
+  class of leaks so that I can demonstrate lots of tools (by
+  heading down the wrong path).  Most leaks are much easier.
+
+</p>
+
+<p>
+
+  This is not intended to be a full
+  description of what these tools can do.  See the <a
+  href="../projects/xpcom/MemoryTools.html">XPCOM
+  memory tools documentation</a> and the <a
+  href="refcnt-balancer.html">refcount balancer documentation</a> for
+  more details.
+
+</p>
+
+<p>
+  <strong>See the <a href="leak-brownbag.html">leak brownbag</a> for an
+  more general overview of how to find leaks in Mozilla, including
+  information on other, newer, tools.</strong>
+</p>
+
+<h2>What leaked?</h2>
+
+<p>
+
+  The XPCOM leak logging tools show leaks and bloat
+  for certain objects:  XPCOM objects (which use the <code><a
+  href="http://lxr.mozilla.org/mozilla/ident?i=NS_IMPL_ADDREF">NS_IMPL_ADDREF</a></code>
+  and <code><a
+  href="http://lxr.mozilla.org/mozilla/ident?i=NS_IMPL_ADDREF">NS_IMPL_RELEASE</a></code>
+  macros) and any other objects that use the <code><a
+  href="http://lxr.mozilla.org/mozilla/ident?i=MOZ_COUNT_CTOR">MOZ_COUNT_CTOR</a></code>
+  and <code><a
+  href="http://lxr.mozilla.org/mozilla/ident?i=MOZ_COUNT_DTOR">MOZ_COUNT_DTOR</a></code>
+  macros.  They don't know anything about any other objects or about
+  string buffers.  The objects detected are leaked objects, objects held
+  in static variables, and anything those objects own.  XPCOM objects
+  whose <code>AddRef</code> method is never called are not included.
+
+</p>
+
+<p>
+
+  To see the XPCOM objects leaked, set the environment
+  variable <code>XPCOM_MEM_LEAK_LOG</code> to a filename (or to
+  <code>1</code> for standard output):
+
+</p>
+
+<pre class="in">
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_LEAK_LOG 1
+<span class="prompt">&gt;</span> ./mozilla -editor
+</pre>
+
+<pre class="out">
+     |<----------------Class--------------->|<-----Bytes------>|<----------------Objects---------------->|<--------------References-------------->|
+                                              Per-Inst   Leaked    Total      Rem      Mean       StdDev     Total      Rem      Mean       StdDev
+   0 TOTAL                                          26    51820   443674     1368 ( 6208.07 +/-  4498.40)  1314903     1041 ( 3261.06 +/-  3649.33)
+nsTraceRefcnt::DumpStatistics: 460 entries
+   1 ArenaImpl                                      48       48       11        1 (    5.76 +/-     3.11)       23        1 (    6.02 +/-     3.16)
+   2 AtomImpl                                       16     3184     2646      199 ( 1056.26 +/-   477.20)   152742      313 ( 6642.19 +/-  2149.30)
+  15 CSSDeclarationImpl                             76      456      973        6 (  481.05 +/-   276.96)     2204       17 (  638.81 +/-   351.72)
+  17 CSSLoaderImpl                                 140      140       14        1 (    4.59 +/-     3.53)      105        1 (    8.05 +/-     6.65)
+  18 CSSParserImpl                                 252      252       82        1 (    0.70 +/-     0.76)      304        1 (    1.45 +/-     0.88)
+  20 CSSStyleSheetImpl                              96      192       40        2 (   20.50 +/-    11.34)      352        3 (   60.57 +/-    32.74)
+  21 CSSStyleSheetInner                             40       80       36        2 (   18.50 +/-    10.18)        0        0 (    0.00 +/-     0.00)
+  41 GIFDecoder                                     16       16       47        1 (   23.13 +/-    12.67)       94        1 (   23.51 +/-    12.72)
+  42 GenericTableRule                               16       32       22        2 (   11.50 +/-     6.15)       22        2 (   11.50 +/-     6.15)
+  43 GlobalWindowImpl                              208      624        3        3 (    2.00 +/-     1.00)    17587        4 (   11.45 +/-     3.00)
+  44 HTMLAttribute                                  16       32       23        2 (   12.00 +/-     6.44)        0        0 (    0.00 +/-     0.00)
+  45 HTMLAttributesImpl                             60       60        9        1 (    4.76 +/-     2.54)        9        1 (    4.76 +/-     2.54)
+  46 HTMLCSSStyleSheetImpl                          32       32       11        1 (    5.76 +/-     3.11)       64        2 (   15.67 +/-     9.03)
+  47 HTMLColorRule                                  20       20        3        1 (    1.80 +/-     0.84)        7        1 (    3.15 +/-     1.34)
+  49 HTMLStyleSheetImpl                             60       60       11        1 (    5.76 +/-     3.11)       78        2 (   16.10 +/-     8.96)
+  52 ImageConsumer                                  64       64       47        1 (   15.80 +/-    11.06)     1269        3 (   50.27 +/-    33.17)
+  55 ImageNetContextImpl                            32       32       95        1 (   46.90 +/-    26.19)      142        2 (   62.78 +/-    31.17)
+  56 ImageRendererImpl                              12       12        1        1 (    1.00 +/-     0.00)       48        1 (   23.83 +/-    13.21)
+  59 ImageURLImpl                                   24       24       47        1 (   15.80 +/-    11.06)       94        2 (   31.59 +/-    22.05)
+  60 ImgDCallbk                                     16       16       47        1 (   23.32 +/-    12.91)       47        1 (   23.32 +/-    12.91)
+  70 LocationImpl                                   28       28        1        1 (    1.00 +/-     0.00)       17        2 (    2.75 +/-     0.76)
+  75 NameSpaceImpl                                  28      140      155        5 (   50.36 +/-    35.24)    14101       39 ( 1306.49 +/-   781.99)
+  76 NameSpaceManagerImpl                           12       72       75        6 (   20.44 +/-    12.14)      405       10 (   61.25 +/-    42.47)
+  77 NameSpaceURIKey                                 8       96      136       12 (   11.20 +/-     2.18)        0        0 (    0.00 +/-     0.00)
+  78 NavigatorImpl                                  28       28        1        1 (    1.00 +/-     0.00)        7        1 (    2.54 +/-     0.97)
+  79 NetReaderImpl                                  16       16       47        1 (   15.80 +/-    11.06)      235        1 (   16.50 +/-    11.03)
+  90 RDFServiceImpl                                 52       52        1        1 (    1.00 +/-     0.00)      705        3 (  117.61 +/-    54.04)
+ 103 URLKey                                         12       24      148        2 (   18.30 +/-     9.60)        0        0 (    0.00 +/-     0.00)
+ 125 nsAsyncStreamListener                          24       24      113        1 (   10.63 +/-    10.81)        0        0 (    0.00 +/-     0.00)
+ 126 nsAsyncStreamObserver                          20       20      113        1 (   10.63 +/-    10.81)      927        1 (   29.00 +/-    31.96)
+ 127 nsAtomList                                      8       64     2029        8 (  331.84 +/-   211.01)        0        0 (    0.00 +/-     0.00)
+ 128 nsAttrSelector                                 40      320     1027        8 (  187.30 +/-   111.31)        0        0 (    0.00 +/-     0.00)
+ 132 nsBaseComposerCommand                          12      396       33       33 (   17.00 +/-     9.67)      287       35 (   34.83 +/-     5.18)
+ 134 nsBaseEditorCommand                            12       96        8        8 (    4.50 +/-     2.45)      250       42 (   41.03 +/-     7.25)
+ 138 nsBasicEncoder                                 16       16        1        1 (    1.00 +/-     0.00)     1462        1 (    4.16 +/-     0.70)
+ 139 nsBindingManager                               20       20       11        1 (    5.76 +/-     3.11)    14223        1 (    7.92 +/-     3.64)
+ 141 nsBoxLayout                                    12       36        3        3 (    2.00 +/-     1.00)     1481        3 (  179.23 +/-    79.70)
+ 142 nsCSSColor                                     72      216      292        3 (  146.75 +/-    83.94)        0        0 (    0.00 +/-     0.00)
+ 149 nsCSSMargin                                    64      192      390        3 (  195.75 +/-   112.22)        0        0 (    0.00 +/-     0.00)
+ 150 nsCSSPosition                                  80       80       96        1 (   48.25 +/-    27.64)        0        0 (    0.00 +/-     0.00)
+ 151 nsCSSRect                                      32      256     1050        8 (  526.99 +/-   302.04)        0        0 (    0.00 +/-     0.00)
+ 152 nsCSSRule                                      16      272     1238       17 (  623.22 +/-   355.04)    16905       17 ( 3369.22 +/-  1353.03)
+ 154 nsCSSSelector                                  32      800     5620       25 (  863.02 +/-   499.64)        0        0 (    0.00 +/-     0.00)
+ 155 nsCSSTable                                     52       52        5        1 (    2.78 +/-     1.39)        0        0 (    0.00 +/-     0.00)
+ 158 nsCSSValueList                                 12       24       51        2 (   26.00 +/-    14.51)        0        0 (    0.00 +/-     0.00)
+ 171 nsClassList                                     8        8      657        1 (  328.26 +/-   189.15)        0        0 (    0.00 +/-     0.00)
+ 181 nsContentList                                  64       64        7        1 (    2.69 +/-     1.18)       21        1 (    3.54 +/-     1.45)
+ 184 nsControllerCommandManager                     32       64        2        2 (    1.50 +/-     0.71)       21        2 (    3.05 +/-     1.50)
+ 188 nsDNSService                                   68       68        1        1 (    1.00 +/-     0.00)        4        1 (    1.71 +/-     0.76)
+ 190 nsDOMAttributeMap                              24       48       22        2 (   11.50 +/-     6.15)      238        2 (   14.02 +/-     6.50)
+ 191 nsDOMDocumentType                             160      320        4        2 (    2.50 +/-     1.05)       39        3 (    5.12 +/-     2.16)
+ 194 nsDOMImplementation                            28       28        4        1 (    0.57 +/-     0.53)        9        1 (    1.24 +/-     0.83)
+criptObjectFactory                       12       12        1        1 (    1.00 +/-     0.00)      367        1 (    2.05 +/-     0.71)
+ 197 nsDOMWindowController                          16       32        2        2 (    1.50 +/-     0.71)       23        2 (    2.64 +/-     0.97)
+ 201 nsDateTimeFormatUnix                          156      156        1        1 (    1.00 +/-     0.00)        2        1 (    1.33 +/-     0.58)
+ 206 nsDocLoaderImpl                               132      132        4        1 (    2.29 +/-     1.11)     1661        3 (   48.56 +/-    36.21)
+ 211 nsDocument                                    224      224       10        1 (    5.26 +/-     2.83)     1835        1 (   14.16 +/-     5.43)
+ 212 nsDocumentOpenInfo                             56       56       51        1 (   15.53 +/-    11.45)      153        1 (   16.46 +/-    11.45)
+ 213 nsDrawingSurfaceGTK                           112      112       63        1 (    1.51 +/-     0.55)       63        1 (    1.51 +/-     0.55)
+ 217 nsEditorController                             28       56        3        2 (    2.00 +/-     0.82)     1083        2 (   11.10 +/-     1.58)
+ 225 nsEventListenerManager                         80      400      784        5 (  287.12 +/-   137.44)     5615        5 (  350.63 +/-   156.52)
+ 226 nsEventQueueImpl                               36       36        1        1 (    1.00 +/-     0.00)     1738        5 (   46.21 +/-    34.61)
+ 227 nsEventQueueServiceImpl                        28       28        1        1 (    1.00 +/-     0.00)      552        2 (   25.12 +/-    23.52)
+ 232 nsFileChannel                                 120      120      176        1 (    7.94 +/-     9.52)     2652        5 (   59.75 +/-    65.17)
+ 233 nsFileIO                                       32       32      176        1 (    0.65 +/-     0.62)     1232        1 (    1.65 +/-     0.82)
+ 238 nsFileStream                                   20       20      176        1 (    0.67 +/-     0.67)      586        1 (    1.45 +/-     0.95)
+ 239 nsFileTransport                               140      140      179        1 (    7.45 +/-     9.59)     1443        2 (   58.16 +/-    72.78)
+ 240 nsFileTransportService                         28       28        1        1 (    1.00 +/-     0.00)      362        1 (    2.99 +/-     0.72)
+ 246 nsGenericDOMNodeList                           20       20        2        1 (    1.33 +/-     0.58)       90        1 (    2.93 +/-     0.76)
+ 247 nsGenericFactory                               20       20      140        1 (   70.25 +/-    40.34)     2953        2 (  189.14 +/-    55.19)
+ 251 nsHTMLBRElement                                48       48        2        1 (    1.33 +/-     0.58)     1173        1 (    8.81 +/-     2.47)
+ 252 nsHTMLBodyElement                              64       64        3        1 (    1.80 +/-     0.84)     2964        1 (   18.74 +/-     5.24)
+ 256 nsHTMLHeadElement                              52       52        3        1 (    1.80 +/-     0.84)      227        1 (    5.08 +/-     1.67)
+ 257 nsHTMLHtmlElement                              52       52        3        1 (    1.80 +/-     0.84)      837        1 (   10.40 +/-     3.08)
+ 265 nsHashKey                                       4      688    48981      172 ( 2899.56 +/-   866.84)        0        0 (    0.00 +/-     0.00)
+ 266 nsHashtable                                    12      204      319       17 (  153.00 +/-    85.00)        0        0 (    0.00 +/-     0.00)
+ 268 nsIOService                                    28       28        1        1 (    1.00 +/-     0.00)     1168        1 (    4.85 +/-     1.03)
+ 269 nsImageGTK                                     96       96       47        1 (   23.13 +/-    12.67)      300        1 (   81.30 +/-    34.02)
+ 276 nsJSEventListener                              32       32      665        1 (  247.23 +/-   115.23)     1341        1 (  249.11 +/-   115.94)
+ 289 nsLoadGroup                                     4        4        4        1 (    2.29 +/-     1.11)      848        3 (   26.97 +/-    21.51)
+ 290 nsLocalFile                                   116      116     1071        1 (  121.48 +/-    41.61)     6121        3 (  130.95 +/-    50.57)
+ 300 nsMemoryImpl                                   16       16        1        1 (    1.00 +/-     0.00)      345        1 (   11.95 +/-    10.59)
+ 310 nsNoAuthURLParser                              12       12        1        1 (    1.00 +/-     0.00)      743        9 (   43.19 +/-    36.96)
+ 311 nsNodeInfo                                     28      588      379       21 (  182.15 +/-    98.64)    27438       85 ( 4818.27 +/-  2929.00)
+ 312 nsNodeInfoManager                              20       40       11        2 (    6.00 +/-     2.99)     6885       22 (  232.95 +/-    96.37)
+ 322 nsPipe                                         88       88      113        1 (    9.48 +/-    10.62)      589        2 (   10.72 +/-    10.40)
+ 331 nsProxyEventClass                              36       72        3        2 (    2.00 +/-     0.82)      391        2 (   35.40 +/-    22.48)
+ 332 nsProxyEventObject                            188      376       97        2 (   31.67 +/-    22.30)      245        2 (   32.26 +/-    22.45)
+ 333 nsProxyObject                                  28       56       97        2 (   31.67 +/-    22.30)      388        2 (   62.16 +/-    44.84)
+ 346 nsRepeatService                                20       20        1        1 (    1.00 +/-     0.00)        2        1 (    1.33 +/-     0.58)
+ 347 nsResChannel                                  100      100      147        1 (    8.25 +/-     9.89)     1029        1 (    9.86 +/-     9.87)
+ 348 nsResProtocolHandler                           28       28        1        1 (    1.00 +/-     0.00)      886        1 (   10.02 +/-     9.89)
+ 360 nsSimpleURI                                     4        4        6        1 (    2.36 +/-     1.12)      291        4 (   20.82 +/-     8.53)
+ 361 nsSliderMediator                               20       40        8        2 (    4.50 +/-     2.14)       16        2 (    7.97 +/-     3.78)
+ 362 nsSocketTransportService                       64       64        1        1 (    1.00 +/-     0.00)        6        2 (    2.50 +/-     0.85)
+ 367 nsStdURL                                        4       56     1086       14 (  108.12 +/-    75.62)    10047       18 (  237.31 +/-   150.06)
+ 368 nsStdURLParser                                 12       12        1        1 (    1.00 +/-     0.00)     1793        5 (   56.42 +/-    42.19)
+ 369 nsStr                                          20     4520   311956      226 ( 8173.30 +/-  3862.96)        0        0 (    0.00 +/-     0.00)
+ 375 nsStringKey                                   156    20904    10476      134 (  971.65 +/-   271.09)        0        0 (    0.00 +/-     0.00)
+ 378 nsSupportsArray                                40     1040     3826       26 (  914.67 +/-   386.64)    11006       27 (  873.29 +/-   390.87)
+ 380 nsSystemPrincipal                              52       52        1        1 (    1.00 +/-     0.00)     9313        1 (   18.30 +/-     5.51)
+ 391 nsThread                                       24       48        3        2 (    2.00 +/-     0.82)      395        7 (    9.93 +/-     0.93)
+ 392 nsThreadPool                                   48       48        1        1 (    1.00 +/-     0.00)        4        2 (    1.83 +/-     0.75)
+ 393 nsThreadPoolRunnable                           16       16        1        1 (    1.00 +/-     0.00)        3        1 (    1.80 +/-     0.84)
+ 404 nsUnicodeEncodeHelper                          12       12        1        1 (    1.00 +/-     0.00)        1        1 (    1.00 +/-     0.00)
+ 409 nsVoidArray                                     8      688     8348       86 ( 2360.87 +/-  1059.85)        0        0 (    0.00 +/-     0.00)
+ 415 nsXBLAttributeEntry                            24      432      427       18 (  217.91 +/-   120.89)      619       18 (  239.30 +/-   133.66)
+ 416 nsXBLBinding                                   44      176      236        4 (  118.97 +/-    67.59)     5752        4 (  138.50 +/-    70.94)
+ 421 nsXMLElement                                   64      512      414        8 (  204.96 +/-   114.51)    21768       10 (  334.57 +/-   175.92)
+ 424 nsXPCComponents                                48      144        9        3 (    5.20 +/-     2.37)       54        9 (   16.00 +/-     7.54)
+ 430 nsXPCWrappedJS                                 32     1504       50       47 (   26.77 +/-    15.09)      244       47 (   43.71 +/-    15.77)
+ 431 nsXPCWrappedJSClass                            44       44        4        1 (    2.29 +/-     1.11)      101       47 (   26.58 +/-    14.83)
+ 432 nsXPCWrappedNative                             48      144      113        3 (   49.70 +/-    25.53)     1250        3 (   71.37 +/-    28.13)
+ 433 nsXPCWrappedNativeClass                        48       48       28        1 (   13.09 +/-     6.87)      226        3 (   49.90 +/-    25.72)
+ 434 nsXPCWrappedNativeScope                        28       84        9        3 (    5.20 +/-     2.37)      122        3 (   47.23 +/-    26.40)
+ 437 nsXULAttribute                                 32     1248     3762       39 ( 1887.70 +/-  1075.64)     3762       39 ( 1887.70 +/-  1075.64)
+ 438 nsXULAttributes                                80     2320     1096       29 (  555.16 +/-   312.43)     1096       29 (  555.16 +/-   312.43)
+ 440 nsXULContentUtils                              12       12        1        1 (    1.00 +/-     0.00)       15        1 (    3.55 +/-     1.43)
+ 441 nsXULControllers                               20       40        3        2 (    2.00 +/-     0.82)      321        2 (    4.76 +/-     0.94)
+ 444 nsXULElement                                   84     2436     1805       29 (  827.57 +/-   420.24)   487475       49 ( 6055.95 +/-  3187.16)
+ 445 nsXULElement::Slots                            44     1276     1128       29 (  571.16 +/-   321.66)        0        0 (    0.00 +/-     0.00)
+ 448 nsXULPDGlobalObject                            32       32        5        1 (    2.78 +/-     1.39)       94        1 (    6.72 +/-     2.88)
+ 457 xptiInterfaceInfo                              36      144     1773        4 (  690.28 +/-   326.10)     2481        4 (  711.75 +/-   280.59)
+</pre>
+
+<h2>Which objects leaked?</h2>
+
+<p>
+
+  So, 4 out of 236 <code>nsXBLBinding</code> objects were leaked.  Suppose
+  (for demonstration purposes) that
+  I think the <code>nsXBLBinding</code> might be the root leak.  We want
+  to know which ones, and whether they were leaked from
+  <code><a href="../projects/xpcom/nsCOMPtr.html">nsCOMPtr</a></code>s
+  (which <i>almost</i> always means from a member variable
+  of another leaked object).
+
+</p>
+
+<pre class="in">
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_LOG_CLASSES nsXBLBinding
+<span class="prompt">&gt;</span> ./mozilla -editor
+</pre>
+
+<p>
+
+  The very end of the output shows:
+
+</p>
+
+<pre class="out">
+Serial Numbers of Leaked Objects:
+279 (1 references; 0 from COMPtrs)
+281 (1 references; 0 from COMPtrs)
+280 (1 references; 0 from COMPtrs)
+278 (1 references; 0 from COMPtrs)
+</pre>
+
+<p>
+
+  The objects leaked were the 278th through 281st
+  <code>nsXBLBinding</code> objects created (really,
+  <code>AddRef</code>ed).  For each object leaked, there was one
+  reference out of balance, and that reference was not held in an
+  <code>nsCOMPtr</code>.
+
+</p>
+
+<h2>Finding the leaked reference (not an nsCOMPtr)</h2>
+
+<p>
+
+  To find leaked references not leaked from <code>nsCOMPtr</code>s,
+  use the <a href="refcnt-balancer.html">refcount balancer</a>
+  to make a balance tree to
+  find the 1 leaked reference on each of these objects:
+
+</p>
+
+<pre class="in">
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_LOG_OBJECTS 278-281
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_REFCNT_LOG ~/leaks/editor/nsXBLBinding.refcnt
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_COMPTR_LOG ~/leaks/editor/nsXBLBinding.comptr
+<span class="prompt">&gt;</span> ./mozilla -editor
+</pre>
+
+<p>
+  
+  Then, in the directory with these logs, run the
+  refcount balancer perl script on these logs:
+
+</p>
+
+<pre class="in">
+<span class="prompt">&gt;</span> find-leakers.pl nsXBLBinding.refcnt
+</pre>
+
+<pre class="out">
+0x08A72EB0 (2) @ &lt;nsXBLBinding&gt;
+0x08AD70B8 (4) @ &lt;nsXBLBinding&gt;
+0x089F7CE0 (1) @ &lt;nsXBLBinding&gt;
+0x08AD76E0 (3) @ &lt;nsXBLBinding&gt;
+</pre>
+
+<pre class="in">
+<span class="prompt">&gt;</span> make-tree.pl --ignore --object 0x089F7CE0 --comptr nsXBLBinding.comptr < nsXBLBinding.refcnt > nsXBLBinding.balance-ibic1
+</pre>
+
+<p>
+
+  The <code>--ignore-balance</code> (or <code>--ignore</code>) option
+  tells the refcount balancer not to print out subtrees that are
+  balanced.  The <code>--comptr</code> option tells it to subtract any
+  reference counting caused by <code>nsCOMPtr</code>s.  This option, when
+  combined with <code>--ignore-balance</code>, usually causes subtrees
+  to disappear, but occasionally it causes the <code>nsCOMPtr</code>
+  information to be printed (as the negative of what really happened).
+
+</p>
+
+<p>
+
+  The output contains a refcount tree that has this at the tail:
+
+</p>
+
+<pre class="out">
+1       nsCSSFrameConstructor::ConstructFrame(nsIPresShell *, nsIPresContext *, nsFrameConstructorState &, nsIContent *, nsIFrame *, nsFrameItems &)+0x00000202
+  1       nsCSSFrameConstructor::ConstructFrameInternal(nsIPresShell *, nsIPresContext *, nsFrameConstructorState &, nsIContent *, nsIFrame *, nsIAtom *, int, nsIStyleContext *, nsFrameItems &, int)+0x00000101
+    1       nsXBLService::LoadBindings(nsIContent *, nsString const &, int)+0x000003CF
+    | 1       nsXBLService::GetBinding(nsCString const &, nsIXBLBinding **)+0x00000580
+    |   1       NS_NewXBLBinding(nsIXBLBinding **)+0x00000050
+    |     1       nsXBLBinding::AddRef(void)+0x0000006F
+    -1      nsXBLService::LoadBindings(nsIContent *, nsString const &, int)+0x000003EE
+    | -1      nsGetterAddRefs&lt;nsIXBLBinding&gt;::~nsGetterAddRefs(void)+0x0000005A
+    1       nsXBLService::LoadBindings(nsIContent *, nsString const &, int)+0x000008D9
+      1       nsBindingManager::SetBinding(nsIContent *, nsIXBLBinding *)+0x00000067
+        1       nsSupportsHashtable::Put(nsHashKey *, nsISupports *, nsISupports **)+0x00000027
+          1       unsigned int ns_if_addref&lt;nsISupports *&gt;(nsISupports *)+0x00000023
+            1       nsXBLBinding::AddRef(void)+0x0000006F
+
+</pre>
+
+<p>
+
+  This means that the leaked reference was through the
+  <code>nsSupportsHashtable</code> of the <code>nsBindingManager</code>.
+  Going back to the original leak logs, we see
+  that there was one <code>nsBindingManager</code> leaked.  So why did
+  that leak?
+
+</p>
+
+<h2>Finding the reference leaked in an nsCOMPtr</h2>
+
+<p>
+
+  So, repeat the same process to find out how the
+  <code>nsBindingManager</code> leaked.
+
+</p>
+
+<pre class="in">
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_LOG_CLASSES nsBindingManager
+<span class="prompt">&gt;</span> unsetenv XPCOM_MEM_REFCNT_LOG
+<span class="prompt">&gt;</span> unsetenv XPCOM_MEM_COMPTR_LOG
+<span class="prompt">&gt;</span> ./mozilla -editor
+</pre>
+
+<p>
+
+  The very end of the output shows the following:
+
+</p>
+
+<pre class="out">
+Serial Numbers of Leaked Objects:
+14 (1 references; 1 from COMPtrs)
+</pre>
+
+<p>
+
+  This means that the 14th object was leaked.  There was one
+  reference keeping it from being deleted, and that reference was
+  held by an <code>nsCOMPtr</code>.  So, there is no need to take
+  a refcount log, only an <code>nsCOMPtr</code> log:
+
+</p>
+
+<pre class="in">
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_LOG_OBJECTS 14
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_COMPTR_LOG ~/leaks/editor/nsBindingManager.comptr
+<span class="prompt">&gt;</span> ./mozilla -editor
+</pre>
+
+<p>
+
+  After this is done, run the <code>find-comptr-leakers.pl</code> script
+  on the output.
+
+</p>
+
+<pre class="in">
+<span class="prompt">&gt;</span> find-comptr-leakers.pl nsBindingManager.comptr
+</pre>
+
+<pre class="out">
+Examining all objects
+Object 14 held by 0x0895C408 is 1 out of balance.
+
+Put into nsCOMPtr at:
+nsCOMPtr&lt;nsIBindingManager&gt;::assign_assuming_AddRef(nsIBindingManager *)+0x00000043
+nsCOMPtr&lt;nsIBindingManager&gt;::assign_from_helper(nsCOMPtr_helper const &, nsID const &)+0x00000052
+nsCOMPtr&lt;nsIBindingManager&gt;::operator=(nsCOMPtr_helper const &)+0x00000027
+nsDocument::GetBindingManager(nsIBindingManager **)+0x00000056
+nsXBLService::LoadBindings(nsIContent *, nsString const &, int)+0x000000E6
+nsCSSFrameConstructor::ConstructFrameInternal(nsIPresShell *, nsIPresContext *, nsFrameConstructorState &, nsIContent *, nsIFrame *, nsIAtom *, int, nsIStyleContext *, nsFrameItems &, int)+0x00000101
+nsCSSFrameConstructor::ConstructFrame(nsIPresShell *, nsIPresContext *, nsFrameConstructorState &, nsIContent *, nsIFrame *, nsFrameItems &)+0x00000202
+nsCSSFrameConstructor::CreateAnonymousFrames(nsIPresShell *, nsIPresContext *, nsFrameConstructorState &, nsIContent *, nsIDocument *, nsIFrame *, nsFrameItems &)+0x00000314
+nsCSSFrameConstructor::BuildGfxScrollFrame(nsIPresShell *, nsIPresContext *, nsFrameConstructorState &, nsIContent *, nsIDocument *, nsIFrame *, nsIStyleContext *, int, nsIFrame *&, nsFrameItems &)+0x000000B7
+nsCSSFrameConstructor::BeginBuildingScrollFrame(nsIPresShell *, nsIPresContext *, nsFrameConstructorState &, nsIContent *, nsIStyleContext *, nsIFrame *, nsIAtom *, nsIDocument *, int, nsIFrame *&, nsCOMPtr&lt;nsIStyleContext&gt; &, nsIFrame *&)+0x000000A9
+nsCSSFrameConstructor::ConstructRootFrame(nsIPresShell *, nsIPresContext *, nsIContent *, nsIFrame *&)+0x0000074D
+StyleSetImpl::ConstructRootFrame(nsIPresContext *, nsIContent *, nsIFrame *&)+0x0000008F
+PresShell::InitialReflow(int, int)+0x0000035F
+HTMLContentSink::StartLayout(void)+0x00000353
+HTMLContentSink::OpenBody(nsIParserNode const &)+0x000000EE
+CNavDTD::OpenBody(nsIParserNode const *)+0x000000C4
+CNavDTD::OpenContainer(nsIParserNode const *, nsHTMLTag, int, nsEntryStack *)+0x000002B8
+CNavDTD::HandleDefaultStartToken(CToken *, nsHTMLTag, nsIParserNode *)+0x00000365
+CNavDTD::HandleStartToken(CToken *)+0x0000039A
+CNavDTD::HandleToken(CToken *, nsIParser *)+0x00000452
+CNavDTD::BuildModel(nsIParser *, nsITokenizer *, nsITokenObserver *, nsIContentSink *)+0x00000291
+nsParser::BuildModel(void)+0x0000009F
+nsParser::ResumeParse(int, int)+0x00000139
+nsParser::OnStopRequest(nsIChannel *, nsISupports *, unsigned int, unsigned short const *)+0x0000007C
+nsDocumentOpenInfo::OnStopRequest(nsIChannel *, nsISupports *, unsigned int, unsigned short const *)+0x0000008B
+nsStreamIOChannel::OnStopRequest(nsIChannel *, nsISupports *, unsigned int, unsigned short const *)+0x0000004A
+nsOnStopRequestEvent::HandleEvent(void)+0x00000114
+nsStreamListenerEvent::HandlePLEvent(PLEvent *)+0x0000005F
+PL_HandleEvent+0x00000056
+PL_ProcessPendingEvents+0x00000110
+nsEventQueueImpl::ProcessPendingEvents(void)+0x00000071
+nsAppShell::SetDispatchListener(nsDispatchListener *)+0x0000003C
+keysym2ucs+0x0000015F
+g_io_add_watch+0x000000AA
+g_get_current_time+0x00000136
+g_get_current_time+0x000006F1
+g_main_run+0x00000081
+gtk_main+0x000000B9
+nsAppShell::Run(void)+0x00000052
+nsAppShellService::Run(void)+0x0000003C
+UNKNOWN 0x08053C55
+UNKNOWN 0x0805433E
+__libc_start_main+0x000000FF
+</pre>
+
+<p>
+
+  So the <code>nsBindingManager</code> was leaked from a document, since
+  <code>nsDocument::GetBindingManager</code> keeps a reference it acquires in a
+  member <code>nsCOMPtr</code>.
+
+</p>
+
+<h2>JavaScript enters the picture</h2>
+
+<p>
+
+  So, I do the same thing on the document:
+
+</p>
+
+<pre class="in">
+<span class="prompt">&gt;</span> unsetenv XPCOM_MEM_COMPTR_LOG
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_LOG_CLASSES nsDocument
+<span class="prompt">&gt;</span> ./mozilla -editor
+</pre>
+
+<pre class="out">
+Serial Numbers of Leaked Objects:
+12 (1 references; 0 from COMPtrs)
+</pre>
+
+<pre class="in">
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_LOG_OBJECTS 12
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_COMPTR_LOG ~/leaks/editor/nsDocument12.comptr
+<span class="prompt">&gt;</span> setenv XPCOM_MEM_REFCNT_LOG ~/leaks/editor/nsDocument12.refcnt
+<span class="prompt">&gt;</span> ./mozilla -editor
+</pre>
+
+<pre class="in">
+find-leakers.pl nsDocument12.refcnt 
+</pre>
+
+<pre class="out">
+<span class="prompt">&gt;</span> 0x0895C768 (1) @ &lt;nsDocument&gt;
+</pre>
+
+<pre class="in">
+<span class="prompt">&gt;</span> make-tree.pl --object 0x0895C768 --ignore --comptr nsDocument12.comptr < nsDocument12.refcnt > nsDocument12.balance-ibic
+</pre>
+
+<p>
+  Close examination of the refcount log (or prior knowledge of
+  this type of leak) reveals that the leaked reference is here:
+</p>
+
+<pre class="out">
+1       NS_CreateScriptContext+0x0000124D
+ 1       GlobalWindowImpl::GetDocument(nsIDOMDocumentView **)+0x000000AF
+  1       nsHTMLDocument::QueryInterface(nsID const &, void **)+0x00000186
+   1       nsDocument::QueryInterface(nsID const &, void **)+0x000001E7
+    1       nsHTMLDocument::AddRef(void)+0x0000001A
+     1       nsDocument::AddRef(void)+0x00000072
+</pre>
+
+<p>
+
+  This is the reference owned by the JS engine that is released
+  when the object is garbage collected.  Since there is no listing
+  of <code>js_GC</code> at the bottom of the refcount balancer output, the
+  document's script object was never garbage collected.
+  (If <code>js_GC</code> is listed, it means that the object was released
+  during garbage collection.  One must look at the tree to see if it
+  was the reference JS held to the object or if it was released through
+  JS's reference to something else.)
+
+</p>
+
+<h2>The confusing part (this doesn't happen for most leaks)</h2>
+
+<p>
+
+  There's something funny about this stack trace, because the Linux
+  stack tracing code doesn't understand static functions.
+  <code>NS_CreateScriptContext</code> doesn't call
+  <code>GlobalWindowImpl::GetDocument</code> -- the
+  <code>NS_CreateScriptContext</code>
+  looks out of place.  So I unsetenv all the logging variables and go into
+  the debugger and break on <code>GetDocument</code>, and find it's
+  called here:
+
+</p>
+
+<pre>
+#0  GlobalWindowImpl::GetDocument (this=0x40f81708, aDocumentView=0xbfffdde8) at /builds/dbaron/debug/mozilla/dom/src/base/nsGlobalWindow.cpp:2675
+#1  0x403a6801 in GetWindowProperty (cx=0x40fd31c0, obj=0x80dca50, id=-73, vp=0xbfffe6b0) at /builds/dbaron/debug/mozilla/dom/src/base/nsJSWindow.cpp:568
+#2  0x401e7677 in js_Interpret (cx=0x40fd31c0, result=0xbfffe794) at /builds/dbaron/debug/mozilla/js/src/jsinterp.c:2566
+</pre>
+
+<p>
+
+  This is messy because it's called a lot.  However, we also
+  leak a <code>GlobalWindowImpl</code>, which is the document's
+  global object, and that should be easier to debug.  (It's what
+  I would've looked at first if I weren't trying to demonstrate
+  all these tools.  If you
+  leak a <code>GlobalWindowImpl</code>, find that leak first, because
+  it generally means you leaked a JS GC root that could be holding on
+  to an entire document.)  So,
+  run with <code>XPCOM_MEM_LOG_CLASSES</code> set to
+  <code>GlobalWindowImpl</code>, giving
+  the output:
+
+</p>
+
+<pre class="out">
+1 (2 references; 1 from COMPtrs)
+2 (1 references; 0 from COMPtrs)
+3 (1 references; 0 from COMPtrs)
+</pre>
+
+<p>
+The nsCOMPtr log shows a leak
+</p>
+
+<pre class="output">
+Examining all objects
+Object 1 held by 0x08141584 is 1 out of balance.
+
+Put into nsCOMPtr at:
+UNKNOWN 0x08058483
+nsCOMPtr&lt;nsIDOMWindow&gt;::assign_with_AddRef(nsISupports *)+0x00000038
+nsCOMPtr&lt;nsIDOMWindow&gt;::operator=(nsIDOMWindow *)+0x0000001F
+GlobalWindowImpl::SetOpenerWindow(nsIDOMWindow *)+0x00000021
+GlobalWindowImpl::ReadyOpenedDocShellItem(nsIDocShellTreeItem *, nsIDOMWindow **)+0x0000011A
+GlobalWindowImpl::OpenInternal(JSContext *, long *, unsigned int, int, nsIDOMWindow **)+0x00000E46
+GlobalWindowImpl::OpenDialog(JSContext *, long *, unsigned int, nsIDOMWindow **)+0x00000031
+UNKNOWN 0x08050A54
+UNKNOWN 0x08051B40
+UNKNOWN 0x08052212
+UNKNOWN 0x080522DC
+UNKNOWN 0x080539F3
+UNKNOWN 0x0805436E
+__libc_start_main+0x000000FF
+</pre>
+
+<p>
+and gdb shows this as:
+</p>
+
+<pre class="output">
+#0  GlobalWindowImpl::SetOpenerWindow (this=0x41ecd2e8, aOpener=0x41e55adc) at /builds/dbaron/debug/mozilla/dom/src/base/nsGlobalWindow.cpp:358
+#1  0x403c0252 in GlobalWindowImpl::ReadyOpenedDocShellItem (this=0x41e55ad8, aDocShellItem=0x40fefea4, aDOMWindow=0xbffff68c)
+    at /builds/dbaron/debug/mozilla/dom/src/base/nsGlobalWindow.cpp:3250
+#2  0x403bdc8e in GlobalWindowImpl::OpenInternal (this=0x41e55ad8, cx=0x41cfabb8, argv=0x41e75f88, argc=4, aDialog=1, aReturn=0xbffff68c)
+    at /builds/dbaron/debug/mozilla/dom/src/base/nsGlobalWindow.cpp:2817
+#3  0x403b820d in GlobalWindowImpl::OpenDialog (this=0x41e55ad8, cx=0x41cfabb8, argv=0x41e75f88, argc=4, aReturn=0xbffff68c)
+    at /builds/dbaron/debug/mozilla/dom/src/base/nsGlobalWindow.cpp:1757
+#4  0x8050a54 in OpenWindow (urlstr=0x41e01b68 "chrome://editor/content/editor.xul", args=0x41e8bd08)
+    at /builds/dbaron/debug/mozilla/xpfe/bootstrap/nsAppRunner.cpp:253
+#5  0x8051b40 in LaunchApplicationWithArgs (commandLineArg=0xbffffc38 "-editor", cmdLineArgs=0x8123210, 
+    progID=0xbffff7a8 "component://netscape/commandlinehandler/general-startup-editor", height=-1, width=-1)
+    at /builds/dbaron/debug/mozilla/xpfe/bootstrap/nsAppRunner.cpp:425
+#6  0x8052212 in HandleArbitraryStartup (cmdLineArgs=0x8123210, prefs=0x80c7ff0, heedGeneralStartupPrefs=0)
+    at /builds/dbaron/debug/mozilla/xpfe/bootstrap/nsAppRunner.cpp:572
+#7  0x80522dc in DoCommandLines (cmdLine=0x8123210, heedGeneralStartupPrefs=0) at /builds/dbaron/debug/mozilla/xpfe/bootstrap/nsAppRunner.cpp:588
+#8  0x80539f3 in main1 (argc=2, argv=0xbffffab4, nativeApp=0x0) at /builds/dbaron/debug/mozilla/xpfe/bootstrap/nsAppRunner.cpp:891
+#9  0x805433e in main (argc=2, argv=0xbffffab4) at /builds/dbaron/debug/mozilla/xpfe/bootstrap/nsAppRunner.cpp:1099
+</pre>
+
+<p>
+
+  This shows 1 leaked reference due to it or another leaked
+  <code>GlobalWindowImpl</code>.  I guess, from experience, that
+  the more interesting question is where the second reference came from,
+  since I suspect a leaked GC root.  A refcount balance tree shows
+  that this reference was created in <code>NS_NewScriptWindow</code> for JS to
+  release when the object was garbage collected.
+
+</p>
+
+<h2>Debugging leaked JS roots</h2>
+
+<p>[ Information on how to get GC traces needs to be rewritten following
+the landing of
+<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=378261">bug 378261</a>
+and
+<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=378255">bug 378255</a>
+and a few patches that preceded them by a few weeks.  That may just mean
+setting the XPC_SHUTDOWN_HEAP_DUMP environment variable to a file name. ]</p>
+
+<p>
+  The output when I run this shows that the object is not being released
+  from JS because of a <code>DocumentType</code> object in the content
+  model.  The end of the output is:
+</p>
+
+<pre class="out">
+080de9c8 object 0x81df3fc Window via Text(DocumentType).__proto__(DocumentType).__proto__(Node).__proto__(Object).__parent__(Window).document(HTMLDocument).location(Location).__proto__(Location).__parent__(Window).Location(Function).__parent__(Window).
+</pre>
+
+<p>
+
+  The cause of the leak is that
+  <code>nsDocument::SetScriptGlobalObject</code> is not properly
+  unrooting script objects for content other than the root
+  element (which includes the <code>DocumentType</code>).  See <a
+  href="http://bugzilla.mozilla.org/show_bug.cgi?id=17390">bug 17390</a>.
+
+</p>
+
+<h2>Conclusion</h2>
+
+<p>
+
+  This was a difficult leak.  For a run-of-the-mill missing release,
+  you probably only need to use the first two tools described.  However,
+  I wanted to mention the JavaScript leaks because some of the largest
+  leaks we see right now (July 2000) are coming from leaked GC roots.
+
+</p>
+
+<p>
+
+  These tools are the main method of attack (as far as I know) for
+  finding leaked reference counts.  The Boehm GC leak detector (if you
+  have a Mac) can be very useful for finding which object is the root
+  leak in a large ownership chain of leaked XPCOM objects.  However,
+  it still won't find the leaked reference.
+
+  Other tools, such as the Boehm GC leak detector and Purify, are useful
+  for finding leaks of non-XPCOM objects.
+
+</p>
+
+<hr>
+
+<div>[ Up to <a href="tools.html">Tools</a>, <a href="./">Performance</a> ]</div>
+
+
+
+
+<hr class="hide">
+<hr class="hide">
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified April 27,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/performance/leak-tutorial.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

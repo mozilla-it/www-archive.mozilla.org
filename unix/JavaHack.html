@@ -1,0 +1,172 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+   <meta name="GENERATOR" content="Mozilla/4.5 [en] (X11; U; SunOS 5.5.1 sun4u) [Netscape]">
+   <title>Motif, Java, and Threading on X</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<hr WIDTH="100%">
+<center>
+<h2>
+Motif, Java, and Threading on X</h2></center>
+
+<center>By Erik van der Poel, Radha Kulkarni, and Kin Blas
+<br>Followup and discussion on <a href="news://news.mozilla.org/netscape.public.mozilla.unix">netscape.public.mozilla.unix</a>
+<br>Updated: 2-Nov-1998</center>
+
+<hr WIDTH="100%">
+<br><b></b> 
+<h3>
+The Problem</h3>
+Japanese input does not work properly in the Motif text widgets used in
+AWT for Unix. It seems to work somewhat on Solaris, but very badly on IRIX
+and DEC.
+<br> 
+<h3>
+The Reason</h3>
+The Java AWT widgets are created separately in a separate shell widget,
+and then this shell widget is reparented at the Xlib level to a widget
+inside the Mozilla window. Since there is then no Xt parent relationship
+between the Java widgets and the Mozilla shell widget, the Japanese input
+method status bar cannot work properly.
+<br> 
+<h3>
+Other Problems</h3>
+In addition, the Java AWT widgets are created in a second XtAppContext
+(and a second X Display). And the events for this display are handled by
+a 2nd event loop, running in a separate thread called the AWT thread. Since
+the main
+<br>Mozilla thread does not do the timeout select for any AWT timer callbacks,
+the AWT widgets' carets do not blink properly. Also, there are color problems
+since the 2nd Display connection effectively means that Java is a separate
+X client.
+<br> 
+<h3>
+Possible Solution</h3>
+Basically, the Java widgets need to be created directly under the Mozilla
+widgets using normal Xt calls. This way, there is an Xt parent relationship
+between AWT widgets and Mozilla's shell widget.
+<p>Also, the 2 app contexts, the 2 displays and the 2 event loops should
+be merged into one, all in one thread. This solves the blinking caret problem,
+color problem, and probably several others.
+<br> 
+<h3>
+Problems with this Solution</h3>
+Java code currently expects things like class file fetches across the net
+to happen synchronously. The way it is currenly implemented, an X event
+triggers an AWT callback, which calls Java, which loads classes across
+the net, which blocks that thread. So if the X event is handled on the
+same thread as the thread that gets the network input, then there will
+be deadlock.
+<p>So I tried handling Java's X events on a separate thread, but then we
+had a different problem with XtDestroyWidget. The layout code recycles
+layout elements every now and then, so when it was handling some new network
+input, it
+<br>recycled an old Java element, which caused XFE to call XtDestroyWidget.
+However, this happened at a time when the X event thread was in XtDispatchEvent,
+which sets a variable called dispatch_level in the app context to 1. XtDestroyWidget
+does not actually destroy the widget if the dispatch level is non-zero.
+<br>
+<hr WIDTH="100%">
+<br> 
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February 20,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/unix/JavaHack.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

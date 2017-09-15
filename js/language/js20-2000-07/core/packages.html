@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Packages</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="namespaces.html">
+<LINK rel=Next href="languages.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>July 2000 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Core Language</DIV>
+    <DIV class=title1>Packages</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="namespaces.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="languages.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Friday, May 26, 2000</P>
+
+<H2>Defining Packages</H2>
+
+<P>Packages are an abstraction mechanism for grouping and distributing related code. Packages are designed to be linked at
+run time to allow a program to take advantage of packages written elsewhere or provided by the embedding environment. JavaScript
+2.0 offers a number of facilities to make packages robust for dynamic linking:</P>
+
+<UL>
+  <LI>Selected package contents can be protected from outside reference.</LI>
+  <LI>Classes can maintain invariants that cannot be violated by code outside the class and/or package.</LI>
+  <LI>Function arguments and data structure references can be type-checked to limit the kinds of unexpected inputs the package's
+    code can experience.</LI>
+  <LI>Packages can export multiple namespaces, allowing graceful upgrades to packages without changing the code that uses
+    them.</LI>
+</UL>
+
+
+<P>A package is defined using the following syntax:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PackageDefinition"></A><SPAN class=nonterminal>PackageDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>package</CODE>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<A href="#N-PackageName" class=nonterminal>PackageName</A>&nbsp;<A href="statements.html#N-Block" class=nonterminal>Block</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PackageName"></A><SPAN class=nonterminal>PackageName</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-CompoundPackageName" class=nonterminal>CompoundPackageName</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-CompoundPackageName"></A><SPAN class=nonterminal>CompoundPackageName</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-CompoundPackageName" class=nonterminal>CompoundPackageName</A>&nbsp;<CODE class=terminal-keyword>.</CODE>&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+</DIV>
+
+<P>A <A href="#N-PackageName" class=nonterminal>PackageName</A> is either a literal string or a series of dot-separated
+identifiers (a <A href="#N-CompoundPackageName" class=nonterminal>CompoundPackageName</A>). A <A href="#N-CompoundPackageName" class=nonterminal>CompoundPackageName</A>
+is converted to a string by concatinating the names of the identifiers, separated by period (<CODE>.</CODE>) characters.</P>
+
+<P class=issue>An earlier version of this proposal used URIs as package names, which simplified the process of finding packages and
+avoiding package name clashes.</P>
+
+<P>The <A href="statements.html#N-Block" class=nonterminal>Block</A> contains the body of a package <VAR>P</VAR>.
+The <A href="statements.html#N-Block" class=nonterminal>Block</A> is evaluated at the time package <VAR>P</VAR>
+is loaded. Any <CODE>public</CODE> top-level properties are available to other packages that import package <VAR>P</VAR>.
+Any <CODE>public</CODE> class and interface properties are available to all other packages, regardless of whether they import
+package <VAR>P</VAR>. Top-level, class, and interface properties defined by <VAR>P</VAR> in another namespace <VAR>N</VAR>
+are available to other packages only if they <CODE>use</CODE> <CODE>namespace</CODE> <VAR>N</VAR> or qualify the access with
+namespace <VAR>N</VAR>.</P>
+
+<P>A package is loaded (its body is evaluated) when the package is first imported or invoked directly (if, for example, the
+package is on an HTML web page). Some standard packages are loaded when the JavaScript engine first starts up. When a package
+is loaded, its statements are evaluated in order, which may cause other packages to be loaded along the way when <CODE>import</CODE>
+statements are encountered. Circularities are not allowed in the graph of package imports.</P>
+
+<P>Two attempts to load the same package in the same environment result in sharing of that package. What constitutes an environment
+is necessarily application-dependent. However, if package <VAR>P1</VAR> loads packages <VAR>P2</VAR> and <VAR>P3</VAR>, both
+of which load package <VAR>P4</VAR>, then <VAR>P4</VAR> is loaded only once and thereafter its code and data is shared by
+<VAR>P2</VAR> and <VAR>P3</VAR>.</P>
+
+<P>To create packages <VAR>A</VAR> and <VAR>B</VAR> that access each others' symbols, define instead a hidden package <VAR>C</VAR>
+that consists of all of the code that would have gone into <VAR>A</VAR> and <VAR>B</VAR>. Package <VAR>A</VAR> would then
+import <VAR>C</VAR> and reexport the symbols that should be visible in <VAR>A</VAR>. Similarly, package <VAR>B</VAR> would
+import <VAR>C</VAR> and reexport the symbols that should be visible in <VAR>B</VAR>.</P>
+
+<H2>Referencing Packages</H2>
+
+<P>A package <VAR>P</VAR> can reference another package <VAR>Q</VAR> via an <CODE>import</CODE> statement:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ImportStatement"></A><SPAN class=nonterminal>ImportStatement</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<A href="#N-ImportList" class=nonterminal>ImportList</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>use</CODE>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<A href="#N-ImportList" class=nonterminal>ImportList</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ImportList"></A><SPAN class=nonterminal>ImportList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ImportBinding" class=nonterminal>ImportBinding</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ImportList" class=nonterminal>ImportList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-ImportBinding" class=nonterminal>ImportBinding</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ImportBinding"></A><SPAN class=nonterminal>ImportBinding</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-PackageName" class=nonterminal>PackageName</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<A href="#N-PackageName" class=nonterminal>PackageName</A></DIV>
+</DIV>
+
+<P>An <CODE>import</CODE> statement does the following for each <A href="#N-ImportBinding" class=nonterminal>ImportBinding</A>:</P>
+
+<UL>
+  <LI>Locate the target package specified by <A href="#N-PackageName" class=nonterminal>PackageName</A>. If it
+    has not yet been loaded then load it and wait until the target package's <A href="statements.html#N-Block" class=nonterminal>Block</A>
+    is done evaluating. If loading the target package causes an import of the current package then throw a package circularity
+    exception.</LI>
+  <LI>Let <VAR>P</VAR> be the target package object.</LI>
+  <LI>If <A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A> is given, <CODE>scope&nbsp;const</CODE>-bind
+    it to <VAR>P</VAR>.</LI>
+  <LI>For each <CODE>public</CODE> top-level entity <VAR>n</VAR> in <VAR>P</VAR>, bind an alias <VAR>P</VAR><CODE>::</CODE><VAR>n</VAR>
+    (<VAR>n</VAR> in namespace <VAR>P</VAR>) to <VAR>P</VAR>'s <VAR>n</VAR> in the current scope.</LI>
+  <LI>For each non-<CODE>public</CODE> top-level entity <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> (<VAR>n</VAR> in namespace
+    <VAR>N</VAR>) in <VAR>P</VAR>, bind an alias <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> to <VAR>P</VAR>'s <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR>
+    in the current scope.</LI>
+  <LI>If the <CODE>use</CODE> prefix was specified, evaluate <CODE>use</CODE>&nbsp;<CODE>namespace</CODE>&nbsp;<VAR>P</VAR>.</LI>
+</UL>
+<P>All definitions can be imported except for attribute definitions.</P>
+
+<P>If package <VAR>P</VAR> defines a <CODE>public</CODE> top-level entity <VAR>n</VAR> and package <VAR>Q</VAR> imports <VAR>P</VAR>
+using <CODE>import&nbsp;PkgP&nbsp;=&nbsp;P</CODE>, then package <VAR>Q</VAR> can refer to <VAR>n</VAR> as either <CODE>PkgP.</CODE><VAR>n</VAR>
+or <CODE>PkgP::</CODE><VAR>n</VAR>. If package <VAR>Q</VAR> imports <VAR>P</VAR> using <CODE>use&nbsp;import&nbsp;PkgP&nbsp;=&nbsp;P</CODE>,
+then package <VAR>Q</VAR> can also refer to <VAR>n</VAR> as plain <VAR>n</VAR> as long as it does not conflict with any <VAR>n</VAR>
+defined in <VAR>Q</VAR> or some other package imported by <VAR>Q</VAR>.</P>
+
+<P>If package <VAR>P</VAR> defines a top-level entity <VAR>n</VAR> in namespace <VAR>N</VAR> and package <VAR>Q</VAR> imports
+<VAR>P</VAR> using either <CODE>import&nbsp;PkgP&nbsp;=&nbsp;P</CODE> or <CODE>use&nbsp;import&nbsp;PkgP&nbsp;=&nbsp;P</CODE>,
+then package <VAR>Q</VAR> can refer to <VAR>n</VAR> as either <CODE>PkgP.</CODE><VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> or
+<VAR>N</VAR><CODE>::</CODE><VAR>n</VAR>. Package <VAR>Q</VAR> can execute <CODE>use</CODE>&nbsp;<CODE>namespace</CODE>&nbsp;<VAR>N</VAR>
+to be able to refer to <VAR>n</VAR> as plain <VAR>n</VAR> (barring name collisions).</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Friday, May 26, 2000</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="namespaces.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="languages.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

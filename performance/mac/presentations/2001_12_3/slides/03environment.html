@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<html>
+<head>
+	<title>Profiling on the Macintosh</title>
+
+	<link rel="stylesheet" href="presenter.css" type="text/css" title="slide styles" id="slidestyle" >
+	<link rel="stylesheet" href="common.css" type="text/css" title="slide common styles">
+
+	<script type="text/javascript" src="slide.js"/>
+</head>
+<body onload="onSlideLoad()">
+
+<h1>Get to know the code</h1>
+
+<h3>Understand the runtime environment</h3>
+
+<ul>
+	<li>NSPR threading is cooperative on Mac.
+	<span class="presenter_note">
+		Hand-rolled threading impl. using <code>setjmp</code>/<code>longjmp</code></li>
+	</span>
+	<li>Some bits of code run at interrupt time:
+	<ul>
+		<li>Async file I/O callback (NSPR)</li>
+		<li>Timer task (NSPR)</li>
+		<li>Open Transport notifiers (NSPR and necko)</li>
+		<li>Watch cursor VBL task (in gfx)</li>
+	</ul>
+	so you can't profile these with some tools (your machine will crash).
+	</li>
+</ul>
+
+<h3>Understand gross program behaviour</h3>
+<ul>
+	<li>Threading (socket and file transport threads, PLEvents)</li>
+	<li>Chrome building (brutal sharing, fastload etc).</li>
+	<li>Layout (paint suppression, reflow batching etc).</li>
+	<li>Drawing (double-buffering)</li>
+	<li>Others...</li>
+</ul>
+
+<h3>Understand unavoidable time sinks</h3>
+<ul>
+	<li>Event handling: <code>WaitNextEvent()</code> in <code>nsMacMessagePump::GetEvent()</code>
+	<li>Spin loop: <code>WaitNextEvent()</code> in <code>_MD_PauseCPU</code> in NSPR
+	<li>Library loading: various <code>PR_LoadLibrary</code> calls from XPCOM, security, AIM.
+</ul>
+
+</body>
+</html>

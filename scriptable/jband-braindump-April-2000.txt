@@ -1,0 +1,167 @@
+/* jband - 04/26/00 -  */
+
+** typelib & strings
+
+ - I updated typelib spec. Do we want to specifically add language to say that
+   StringWithSize and WStringWithSize support embedded NULs? It is left unclear 
+   whether or not those types require NUL termination. This should be specified.
+
+ - I wish nsXPIDLString were renamed something like nsXPCOMString.
+
+ - We need to hold the line on xpcom strings and their ownership being very 
+   clearly specified.
+
+ - [shared] still sucks. nsIString might be our salvation.
+
+
+** xpidl
+
+ - It sure would be good to do another round of bug fixing. Esp. improving 
+   errors and warnings. 
+
+ - We need generated documentation.
+
+ - We need interface and progid status and locking to avoid post ship trauma.
+
+ - We need to make sure people understand that after shipping modifying an
+   interface means adding a new iid *and* and new name.
+
+ - We have not solved the problem of interface name uniqueness for JS. Maybe
+   flattening will help make that less important.
+
+ - Flattening still requires CDL - or some replacement.
+
+ - For the two items above we want to be fully resolving iface_name -> iid
+   at CDL compile time. There are build issues there.
+
+
+** xptinfo
+
+ - http://lxr.mozilla.org/seamonkey/source/xpcom/reflect/xptinfo/src/TODO
+
+ - If there are problems see the LOGGING #defines at the top of xptiprivate.h
+
+
+** xpconnect
+
+ - The thing pretty much works with few known problems.
+ 
+ - Locking is imperfect 
+   - we cache wrappers that are unrooted and subject to JS gc. It is not clear
+     what would happen if we retreive a wrapper in native land (passing through 
+     a state where we do JS_AddNamedRoot) while another thread is finalizing the
+     JSObject of the wrapper. I think we can handout dying wrappers. 
+     This is unlikely, but possible. I think this can be addressed later.
+
+ - An array doc would be nice.
+ 
+ - I have a scheme for flattening. The various wrappers for the different 
+   interfaces of a given native object should cease to be distinct xpcom 
+   objects - we can hold their info more compactly than that. Note that all
+   objects get at least two interfaces: nsISupports and nsIFoo. I want to 
+   factor out more of the information so that a wrapper would have a pointer to 
+   a shared array of wrapperclasses. Those arrays become the 'templates' for 
+   making new wrappers for objects with a given CLSID. Each wrapper then just 
+   has slots of data specific to the wrapper; e.g. native object, JSObject, 
+   refcount.
+   
+ - A flattening issue: given CLSID with flattened:
+    [nsISupports, nsIFoo, nsIBar] and an object 'foo' of that type:
+    
+    If user says 'foo.nsIOther' we do a QI and on success add nsIOther to our 
+    wrapper. But does nsIOther get added to the "flattened" set of methods on
+    the object? I say no. I say the flattened set of methods is defined by the 
+    component implmenetor with an implementation time ordering (i.e. method 
+    shadowing). Adding to that set dynamically based on caller actions can do 
+    funky things. But this decision is debatable.
+    
+ - Part of the reason for not yet doing the JS -> JS wrappers is that I want 
+   to do them in the image of the rewritten flattened native wrapper scheme.
+
+ - I've been meaning to advertise XPC_DUMP_AT_SHUTDOWN for anyone who cares.
+
+ _ ...and the fact that a makefile define of GC_MARK_DEBUG in both js/src 
+   and xpconnect will cause xpconnect to dump the cool JS gc stuff to stdout 
+   on shutdown. I think that brendan and I are not the only ones who might 
+   make use of this.         
+
+ - mccabe said he might be up for writing the [array] doc.
+ 
+ - The faq generator still works: in /cvsroot/mozilla-org/html/scriptable do
+   "xpcshell.exe faq.js" to convert faq.in to faq.html. I've been meaning to
+   data mine the newsgroup and add stuff to the faq. 
+
+
+** xpcom
+
+ - We still want CDL.
+
+ - We should push for hiding of CLSIDs.
+ 
+ - mail/news scheme of defining progids in .h named and located by convention
+   is better than nothing. But putting both CLSIDs and ProgIDs in the same 
+   place sucks. Also, the near universal use of #defines for ProgIDs masks the
+   *real* cost of changing ProgID values. We pretend our tree is the whole 
+   universe. And even in our universe it is too easy to forget about the 
+   non-C++ code.
+   
+ - I wonder if rayw (Ray Whitmer) will turn out to be a tree-spamming sort 
+   of guy? Maybe scc's enthusiasm will infect him?
+
+ - Build-time module merging might save us a lot. We have way too many DLLs.
+ 
+ - We talked with rayw about interesting ideas for workingset tuning (or at 
+   least tracking). What kind of code locality do we have? Reducing 
+   memory use is a huge win, but looking at code page faults might yield 
+   interesting info.
+
+ - ad hoc groups doing architecture/code reviews on subsystems already in the 
+   tree might uncover who knows what. 
+
+
+** JS and xpcom         
+
+ - I think there is a mistaken notion that "JS is a component". Inasmuch as
+   xpcom is our component model then the JS engine is not really a component.
+
+   While js2 was put off too long, it has also made us put off doing work to 
+   support the generalized use of the engine. We are now focusing our efforts
+   on js2. But I think that parallel to that effort we must work *seriously*
+   on the componentization of js1.5 and on supporting potential embedders. It
+   will take a long time until js2 can superceed js1.5. We must not wait for
+   js2 to do the things we have already put off for too long
+
+   I think the JS group failed to componentize the engine and to do the work
+   to make it easily embedded and to promote the engine's use.
+
+   It was a mistake to let the DOM define nsJSEnvironment and nsJSContext. We 
+   should build js/xpcom as a reasonable set of xpcom interfaces to the engine.
+   These should replace the DOM's scheme.
+   
+   Embedders should see xpconnect as the primary way to implement host objects 
+   and manipulate JS. The js/xpcom interfaces are needed to initialize the 
+   engine, run scripts, and do some host object stuff not generic enough for 
+   xpconnect. Only the wierdest legacy stuff should require use of the jsapi.
+   
+   If we do this well then dropping in the js2 engine should cause minimal
+   disruption for embedders.
+   
+   We should do the work to build some embedding examples and docs and to 
+   ship some binaries. 
+
+   We should have a clear and well stated strategy for packages of native and
+   JS components that can extend the usefulness of the engine independent of 
+   the embedding. We should build and distribute packages. We must transcend 
+   the bounds of being a browser scripting language. We should not wait for 
+   js2 before doing this.
+
+   We should implement a reasonably useful JS shell that uses components and
+   packages.
+
+
+** plugins
+
+ - Step 1 - communication.
+     - what is the plan?
+     - what is not the plan?
+

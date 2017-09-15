@@ -1,0 +1,316 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../../images/mozilla-16.png" type="image/png">
+
+	<title>Whitespace in the DOM</title>
+	<style type="text/css">
+
+	</style>
+<script src="../../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel nomenu">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mBody" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+
+
+
+
+
+<div align="center">
+<h1>Whitespace in the DOM</h1>
+<b>by L. David Baron &lt;<a href="mailto:dbaron@dbaron.org">dbaron@dbaron.org</a>&gt;</b>
+</div>
+
+<h2>The issue</h2>
+
+<p>
+
+  The presence of whitespace in the DOM can make manipulation of the
+  content tree difficult in unforseen ways.  In Mozilla, all whitespace
+  in the text content of the original document is represented in the DOM
+  (this does not include whitespace within tags).  (This is needed
+  internally so that the editor can preserve formatting of documents and
+  so that <code>white-space: pre</code> in CSS will work.)  This means
+  that:
+
+</p>
+
+<ul>
+  <li>there will be some text nodes that contain only whitespace, and</li>
+  <li>some text nodes will have whitespace at the beginning or end.</li>
+</ul>
+
+<p>
+
+  In other words, the DOM tree for the following document will look like
+  the image below (using "\n" to represent newlines):
+
+</p>
+
+<pre>
+&lt!-- My document --&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;My Document&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Header&lt;/h1&gt;
+  &lt;p&gt;
+    Paragraph
+  &lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<p>
+  <img src="whitespace_tree.png" alt="Image showing DOM tree">
+</p>
+
+<p>
+
+  This can make things a bit harder for any users of the DOM who want
+  to iterate through content, excluding the whitespace.
+
+</p>
+
+<h2>Making things easier</h2>
+
+<p>
+
+  The Javascript file <tt><a href="nodomws.js">nodomws.js</a></tt>
+  defines several functions that make it easier to deal with whitespace
+  in the DOM:
+
+</p>
+
+<pre>
+/**
+ * Throughout, whitespace is defined as one of the characters
+ *  "\t" TAB \u0009
+ *  "\n" LF  \u000A
+ *  "\r" CR  \u000D
+ *  " "  SPC \u0020
+ *
+ * This does not use Javascript's "\s" because that includes non-breaking
+ * spaces (and also some other characters).
+ */
+
+
+/**
+ * Determine whether a node's text content is entirely whitespace.
+ *
+ * @param nod  A node implementing the |CharacterData| interface (i.e.,
+ *             a |Text|, |Comment|, or |CDATASection| node
+ * @return     True if all of the text content of |nod| is whitespace,
+ *             otherwise false.
+ */
+function is_all_ws( nod )
+{
+  // Use ECMA-262 Edition 3 String and RegExp features
+  return !(/[^\t\n\r ]/.test(nod.data));
+}
+
+
+/**
+ * Determine if a node should be ignored by the iterator functions.
+ *
+ * @param nod  An object implementing the DOM1 |Node| interface.
+ * @return     true if the node is:
+ *                1) A |Text| node that is all whitespace
+ *                2) A |Comment| node
+ *             and otherwise false.
+ */
+
+function is_ignorable( nod )
+{
+  return ( nod.nodeType == 8) || // A comment node
+         ( (nod.nodeType == 3) && is_all_ws(nod) ); // a text node, all ws
+}
+
+/**
+ * Version of |previousSibling| that skips nodes that are entirely
+ * whitespace or comments.  (Normally |previousSibling| is a property
+ * of all DOM nodes that gives the sibling node, the node that is
+ * a child of the same parent, that occurs immediately before the
+ * reference node.)
+ *
+ * @param sib  The reference node.
+ * @return     Either:
+ *               1) The closest previous sibling to |sib| that is not
+ *                  ignorable according to |is_ignorable|, or
+ *               2) null if no such node exists.
+ */
+function node_before( sib )
+{
+  while ((sib = sib.previousSibling)) {
+    if (!is_ignorable(sib)) return sib;
+  }
+  return null;
+}
+
+/**
+ * Version of |nextSibling| that skips nodes that are entirely
+ * whitespace or comments.
+ *
+ * @param sib  The reference node.
+ * @return     Either:
+ *               1) The closest next sibling to |sib| that is not
+ *                  ignorable according to |is_ignorable|, or
+ *               2) null if no such node exists.
+ */
+function node_after( sib )
+{
+  while ((sib = sib.nextSibling)) {
+    if (!is_ignorable(sib)) return sib;
+  }
+  return null;
+}
+
+/**
+ * Version of |lastChild| that skips nodes that are entirely
+ * whitespace or comments.  (Normally |lastChild| is a property
+ * of all DOM nodes that gives the last of the nodes contained
+ * directly in the reference node.)
+ *
+ * @param sib  The reference node.
+ * @return     Either:
+ *               1) The last child of |sib| that is not
+ *                  ignorable according to |is_ignorable|, or
+ *               2) null if no such node exists.
+ */
+function last_child( par )
+{
+  var res=par.lastChild;
+  while (res) {
+    if (!is_ignorable(res)) return res;
+    res = res.previousSibling;
+  }
+  return null;
+}
+
+/**
+ * Version of |firstChild| that skips nodes that are entirely
+ * whitespace and comments.
+ *
+ * @param sib  The reference node.
+ * @return     Either:
+ *               1) The first child of |sib| that is not
+ *                  ignorable according to |is_ignorable|, or
+ *               2) null if no such node exists.
+ */
+function first_child( par )
+{
+  var res=par.firstChild;
+  while (res) {
+    if (!is_ignorable(res)) return res;
+    res = res.nextSibling;
+  }
+  return null;
+}
+
+/**
+ * Version of |data| that doesn't include whitespace at the beginning
+ * and end and normalizes all whitespace to a single space.  (Normally
+ * |data| is a property of text nodes that gives the text of the node.)
+ *
+ * @param txt  The text node whose data should be returned
+ * @return     A string giving the contents of the text node with
+ *             whitespace collapsed.
+ */
+function data_of( txt )
+{
+  var data = txt.data;
+  // Use ECMA-262 Edition 3 String and RegExp features
+  data = data.replace(/[\t\n\r ]+/g, " ");
+  if (data.charAt(0) == " ")
+    data = data.substring(1, data.length);
+  if (data.charAt(data.length - 1) == " ")
+    data = data.substring(0, data.length - 1);
+  return data;
+}
+</pre>
+
+<h2>Example</h2>
+
+<p>
+
+  The following code demonstrates the use of the functions above.
+  It iterates over the children of an element (whose children are
+  all elements) to find the one whose text is <code>"This is the third
+  paragraph"</code>, and then changes the class attribute and the contents
+  of that paragraph.  (See a <a href="demo.html">demonstration</a> of
+  this code.)
+
+</p>
+
+<pre>
+var cur = first_child(document.getElementById("test"));
+while (cur)
+{
+    if (data_of(cur.firstChild) == "This is the third paragraph.")
+    {
+        cur.className = "magic";
+        cur.firstChild.data = "This is the magic paragraph.";
+    }
+    cur = node_after(cur);
+}
+</pre>
+
+
+
+
+<hr class="hide">
+<hr class="hide">
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../../security/">Security Updates</a></li>
+<li><a href="../../../../contact/">Contact Us</a></li>
+<li><a href="../../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January  1,  2003</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/docs/dom/technote/whitespace/index.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

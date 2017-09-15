@@ -1,0 +1,258 @@
+<HTML>
+<HEAD>
+   <TITLE>netlib url Parsing</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+netlib url Parsing</H1>
+A url can contain a lot of information; the scheme/protocol to use to retreive
+it, the server to connect to, the file to retrieve, etc. Querying the url
+for this information is constantly done throughout netlib code. Netlib
+uses the loosly defined url parsing api to simplify and standardize these
+queries. All parsing routines, among other utility functions, can be found
+in either mkparse.c or mkutils.c.
+<BR>
+<BR>
+<TABLE WIDTH="100%" >
+<TR>
+<TD VALIGN=TOP>char* net_ReduceURL(char*)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - the url to be reduced.
+<BR><B>Returns:</B>
+<BR>char* - the same pointer passed in, whose chars may have been modified.
+
+<P>Reduces a url, collapsing directories as necessary (i.e. "http://abc/../xyz.html"
+becomes, "http://abc/xyz.html"). Modifies the char * passed in and does
+not re-alloc memory.
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>char* NET_UnEscape(char*)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - url to be unescaped.
+<BR><B>Returns:</B>
+<BR>char* - the unescaped url.
+
+<P>Does not allocate any memory, the original char* passed in is modified.
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>char* NET_MakeTargetURL (char*,
+<BR> char*,
+<BR> char**) </TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - the base url
+<BR>char* - the source url
+<BR>char** - [out] the new relative url
+<BR><B>Returns:</B>
+<BR>char* - the new target url
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>char* NET_MakeAbsoluteURL(char*,
+<BR> char*)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - the url to which the second arg is made relative to.
+<BR>char* - the url to be made relative.
+<BR><B>Returns:</B>
+<BR>char* - a malloc'd char* that points to the new absolute url based
+on the urls passed in. (i.e. if "http://abc/" and "xyz.html" are passed
+in, "http://abc/xyz.html" is returned).
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>time_t NET_ParseDate(char*)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - a string representation of a date
+<BR><B>Returns:</B>
+<BR>time_t - the time_t representation of the date passed in.
+
+<P>Date parsing is based on RFC 850 and RFC 822.
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>char* NET_ParseURL(char*, int)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - the url to parse
+<BR>int - an integer whose bit fields are referenced to determine which
+portion of the url to return (see list of bit flags below)
+<BR><B>Returns:</B>
+<BR>char* - a malloc'd char* that contains the portion of the url specified.
+NULL is only returned if there was a memory allocation problem, otherwise
+an empty string is returned if the requested part is not found in the url.
+It is the user's responsibility to check the returned string for the null
+byte.
+
+<P>These bit flags are defined in ns/include/net.h
+<UL>
+<LI>
+GET_ALL_PARTS - returns the entire url</LI>
+
+<LI>
+GET_PASSWORD_PART - returns the password</LI>
+
+<LI>
+GET_USERNAME_PART - returns the username</LI>
+
+<LI>
+GET_PROTOCOL_PART - returns the protocol</LI>
+
+<LI>
+GET_HOST_PART - returns the host</LI>
+
+<LI>
+GET_PATH_PART - returns everything after the first slash</LI>
+
+<LI>
+GET_HASH_PART - returns everything after the hash</LI>
+
+<LI>
+GET_SEARCH_PART - returns everything after the question mark</LI>
+</UL>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>char* NET_EscapeBytes (const char*,
+<BR> int32, int, int32*)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>const char* - bytes to be escaped
+<BR>int32 - the string length of the bytes passed in
+<BR>int - the mask to use
+<BR>int32* - [out] param. Will be set to the string length size of the
+resulting escaped char* that is returned.
+<BR><B>Returns: </B>
+<BR>char* - an alloc'd char* that is the escaped representation of the
+char* passed in.
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>char* NET_Escape (const char*, int)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>const char* - bytes to be escaped
+<BR>int - the mask to use
+<BR><B>Returns:</B>
+<BR>char* - an alloc'd char* that is the escaped representation of the
+char* passed in.
+
+<P>This function simply wraps a call to NET_EscapeBytes().
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>int32 NET_EscapedSize (const char*, int)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>const char* - url to find out the size of the escaped version of
+<BR>int - the mask to use
+<BR><B>Returns:</B>
+<BR>int32 - the size of the url that would result in a call to NET_EscapeBytes
+or NET_Escape
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>int32 NET_UnEscapeBytes (char*, int32)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - the bytes to be unescaped
+<BR>int32 - the string length of the bytes passed in
+<BR><B>Returns:</B>
+<BR>int32 - the string length of the new, unescaped char*.
+
+<P>Does not allocate memory, the char* passed in is modified.
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>XP_Bool NET_IsHTTP_URL (const char*)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>const char* - url to be checked
+<BR><B>Returns:</B>
+<BR>XP_Bool - true if the url is of type HTTP_TYPE_URL, or SECURE_HTTP_TYPE_URL.
+
+<P>This function simply calls NET_URL_Type() and checks it's return value.
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>int NET_MakeRelativeURL (char*base_url,
+<BR> char *input_url,
+<BR> char **relative_url )</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - the base url to which the input url is made relative.
+<BR>char* - the input url to be made relative to the base url
+<BR>char** - [out] the
+<BR><B>Returns:</B>
+<BR>int - an integer indicating the result of th e operation. Return values
+are defined in ns/include/net.h and are:
+<UL>
+<LI>
+NET_URL_SAME_DIRECTORY - Only the filename differs.</LI>
+
+<LI>
+NET_URL_SAME_DEVICE - The two urls are on the same device. The path differs.</LI>
+
+<LI>
+NET_URL_NOT_ON_SAME_DEVICE - The urls are on differing devices.</LI>
+
+<LI>
+NET_URL_FAIL - The operation failed.</LI>
+</UL>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>Bool NET_IsURLSecure (char*)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>char* - the url to be checked for security
+<BR><B>Returns:</B>
+<BR>Bool - true if the url is considered secure, false otherwise.
+
+<P>This function simply calls NET_URL_Type() and compares it's return value.
+<BR> </TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>int NET_URL_Type (const char*)</TD>
+
+<TD VALIGN=TOP><B>Arguments:</B>
+<BR>const char* - the url to be identified.
+<BR><B>Returns:</B>
+<BR>int - the url type as defined in net.h, zero if the type is not recognized.
+
+<P>Example return values:
+<UL>
+<LI>
+HTTP_TYPE_URL</LI>
+
+<LI>
+FTP_TYPE_URL</LI>
+</UL>
+ </TD>
+</TR>
+</TABLE>
+
+
+<P><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

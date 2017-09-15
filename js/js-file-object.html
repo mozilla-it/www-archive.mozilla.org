@@ -1,0 +1,1114 @@
+<!DOCTYPE HTML public "-//W3C//DTD html 4.0 transitional//en">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+    <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+    <META NAME="GENERATOR" CONTENT="Mozilla/4.5 [en] (WinNT; U) [Netscape]">
+    <TITLE>JavaScript File object proposal</TITLE>
+  <script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+  
+  
+    <B><FONT SIZE=+3>JavaScript File object
+    proposal</FONT></B>
+    <BR>
+    <B>by Henri Torgemane,</B>
+    <BR>
+    <B>Michael Ang &lt;<A HREF="mailto:mang@subcarrier.org">mang@subcarrier.org</A>>,</B>
+    <BR>
+    <B>and Vladimir Livshits &lt;<A HREF="mailto:val4@cornell.edu">val4@cornell.edu</A>></B>
+
+    <P>This documents describes a <I>proposed</I> API for the JavaScript File
+      object. A lot of the API has been <A HREF="#playwithfire">implemented</A>
+      (but not tested), and there is work yet to be done. Please send comments
+      to <A HREF="mailto:nboyd@atg.com">nboyd@atg.com</A>.
+
+    <P>Many scripts in JavaScript require I/O capabilities and particularly
+      access to normal files. This document describes such a File object that
+      can be implemented by host implementations.
+
+    <P>The interface is a mix of the Server Side JS File object and the Java
+      File object and tries to follow existing implicit JavaScript usage ( readln
+      instead of readLine, for example ).
+
+    <P>The File object gives two ways to access the data inside a file: a text
+      oriented access, based on characters, and a binary oriented access, based
+      on bytes. In the text mode, maximum string length is currently 256. Different
+      encodings are allowed, with ASCII, UTF8 (unicode), and UCS2 (binary) currently
+      supported.
+
+    <P>The implementation is currenly based mostly on NSPR <A HREF="../projects/nspr/reference/html/priotyp.html#16807">PRFileDesc</A>,
+      but there is also a back door that
+      allows one to create files based on standard C FILE type. This is used
+      to give the ability to initialize JavaScript files based on standard streams
+      stdin, stdout, and stderr. This is also how pipes are implemented. With
+      FILE-style files, however, not all operations are uniformly supported everywhere,
+      after all it is the goal of NSPR to hide the discrepancies among different
+      platforms.&nbsp;
+
+      <HR WIDTH="90%">
+
+      <H2>
+      0.0 Changelog</H2>
+
+      <UL>
+        <LI>
+          <B>1/18/98 </B>- <A HREF="mailto:val4@cornell.edu">volodya</A> added lots
+          of little changes to the API to document the features that were either
+          added or fixed. Added description of native file handling, how the objects
+          shout react in different cases, etc. In particular, see <A HREF="#section5">status</A>
+          for most current info.</LI>
+
+        <LI>
+          <B>12/18/98</B> - <A HREF="mailto:mang@subcarrier.org">mang</A> is taking
+          some time off from being a mozilla.organ. The interim owner is <A HREF="mailto:nboyd@atg.com">Norris
+          Boyd</A>.</LI>
+
+        <UL>
+          <LI>
+            added <A HREF="nsFileSpec-thread.html">nsFileSpec email thread</A>. The
+            File object should use nsFileSpec like functionality instead of it's current
+            filename manipulation code.</LI>
+
+          <LI>
+            added properties <TT>append</TT>, <TT>autoFlush</TT>, and <TT>replace</TT>.
+            These properties replace the comma-separated <TT>mode</TT>, which has been
+            discarded. From <A HREF="mailto:mike+mozilla@meer.net">mike@meer.net</A>.</LI>
+
+          <LI>
+            added more deep thoughts to <A HREF="#section5">Unresolved questions/TODO</A></LI>
+        </UL>
+
+        <LI>
+          <B>12/09/98</B> - <TT>parent</TT> property is now set to null if the file
+          has no parent, instead of containing the file itself. From <A HREF="mailto:fur@geocast.com">fur@geocast.com</A>.</LI>
+
+        <LI>
+          <B>12/07/98</B> - <TT>in</TT> and <TT>delete</TT> are reserved identifiers.
+          Changed <TT>in</TT> to <TT>input</TT>, <TT>out</TT> to <TT>output</TT>,
+          <TT>err</TT> to <TT>error</TT>, and <TT>delete</TT> to <TT>remove</TT>.
+          From <A HREF="mailto:brendan@netscape.com">brendan@netscape.com</A>.</LI>
+      </UL>
+
+      <H2>
+      1.0 Filenames</H2>
+
+      <UL>
+        Filenames are specified as strings that have an implementation defined
+        format. Use of standard "file:" URLs is encouraged.
+
+        <P>Examples of possible prefix strings are "/" to indicate the Unix root
+          directory, "c:" to specify a Windows drive letter, and "file:" to indicate
+          a file URL.
+
+        <P>When a file is constructed, leading and trailing spaces are removed
+          from the filename, so <TT>new File(" abc.txt&nbsp;&nbsp;&nbsp; ")</TT>
+          just creates a file called <TT>abc.txt</TT>. Filenames starting and ending
+          with '|' are interpreted as pipes a la Perl.
+
+        <P>We should be able to do things like this:
+
+          <UL>
+            <TT>var mail = new File("|/usr/bin/mail foo@bar.com");</TT>
+            <BR>
+            <TT>mail.writeln("I love JavaScript.\nPipe support is especially good!");</TT>
+            <BR>
+            <TT>mail.close();</TT>
+          </UL>
+
+      </UL>
+
+      <HR WIDTH="90%">
+
+      <H2>
+      2.0 Properties of the File constructor</H2>
+
+      <UL>
+        &nbsp;
+
+        <TABLE BORDER WIDTH="100%" >
+          <TR>
+            <TD><A HREF="#File">File</A></TD>
+
+            <TD>File constructor method</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#in">input</A></TD>
+
+            <TD>a File object that represents the standard input.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#out">output</A></TD>
+
+            <TD>a File object that represents the standard output.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#err">error</A></TD>
+
+            <TD>a File object that represents the standard error.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#currentDir">currentDir</A></TD>
+
+            <TD>a File object referring to the current directory; this property may
+              be set.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#separator">separator</A></TD>
+
+            <TD>the system name separator.</TD>
+          </TR>
+        </TABLE>
+
+        <P><B>Note: </B>The first tree properties should probably be enabled only
+          in certain settings, not in the browser context, for example. Keep in mind
+          that some methods such as isFile, for example, will return an error if
+          called on one of them.
+      </UL>
+
+      <H2>
+      2.1 Properties of File instances</H2>
+
+      <UL>
+        &nbsp;
+
+        <TABLE BORDER WIDTH="100%" >
+          <TR>
+            <TD><A HREF="#name">name</A></TD>
+
+            <TD>contains the name of the file.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#path">path</A></TD>
+
+            <TD>contains the canonical path to the file.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#length">length</A></TD>
+
+            <TD>contains the number of characters in the file.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#parent">parent</A></TD>
+
+            <TD>contains the directory containing the file.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#type">type</A></TD>
+
+            <TD>contains a string specifying the type of data or encoding contained
+              in the file. Currently "ascii","utf8" (UTF8), or "ucs2" (UCS2).</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#mode">mode</A></TD>
+
+            <TD>contains the file mode.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#position">position</A></TD>
+
+            <TD>contains the current offset in the file; this property may be set.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#isFile">isFile</A></TD>
+
+            <TD>true if the file is a normal file</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#isDirectory">isDirectory</A></TD>
+
+            <TD>true if the file is a directory.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#exists">exists</A></TD>
+
+            <TD>true if the file exists.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#opened">isOpen</A></TD>
+
+            <TD>true if the file has been successfully opened.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#isNative">isNative</A></TD>
+
+            <TD>true for pipes and standard streams</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#lastModified">lastModified</A></TD>
+
+            <TD>contains a Date object for the time the file was last modified.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#canRead">canRead</A></TD>
+
+            <TD>true if the file can be read.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#canWrite">canWrite</A></TD>
+
+            <TD>true if the file can be written.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#append">canAppend</A></TD>
+
+            <TD>contains a flag indicating if the file is in append mode.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#replace">canReplace</A></TD>
+
+            <TD>contains a flag indicating if the file is in replace mode.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#randomAccess">hasRandomAccess</A></TD>
+
+            <TD>contains a flag indicating if the "position" property can be used.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#autoFlush">hasAutoFlush</A></TD>
+
+            <TD>contains a flag indicating if the file is in automatic flush mode.</TD>
+          </TR>
+        </TABLE>
+
+      </UL>
+
+      <H2>
+      2.2 Instance methods</H2>
+
+      <UL>
+        &nbsp;
+
+        <TABLE BORDER WIDTH="100%" >
+          <TR>
+            <TD WIDTH="1%"><A HREF="#open">open(type,mode)</A></TD>
+
+            <TD>open a file</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#close">close()</A></TD>
+
+            <TD>close a file</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#flush">flush()</A></TD>
+
+            <TD>flush the data waiting to be sent to a file</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#seek">seek(numChars)</A></TD>
+
+            <TD>skip the next numChars characters</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#read">read(numChars)</A></TD>
+
+            <TD>read numChars characters and return them into a string</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#readln">readln()</A></TD>
+
+            <TD>read a line of characters from the file</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#readAll">readAll()</A></TD>
+
+            <TD>read all the remaining lines in the file and return an array of strings</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#write">write(arg0,arg1,...,argn)</A></TD>
+
+            <TD>write the parameters as strings to the file</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#writeln">writeln(arg0,arg1,...,argn)</A></TD>
+
+            <TD>same as <TT>write</TT>, and add a new line separator for the current
+              platform</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#writeAll">writeAll(Array)</A></TD>
+
+            <TD>write an array of objects sequentially into a file.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#remove">remove()</A></TD>
+
+            <TD>removes a file or a directory</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#copyTo">copyTo(filename)</A></TD>
+
+            <TD>copy the content of a file to another location</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#moveTo">renameTo(filename)</A></TD>
+
+            <TD>moves/renames a file</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#list">list(filter)</A></TD>
+
+            <TD>get a list of files inside a directory.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#mkdir">mkdir()</A></TD>
+
+            <TD>create a new directory.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#toString">toString()</A></TD>
+
+            <TD>return the canonical path to the file.</TD>
+          </TR>
+
+          <TR>
+            <TD><A HREF="#toURL">toURL()</A></TD>
+
+            <TD>return the name of the file as a "file:" URL if possible.</TD>
+          </TR>
+        </TABLE>
+
+      </UL>
+
+      <HR WIDTH="90%">
+
+      <H2>
+      3.0 Properties of the File constructor</H2>
+
+      <UL>
+        <A NAME="File"></A><B>File</B>
+
+        <P>File constructor. Expects filename as the only argument. The filename
+          can be preceeded with "file://", which is stripped off. If no argument
+          is supplied, current working directory is the file object that is returned.
+
+        <P><A NAME="in"></A><B>input</B>
+
+        <P>A File object that represents the standard input stream. Initialized
+          in certain settings.
+
+        <P><A NAME="in"></A><B>output</B>
+
+        <P>A File object that represents the standard output stream. Initialized
+          in certain settings
+
+        <P><A NAME="in"></A><B>error</B>
+
+        <P>A File object that represents the standard error stream. Initialized
+          in certain settings.
+
+        <P><A NAME="currentDir"></A><B>currentDir</B>
+
+        <P>This property contains a File object pointing to the current directory.
+          Assigning to this property causes the current directory to change. The
+          following syntax is supported:
+
+          <UL>
+            <TT>File.currentDir = new File("/");</TT>
+            <BR>
+            &nbsp;&nbsp;&nbsp; which is functionally equivalent to
+            <BR>
+            <TT>File.currentDir = "/";</TT>
+          </UL>
+
+          <A NAME="separator"></A><B>separator</B>
+
+        <P>The system name separator. For example, "/" on Unix.
+      </UL>
+
+      <H2>
+      3.1 Properties of File instances</H2>
+
+      <UL>
+        <A NAME="name"></A><B>name</B>
+
+        <P>This property contains the name of the file. Defined as "Standard input(output/error)
+          stream" for streams. Undefined for pipes.
+
+        <P><A NAME="path"></A><B>path</B>
+
+        <P>This property contains the canonical path to the file. Defined as "Standard
+          input(output/error) stream" for streams. Returns the path that was used
+          to create the pipe for pipes. Initial and trailing spaces are removed.
+
+        <P><A NAME="length"></A><B>length</B>
+
+        <P>For a directory, the number of files in it not counting the current
+          directory and parent directory entries. For a file, this property contains
+          the number of characters in the file. Undefined for pipes and standard
+          streams.
+
+        <P><A NAME="parent"></A><B>parent</B>
+
+        <P>This property contains a File object pointing to the directory containing
+          the file. If the file isn't contained in anything (root directory), the
+          property is null. Undefined for pipes and standard streams.
+
+        <P><A NAME="type"></A><B>type</B>
+
+        <P>This property contains a string specifying the type of data or encoding
+          used when the file was opened. Specific text encodings supported are "ascii",
+          "unicode", and "binary". Undefined for directories and closed files.
+
+        <P><A NAME="mode"></A><B>mode</B>
+
+        <P>This property contains the mode of the file. It can be somewhat different
+          from what was passed to open if you have repeating attributes ("read,read")
+          or if some attributes were ignored. Returns undefined if the file is closed.
+
+        <P><A NAME="position"></A><B>position</B>
+
+        <P>This property contains the current offset in the file. this is the only
+          property that may be set. This property is undefined if the file is not
+          in random access mode or if it is a pipe or a standard stream. Also undefined
+          for closed files. Setting this property performs a seek operation on the
+          file.
+
+        <P><A NAME="isFile"></A><B>isFile</B>
+
+        <P>This property contains true if the file is a regular data file. False
+          for pipes and standard streams. Note that on some platforms, both "isDirectory"
+          and "isFile" may return false for some types of files (for example, unix
+          named pipes).
+
+        <P><A NAME="isDirectory"></A><B>isDirectory</B>
+
+        <P>This property contains true if the file is a directory. False for pipes
+          and standard streams.
+
+        <P><A NAME="exists"></A><B>exists</B>
+
+        <P>This property equals true if the file exists. False for pipes and standard
+          streams.
+
+        <P><A NAME="opened"></A><B>isOpen</B>
+
+        <P>This property contains true if the file has been successfully opened
+          and is still open. Keep in mind that standard streams and pipes are open
+          by default and don't requre opening.
+
+        <P><A NAME="isNative"></A><B>isNative</B>
+
+        <P>This property contains true for pipes and standard streams.
+
+        <P><A NAME="lastModified"></A><B>lastModified</B>
+
+        <P>This property contains a Date object for the time the file was last
+          modified. Undefined for pipes and standard streams.
+
+        <P><A NAME="canRead"></A><B>canRead</B>
+
+        <P>This property contains true if the file can be read. The mode with which
+          the file was opened (if it was) is respected. true for File.input, false
+          for other streams. true for pipes starting with '|', false otherwise.
+
+        <P><A NAME="canWrite"></A><B>canWrite</B>
+
+        <P>This property contains true if the file can be written. The mode with
+          which the file was opened (if it was) is respected. true for File.output
+          and File.error, false for File.input. true for pipes ending with '|', false
+          otherwise.
+
+        <P><A NAME="append"></A><B>canAppend</B>
+
+        <P>This property is true if the file was open for appending. False for
+          pipes and standard streams. Undefined for closed files.
+
+        <P><A NAME="replace"></A><B>canReplace</B>
+
+        <P>This property is true if the file was open with replace flag enabled.
+          False for pipes and standard streams. Undefined for closed files.
+
+        <P><A NAME="randomAccess"></A><B>hasRandomAccess</B>
+
+        <P>This property contains a flag indicating that the file is being opened
+          in random access mode. This means the "position" property can be read and
+          set. False for pipes and standard streams. Undefined for closed files.
+
+        <P><A NAME="autoFlush"></A><B>hasAutoFlush</B>
+
+        <P>This property contains true if the file is in automatic flush mode.
+          If this is set to true, each call to <A HREF="#writeln">writeln</A> will
+          flush the stream. False for pipes and standard streams. Undefined for closed
+          files.
+      </UL>
+
+      <H2>
+      3.1.1 Special properties for directories</H2>
+
+      <UL>
+        A File object that represents a directory gets additional properties
+        that represent the files contained in the directory.
+
+        <P>These properties have the same names as the files in the directory.
+          <BR>
+          &nbsp;
+
+          <TABLE BORDER CELLPADDING=3 >
+            <TR>
+              <TD BGCOLOR="#BCC0D3"><B>Example</B></TD>
+            </TR>
+
+            <TR>
+              <TD><TT>myDir = new File("some/directory");</TT>
+                <BR>
+                <TT>myFileInDir = myDir.foo;</TT>
+
+                <P>Named property lookup can be used to refer to files whose names are
+                  not valid as normal property names.&nbsp;
+
+                <P><TT>mySameFileInDir = myDir["foo"];</TT>
+                  <BR>
+                  <TT>myOtherFile = myDir["some long filename with spaces and such"];</TT></TD>
+            </TR>
+          </TABLE>
+
+      </UL>
+
+      <H2>
+      3.2 Instance methods</H2>
+
+      <UL>
+        <A NAME="open"></A><B>open(type,mode)</B>
+
+        <P>If no mode is specified, the default mode that is used for regular files
+          is "read,append,create". Pipes are automatically open at creation time
+          with mode defaulting to "read" or "write" depending on pipe type. If no
+          type is specified, the default type is "text".
+          <BR>
+          &nbsp;
+
+          <TABLE BORDER CELLPADDING=3 >
+            <TR>
+              <TD COLSPAN="2" BGCOLOR="#BCC0D3"><B>Valid modes (can be combined)</B></TD>
+            </TR>
+
+            <TR>
+              <TD>read</TD>
+
+              <TD>specify that the file is opened for reading.</TD>
+            </TR>
+
+            <TR>
+              <TD>write</TD>
+
+              <TD>specify that the file is opened for writing.</TD>
+            </TR>
+
+            <TR>
+              <TD>readWrite</TD>
+
+              <TD>specify that the file is opened for both reading and writing</TD>
+            </TR>
+
+            <TR>
+              <TD>randomAccess</TD>
+
+              <TD>specify that the file is opened for both reading and writing.</TD>
+            </TR>
+
+            <TR>
+              <TD>append</TD>
+
+              <TD>position the file pointer at the end of the file.</TD>
+            </TR>
+
+            <TR>
+              <TD>autoflush</TD>
+
+              <TD>ask to automatically flush the output when a newline character is written.</TD>
+            </TR>
+
+            <TR>
+              <TD>replace</TD>
+
+              <TD>erase the content of the file before opening it.</TD>
+            </TR>
+          </TABLE>
+
+        <P>You can also use the format "create=yes, append=yes", etc. Please note
+          that the case of letters is important.
+          <BR>
+          &nbsp;
+
+          <UL>
+            <B>Notes:</B>
+
+            <UL>
+              <LI>
+                if both "read" and "write" are set, then "readWrite" is automatically set.</LI>
+
+              <LI>
+                "randomAccess" is set to true for binary files.</LI>
+
+              <LI>
+                "autoflush" defaults to true</LI>
+            </UL>
+
+          </UL>
+
+          <TABLE BORDER CELLPADDING=3 >
+            <TR>
+              <TD COLSPAN="2" BGCOLOR="#BCC0D3"><B>Valid types</B></TD>
+            </TR>
+
+            <TR>
+              <TD>"text"</TD>
+
+              <TD>open the file for text access, using the default file encoding.</TD>
+            </TR>
+
+            <TR>
+              <TD>"binary"</TD>
+
+              <TD>open the file for binary access.</TD>
+            </TR>
+
+            <TR>
+              <TD>"unicode"</TD>
+
+              <TD>open the file for unicode access.</TD>
+            </TR>
+          </TABLE>
+
+        <P>Causes a warning if the file is a native file or if the file is a directory.
+          In both these cases the return value is true. If the file is non-native
+          and already open, a warning is generated and the file is reopened. This
+          might make sense in a case when you want to go to the beginning of the
+          file,etc., but you can probably use <A HREF="#seek">seek&nbsp;</A> instead.
+
+        <P><A NAME="close"></A><B>close()</B>
+
+        <P>This method closes the file. Causes a warning if the file is not open
+          or is a native file and returns false. This method is called automatically
+          on an open file object when the object goes out of scope.
+
+        <P><A NAME="remove"></A><B>remove()</B>
+
+        <P>This method removes the file or removes the directory given as argument.
+          Normally if remove is called on a directory it is only removed if the directory
+          is empty. Fails if the file is open.
+
+        <P><A NAME="copyTo"></A><B>copyTo(filename)</B>
+
+        <P>This method tries to make a raw copy of the source file into a destination
+          file. It will fail if the source file doesn't exist, or is a directory.
+
+        <P><A NAME="moveTo"></A><B>renameTo(filename)</B>
+
+        <P>This method moves/renames the file. Fails if the file is open.
+
+        <P><A NAME="flush"></A><B>flush()</B>
+
+        <P>This method forces to flush the output buffers of the file. Fails if
+          the file is closed.
+
+        <P><A NAME="seek"></A><B>seek(numChars)</B>
+
+        <P>This methods skips the next numChars characters or bytes depending on
+          the current access mode for the file. If the file is closed, it is opened
+          before performing the operation.This function can accept both positive
+          and negative parameters. Reports a warning and returns undefined if called
+          on a directory. In the operation is successful, returns the current position
+          in file.
+
+        <P><A NAME="read"></A><B>read(numChars)</B>
+
+        <P>This method reads numChars characters and returns them in a string.
+          If there are less than numChars characters left to read, then the available
+          characters are returned. If the file is at EOF, then null is returned.
+
+        <P><A NAME="readln"></A><B>readln()</B>
+
+        <P>This methods reads characters until an end of line/file is encountered
+          then returns the string for these characters (without any end of line character).
+
+        <P><A NAME="readAll"></A><B>readAll()</B>
+
+        <P>This methods reads the rest of the file and returns an array with a
+          slot for each line of the file.
+
+        <P><A NAME="write"></A><B>write(arg0,arg1,...,argn)</B>
+
+        <P>This method converts each argument to a string, then writes it to the
+          file (without separators).
+
+        <P><A NAME="writeln"></A><B>writeln(arg0,arg1,...,argn)</B>
+
+        <P>This method is similar to <TT>write</TT>, but adds a platform dependent
+          end of line after outputting the last argument.
+
+        <P><A NAME="writeAll"></A><B>writeAll(Array)</B>
+
+        <P>This method takes an array as an argument, and calls writeln() on each
+          element.
+
+        <P><A NAME="list"></A><B>list(filter)</B>
+
+        <P>This method returns an array. if the file is a directory, an slot is
+          created for each file inside that directory, and a property with the file
+          name is created too. Both point to a File object referring to the file.
+
+        <P><TT>filter</TT> is an optional argument that should be a function or
+          a regular expression, and is used to filter the array. If the argument
+          is a regular expression, the array will only contain files for which the
+          pattern matches. If the argument is a function, the array will only contain
+          files for which the function returned true when called with the file name
+          as argument.
+          <BR>
+          &nbsp;
+
+          <TABLE BORDER CELLPADDING=2 >
+            <TR>
+              <TD BGCOLOR="#BCC0D3"><B>Example</B></TD>
+            </TR>
+
+            <TR>
+              <TD><TT>File.currentDir.list( function (name) { return name.length==3;
+                } );</TT>
+
+                <P>Returns only files in the current directory whose names are 3 characters
+                  long.&nbsp;</TD>
+            </TR>
+          </TABLE>
+
+        <P><A NAME="mkdir"></A><B>mkdir()</B>
+
+        <P>This method attempts to create a directory inside the file directory.
+          For instance,
+
+          <UL>
+            <TT>f = new File("c:\\")</TT>
+            <BR>
+            <TT>f.mkdir("win95")</TT>
+          </UL>
+
+          creates c:\win95\ and this piece does the same
+
+          <UL>
+            <TT>f = new File("c:\\user.txt")</TT>
+            <BR>
+            <TT>f.mkdir("win95")</TT>
+          </UL>
+
+          <A NAME="toString"></A><B>toString()</B>
+
+        <P>This method returns the canonical path to the file.
+
+        <P><A NAME="#toURL"></A><B>toURL()</B>
+
+        <P>return the name of the file as a "file:" URL. Undefined for pipes and
+          standard streams.
+      </UL>
+
+      <HR WIDTH="90%">
+
+      <H2>
+      4.0 I want to play</H2>
+
+      <BLOCKQUOTE><A NAME="playwithfire"></A><FONT COLOR="#FF0000">Flaming disclaimer:</FONT>
+      Do not play with the File object if you are not prepared to have your hard
+      drive erased, smashed, and broken into little bits! It mostly works right
+      now, but no guarantees.</BLOCKQUOTE>
+
+      <UL>
+        &nbsp;
+        <BR>
+        Currently the File object can be built into the core JS engine using
+        a define. This is wrong. Once XPCOM settles down, the File object should
+        be COM-ified.
+
+        <P>To play with/hack on the File object, get the latest and greatest (usually)
+          JavaScript using CVS:
+
+        <P><TT>cvs co -rSpiderMonkeyDev_BRANCH mozilla/js/src</TT>
+
+        <P>Be warned that this gives you the active development branch for JavaScript,
+          which offers few guarantees of stability.
+
+        <P>To build (the reference interpreter on UNIX in this example) with the
+          File object, define <TT>JS_HAS_FILE_OBJECT</TT> while building. You also
+          need to build against <A HREF="../owners.html#nspr">NSPR</A> which you
+          can do by defining <TT>JS_THREADSAFE</TT>.
+
+        <P><TT>cd mozilla/js/src</TT>
+          <BR>
+          <TT>gmake -f Makefile.ref JS_THREADSAFE=1 JS_HAS_FILE_OBJECT=1</TT>
+      </UL>
+
+      <A NAME="section5"></A>
+      <H2>
+      5.0 Status</H2>
+
+      <UL>
+        <B>Status of the code:</B>
+
+        <UL>
+          <LI>
+            All code is in jsfile.[c|h|msg]. It is in a pretty good shape, it any case,
+            in a significantly better shape than it was in mid-December, 1998. There
+            are still some opportunities for removing redundant pieces, adding macros,
+            etc.</LI>
+
+          <LI>
+            Generally, most important functionality is implemented and tested. This
+            includes opening, closing files, reading and writing, etc. See nspr_files.js
+            in the test suite for more examples.</LI>
+
+          <LI>
+            I believe all methods and properties described in this proposal have been
+            implemented. This doesn't necessarily mean that they work on all platforms.
+            In paraticular, no one has tried to build this thing on the Mac. Note that
+            some functionality such as pipes and perhaps even standard streams is not
+            going to be available on the Mac. Perhaps not even all NSPR functions will
+            work. It's not even clear which Mac includes are needed.</LI>
+
+          <LI>
+            Speaking about the code, most methods of the File object are pretty well
+            tested. There may still be random bugs in the code dealing with low-level
+            file access. That code is also not optimized, copying a relatively big
+            file takes <I>a while</I>. Filename manipulation has been rewritten. There
+            has been a talk about combining this stuff with what <A HREF="mailto:mcmullen@netscape.com">John
+            McMullen</A> has written and that shouldn't be terribly hard, once they
+            (<A HREF="mailto:wtc@netscape.com">NSPR people</A>, <A HREF="mailto:brendan@netscape.com">Brendan</A>)
+            figure out it it should be part of NSPR and which implementation language
+            to use. There is a discussion about this on <A HREF="news:netscape.public.mozilla.xpfe">netscape.public.mozilla.xpfe</A>.</LI>
+
+          <LI>
+            There is a test suite covering most of the functionality. However, I expect
+            there will be many subtle bugs when the object is heavily used. They are
+            usually hard to discover, but easy to fix.</LI>
+
+          <LI>
+            A lot of the code is dedicated to catching error conditions and generating
+            error messages or warnings. See jsfile.msg for error codes.</LI>
+        </UL>
+
+      </UL>
+
+      <UL>
+        <B>Things to do:</B>
+
+        <UL>
+          <LI>
+            Exceptions should be generated when errors occur. What should the format
+            of these be? Some of the functions report warnings, some errors. Ultimately,
+            all of them should eventually become exceptions.</LI>
+
+          <LI>
+            Error messages should be cleaned up a bit</LI>
+
+          <LI>
+            There has been a talk about putting security callbacks into the code. There
+            is a SECURITY_CHECK macro left for this purpose. It is currently defined
+            as empty string and needs to be redefined. This macro takes the name of
+            the operation as one of the parameters, these names currently correspond
+            to method names, but can probably be broken into groups (read, write, exist,
+            etc.). Security checks are implemented at the level of individual methods
+            and property access procedures, not at the level of underlying implementation
+            functions because&nbsp; implementation functions can be called in the code
+            from different places and we probably don't want the security checks to
+            be layered. Ask <A HREF="mailto:nboyd@atg.com">Norris</A> about this.</LI>
+
+          <LI>
+            RDF will be reflected into JS (Ask <A HREF="mailto:guha@netscape.com">Guha</A>,
+            <A HREF="mailto:clayton@netscape.com">Clayton</A>). Currently, we'd like
+            to have a JavaScript file constructor taking an RDF thingy and returning
+            a normal JS File object. That is, one would use RDF to <I>naviate</I> the
+            file system and the File object to do reads, writes, etc.</LI>
+
+          <LI>
+            Figure out what to do with js_canonicalPath(...). This procedure resolves
+            a filename give something like ".././blah/../../dir/file.txt". I think,
+            it is not really needed, since the filesystem will resolve this name automatically
+            (it all boils out to an fopen call at the end). The procedure is not Mac-compatible
+            and there may potentially be weird cases and soft link problems. In the
+            code, look for macro RESOLVE_PATH. This procedure also does some other
+            things such as removing leading and trailing spaces, they may need to be
+            moved to js_absolutePath(...).</LI>
+
+          <LI>
+            It would be nice to run the code through Purify.</LI>
+
+          <LI>
+            js_escape from jsstr.h is used in the code. Some day it may disappear from
+            jsstr.h and will be moved to the client. And the code won't build...</LI>
+
+          <LI>
+            (<B>?</B>) Get NSPR group to roll nsFileSpec functionality into NSPR. See
+            discussion above. It's not completely clear if this is what we want to
+            do since out code is already more or less working, but it is worth looking
+            into.</LI>
+
+          <LI>
+            (<B>?</B>) XPCOM-ify -- again, not clear what this gives us, but this will
+            requre a major rewrite.</LI>
+
+          <LI>
+            (<B>?</B>) Implement in Java, not clear why, LiveConnect + java.io.File
+            already give us this</LI>
+
+          <LI>
+            (<B>?</B>) Extend api to allow use of sockets, etc. (functionality already
+            exists in PRFile). It is not clear why this it needed, but if it's easy
+            to do, why not.</LI>
+
+          <LI>
+            (<B>?</B>) Low-level file-access functions are probably not efficient (see
+            js_FileRead(..), etc.) Copying a relatively small file takes a while. They
+            can probably be optimized, though there is already some buffering in place.</LI>
+        </UL>
+
+        <P><BR>
+          <B>Random thoughts:</B>
+
+          <UL>
+            <LI>
+              Someone in the server land has tried to write something similar (Server-side
+              JS?) and there also seems to be an XPCOM file object somewhere. (Ask <A HREF="mailto:clayton@netscape.com">Clayton</A>).</LI>
+          </UL>
+
+      </UL>
+
+      <HR>
+
+      <BR>
+      Questions to <A HREF="mailto:nboyd@atg.com?cc=val4@cornell.edu">Norris
+      Boyd</A>
+      <BR>
+      <!-- hhmts start -->Last modified: Fri Dec 18 20:47:48 PST 1998<!-- hhmts end -->
+  
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February  6,  2003</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/js/js-file-object.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

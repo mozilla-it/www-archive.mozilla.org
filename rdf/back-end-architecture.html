@@ -1,0 +1,601 @@
+
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+  <title>rdf: back-end architecture</title>
+  <link rel="stylesheet" href="rdf.css" type="text/css" media="screen">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+ <script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+ 
+
+ 
+
+  <div id="content">
+   <h1>rdf: back-end architecture</h1>
+
+   Contact:
+   <a href="mailto:waterson@netscape.com">Chris Waterson</a> (waterson@netscape.com)<br>
+
+   <p>
+    This document provides an overview of the RDF &ldquo;core&rdquo;
+    implementation, that is, the implementation of the
+    RDF <i>model</i> within Mozilla. It assumes some familiarity with
+    the RDF model as described in the
+
+    <a href="http://www.w3.org/TR/REC-rdf-syntax/">RDF Model and Syntax Specification</a>.
+
+    See also the
+
+    <a href="doc/datasource-howto.html">Datasource HOWTO</a>
+
+    for details on writing a datasource.
+   </p>
+
+   <a href="#Model">Model and Terminology</a><br>
+   <a href="#Interfaces">Interfaces</a><br>
+   <a href="#Example">Example</a><br>
+
+
+   <h2 id="model">Model and Terminology</h2>
+
+   <p>
+    The Mozilla implementation of the RDF model is based on the RDF
+    Model and Syntax Specification.  This section attempts to provide
+    a pseudo-mathematical overview of that model
+
+    <a href="#1">[1]</a>.
+
+    Although there are slight differences between the Mozilla RDF
+    model and the model presented in the RDF Model and Syntax
+    Specification, the belief is that, for all practical purposes,
+    these differences <i>should not</i> affect the use of the RDF
+    model. Any differences that lead to behavior that is functionally
+    incorrect with respect to the Model and Syntax Specification
+    should be logged as a
+
+    <a href="http://bugzilla.mozilla.org/enter_bug.cgi?product=Browser">bug</a>
+
+    (select <b>RDF</b> as the &ldquo;Component&rdquo;).
+   </p>
+
+   <p>
+    The Mozilla RDF &ldquo;universe&rdquo; consists of:
+   </p>
+
+   <ul>
+    <li>
+     A set of <i>resources</i>, <b>R</b>. There is a representation
+     function, which is a one-to-one function that maps
+     a <i>resource</i> in <b>R</b> to a string; this string is called
+     the <i>Universal Resource Identifier</i> (or URI) of the
+     resource, and should conform to
+
+     <a href="http://www.isi.edu/in-notes/rfc2396.txt">RFC2396</a>.
+
+     There is also a parser function, which is an onto function that
+     maps a URI to a resource.
+    </li>
+
+    <li>
+     A set of <i>literals</i>, <b>L</b>. There is a one-to-one
+     function that maps a <i>literal</i> in <b>L</b> to a string
+     value.
+    </li>
+
+    <li>
+     A set of <i>statements</i>, <b>S</b>. A statement <b>s</b> in <b>S</b>
+     is a tuple
+
+     <b>R</b>&nbsp;&times;&nbsp;<b>R</b>&nbsp;&times;&nbsp;{&nbsp;<b>R</b>&nbsp;&cup;&nbsp;<b>L</b>&nbsp;}.
+    </li>
+
+   </ul>
+
+   <p>
+    <b><i>Resources</i></b>. Because the representation function that
+    maps a resource to a URI is one-to-one, it is possible to identify
+    each resource using its URI. That is, given a URI, it is possible
+    to find a unique resource in <b>R</b> again. <a href="#2">[2]</a>
+    Informally, a resource is some sort of &ldquo;Internet
+    object&rdquo; that is uniquely identifiable; for example, a web
+    page, an email account, or a USENET news article.
+   </p>
+
+   <p>
+    The representation function only gives one canonical URI for each
+    resource.  However, as specified in RFC2396, a resource might have
+    many different names; e.g., a web page can be reached by
+    redirection, or a HTTP or filesystem resource&rsquo;s names may
+    contain arbitrary amounts of &ldquo;<code>.</code>&rdquo; and
+    &ldquo;<code>..</code>&rdquo;.  Therefore, we introduce a parser
+    function from URI to <b>R</b> which is defined on arbitrary
+    URIs. The parser function may abstract several URIs to the same
+    resource; the only guarantee is that a resource&rsquo;s URI as
+    obtained through the representation function is always parsed back
+    to the resource itself. <a href="#3">[3]</a>
+   </p>
+
+   <p>
+    For efficiency&rsquo;s sake, the parser function only does local
+    computation, so e.g. redirection is not considered. We realize
+    that this &ldquo;optimization&rdquo; does not adhere to the spirit
+    of RFC2396, and may preclude some inferences because resources are
+    not recognized as being &ldquo;the same&rdquo;.  But it would
+    clearly be impractical to contact a web server to resolve each
+    HTTP URI, just for fear that it might be redirected!
+   </p>
+
+   <p>
+    The RDF Model and Syntax specification explicitly allows for
+    <i>anonymous</i> resources. An anonymous resource is a resource
+    without URI-addressable identity. The Mozilla implementation
+    allows for such resources (e.g., in serialized RDF/XML), but will
+    automatically assign a uniquely generated URI to such a resource.
+   </p>
+
+   <p>
+    <b><i>Literals</i></b>. As with resources, the function that maps
+    a literal to a string value is one-to-one. Hence, it is possible
+    to identify each literal using its string value. The RDF Model and
+    Syntax Specification explicitly states that the mapping from
+    literal to string value need <i>not</i> be one-to-one; we&rsquo;ve
+    chosen to make the mapping one-to-one to allow for efficient
+    comparison of literals. Informally, a literal is a primitive value
+    that has no "first-class identity"; for example, a string, a date,
+    or a number.
+   </p>
+
+   <p>
+    <b><i>Statements</i></b>. A statement consists of a <i>subject</i>, a
+    <i>predicate</i>, and an <i>object</i>. The subject must be a
+    resource. The predicate must be a resource (strictly speaking, the
+    predicate must be a resource that is a <i>property</i>; however, we do
+    not differentiate between a resource that is a property and a resource
+    that is not a property in the Mozilla implementation). The object may
+    be either a resource or a literal. The terms <i>statement</i> and
+    <i>assertion</i> are interchangeable.
+   </p>
+
+   <p>
+    The Mozilla RDF implementation factors the set of statements <b>S</b>
+    into subsets. Each subset of statements is called a
+    <i>datasource</i>. For example, there is a datasource that
+    contains statements about mail messages and news articles; there
+    is a datasource that contains statements about the current
+    user&rsquo;s browsing history; there is a datasource that contains
+    statements about the current user&rsquo;s bookmarks. Each
+    datasource may be addressed individually. It is possible to query
+    a datasource to determine whether a statement is
+    present. Statements may be added to, removed from, or altered in a
+    datasource.
+   </p>
+
+   <p>
+    The implementation allows datasources to be addressed
+    collectively. That is, the statements from several different
+    datasources may be combined into a <i>composite datasource</i>, in
+    which they may be queried or altered &ldquo;in the
+    aggregate&rdquo;.
+   </p>
+
+   <p>
+    A set of statements may be visualized as a directed, labelled graph,
+    and much of the Mozilla RDF API is crafted with this visualization in
+    mind. Specifically, the subject of each statement is a node (the
+    <i>source</i>), the object of the statement is a node (the
+    <i>target</i>), and the predicate is a directed arc from the
+    subject node to the object node. In this parlance, a datasource --
+    which is simply a colletion of statements -- is a (possibly
+    unconnected) graph. A composite datasource is the graph that is
+    constructed by overlaying the subgraphs of several individual
+    datasources.
+   </p>
+
+   <p>
+    <b><i>Reification</i></b>. The RDF Model and Syntax Specification
+    discusses how a statement may itself be &ldquo;reified&rdquo;, and
+    referred to as a resource. As of this writing, the Mozilla RDF
+    model does not support automatic derivation of &ldquo;meta
+    statements&rdquo; that arise from such reification.
+   </p>
+
+   <h2 id="Interfaces">Interfaces</h2>
+
+   <p>
+    Below are the primary interfaces that are used to interact with
+    RDF.
+   </p>
+
+   <p>
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFService.idl">nsIRDFSerivce</a></code>.
+
+    The RDF service is an utility interface that serves three primary
+    purposes.  First, it is used to manage &ldquo;named&rdquo;
+    datasources. A named datasource is a singleton datasource that can
+    be acquired using simple URI-like name <a href="#4">[4]</a>;
+    e.g., <code>rdf:bookmarks</code>.  Second, it is used to implement
+    the function that maps a URI to a resource (which is
+    the <i>inverse</i> of the one-to-one resource-to-URI function
+    described above).  Third, it is used to implement the function
+    that maps a string value to a literal (similarly, the inverse of
+    the one-to-one literal-to-string function described above).
+   </p>
+
+   <p>
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFNode.idl">nsIRDFNode</a></code>.
+
+    This is an interface for a node in the RDF graph. A node must
+    either be an
+
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFResource.idl">nsIRDFResource</a></code>
+
+    or an
+
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFLiteral.idl">nsIRDFLiteral</a></code> <a href="#5">[5]</a>.
+
+    Objects that implement these interfaces <i>must</i> be acquired
+    from the <code>nsIRDFService</code>.
+   </p>
+
+   <p>
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFDataSource.idl">nsIRDFDataSource</a></code>.
+
+    This is the interface that provides access to a collection of
+    &ldquo;related statements&rdquo; (or a
+    &ldquo;subgraph&rdquo;). This interface includes methods that
+    allow testing for the presence of a statement, enumerating the
+    statements contained in the collection, and adding and removing
+    statements to the set.
+   </p>
+
+   <p>
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFCompositeDataSource.idl">nsIRDFCompositeDataSource</a></code>. 
+
+    This interface is derived from <code>nsIRDFDataSource</code>. An
+    implementation of this interface will typically combine the statements
+    from several datasources together as a collective.  Because the
+    <code>nsIRDFCompositeDataSource</code> interface is derived from
+    <code>nsIRDFDataSource</code>, it can be queried and modified just
+    like an individual data source.
+   </p>
+
+   <p>
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFObserver.idl">nsIRDFObserver</a></code>.
+
+    This is an interface that an RDF <i>client</i> implements. The
+    interface allows a client to be notified when a change occurs to
+    the statements in a datasource.
+   </p>
+
+   <p>
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFContainer.idl">nsIRDFContainer</a></code>.
+
+    This is an interface that allows for simplified access to an RDF
+    <i>container</i> object (a <i>bag</i>, <i>sequence</i>, or
+    <i>alternation</i>). This interface, in conjunction with
+
+    <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/base/idl/nsIRDFContainerUtils.idl">nsIRDFContainerUtils</a></code>
+
+    provide straightforward, Java vector-esque methods for
+    manipulating and querying RDF container objects.
+   </p>
+
+   <h2 id="Example">Example</h2>
+
+   <p>
+    This section provides some sample code that uses
+
+    <a href="../js/">JavaScript</a>
+
+    and
+
+    <a href="../scriptable/">XPConnect</a>
+
+    to interact with the RDF engine, including:
+   </p>
+
+   <ul>
+    <li>Acquiring the RDF service</li>
+    <li>Acquiring a datasource</li>
+    <li>Acquiring RDF resources</li>
+    <li>Using the RDF resources to perform queries on and alter statements in the datasource</li>
+   </ul>
+
+   <p>
+    The code below illustrates this process.
+   </p>
+
+   <p>
+    <b>Acquire the RDF service</b>. To acquire the RDF service, use the
+    <code>Components</code> object:
+   </p>
+
+   <div class="code">var RDF = Components.classes['@mozilla.org/rdf/rdf-service;1'].getService();
+RDF = RDF.QueryInterface(Components.interfaces.nsIRDFService);</div>
+
+   <p>
+    <b>Create a datasource</b>. Using the <code>Components</code>
+    object, we&rsquo;ll create an <i>in-memory datasource</i>, which
+    is just a simple &ldquo;scratch&rdquo; datasource that will
+    remember the statements we add to it:
+   </p>
+
+   <div class="code">var ds = Components.
+  classes['@mozilla.org/rdf/datasource;1?name=in-memory-datasource'].
+  createInstance();
+
+ds = ds.QueryInterface(Components.interfaces.nsIRDFDataSource);</div>
+
+   <p>
+    <b>Acquire RDF nodes</b>. Using the RDF service, you can acquire
+    individual RDF resource and literal objects. These are what you
+    use to perform a query on the RDF database.
+   </p>
+
+   <div class="code">var homepage = RDF.GetResource('http://people.netscape.com/waterson');
+var FV_quality = RDF.GetResource('urn:my-web-vocabulary:quality');
+var value = RDF.GetLiteral('tres cool');</div>
+
+   <p>
+    <b>Use the RDF nodes to add statements to the datasource</b>. And
+    finally, we &ldquo;do the deed&rdquo; using
+    the <code>Assert</code> method of the
+    <code>nsIRDFDataSource</code> interface:
+   </p>
+
+   <div class="code">ds.Assert(homepage, FV_quality, value, true);</div>
+
+   <p>
+    <b>Query the datasource</b>. Now that we&rsquo;ve added a
+    statement to the datasource, we can query it to see if
+    it&rsquo;s <i>really</i> there:
+   </p>
+
+   <div class="code">if (ds.HasAssertion(homepage, FV_quality, value, true)) {
+  alert('yep, it sure worked.');
+}</div>
+
+   <p>
+    We can pull a &ldquo;target&rdquo; value out given the source and
+    a property:
+   </p>
+
+   <div class="code">var target = ds.GetTarget(homepage, FV_quality, true);
+target = target.QueryInterface(Components.interfaces.nsIRDFLiteral);
+
+ // expect 'tres cool'
+alert('target is ' + target.Value + '!');</div>
+
+   <p>
+    Or the &ldquo;source&rdquo;, given a property and a target:
+   </p>
+
+   <div class="code">var source = ds.GetSource(FV_quality, value, true);
+source = source.QueryInterface(Components.interfaces.nsIRDFResource);
+
+  // expect 'http://people.netscape.com/waterson'
+alert('source is ' + source.Value + '!');</div>
+
+   <h2>Acknowledgements</h2>
+
+   <p>
+    <a href="mailto:daniel.brickley@bristol.ac.uk">Dan Brickley</a>
+
+    and
+
+    <a href="mailto:davidmc@netscape.com">David McCusker</a>
+
+    both provided valuable inspiration and feedback.
+
+    <a href="mailto:axel.wienberg@gmx.de">Axel Wienberg</a>
+
+    corrected several of my mathematical mis-steps, providing clear
+    and precise verbiage for the way resources and URIs interact.
+   </p>
+
+   <h2>Notes</h2>
+
+   <ol>
+
+    <li id="1">
+     <p>
+      The intent is not to impress the reader with the author&rsquo;s
+      ability to generate pseudo-mathematical babble (frankly,
+      I&rsquo;m pretty self-concious about writing this given that
+      I&rsquo;m horrible at formalizing things), nor is the intent to
+      confuse or cloud the issue. There have been several questions
+      about &ldquo;what is RDF, really?&rdquo; (e.g.,
+
+      <a href="news://news.mozilla.org/37B236A4.8A20151A%40netscape.com">this USENET thread</a>);
+
+      this is a humble attempt to explain what is really happening in
+      a somewhat formal (but hopefully accessable) way.
+     </p>
+    </li>
+
+    <li id="2">
+     <p>
+      Recall that a one-to-one function is a function where if
+
+      <i>f</i>(<i>a</i>)&nbsp;=&nbsp;<i>f</i>(<i>b</i>),
+
+      then
+
+      <i>a</i>&nbsp;=&nbsp;<i>b</i>
+
+      So in the context of resources and URIs (where <i>f</i> maps a
+      resource to a URI), given a specific resource&rsquo;s URI, there
+      can be no other resource with the same URI, so you&rsquo;ll
+      always be able to get back to the original resouce.
+     </p>
+    </li>
+
+    <li id="3">
+     <p>
+      Mathematically speaking, if the representation function is
+
+      <i>f</i>&nbsp;:&nbsp;<b>R</b>&nbsp;&rarr;&nbsp;URI
+
+      and the parser function is
+
+      <i>g</i>&nbsp;:&nbsp;URI&nbsp;&rarr;&nbsp;<b>R</b>,
+
+      then for each <i>r</i> in <b>R</b>,
+
+      <i>g</i>(<i>f</i>(<i>r</i>))&nbsp;=&nbsp;<i>r</i>.
+
+      Given a URI <i>u</i>, the canonicalized URI <i>u<sub>c</sub></i>
+      is given by
+
+      <i>u<sub>c</sub></i>&nbsp;=&nbsp;<i>f</i>(<i>g</i>(<i>u</i>)).
+     </p>
+    </li>
+
+    <li id="4">
+     <p>
+      In reality, this is nothing more than a convenience utility that
+      wraps the XPCOM service manager. The &ldquo;name&rdquo; of a
+      named datasource is shorthand that is exanded into a ProgID; the
+      ProgID is used to load a component that is assumed to
+      support <code>nsIRDFDataSource</code> as an XPCOM service.
+     </p>
+    </li>
+
+    <li id="5">
+     <p>
+      There are two other literal variants
+
+      <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/ase/idl/nsIRDFInt.idl">nsIRDFInt</a></code>
+
+      (for integer values) and
+
+      <code><a href="http://lxr.mozilla.org/seamonkey/source/rdf/ase/idl/nsIRDFDate.idl">nsIRDFDate</a></code>
+
+      (for date values). These are not &ldquo;officially&rdquo; part
+      of the public API, and may undergo change as the dust settles
+      around the XML and RDF Schema activity.
+     </p>
+
+     <p>
+      Dan Brickley writes
+
+      (in <a href="news://news.mozilla.org/Pine.GHP.4.02A.9908131145190.17911-100000%40mail.ilrt.bris.ac.uk">this USENET post</a>):
+     </p>
+
+     <blockquote>
+      The representation of primative data typing within the RDF
+      model was deferred by the W3C RDF Schema Working Group in anticipation
+      of greater synergy with the XML Schema activity; we can
+      <em>probably</em> anticipate the development of a syntax neutral
+      set of primatives that will serve the needs of the RDF and XML
+      communities, since RDF compatibility is a constraint on the XML
+      Schema activity. For more details see the
+
+      <a href="http://www.w3.org/RDF/">RDF home page</a>,
+
+      and in particular the June 1999 Web Architecture note 
+
+      <a href="http://www.w3.org/1999/04/WebData">Describing and Exchanging Data</a>
+
+      (Berners-Lee, Connolly, Swick) for a discussion of the issues
+      involved here.
+     </blockquote>
+    </li>
+   </ol>
+  </div>
+ 
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December 16,  2002</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/rdf/back-end-architecture.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

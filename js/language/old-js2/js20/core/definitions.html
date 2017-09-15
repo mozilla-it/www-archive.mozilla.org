@@ -1,0 +1,643 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Definitions</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="statements.html">
+<LINK rel=Next href="variables.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=top-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Core Language</DIV>
+    <DIV class=title1>Definitions</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="statements.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="variables.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Thursday, May 22, 2003</P>
+
+<H2>Introduction</H2>
+
+<P>Definitions are <A href="statements.html#directive">directives</A> that introduce new <A href="variables.html">constants</A>,
+<A href="variables.html">variables</A>, <A href="functions.html">functions</A>, <A href="classes.html">classes</A>, <A href="namespaces.html">namespaces</A>,
+and <A href="packages.html#package">packages</A>. All definitions except those of packages can be preceded by zero or more
+<A href="#attribute">attributes</A>. In <A href="pragmas.html#strict-mode">non-strict mode</A> there must not be any line
+breaks between the attributes or after the last attribute.</P>
+
+<H2><A name="attribute"></A>Attributes</H2>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Attributes"></A><SPAN class=nonterminal>Attributes</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Attribute" class=nonterminal>Attribute</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-AttributeCombination" class=nonterminal>AttributeCombination</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-AttributeCombination"></A><SPAN class=nonterminal>AttributeCombination</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Attribute" class=nonterminal>Attribute</A>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<A href="#N-Attributes" class=nonterminal>Attributes</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Attribute"></A><SPAN class=nonterminal>Attribute</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="expressions.html#N-AttributeExpression" class=nonterminal>AttributeExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>true</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>false</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="expressions.html#N-ReservedNamespace" class=nonterminal>ReservedNamespace</A></DIV>
+</DIV>
+
+<P>An attribute is an expression (usually just an identifier) that modifies a definition&#8217;s meaning. Attributes can specify
+a definition&#8217;s scope, namespace, semantics, and other hints. A JavaScript program may also define and subsequently use <A href="#user-attributes">its
+own attributes</A>. Attributes can be <A href="expressions.html#qualified-identifier">qualified identifiers</A> (as long as
+they don&#8217;t start with a <CODE>(</CODE>) and dotted and function call expressions, but they must be <A href="expressions.html#compile-time-constant">compile-time
+constants</A>.</P>
+
+<P>The table below summarizes the predefined attributes.</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Category</TH>
+    <TH valign=TOP nowrap align=LEFT>Attributes</TH>
+    <TH valign=TOP align=LEFT>Behavior</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP><A href="#namespace-attributes">Namespace</A></TD>
+    <TD valign=TOP nowrap><CODE>private</CODE><BR><CODE>internal</CODE><BR><CODE>public</CODE></TD>
+    <TD valign=TOP>Makes the definition visible only in the enclosing class&#8217;s private namespace (<CODE>private</CODE>),
+      the enclosing package&#8217;s private namespace (<CODE>internal</CODE>), or anywhere (<CODE>public</CODE>).</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP rowspan=2><A href="#visibility-attributes">Visibility Modifier</A></TD>
+    <TD valign=TOP nowrap><CODE>enumerable</CODE></TD>
+    <TD valign=TOP>This definition can be seen using a <CODE>for</CODE>-<CODE>in</CODE> statement.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>explicit</CODE></TD>
+    <TD valign=TOP>This top-level definition is not shared via an <CODE>import</CODE> directive.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap rowspan=2><A href="#class-attributes">Class Modifier</A></TD>
+    <TD valign=TOP nowrap><CODE>final</CODE></TD>
+    <TD valign=TOP>This class cannot be subclassed. Can be used only on classes.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>dynamic</CODE></TD>
+    <TD valign=TOP>Direct instances of this class can contain dynamic properties. Can be used only on classes.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap rowspan=2><A href="#member-attributes">Member Modifier</A>&nbsp;&nbsp;</TD>
+    <TD valign=TOP nowrap><CODE>static</CODE><BR>
+      <CODE>virtual</CODE><BR>
+      <CODE>final</CODE></TD>
+    <TD valign=TOP>The definition creates a global member (<CODE>static</CODE>) or instance member (<CODE>virtual</CODE> or
+      <CODE>final</CODE>) of the enclosing class. If defining an instance member, the definition can (<CODE>virtual</CODE>)
+      or cannot (<CODE>final</CODE>) be overridden in subclasses. Can be used only on class members.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>override</CODE><BR><CODE>override(true)</CODE><BR><CODE>override(false)</CODE><BR><CODE>override(undefined)</CODE>&nbsp;</TD>
+    <TD valign=TOP>Assertion that the definition overrides (<CODE>override</CODE> or <CODE>override(true)</CODE>), may override
+      (<CODE>override(undefined)</CODE>), or does not override (<CODE>override(false)</CODE>) a member of a superclass. Can
+      be used only on class members. Controls errors only.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A href="#conditional-attributes">Conditional</A></TD>
+    <TD valign=TOP nowrap><CODE>true</CODE><BR><CODE>false</CODE></TD>
+    <TD valign=TOP>The definition or directive is (<CODE>true</CODE>) or is not (<CODE>false</CODE>) processed.</TD>
+  </TR>
+  <TR class=js2>
+    <TD valign=TOP nowrap><A href="#memory-attributes">Memory Management</A></TD>
+    <TD valign=TOP nowrap><CODE>weak</CODE></TD>
+    <TD valign=TOP>Makes the defined variable be a weak reference. Can be used only on <CODE>var</CODE> definitions.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap rowspan=2><A href="#miscellaneous-attributes">Miscellaneous</A></TD>
+    <TD valign=TOP nowrap><CODE>prototype</CODE></TD>
+    <TD valign=TOP>Allows a function to access <CODE>this</CODE> and be used as a prototype-based constructor.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>unused</CODE></TD>
+    <TD valign=TOP>Assertion that the definition is not used.</TD>
+  </TR>
+  </TABLE>
+</DIV>
+
+<P>Multiple conflicting attributes cannot be used in the same definition, so <CODE>virtual&nbsp;final&nbsp;private</CODE>
+is an error. The attributes <CODE>true</CODE> and <CODE>false</CODE> do not conflict. Specifying an attribute more than once
+has the same effect as specifying it once.</P>
+
+<H3><A name="namespace-attributes"></A>Namespace Attributes</H3>
+
+<P>Namespace attributes control the definition&#8217;s visibility. <A href="#user-attributes">User-defined</A> attributes provide
+a finer grain of visibility control.</P>
+
+<P>Every package <VAR>P</VAR> has a predefined, anonymous namespace <VAR>PackageInternal<SUB>P</SUB></VAR>. That
+namespace is attached to all definitions with the <CODE>internal</CODE> attribute in that package. Package <VAR>P</VAR>&#8217;s
+scope includes an implicit <CODE>use&nbsp;namespace(</CODE><VAR>PackageInternal<SUB>P</SUB></VAR><CODE>)</CODE>
+definition around the package that grants access to these definitions from within the package only.</P>
+
+<P>Every class <VAR>C</VAR> has a predefined, anonymous namespace <VAR>ClassInternal<SUB>C</SUB></VAR>. That namespace is
+attached to all definitions with the <CODE>private</CODE> attribute in that class. Class <VAR>C</VAR>&#8217;s scope includes
+an implicit <CODE>use&nbsp;namespace(</CODE><VAR>ClassInternal<SUB>C</SUB></VAR><CODE>)</CODE> definition around the class
+that grants access to these definitions from within that class only. <CODE>private</CODE> can only be used inside a class.</P>
+
+<P>Namespace attributes, including user-defined namespaces, are additive; if several are given for a definition, then that
+definition is put into each of the designated namespaces. Thus, a single definition may define a name in two or more namespaces
+<VAR>namespace</VAR><SUB class=var-sub>1</SUB> and <VAR>namespace</VAR><SUB class=var-sub>2</SUB> by listing the namespaces
+as attributes: <VAR>namespace</VAR><SUB class=var-sub>1</SUB>&nbsp;<VAR>namespace</VAR><SUB class=var-sub>2</SUB><CODE>&nbsp;var&nbsp;x</CODE>.
+Such multiple definitions are aliases of each other; there is only one storage location <CODE>x</CODE>.</P>
+
+<P><A name="default-namespace-rules"></A>A definition of a name <VAR>id</VAR> is always put into the namespaces explicitly
+specified in the definition&#8217;s attributes. In addition, the definition may be placed in additional namespaces according
+to the rules below:</P>
+
+<UL>
+  <LI>If the definition explicitly specifies one or more namespaces <VAR>N</VAR>:
+    <UL>
+      <LI>If the definition defines an <A href="concepts.html#instance-member">instance member</A> in a class <VAR>C</VAR>
+        and one of <VAR>C</VAR>&#8217;s ancestors contains an <A href="concepts.html#instance-member">instance member</A>
+        <VAR>M</VAR> with name <VAR>id</VAR> and at least one of the namespaces in <VAR>N</VAR>, then the definition will
+        override <VAR>M</VAR> and be placed in all of <VAR>M</VAR>&#8217;s namespaces. It is an error if <VAR>N</VAR> contains
+        another namespace that is not in <VAR>M</VAR>&#8217;s namespaces.</LI>
+      <LI>Otherwise, the definition is put into each of the namespaces in <VAR>N</VAR>; however, to avoid confusion the <A href="#override"><CODE>override(false)</CODE>
+        or <CODE>override(undefined)</CODE> attribute</A> is required on the definition if an inherited instance member with
+        the name <VAR>id</VAR> is visible at the point of the definition. This restriction prevents one from accidentally
+        defining a <CODE>private</CODE> instance member with the same name as a <CODE>public</CODE> instance member in a superclass
+        (by the rules of member lookup, such a <CODE>private</CODE> member would be shadowed by the existing <CODE>public</CODE>
+        member for all unqualified accesses).</LI>
+    </UL>
+  </LI>
+  <LI>If the definition does not explicitly specify any namespaces:
+    <UL>
+      <LI>If the definition is in a class <VAR>C</VAR> and one of <VAR>C</VAR>&#8217;s ancestors contains a visible member
+        <VAR>M</VAR> with name <VAR>id</VAR>, then the definition will override <VAR>M</VAR> and be placed in all of <VAR>M</VAR>&#8217;s
+        namespaces. It is an error to attempt to override two different members with one definition.</LI>
+      <LI>Otherwise, the definition is put into the <CODE>public</CODE> namespace.</LI>
+    </UL>
+  </LI>
+</UL>
+
+<H3><A name="visibility-attributes"></A>Visibility Modifier Attributes</H3>
+
+<P>Visibility modifier attributes control the definition&#8217;s visibility in several special cases.</P>
+
+<H4><CODE>enumerable</CODE></H4>
+
+<P>An <CODE>enumerable</CODE> definition can be seen by the <CODE>for</CODE>-<CODE>in</CODE> iteration statement. A non-<CODE>enumerable</CODE>
+definition cannot be seen by such a statement. <CODE>enumerable</CODE> only applies to <CODE>public</CODE> definitions.</P>
+
+<P>The default for <A href="concepts.html#dynamic-property">dynamic properties</A> and <A href="concepts.html#class-property">class
+properties</A> is <CODE>enumerable</CODE>. The default for <A href="concepts.html#instance-member">instance properties</A>
+is non-<CODE>enumerable</CODE>. There is no way to make a user-defined dynamic or class property non-<CODE>enumerable</CODE>.</P>
+
+<H4><A name="explicit"></A><CODE>explicit</CODE></H4>
+
+<P><CODE>explicit</CODE> is used to add definitions to a package <VAR>P</VAR> without having them conflict with definitions
+in other packages that import package <VAR>P</VAR>. <CODE>explicit</CODE> prevents the definition from being accessed as a
+top-level variable when a package is imported. The definition can still be accessed as a <A href="concepts.html#property">property</A>
+of an object. For example,</P>
+
+<P class=indent><CODE>package&nbsp;My.P1&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;const&nbsp;c1&nbsp;=&nbsp;5;</CODE><BR>
+<CODE>&nbsp;&nbsp;explicit&nbsp;const&nbsp;c2&nbsp;=&nbsp;7;</CODE><BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>package&nbsp;My.P2&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;import&nbsp;P&nbsp;=&nbsp;My.P1;&nbsp;&nbsp;//</CODE>&nbsp;Imports&nbsp;<CODE>My.P1</CODE>&nbsp;without&nbsp;qualification<BR>
+<CODE>&nbsp;&nbsp;c1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;OK;&nbsp;evaluates&nbsp;to&nbsp;<CODE>5</CODE><BR>
+<CODE>&nbsp;&nbsp;c2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Error:&nbsp;<CODE>c2</CODE>&nbsp;not&nbsp;defined&nbsp;because&nbsp;<CODE>explicit</CODE>&nbsp;variables&nbsp;are&nbsp;not&nbsp;shared<BR>
+<CODE>&nbsp;&nbsp;P.c2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;OK:&nbsp;<CODE>explicit</CODE>&nbsp;properties&nbsp;are&nbsp;visible<BR>
+<CODE>}</CODE></P>
+
+<H3><A name="class-attributes"></A>Class Modifier Attributes</H3>
+
+<P>Class modifier attributes apply to the definition of a class <VAR>C</VAR> itself. They may only be used on definitions
+of classes.</P>
+
+<H4><CODE>final</CODE></H4>
+
+<P>If a class <VAR>C</VAR> is defined using the <CODE>final</CODE> attribute, then any attempt to define a subclass of <VAR>C</VAR>
+signals an error.</P>
+
+<P>Note that <CODE>final</CODE> is also a <A href="#member-attributes">member modifier</A> &#8212; when used on a class member,
+<CODE>final</CODE> makes that member nonoverridable. If <CODE>final</CODE> is used on a class member that is itself a class,
+then it acts like a class modifier instead of a member modifier &#8212; it prevents the inner class from being subclassed.</P>
+
+<H4><CODE>dynamic</CODE></H4>
+
+<P>Direct instances of a <CODE>dynamic</CODE> class <VAR>C</VAR> can contain <A href="concepts.html#dynamic-property">dynamic
+properties</A>. Other instances cannot contain dynamic properties. A class is <CODE>dynamic</CODE> if it has the <CODE>dynamic</CODE>
+attribute or it has a <CODE>dynamic</CODE> ancestor other than <CODE>Object</CODE>.</P>
+
+<H3><A name="member-attributes"></A>Member Modifier Attributes</H3>
+
+<P>Member modifier attributes modify a class member definition&#8217;s semantics with respect to a class hierarchy. They may
+only be used on a definition of a member <VAR>M</VAR> of a class <VAR>C</VAR>. They cannot be used on definitions that, for
+example, create local variables inside a function.</P>
+
+<H4><CODE>static</CODE>, <CODE>virtual</CODE>, and <CODE>final</CODE></H4>
+
+<P>The <CODE>static</CODE> attribute makes <VAR>M</VAR> be a global member of <VAR>C</VAR>.</P>
+
+<P>The <CODE>virtual</CODE> and <CODE>final</CODE> attributes make <VAR>M</VAR> be an instance member of <VAR>C</VAR>.</P>
+
+<P>The <CODE>final</CODE> attribute prevents subclasses from defining their own members with the name <VAR>M</VAR> (unless
+they can&#8217;t see this <VAR>M</VAR>, in which case they can define an independent <VAR>M</VAR>). <CODE>virtual</CODE> allows
+subclasses to override <VAR>M</VAR>.</P>
+
+<P>The default setting for the definition of a member <VAR>M</VAR> of a class named <VAR>C</VAR> is:</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Default Attribute</TH>
+    <TH valign=TOP nowrap align=LEFT>Kind of Member <VAR>M</VAR></TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap>none &#8212; the function is treated specially as a class constructor&nbsp;&nbsp;</TD>
+    <TD valign=TOP><CODE>function</CODE> <VAR>C</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>virtual</CODE></TD>
+    <TD valign=TOP><CODE>function</CODE> <VAR>F</VAR> where the name <VAR>F</VAR> differs from <VAR>C</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>final</CODE></TD>
+    <TD valign=TOP><CODE>var</CODE> and <CODE>const</CODE> definitions</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap>none &#8212; <CODE>static</CODE> attribute must be specified explicitly</TD>
+    <TD valign=TOP><CODE>class</CODE> and <CODE>namespace</CODE> definitions</TD>
+  </TR>
+  </TABLE>
+</DIV>
+
+<P>These attributes may not be used on an <CODE>export</CODE> definition, since <CODE>export</CODE> reuses the original member&#8217;s
+setting.</P>
+
+<P>Note that <CODE>final</CODE> is also a <A href="#class-attributes">class modifier</A> &#8212; when used on a class member
+<VAR>M</VAR>, <CODE>final</CODE> prevents <VAR>M</VAR> from being subclassed rather than making <VAR>M</VAR> be a nonoverridable
+instance member of <VAR>C</VAR>.</P>
+
+<H4><A name="override"></A><CODE>override</CODE></H4>
+
+<P>The <CODE>override</CODE> attribute reports errors; it has no other effect on the behavior of the program. The <CODE>override</CODE>
+attribute can only be used on definitions in a class and describes the programmer&#8217;s intent to either override or not
+override a member from a superclass. If the actual behavior, as defined by the <A href="#default-namespace-rules">namespace
+defaulting and overriding rules</A>, differs, then an error is signaled.</P>
+
+<P>The table below describes the behavior of when a definition of a member <VAR>M</VAR> with name <VAR>id</VAR> is placed
+in a class <VAR>C</VAR>:</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap rowspan=2></TH>
+    <TH valign=TOP nowrap colspan=4>Override attribute given</TH>
+  </TR>
+  <TR>
+    <TH valign=TOP align=LEFT>None</TH>
+    <TH valign=TOP align=LEFT><CODE>override</CODE> or<BR>
+      <CODE>override(true)</CODE></TH>
+    <TH valign=TOP align=LEFT><CODE>override(undefined)</CODE></TH>
+    <TH valign=TOP align=LEFT><CODE>override(false)</CODE></TH>
+  </TR>
+  <TR>
+    <TD valign=TOP align=LEFT><VAR>M</VAR> overrides a member in some superclass according to the <A href="#default-namespace-rules">namespace
+      defaulting and overriding rules</A></TD>
+    <TD valign=TOP>Error</TD>
+    <TD valign=TOP>OK</TD>
+    <TD valign=TOP>OK</TD>
+    <TD valign=TOP>Error</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP align=LEFT><VAR>M</VAR> does not override anything but there exists an ancestor of <VAR>C</VAR> with a
+      member with name <VAR>id</VAR> visible at the point of definition of <VAR>M</VAR></TD>
+    <TD valign=TOP>Error</TD>
+    <TD valign=TOP>Error</TD>
+    <TD valign=TOP>OK</TD>
+    <TD valign=TOP>OK</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP align=LEFT><VAR>M</VAR> does not override anything and no ancestor of <VAR>C</VAR> has a member with name
+      <VAR>id</VAR> visible at the point of definition of <VAR>M</VAR></TD>
+    <TD valign=TOP>OK</TD>
+    <TD valign=TOP>Error</TD>
+    <TD valign=TOP>OK</TD>
+    <TD valign=TOP>OK</TD>
+  </TR>
+  </TABLE>
+</DIV>
+
+<P>The middle case arises for example when an ancestor of a class <VAR>C</VAR> defines a <CODE>public</CODE> member named
+<CODE>X</CODE> and class <VAR>C</VAR> attempts to define a <CODE>private</CODE> member named <CODE>X</CODE>.</P>
+
+<H3><A name="conditional-attributes"></A>Conditional Attributes</H3>
+
+<P>An attribute whose value is <CODE>true</CODE> causes the definition or directive to be evaluated normally. An attribute
+whose value is <CODE>false</CODE> causes the definition or directive to be skipped; the remaining attributes and the body
+of the definition or directive are not evaluated. These are useful for turning definitions on and off based on configuration
+settings, such as:</P>
+
+<PRE>const debug = true;
+const nondebug = !debug;
+
+debug var nCalls = 0;
+debug function checkConsistency() {...}</PRE>
+
+<DIV class=js2>
+
+  <H3><A name="memory-attributes"></A>Memory Management Attributes</H3>
+
+  <H4><CODE><A name="weak-attribute"></A>weak</CODE></H4>
+
+  <P>The <CODE>weak</CODE> attribute, which can be used only on <CODE>var</CODE> definitions, makes the defined variable be
+  a weak reference. If there is no way to reference the variable&#8217;s value except via weak references, then the system may,
+  at its option and at any time, replace the variable&#8217;s value with <CODE>null</CODE>. The variable&#8217;s type must allow <CODE>null</CODE>.</P>
+
+</DIV>
+
+<H3><A name="miscellaneous-attributes"></A>Miscellaneous Attributes</H3>
+
+<H4><A name="prototype"></A><CODE>prototype</CODE></H4>
+
+<P>The <CODE>prototype</CODE> attribute can only be used on a function. A function with this attribute treats
+<CODE>this</CODE> in the same manner as JavaScript 1.5 and defines its own prototype-based class as in JavaScript 1.5. By
+default, the <CODE>prototype</CODE> attribute is set on any <A href="functions.html#unchecked">unchecked function</A>. It
+can be set explicitly on other functions as long as they are not getters, setters, or constructors.</P>
+
+<H4><CODE>unused</CODE></H4>
+
+<P>The <CODE>unused</CODE> attribute is a hint that the definition is not referenced anywhere. Referencing the definition
+will generate an error.</P>
+
+<H3><A name="user-attributes"></A>User-Defined Attributes</H3>
+
+<P>A user-defined attribute may be defined using a <CODE>const</CODE> definition or other definitions that define constants.
+All attributes must be <A href="expressions.html#compile-time-constant">compile-time constants</A>. For example:</P>
+
+<PRE>const ipriv = internal static;
+explicit namespace Version1;
+explicit namespace Version2;
+internal const Version1and2 = Version1 Version2;
+
+class C {
+  ipriv var x;                          // Same as internal static var x;
+  Version1and2 var simple;              // Same as Version1 Version2 var simple;
+  Version2 var complicated;
+  ipriv const a:Array = new Array(10);
+
+  private var i;
+  for (i = 0; i != 10; i++) a[i] = i;
+}</PRE>
+
+<H2><A name="scope"></A>Definition Scope</H2>
+
+<P>A definition applies to the innermost enclosing <A href="concepts.html#scope">scope</A> except when it is <A href="#hoist">hoisted</A>.
+If that scope is a class, the definition appears as a member of that class. If that scope is a package, the definition appears
+as a member of that package.</P>
+
+<H4><A name="hoist"></A>Scope Hoisting</H4>
+
+<P>For compatibility with JavaScript 1.5, in some cases a definition&#8217;s scope is <I>hoisted</I> to the innermost <A href="concepts.html#regional-scope">regional
+scope</A> <VAR>R</VAR> instead of the innermost <A href="concepts.html#scope">scope</A> <VAR>S</VAR>. This happens only when
+all of the conditions below are met:</P>
+
+<UL>
+  <LI>The definition is a <CODE>var</CODE> definition.</LI>
+  <LI>The definition does not specify a type.</LI>
+  <LI>The definition has no attributes other than <CODE>true</CODE>.</LI>
+  <LI>The regional scope <VAR>R</VAR> is not a class.</LI>
+  <LI><A href="pragmas.html#strict-mode">Strict mode</A> is not in effect.</LI>
+</UL>
+
+<P>When a definition of <VAR>n</VAR> is hosted, the effect is as though <VAR>n</VAR> were declared (but not initialized) at
+the top of the regional scope <VAR>R</VAR>.</P>
+
+<P>Definitions not meeting the above criteria are not hoisted. However, an inner non-hoisted definition of name <VAR>n</VAR>
+in scope <VAR>S</VAR> within regional scope <VAR>R</VAR> prevents <VAR>n</VAR> from being referenced or defined in any scope
+within <VAR>R</VAR> but outside <VAR>S</VAR>; see <A href="#definition-conflicts">definition conflicts</A>.</P>
+
+<H3><A name="extent"></A>Extent</H3>
+
+<P>A definition extends an <A href="concepts.html#activation-frame">activation frame</A> with one or more bindings of <A href="concepts.html#qualified-name">qualified
+names</A> to values. The bindings are generally visible from the activation frame&#8217;s <A href="concepts.html#scope">scope</A>.
+However, a definition may be invisible or partially invisible inside its scope either because it is shadowed by a more local
+definition or it uses a namespace that is not <CODE>use</CODE>d. The <A href="namespaces.html#name-lookup">name lookup rules</A>
+specify the detailed behavior of accessing activation frame bindings.</P>
+
+<P>Each definition or declaration <VAR>D</VAR> of a name <VAR>n</VAR> applies to some <A href="concepts.html#scope">scope</A>
+<VAR>S</VAR> using the rules above. Any of <VAR>S</VAR>&#8217;s activation frames will contain a binding for <VAR>n</VAR>
+as soon as <VAR>S</VAR> is entered. That binding starts in the following state:</P>
+
+<UL>
+  <LI>In <A href="pragmas.html#strict-mode">non-strict mode</A>, a <CODE>var&nbsp;</CODE><VAR>n</VAR> definition <VAR>D</VAR>
+    without a type or attributes is initialized to the value <CODE>undefined</CODE> upon entry into <VAR>S</VAR>.</LI>
+  <LI>In <A href="pragmas.html#strict-mode">non-strict mode</A>, a <CODE>function&nbsp;</CODE><VAR>n</VAR> definition <VAR>D</VAR>
+    without types or attributes is initialized to its closure upon entry into <VAR>S</VAR> instead of at the time <VAR>D</VAR>
+    is executed.</LI>
+  <LI>A <CODE>class</CODE> definition <VAR>D</VAR> of a name <VAR>n</VAR> in scope <VAR>S</VAR> binds <VAR>n</VAR> to an opaque
+    value <VAR>V</VAR> of type <CODE>Type</CODE> upon entry into <VAR>S</VAR>. <VAR>V</VAR> may be used as a type to declare
+    variables, but all other operations are prohibited. <VAR>V</VAR> becomes the actual class object at the time the definition
+    is executed, after which point instances of <VAR>V</VAR> may be created and subclasses may be derived from <VAR>V</VAR>.</LI>
+  <LI>All other definitions produce bindings in the uninitialized state upon entry into the scope <VAR>S</VAR>. The bindings
+    are initialized at the time the definition is executed.</LI>
+</UL>
+
+<P>Accessing an activation frame binding in the uninitialized state is an error. If this happens, implementations are encouraged
+to throw an exception, but may return a value <VAR>V</VAR> if they can prove that the definition would assign the value <VAR>V</VAR>
+to the binding.</P>
+
+<H2><A name="definition-conflicts"></A>Definition Conflicts</H2>
+
+<P>In general, it is not legal to rebind the same name in the same namespace within an activation frame <VAR>A</VAR>. There
+are a couple exceptions:</P>
+
+<UL>
+  <LI>Multiple <CODE>var</CODE> definitions (which may be <A href="#hoist">hoisted</A>) are allowed in a <A href="concepts.html#regional-scope">regional
+    scope</A> as long as all such definitions have no type and no attributes and <A href="pragmas.html#strict-mode">strict
+    mode</A> is not in effect.</LI>
+  <LI>A getter and a setter with the same name may be defined independently.</LI>
+</UL>
+
+<P>In addition, if a name <VAR>n</VAR> is defined in a scope <VAR>S</VAR> inside regional scope <VAR>R</VAR>, then it is not
+permitted to access a definition of <VAR>n</VAR> made outside of <VAR>R</VAR> from anywhere inside <VAR>R</VAR>. Also, two
+nested scopes <VAR>S</VAR><SUB class=var-sub>1</SUB> and <VAR>S</VAR><SUB class=var-sub>2</SUB> located inside the same
+regional scope <VAR>R</VAR> cannot both define <VAR>n</VAR> (<VAR>S</VAR><SUB class=var-sub>1</SUB>, <VAR>S</VAR><SUB class=var-sub>2</SUB>,
+and <VAR>R</VAR> may be the same scope). In either of these situations, <VAR>n</VAR> may be <A href="#hoist">hoisted</A>;
+if hoisting is not allowed, an error occurs. For example,</P>
+
+<PRE>const b:Integer = 1;
+
+function f(c:Boolean):Integer {
+  const a = b;  // Error: b is defined inside the local scope below, which prevents accesses to global b
+                // from anywhere inside the regional scope
+  if (c) {
+    const b:Integer = a + 10;  // OK to hide the global b from here.
+    return b;
+  }
+  return a;
+}
+
+function g(c:Boolean):Integer {
+  const b = 3;  // OK to hide the global b from here.
+  if (c) {
+    const b:Integer = 10;  // Error: can&#8217;t redefine b inside the same regional scope.
+    return b;
+  }
+  return b;
+}
+
+function h(c:Boolean):Integer {
+  if (c) {
+    const b:Integer = 10;  // OK to hide the global b from here.
+    return b;
+  } else {
+    const b:Integer = 42;  // OK: Two independent local definitions of b.
+    return b;
+  }
+}</PRE>
+
+<P>To help catch accidental redefinitions, binding a <A href="concepts.html#qualified-name">qualified name</A> <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>
+in activation frame <VAR>A</VAR> when there is already a binding <VAR>r</VAR><CODE>::</CODE><VAR>n</VAR> in <VAR>A</VAR> causes
+an error if both namespaces <VAR>q</VAR> and <VAR>r</VAR> are <CODE>use</CODE>d at the point of the definition of <VAR>q</VAR><CODE>::</CODE><VAR>n</VAR>
+and the bindings are not aliases of each other. This prevents the same name from being used for both <CODE>public</CODE> and
+<CODE>private</CODE> variables in the same class. Two bindings sharing the same name but with different namespaces may still
+be introduced into an activation frame, but only by code that does not <CODE>use</CODE> one or both of the namespaces.</P>
+
+<H2>Examples</H2>
+
+<P>In the example below the comments indicate the scope and namespace of each definition:</P>
+
+<P class=indent><CODE>var&nbsp;a0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;global&nbsp;variable<BR>
+<CODE>internal&nbsp;const&nbsp;a1&nbsp;=&nbsp;true;//</CODE>&nbsp;Package-visible&nbsp;global&nbsp;variable<BR>
+<CODE>private&nbsp;var&nbsp;a2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Error:&nbsp;<CODE>private</CODE>&nbsp;
+can&nbsp;only&nbsp;be&nbsp;used&nbsp;inside&nbsp;a&nbsp;class<BR>
+<CODE>public&nbsp;var&nbsp;a3&nbsp;=&nbsp;b1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;global&nbsp;variable<BR>
+<BR>
+<CODE>if&nbsp;(a1)&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;var&nbsp;b0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;block<BR>
+<CODE>&nbsp;&nbsp;var&nbsp;b1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Hoisted&nbsp;to&nbsp;the&nbsp;global&nbsp;level&nbsp;because&nbsp;of&nbsp;the&nbsp;reference&nbsp;to&nbsp;<CODE>b1</CODE>&nbsp;in&nbsp;the&nbsp;definition&nbsp;of&nbsp;<CODE>a3</CODE><BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>if&nbsp;(a1)&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;var&nbsp;b0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;block<BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>public&nbsp;function&nbsp;F()&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;global&nbsp;function<BR>
+<CODE>&nbsp;&nbsp;var&nbsp;c0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;function<BR>
+<CODE>&nbsp;&nbsp;internal&nbsp;var&nbsp;c1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;function&nbsp;
+(may&nbsp;generate&nbsp;a&nbsp;style&nbsp;warning)<BR>
+<CODE>&nbsp;&nbsp;public&nbsp;var&nbsp;c2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;function&nbsp;
+(may&nbsp;generate&nbsp;a&nbsp;style&nbsp;warning)<BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>class&nbsp;C&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;global&nbsp;class<BR>
+<CODE>&nbsp;&nbsp;var&nbsp;e0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;class&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;private&nbsp;var&nbsp;e1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Class-visible&nbsp;class&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;internal&nbsp;var&nbsp;e2;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Package-visible&nbsp;class&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;public&nbsp;var&nbsp;e3;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;class&nbsp;instance&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;static&nbsp;var&nbsp;e4;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;class-global&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;private&nbsp;static&nbsp;var&nbsp;e5;&nbsp;//</CODE>&nbsp;Class-visible&nbsp;class-global&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;internal&nbsp;static&nbsp;var&nbsp;e6;//</CODE>&nbsp;Package-visible&nbsp;class-global&nbsp;variable<BR>
+<CODE>&nbsp;&nbsp;public&nbsp;static&nbsp;var&nbsp;e7;&nbsp;&nbsp;//</CODE>&nbsp;Public&nbsp;class-global&nbsp;variable<BR>
+<BR>
+<CODE>&nbsp;&nbsp;if&nbsp;(a1)&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;var&nbsp;f0;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;block<BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;private&nbsp;var&nbsp;f1;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Local&nbsp;to&nbsp;this&nbsp;block&nbsp;
+(may&nbsp;generate&nbsp;a&nbsp;style&nbsp;warning)<BR>
+<CODE>&nbsp;&nbsp;}</CODE><BR>
+<CODE>&nbsp;&nbsp;public&nbsp;function&nbsp;I()&nbsp;{}&nbsp;//</CODE>&nbsp;Public&nbsp;class&nbsp;method<BR>
+<CODE>}</CODE></P>
+
+<DIV class=js2>
+  <H2>Definition Renaming</H2>
+
+  <P>Sometimes it is useful to add a namespace to a prior definition of a name (perhaps inherited from a superclass) or rename
+  a name inherited from a superclass or imported package. The export definition provides a facility to make an alias of an existing
+  name:</P>
+
+  <DIV class=grammar-rule>
+	<DIV class=grammar-lhs><A name="N-ExportDefinition"></A><SPAN class=nonterminal>ExportDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>export</CODE>&nbsp;<A href="#N-ExportBindingList" class=nonterminal>ExportBindingList</A></DIV>
+  </DIV>
+  <DIV class=grammar-rule>
+	<DIV class=grammar-lhs><A name="N-ExportBindingList"></A><SPAN class=nonterminal>ExportBindingList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+	<DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ExportBinding" class=nonterminal>ExportBinding</A></DIV>
+	<DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ExportBindingList" class=nonterminal>ExportBindingList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-ExportBinding" class=nonterminal>ExportBinding</A></DIV>
+  </DIV>
+  <DIV class=grammar-rule>
+	<DIV class=grammar-lhs><A name="N-ExportBinding"></A><SPAN class=nonterminal>ExportBinding</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+	<DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="functions.html#N-FunctionName" class=nonterminal>FunctionName</A></DIV>
+	<DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="functions.html#N-FunctionName" class=nonterminal>FunctionName</A>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<A href="functions.html#N-FunctionName" class=nonterminal>FunctionName</A></DIV>
+  </DIV>
+
+  <P>The first <A href="functions.html#N-FunctionName" class=nonterminal>FunctionName</A> is the new name. If the second <A href="functions.html#N-FunctionName" class=nonterminal>FunctionName</A>
+  is provided then it is the existing name; otherwise, the first <A href="functions.html#N-FunctionName" class=nonterminal>FunctionName</A>
+  is also the existing name. If one of the <A href="functions.html#N-FunctionName" class=nonterminal>FunctionName</A>s is a
+  <A href="functions.html#getters-and-setters">getter or setter</A>, then the other one must be a getter or setter, respectively.</P>
+
+  <P>A new name is an exact alias of the old name rather than a separate value or entity. Thus, if method <VAR>A</VAR> is renamed
+  as method <VAR>B</VAR> and <VAR>B</VAR> is subsequently overridden by <VAR>B'</VAR>, then <VAR>B'</VAR> really overrides <VAR>A</VAR>.</P>
+
+  <P>Here are a few examples of definition renaming:</P>
+
+<PRE>package Light {
+  const red = 1;
+  const green = 2;
+  const blue = 4;
+  const white = red + green + blue;
+}
+
+package Saber {
+  import Light;
+
+  namespace New;
+  namespace Improved;
+
+  export white; // Re-export Light&#8217;s white
+  New export green; // Re-export Light&#8217;s green, but only in the new version
+
+  class C {
+    internal var size;
+    function color() {}
+  }
+
+  class D extends C implements I1, I2 {
+    var inertia;
+    export size; // Make size public in instances of D
+    export colour = color; // Make alias for British users
+
+    function mispelled() {}; // Oops! Saber was already released and it&#8217;s too late to remove this
+    Improved export misspelled = mispelled; // Users of the improved version can use the good name
+  }
+}</PRE>
+</DIV>
+
+<DIV class=issue>
+
+  <H2>Discussion</H2>
+
+  <P>Should we have a <CODE>protected</CODE> <SPAN class=nonterminal>Attribute</SPAN>? It has been omitted for now to keep
+  the language simple, but there does not appear to be any fundamental reason why it could not be supported. If we do support
+  it, it might be better to choose the C++ <CODE>protected</CODE> concept (visible only in class and subclasses); the Java
+  <CODE>protected</CODE> concept (visible in class, subclasses, and the original class&#8217;s package) could be represented as
+  <CODE>internal</CODE> <CODE>protected</CODE>.</P>
+
+</DIV>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Thursday, May 22, 2003</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="statements.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="variables.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+</BODY>
+</HTML>

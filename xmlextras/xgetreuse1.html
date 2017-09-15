@@ -1,0 +1,171 @@
+<!-- 
+   - The contents of this file are subject to the Mozilla Public
+   - License Version 1.1 (the "License"); you may not use this file
+   - except in compliance with the License. You may obtain a copy of
+   - the License at http://www.mozilla.org/MPL/
+   - 
+   - Software distributed under the License is distributed on an "AS
+   - IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+   - implied. See the License for the specific language governing
+   - rights and limitations under the License.
+   - 
+   - The Original Code is Mozilla Test Cases.
+   - 
+   - The Initial Developer of the Original Code is Netscape Communications
+   - Corp.  Portions created by Netscape Communications Corp. are 
+   - Copyright (C) 2001 Netscape Communications Corp.  All
+   - Rights Reserved.
+   - 
+   - Contributor(s): 
+  -->
+<html>
+<head><title>Asynchronous GET reuse test</title>
+<style type="text/css">
+.box {
+  display: block;
+  border: 1px solid black;
+  margin-bottom: 0.5em;
+}
+.boxheader {
+  font-weight: bold;
+  color: maroon;
+}
+pre {
+  margin-left: 2em;
+}
+</style>
+<script type="text/javascript">
+var p;
+try {
+  p = new XMLHttpRequest();
+} catch (e) {
+  p = new ActiveXObject("Msxml2.XMLHTTP");
+}
+
+var interactiveCount = 0;
+
+var secondCall = false;
+
+function writeValues()
+{
+  document.getElementById("id1").firstChild.nodeValue = p.responseText;
+  if (p.responseXML) {
+    var str;
+    try {
+      var s = new XMLSerializer();
+      var d = p.responseXML;
+      str = s.serializeToString(d);
+    } catch (e) {
+      str = p.responseXML.xml;
+    }
+    document.getElementById("id2").firstChild.nodeValue = str;
+  }
+  document.getElementById("id3").firstChild.nodeValue = p.getAllResponseHeaders();
+  document.getElementById("id4").firstChild.nodeValue = p.status;
+  document.getElementById("id5").firstChild.nodeValue = p.statusText;
+  document.getElementById("id6").firstChild.nodeValue = p.readyState;
+  document.getElementById("id7").firstChild.nodeValue = interactiveCount;
+}
+
+function appendValues()
+{
+  document.getElementById("id1").firstChild.nodeValue += "\r\n--\r\n" + p.responseText;
+  if (p.responseXML) {
+    var str;
+    try {
+      var s = new XMLSerializer();
+      var d = p.responseXML;
+      str = s.serializeToString(d);
+    } catch (e) {
+      str = p.responseXML.xml;
+    }
+    document.getElementById("id2").firstChild.nodeValue += "\r\n--\r\n" + str;
+  }
+  document.getElementById("id3").firstChild.nodeValue += "\r\n--\r\n" + p.getAllResponseHeaders();
+  document.getElementById("id4").firstChild.nodeValue += "\r\n--\r\n" + p.status;
+  document.getElementById("id5").firstChild.nodeValue += "\r\n--\r\n" + p.statusText;
+  document.getElementById("id6").firstChild.nodeValue += "\r\n--\r\n" + p.readyState;
+  document.getElementById("id7").firstChild.nodeValue += "\r\n--\r\n" + interactiveCount;
+}
+
+function myfunc()
+{
+  if (p.readyState == 3) {
+    interactiveCount++;
+  }
+  if (p.readyState != 4)
+    return;
+
+  if (!secondCall) {
+    writeValues();
+    // Cannot call directly here, because IE's JS engine seems to end
+    // up in JS stack overflow and kills the JS.
+    setTimeout(secondSend, 0);
+  } else {
+    appendValues();
+  }
+  secondCall = true;
+}
+
+// p.onload would also work in Mozilla
+p.onreadystatechange = myfunc;
+
+try {
+  // Needed for Mozilla if local file tries to access an http URL
+  netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead");
+} catch (e) {
+  // ignore
+}
+
+p.open("GET", "http://www.mozilla.org/xmlextras/data.xml");
+
+function mysend()
+{
+  p.send(null);
+}
+
+function secondSend()
+{
+  try {
+    // Needed for Mozilla if local file tries to access an http URL
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead");
+  } catch (e) {
+    // ignore
+  }
+
+  p.open("GET", "http://www.mozilla.org/xmlextras/display.xml");
+  // p.onload would also work in Mozilla
+  // need to set AFTER open() because open() clears listeners
+  p.onreadystatechange = myfunc;
+  p.send(null);
+}
+
+</script>
+</head>
+<body onload="mysend();">
+<h1>Asynchronous GET reuse test</h1>
+
+<div class="box"><span class="boxheader">responseText</span>
+<pre id="id1">@@No result@@</pre>
+</div>
+<div class="box"><span class="boxheader">responseXML serialized</span>
+<pre id="id2">@@No result@@</pre>
+</div>
+<div class="box"><span class="boxheader">getAllResponseHeaders()</span>
+<pre id="id3">@@No result@@</pre>
+</div>
+<div class="box"><span class="boxheader">status</span>
+<pre id="id4">@@No result@@</pre>
+</div>
+<div class="box"><span class="boxheader">statusText</span>
+<pre id="id5">@@No result@@</pre>
+</div>
+<div class="box"><span class="boxheader">readyState</span>
+<pre id="id6">@@No result@@</pre>
+</div>
+<div class="box"><span class="boxheader"># of times onreadystatechanged handler called with INTERACTIVE status</span>
+<pre id="id7">@@No result@@</pre>
+</div>
+
+</body>
+</html>

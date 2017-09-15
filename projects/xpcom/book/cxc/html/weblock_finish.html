@@ -1,0 +1,711 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta name="GENERATOR" content="Quadralay WebWorks Publisher Professional Edition 6.0.5">
+<meta name="TEMPLATEBASE" content="Portable HTML Professional Edition">
+<meta name="LASTUPDATED" content="07/02/03 09:55:46">
+<title>CHAPTER 7 Tutorial:  Finishing the Component</title>
+</head>
+
+<body link="#3366CC" vlink="#9999CC" text="#000000" alink="#0000CC" bgcolor="#FFFFFF">
+
+<table width="331" border="0" align="right" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23"
+    border="0" alt="TOC"> </a></td>
+    <td><a href="weblock.html"><img src="images/navprev.gif" width="81" height="23"
+    border="0" alt="PREV"> </a></td>
+    <td><a href="weblock_ui.html"><img src="images/navnext.gif" width="81" height="23"
+    border="0" alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23"
+    border="0" alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+<p><img src="images/xpcom.gif"></p>
+<hr align="left">
+
+<blockquote>
+<h1>
+  <a name="998197"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">CHAPTER 7	 Tutorial: <br>Finishing the Component</font>
+</h1><hr>
+
+
+<p>
+  <a name="999051"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">At this point you have created most of the infrastructure of the component. The component will be recognized by XPCOM and registered with the Category Manager so that it starts up when XPCOM initializes. When the component starts up, it populates a list of URLs read in from a file stored next to the gecko binary on the local system. </font>
+</p>
+
+
+<h2>
+  <a name="1001747"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Using Frozen Interfaces</font>
+</h2>
+
+
+<p>
+  <a name="1002104"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The core functionality of blocking sites is still missing, however. The interfaces needed to block certain URLs from loading are not frozen, and there is still some  debate about how exactly this functionality should be exposed to embedders and component developers, so the APIs are not ready to be published. This puts you in the same situation as many developers using Mozilla-you want to use some specific functionality, but the interfaces seem to change on a daily basis. </font>
+</p>
+
+
+<p>
+  <a name="999053"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">All of the Mozilla source code is publicly available, and interfaces can be used easily enough. Grab the right headers, use the Component or Service Manager to access the interface you want, and the XPCOM object(s) that implement that interface will do your bidding. With this huge amount of flexibility, however, you lose compatibility. If you use `stuff' that isn't frozen, that stuff is subject to change in future versions of Gecko. </font>
+</p>
+
+
+<p>
+  <a name="999055"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">If you want to be protected against changes in Gecko, you must only use interfaces and APIs that are clearly marked as FROZEN. The marking is made in the comments above the interface declaration. For example, take a look at the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIServiceManager</font>:</font>
+</p>
+
+<pre>
+<font face="Courier New">/**</font><a name="999057"> </a>
+<font face="Courier New"> * The nsIServiceManager manager interface provides a means to obtain</font><a name="999058"> </a>
+<font face="Courier New"> * global services in an application. The service manager depends </font><a name="999059"> </a>
+<font face="Courier New"> * on the repository to find and instantiate factories to obtain</font><a name="1001762"> </a>
+<font face="Courier New"> * services.</font><a name="1001765"> </a>
+<font face="Courier New"> *</font><a name="1003195"> </a>
+<font face="Courier New"> * Users of the service manager must first obtain a pointer to the</font><a name="999062"> </a>
+<font face="Courier New"> * global service manager by calling NS_GetServiceManager. After that, </font><a name="1001768"> </a>
+<font face="Courier New"> * they can request specific services by calling GetService. </font><a name="999064"> </a>
+<font face="Courier New"> * When they are finished they can NS_RELEASE() the service as usual.</font><a name="1001771"> </a>
+<font face="Courier New"> *</font><a name="999066"> </a>
+<font face="Courier New"> * A user of a service may keep references to particular services</font><a name="999067"> </a>
+<font face="Courier New"> * indefinitely and only must call Release when it shuts down.</font><a name="1001774"> </a>
+<font face="Courier New"> *</font><a name="999069"> </a>
+<font face="Courier New"> * @status FROZEN</font><a name="999070"> </a>
+<font face="Courier New"> */</font><a name="999071"> </a>
+</pre>
+
+<p>
+  <a name="999073"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">These frozen interfaces and functions are part of the Gecko SDK. The rule of thumb is that interfaces outside of the SDK are considered "experimental" or unfrozen. See the following sidebar for information about how frozen and unfrozen interfaces can affect your component development, and for technical details about how interface changes beneath your code can cause havoc.</font>
+</p>
+
+
+<a name="999075"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1001929"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">The Danger of Using Unfrozen Interfaces</font>
+</h4>
+
+<a name="1001975"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Suppose that you need to use the interface <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFoo</font> that isn't frozen. You build your component using this interface, and it works great with the version of Gecko that you have tested against. However, some point in the future, the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFoo</font> interface requires a major change, and methods are reordered, some are added, others are removed. Moreover, since this interface was never supposed to be used by clients other than Gecko or Mozilla, the maintainers of the interface don't know that it's being used, and don't change the IID of the interface. When your component runs in a version of Gecko in which this interface is updated, your method calls will be routed through a different v-table than the one the component expected, most likely resulting in a crash.</font><a name="1001930"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Below, the component is compiled against a version of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFoo</font> interface that has three methods. The component calls the method <font  face="Verdana, Arial, Helvetica, sans-serif">TestA</font> and passes an integer, 10. This works fine in any Gecko installation where a contract guarantees that the interface that was compiled against has the same signature. However, when this same component is used in a Gecko installation where this interface has changed, the method <font  face="Verdana, Arial, Helvetica, sans-serif">TestA</font> does not exist in the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFoo</font> interface, where the first entry in the v-table <font  face="Verdana, Arial, Helvetica, sans-serif">IsPrime()</font>. When this method call is made, the code execution treats the <font  face="Verdana, Arial, Helvetica, sans-serif">IsPrime</font> method as <font  face="Verdana, Arial, Helvetica, sans-serif">TestA</font>. Needless to say, this is a bad thing.  Furthermore, there is no way easy way to realize this error at runtime.  </font>
+<a name="1001934"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/weblock_finisha.gif" height="242" width="408">
+</div><br></font>
+
+</font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1001964"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Gecko developers could change the interface's IID, and some do. This can prevent many errors like this. But unfrozen interfaces are not supported in any formal way, and relying upon a different IID for any change in the interface is not a good idea either.</font><a name="1003277"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">When using frozen interfaces, you are guaranteed compatibility with future versions of Gecko. The only trouble occurs when the compiler itself changes its v-table layout, which can happen when the compiler changes its ABI. For example, in 2002 the GNU Compiler Collection (GCC), version 3.2 changed the C++ ABI, and this caused problems between libraries compiled with GCC 3.2 and applications compiled with an earlier version and vice versa.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1001842"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Before attempting to use unfrozen interfaces, you should contact the developers who are responsible for the code you're trying to use (i.e., <font  face="Verdana, Arial, Helvetica, sans-serif"><i>module owners</i></font>) and ask them how best to do what you are trying to do. Be as precise you possibly can. They may be able to suggest a supported alternative, or they may be able to notify you about pending changes. A complete listing of module owners can be found at <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.mozilla.org/owners.html</i></font>.    </font>
+</p>
+
+
+<p>
+  <a name="999096"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The interface that we need for this project is something called  <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font>.  This interface is currently <font  face="Verdana, Arial, Helvetica, sans-serif"><i>under review</i></font>. An interface reaches this state when a group of module owners and peers are actively engaged in discussion about how best to expose it. Usually there are only minor changes to interfaces marked with such a tag. Even with interfaces marked "under review," however, it's still a good idea to contact the module owners responsible for the interfaces you are interested in using.  </font>
+</p>
+
+
+<h3>
+  <a name="1002117"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Copying Interfaces into Your Build Environment</font>
+</h3>
+
+
+<p>
+  <a name="1002147"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To get and implement interfaces that are not part of Gecko in your component, simply create a new directory in the Gecko SDK named "unfrozen". Copy the headers and IDL files that you need from the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>mozilla/content/base/public </i></font>source directory of the Gecko build into this new directory. (For <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font>, all you need are the headers for nsIContentPolicy and the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsIContentPolicy.idl.) </i></font>Then, using the same steps you used to create the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Weblock.h</i></font>, create a header from this IDL file using the xpidl compiler. Once you have these interface and header files, you can modify the <font  face="Verdana, Arial, Helvetica, sans-serif">WebLock</font> class to implement the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font> interface. The <font  face="Verdana, Arial, Helvetica, sans-serif">Weblock</font> class will then support four interfaces:  <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font>, and <font  face="Verdana, Arial, Helvetica, sans-serif">iWeblock</font>.</font>
+</p>
+
+
+<a name="999106"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><div align="left"><img src="images/weblock_finish2.gif" height="226" width="444">
+</div><br></font>
+
+
+<a name="999152"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1000334"> </a><font face="Times New Roman">Table 1:  WebLock Interfaces</font></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999113"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Interface Name</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999115"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Define by</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999117"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Status</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999119"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Summary</font>
+</p>
+
+</font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font></font><a name="999121"> </a>
+</pre>
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999123"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999125"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Frozen</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999127"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Provides interface discovery, and object reference counting</font>
+</p>
+
+</font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">nsIObserver</font></font><a name="999129"> </a>
+</pre>
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999131"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">XPCOM</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999133"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Frozen</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999135"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Allows messaging passing between objects</font>
+</p>
+
+</font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font></font><a name="999137"> </a>
+</pre>
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999139"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Content</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999141"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Not Frozen</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999143"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Interface for policy control mechanism</font>
+</p>
+
+</font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">iWeblock</font></font><a name="999145"> </a>
+</pre>
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999147"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Web Lock</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999149"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Not Frozen</font>
+</p>
+
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<p>
+  <a name="999151"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Enables and disables Weblock.  Also, provides access to the URL that are whitelisted.</font>
+</p>
+
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h3>
+  <a name="999155"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Implementing the nsIContentPolicy Interface</font>
+</h3>
+
+
+<p>
+  <a name="1002172"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To implement the new interface, you must <font  face="Verdana, Arial, Helvetica, sans-serif">#include</font> the unfrozen <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font>, and you must also make sure the build system can find the file you've brought over. The location of the file and the steps for adding that location to the build system vary depending on how you build this component.</font>
+</p>
+
+
+<p>
+  <a name="999157"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once you have made sure that your component builds with the new header file, you must derive the <font  face="Verdana, Arial, Helvetica, sans-serif">Weblock</font> class from the interface <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font>, which you can do by simply adding a public declaration when defining the class. At the same time, you can add the macro <font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_NSICONTENTPOLICY</font> to the class declaration that provides all of the methods defined in the interface <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font>. The updated <font  face="Verdana, Arial, Helvetica, sans-serif">WebLock</font> class looks as follows:</font>
+</p>
+
+
+<a name="1002796"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">class WebLock: public nsIObserver, </font><a name="1002806"> </a>
+<font face="Courier New">        public iWeblock, </font><a name="1002807"> </a>
+<font face="Courier New">        public nsIContentPolicy</font><a name="1002808"> </a>
+<font face="Courier New">      {    </font><a name="1002809"> </a>
+<font face="Courier New">public:  </font><a name="1002810"> </a>
+<font face="Courier New">  WebLock();  </font><a name="1002811"> </a>
+<font face="Courier New">  virtual ~WebLock();  </font><a name="1002812"> </a>
+<font face="Courier New"></font><a name="1002813"> </a>
+<font face="Courier New">  NS_DECL_ISUPPORTS</font><a name="1002814"> </a>
+<font face="Courier New">  NS_DECL_NSIOBSERVER</font><a name="1002815"> </a>
+<font face="Courier New">  NS_DECL_IWEBLOCK</font><a name="1002816"> </a>
+<font face="Courier New">  NS_DECL_NSICONTENTPOLICY</font><a name="1002817"> </a>
+<font face="Courier New"></font><a name="1002818"> </a>
+<font face="Courier New">private:</font><a name="1002819"> </a>
+<font face="Courier New">  urlNode* mRootURLNode;</font><a name="1002820"> </a>
+<font face="Courier New">  PRBool   mLocked;</font><a name="1002821"> </a>
+<font face="Courier New">};  </font><a name="1002822"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1001822"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Remember to change the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupport</font> implementation macro to include <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font> so that other parts of Gecko will know <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> supports the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font> without modifying this macro.</font>
+</p>
+
+<pre>
+<font face="Courier New">NS_IMPL_ISUPPORTS3(WebLock, nsIObserver, iWeblock, nsIContentPolicy);  </font><a name="999181"> </a>
+</pre>
+
+<h3>
+  <a name="999184"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Receiving Notifications</font>
+</h3>
+
+
+<p>
+  <a name="999186"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To receive notifications, you must register as a new category. You have already registered as a category to receive startup notification. This time, the category name to use is "content-policy".  To add the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component to this category, modify the <font  face="Verdana, Arial, Helvetica, sans-serif">WebLockRegistration</font> callback function so that it looks like this:</font>
+</p>
+
+
+<a name="1002834"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><br></font>
+
+<pre>
+<font face="Courier New">static NS_METHOD WebLockRegistration(</font><a name="999189"> </a>
+<font face="Courier New">  nsIComponentManager *aCompMgr,</font><a name="1003073"> </a>
+<font face="Courier New">  nsIFile *aPath,</font><a name="999190"> </a>
+<font face="Courier New">  const char *registryLocation,</font><a name="999191"> </a>
+<font face="Courier New">  const char *componentType,</font><a name="999192"> </a>
+<font face="Courier New">  const nsModuleComponentInfo *info)</font><a name="999193"> </a>
+<font face="Courier New">{</font><a name="999194"> </a>
+<font face="Courier New">    nsresult rv;</font><a name="999195"> </a>
+<font face="Courier New">    nsCOMPtr&lt;nsIServiceManager&gt; servman = do_QueryInterface((nsISupports*)aCompMgr, &amp;rv);</font><a name="999197"> </a>
+<font face="Courier New">    if (NS_FAILED(rv))</font><a name="999198"> </a>
+<font face="Courier New">        return rv;</font><a name="999199"> </a>
+<font face="Courier New">    </font><a name="999201"> </a>
+<font face="Courier New">    nsCOMPtr&lt;nsICategoryManager&gt; catman;</font><a name="999202"> </a>
+<font face="Courier New">    servman-&gt;GetServiceByContractID(NS_CATEGORYMANAGER_CONTRACTID, </font><a name="999203"> </a>
+<font face="Courier New">                                    NS_GET_IID(nsICategoryManager), </font><a name="999204"> </a>
+<font face="Courier New">                                    getter_AddRefs(catman));</font><a name="999205"> </a>
+<font face="Courier New">    if (NS_FAILED(rv))</font><a name="999207"> </a>
+<font face="Courier New">        return rv;</font><a name="999208"> </a>
+<font face="Courier New"></font><a name="999209"> </a>
+<font face="Courier New">    char* previous = nsnull;</font><a name="999210"> </a>
+<font face="Courier New">    rv = catman-&gt;AddCategoryEntry("xpcom-startup",</font><a name="999211"> </a>
+<font face="Courier New">                                  "WebLock", </font><a name="999212"> </a>
+<font face="Courier New">                                  WebLock_ContractID,</font><a name="999213"> </a>
+<font face="Courier New">                                  PR_TRUE, </font><a name="999214"> </a>
+<font face="Courier New">                                  PR_TRUE, </font><a name="999215"> </a>
+<font face="Courier New">                                  &amp;previous);</font><a name="999216"> </a>
+<font face="Courier New">    if (previous)</font><a name="999217"> </a>
+<font face="Courier New">        nsMemory::Free(previous);</font><a name="999218"> </a>
+<font face="Courier New"></font><a name="999219"> </a>
+<font face="Courier New">    rv = catman-&gt;AddCategoryEntry("content-policy",</font><a name="999221"> </a>
+<font face="Courier New">                                  "WebLock", </font><a name="999222"> </a>
+<font face="Courier New">                                  WebLock_ContractID,</font><a name="999223"> </a>
+<font face="Courier New">                                  PR_TRUE, </font><a name="999224"> </a>
+<font face="Courier New">                                  PR_TRUE, </font><a name="999225"> </a>
+<font face="Courier New">                                  &amp;previous);</font><a name="999226"> </a>
+<font face="Courier New">    if (previous)</font><a name="999228"> </a>
+<font face="Courier New">        nsMemory::Free(previous);</font><a name="999229"> </a>
+<font face="Courier New">    return rv;</font><a name="999231"> </a>
+<font face="Courier New">}</font><a name="999232"> </a>
+</pre>
+
+<p>
+  <a name="1002280"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This code adds a new category entry under the topic "content-policy," and it calls <font  face="Verdana, Arial, Helvetica, sans-serif">AddCategoryEntry</font> in the same way we did in <a href="weblock.html#1007176">"Registering for Notifications" on page 94</a>. A similar step is required for unregistration.</font>
+</p>
+
+
+<h2>
+  <a name="1000440"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Implementing the nsIContentPolicy</font>
+</h2>
+
+
+<p>
+  <a name="1000451"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">At this point, you can take the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component and install it into a Gecko installation. When the component is loaded, Gecko calls the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font> implementation in <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> on every page load, and this prevents pages from displaying by returning the proper value when the load method is called. </font>
+</p>
+
+
+<p>
+  <a name="1002320"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The web locking policy that we are going to put into place is quite simple: For every load request that comes through, we will ensure that the URI is in the list of "good" URLs on the white list. </font>
+</p>
+
+
+<a name="1002329"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1002340"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">If you care to extend this implementation so that the list of URLs is held remotely on a server somewhere-as might be the case when the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component is used in a corporate intranet, for example-there are Networking APIs in Gecko that will support this. Or you could implement the web lock so that instead of blocking any site, the component would simply log all URLs that are loaded. In any case, the process to make an XPCOM component is the same.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1000453"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The method that handles the check before page loading and the only method we care about in our own implementation of <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font> is <font  face="Verdana, Arial, Helvetica, sans-serif">ShouldLoad()</font>. The other method on the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIContentPolicy</font> interface is for blocking processing of specific elements in a document, but our policy is more restrictive: if the URL isn't on the white list, the entire page should be blocked. In the<font  face="Verdana, Arial, Helvetica, sans-serif"><b> WebLock</b></font> component,  <font  face="Verdana, Arial, Helvetica, sans-serif">ShouldLoad</font> method looks like this:</font>
+</p>
+
+
+<a name="1002941"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">NS_IMETHODIMP WebLock::ShouldLoad(PRInt32 contentType, </font><a name="1002951"> </a>
+<font face="Courier New">                                  nsIURI *contentLocation, </font><a name="1002952"> </a>
+<font face="Courier New">                                  nsISupports *ctxt, </font><a name="1002953"> </a>
+<font face="Courier New">                                  nsIDOMWindow *window, </font><a name="1002954"> </a>
+<font face="Courier New">                                  PRBool *_retval)</font><a name="1002955"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+  <br></font>
+
+
+<h3>
+  <a name="1000463"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Uniform Resource Locators</font>
+</h3>
+
+
+<p>
+  <a name="1002501"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The method passes in an interface pointer of type <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font>, which is based on the Uniform Resource Identifier, or URI. This type is defined by the World Wide Web Consortium (<font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.w3.org</i></font>) as: </font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000464"> </a>The naming scheme of the mechanism used to access the resource.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000465"> </a>The name of the machine hosting the resource.</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1000466"> </a>The name of the resource itself, given as a path.</font>
+</ul>
+
+<p>
+  <a name="1000467"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In this context, URIs are the strings used refer to places or things on the web. This specific form of URI is called a Uniform Resource Locator, or URL. For more information about URIs and URLs, see <font  color="#0000ff" face="Verdana, Arial, Helvetica, sans-serif"><u>http://www.w3.org/TR/REC-html40/intro/intro.html</u></font></font>
+</p>
+
+
+<p>
+  <a name="1000472"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Gecko encapsulates these identifiers into two interfaces, <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font> and the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURL</font>.  You can <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> between these two interfaces. The networking library,  Necko, deals only with these interfaces when handling requests. When you want to download a file using Necko, for example, all you probably have is a string that represents the URI of the file. But when you pass that string to Necko, it creates an object that implements at least the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font> interface (and perhaps other interfaces as well).</font>
+</p>
+
+
+<p>
+  <a name="1000474"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Currently, the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> implementation of the <font  face="Verdana, Arial, Helvetica, sans-serif">ShouldLoad</font> method compares the in parameter with each string in the white list. But it only should do this comparison for remote URLs, because we don't want to block the application from loading local content that it requires, like files it gets via the <font  face="Verdana, Arial, Helvetica, sans-serif">resource://</font> protocol. If URIs of this kind are blocked, then Gecko will not be able to start up, so we'll restrict the content policy to the HTTP and FTP protocols.  </font>
+</p>
+
+
+<p>
+  <a name="1000476"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Instead of extracting the string <font  face="Verdana, Arial, Helvetica, sans-serif">spec</font> out of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font> to do a string comparison, which would requre you to do the parsing yourself, you can compare the <font  face="Verdana, Arial, Helvetica, sans-serif">nsURI</font> objects with each other, as in the following section. This ensures that the URLs are canonical before they are compared.</font>
+</p>
+
+
+<h3>
+  <a name="1002543"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Checking the White List</font>
+</h3>
+
+
+<p>
+  <a name="1002544"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> implementation of the <font  face="Verdana, Arial, Helvetica, sans-serif">ShouldLoad</font> method starts by extracting the scheme of the incoming <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font>. If the scheme isn't "http", "https", or "ftp", it immediately returns true, which continues the loading process unblocked.</font>
+</p>
+
+
+<p>
+  <a name="1002560"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">These three are the only kinds of URI that <font  face="Verdana, Arial, Helvetica, sans-serif"><b>Weblock</b></font> will try to block. When it has one, it walks the linked list and creates a new <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font> object for each string URL in the list. From each object,<font  face="Verdana, Arial, Helvetica, sans-serif"> ShouldLoad()</font> extracts the host and compares it to the URI. If they match, the component allows the load to continue by returning true. If these two strings do not match, then the component returns return false and blocks the load.   </font>
+</p>
+
+
+<a name="1000480"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1002615"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">URI Caching</font>
+</h4>
+
+<a name="1002625"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Caching the URI would make this method implementation much faster by avoiding the need to create and destroy so many objects. This points out an important drawback of XPCOM, which is that you cannot create an object on the stack. </font><a name="1002647"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Creating this many objects is OK in a tight loop if the buffer of memory that holds the contents of the URLs is guaranteed to be valid for the lifetime of the object. But regardless of how optimized the implementation is with respect to is memory usage, a heap allocation will be made for every XPCOM object created.  </font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1000482"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The string comparison with the URL type "http", "https", and "ftp" looks like this: </font>
+</p>
+
+
+<a name="1002846"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">	nsEmbedCString scheme;</font><a name="1002856"> </a>
+<font face="Courier New">	contentLocation-&gt;GetScheme(scheme);</font><a name="1002857"> </a>
+<font face="Courier New">	</font><a name="1002858"> </a>
+<font face="Courier New">	if (strcmp("http", scheme.get()) != 0 &amp;&amp;</font><a name="1002859"> </a>
+<font face="Courier New">		strcmp("https", scheme.get()) != 0 &amp;&amp;</font><a name="1002860"> </a>
+<font face="Courier New">		strcmp("ftp",  scheme.get()) != 0 ) {</font><a name="1002861"> </a>
+<font face="Courier New">		// this isn't a type of URI that we deal with.</font><a name="1002862"> </a>
+<font face="Courier New">		*_retval = PR_TRUE;</font><a name="1002863"> </a>
+<font face="Courier New">		return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1002864"> </a>
+<font face="Courier New">	}</font><a name="1002865"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+ <br></font>
+
+
+<h3>
+  <a name="1000496"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Creating nsIURI Objects</font>
+</h3>
+
+
+<p>
+  <a name="1002655"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To create an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font>, use <font  face="Verdana, Arial, Helvetica, sans-serif">nsIIOService</font>. <font  face="Verdana, Arial, Helvetica, sans-serif">nsIIOService</font> is the part of the networking library ("necko") that's responsible for kicking off network requests, managing protocols such as http, ftp, or file, and creating <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURIs</font>. Necko offers tremendous network functionality, but all the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component needs is to create the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font> object that can be compared with the URIs on the white list.</font>
+</p>
+
+
+<p>
+  <a name="1000498"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Use the Service Manager to acquire the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIIOService</font>. Since this object is going to be used for the life of the component, it can also be cached. A good place to get an <font  face="Verdana, Arial, Helvetica, sans-serif">nsIIOService</font> is in the component's <font  face="Verdana, Arial, Helvetica, sans-serif">Observer()</font> method, which already has a pointer to the Service Manager. The code for getting the IO service from the Service Manager looks like this:</font>
+</p>
+
+
+<a name="1002873"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">// Get a pointer to the IOService</font></font><a name="1002883"> </a>
+<font face="Courier New">rv = servMan-&gt;GetServiceByContractID(
+   "@mozilla.org/network/io-service;1", </font><a name="1002884"> </a>
+<font face="Courier New">   NS_GET_IID(nsIIOService), </font><a name="1002885"> </a>
+<font face="Courier New">   getter_AddRefs(mIOService));</font><a name="1002886"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1000505"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once you have this interface pointer, you can easily create <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font> objects from a string, as in the following snippet:</font>
+</p>
+
+
+<a name="1002895"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">nsCOMPtr&lt;nsIURI&gt; uri;</font><a name="1002917"> </a>
+<font face="Courier New">nsEmbedCString urlString(node-&gt;urlString);</font><a name="1002918"> </a>
+<font face="Courier New">mIOService-&gt;NewURI(urlString, </font><a name="1002909"> </a>
+<font face="Courier New">  nsnull,  nsnull, </font><a name="1003255"> </a>
+<font face="Courier New">  getter_AddRefs(uri));</font><a name="1003256"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1000512"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This code wraps a C-string with a <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedCString</font>, which you'll recall is a string class that many of the Gecko APIs require. See <a href="tools.html#1010737">"String Classes in XPCOM" on page 84</a> for more information about strings.  </font>
+</p>
+
+
+<p>
+  <a name="1002733"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Once the URL string is wrapped in a <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedCString</font>, it can be passed to the method <font  face="Verdana, Arial, Helvetica, sans-serif">NewURI</font>. This method expects to parse the incoming string and create an object which implements a <font  face="Verdana, Arial, Helvetica, sans-serif">nsIURI</font> interface. The two <font  face="Verdana, Arial, Helvetica, sans-serif">nsnull</font> parameters passed to <font  face="Verdana, Arial, Helvetica, sans-serif">NewURI</font> are used to specify the charset of the string and any base URI to use, respectively.  We are assuming here that the charset of the URL string is UTF8, and also assuming that every URL string is absolute.  See <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.w3.org/TR/REC-html40/intro/intro.html</i></font> for more information about relative URLs.</font>
+</p>
+
+
+<p>
+  <a name="1000518"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Here is the complete implementation of the <font  face="Verdana, Arial, Helvetica, sans-serif">ShouldLoad()</font> method:</font>
+</p>
+
+<pre>
+<font face="Courier New">NS_IMETHODIMP WebLock::ShouldLoad(PRInt32 contentType, </font><a name="1000521"> </a>
+<font face="Courier New">                                  nsIURI *contentLocation, </font><a name="1000522"> </a>
+<font face="Courier New">                                  nsISupports *ctxt, </font><a name="1000523"> </a>
+<font face="Courier New">                                  nsIDOMWindow *window, </font><a name="1000524"> </a>
+<font face="Courier New">                                  PRBool *_retval)</font><a name="1000525"> </a>
+<font face="Courier New">{</font><a name="1000526"> </a>
+<font face="Courier New">    if (!contentLocation)</font><a name="1000527"> </a>
+<font face="Courier New">        return NS_ERROR_FAILURE;</font><a name="1000528"> </a>
+<font face="Courier New"></font><a name="1000529"> </a>
+<font face="Courier New"></font><a name="1000530"> </a>
+<font face="Courier New">	nsEmbedCString scheme;</font><a name="1000531"> </a>
+<font face="Courier New">	contentLocation-&gt;GetScheme(scheme);</font><a name="1000532"> </a>
+<font face="Courier New">	</font><a name="1000533"> </a>
+<font face="Courier New">	if (strcmp("http", scheme.get()) != 0 &amp;&amp;</font><a name="1000534"> </a>
+<font face="Courier New">		strcmp("https", scheme.get()) != 0 &amp;&amp;</font><a name="1000535"> </a>
+<font face="Courier New">		strcmp("ftp",  scheme.get()) != 0 ) {</font><a name="1000536"> </a>
+<font face="Courier New">		// this isn't a type of URI that we deal with.</font><a name="1000537"> </a>
+<font face="Courier New">		*_retval = PR_TRUE;</font><a name="1000538"> </a>
+<font face="Courier New">		return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1000539"> </a>
+<font face="Courier New">	}</font><a name="1000540"> </a>
+<font face="Courier New"></font><a name="1000541"> </a>
+<font face="Courier New">    nsEmbedCString hostToLoad;</font><a name="1000542"> </a>
+<font face="Courier New">	contentLocation-&gt;GetHost(hostToLoad);</font><a name="1000543"> </a>
+<font face="Courier New"></font><a name="1000544"> </a>
+<font face="Courier New">	// Assume failure.  Do not allow this nsIURI to load.</font><a name="1000545"> </a>
+<font face="Courier New">	*_retval = PR_FALSE;</font><a name="1000546"> </a>
+<font face="Courier New"></font><a name="1000547"> </a>
+<font face="Courier New">	nsresult rv;</font><a name="1000548"> </a>
+<font face="Courier New"></font><a name="1000549"> </a>
+<font face="Courier New">    urlNode* node = mRootURLNode;    </font><a name="1000550"> </a>
+<font face="Courier New">	PRBool match = PR_FALSE;</font><a name="1000551"> </a>
+<font face="Courier New">    </font><a name="1000552"> </a>
+<font face="Courier New">	while (node)  </font><a name="1000553"> </a>
+<font face="Courier New">    {</font><a name="1000554"> </a>
+<font face="Courier New">		nsCOMPtr&lt;nsIURI&gt; uri;</font><a name="1000555"> </a>
+<font face="Courier New">        nsEmbedCString urlString(node-&gt;urlString);</font><a name="1000556"> </a>
+<font face="Courier New">        rv = mIOService-&gt;NewURI(urlString, nsnull,  nsnull, getter_AddRefs(uri));</font><a name="1000557"> </a>
+<font face="Courier New">	</font><a name="1000558"> </a>
+<font face="Courier New">		// if anything bad happens, just abort.</font><a name="1000559"> </a>
+<font face="Courier New">		if (NS_FAILED(rv))</font><a name="1000560"> </a>
+<font face="Courier New">			return rv;</font><a name="1000561"> </a>
+<font face="Courier New">		</font><a name="1000562"> </a>
+<font face="Courier New">		nsEmbedCString host;</font><a name="1000563"> </a>
+<font face="Courier New">		uri-&gt;GetHost(host);</font><a name="1000564"> </a>
+<font face="Courier New">		</font><a name="1000565"> </a>
+<font face="Courier New">		if (strcmp(hostToLoad.get(), host.get()) == 0) { </font><a name="1000566"> </a>
+<font face="Courier New">			// match found.  Allow this nsIURI to load.</font><a name="1000567"> </a>
+<font face="Courier New">			*_retval = PR_TRUE;</font><a name="1000568"> </a>
+<font face="Courier New">			return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1000569"> </a>
+<font face="Courier New">		}</font><a name="1000570"> </a>
+<font face="Courier New">        node = node-&gt;next;</font><a name="1000571"> </a>
+<font face="Courier New">    }</font><a name="1000572"> </a>
+<font face="Courier New">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1000573"> </a>
+<font face="Courier New">}</font><a name="1000574"> </a>
+</pre>
+
+<p>
+  <a name="1000577"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">At this point, all of the backend work is complete. You can of course improve this backend in many ways, but this example presents the basic creation of what is commonly referred to as a "browser helper object" like <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font>. The next chapter looks at how to tie this into the front end-specifically how to use XPConnect to access and control this component from Javascript in the user interface. </font>
+</p>
+
+
+<p>
+  <a name="1000444"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"></font>
+</p>
+</blockquote>
+
+<hr>
+
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+  <td><font size="1"><font face="courier"> Copyright (c)
+  2003 by Doug Turner and Ian Oeschger. This material may be
+  distributed only subject to the terms and conditions set forth in
+  the <a href="http://www.opencontent.org/openpub/">Open Publication
+  License</a>, v1.02 or later. Distribution of substantively modified
+  versions of this document is prohibited without the explicit
+  permission of the copyright holder. Distribution of the work or
+  derivative of the work in any standard (paper) book form is
+  prohibited unless prior permission is obtained from the copyright
+  holder.</td>
+  </tr>
+</table>
+
+<table width="331" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23" border="0"
+    alt="TOC"> </a></td>
+    <td><a href="weblock.html"><img src="images/navprev.gif" width="81" height="23" border="0"
+    alt="PREV"> </a></td>
+    <td><a href="weblock_ui.html"><img src="images/navnext.gif" width="81" height="23" border="0"
+    alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23" border="0"
+    alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+</body>
+</html>

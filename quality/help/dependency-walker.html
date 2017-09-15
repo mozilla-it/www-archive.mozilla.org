@@ -1,0 +1,250 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+   <meta name="Author" content="timeless@mac.com">
+   <meta name="Classification" content="howto">
+   <meta name="KeyWords" content="depends.exe dependency walker bugzilla attachment">
+   <title>How to use Dependency Walker (depends.exe)</title>
+
+<link rel="up" href="./" title="Helping with QA">
+
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+<p class="crumbs"><em>You are here:</em> <a href="./">Help with QA</a> &gt; <strong>How to use Dependency Walker</strong></p>
+
+<h1>How to use Dependency Walker (<code>depends.exe</code>)</h1>
+
+<ol>
+  <li>Learn about Dependency Walker
+  <ul>
+    <li>Mozilla is a modular application composed of functions from many libraries
+(.DLLs).</li>
+    <li>Dependency Walker is an application that builds a hierarchical tree diagram
+of other programs and all dependent modules. For each module found, it
+lists all the functions that are exported by that module, and which of
+those functions are actually being called by other modules.</li>
+    <li>Logs from Dependency Walker can help people solve a few troubling problems.
+Often users are missing libraries or have the wrong version, this should
+be easily interpretable from dependency walker output. In other cases,
+just seeing where mozilla dies can allow triagers to guess what should
+happen next which enables them to suggest the likely problem.</li>
+    <li>For more information see the <a class="ex-ref" href="http://dependencywalker.com/">distribution site</a> or 
+read its online help.</li>
+  </ul>
+  </li>
+  <li>Download Dependency Walker (for Windows) from
+<a class="ex-ref" href="http://dependencywalker.com/">http://dependencywalker.com/</a></li>
+  <li>Expand it (using <a class="ex-ref" href="http://winzip.com">winzip</a> or your favorite
+zip handling application)</li>
+  <li><a title="command line syntax available below" href="#commandline">Run
+<code>depends.exe</code></a></li>
+  <li>Open the application which you need to profile
+  <ul>
+    <li>Drag the application into the Depency Walker window</li>
+    <li>Drag the application to the Dependency Walker application</li>
+    <li>Type <kbd>Ctrl-O</kbd> [or navigate to File>Open...]
+    <ul>
+      <li>Enter the path to the appropriate application (usually) mozilla.exe</li>
+      <li>Browse to the appropriate application</li>
+    </ul>
+    </li>
+  </ul>
+  <li>Press <kbd>F7</kbd> [or navigate to Profile>Start Profiling...]</li>
+  <li>Enter parameters for the application (probably <code>-console</code>,
+possibly <code>-p profilename</code>, possibly <code>-mail</code> ...)</li>
+  <li>If this is your first time, and unless otherwise instructed, check all
+the boxes</li>
+  <li>Select &lt;OK></li>
+  <li>The application should now run as usual. In some instances, mozilla might
+not come to the front, in which case you should alt-tab to it, or minimize
+dependency walker, or use the taskbar or ...</li>
+  <li>When you have quit using the application which dependency walker is profiling
+[or as otherwise instructed] return to dependency walker.</li>
+  <li>Save the log
+  <ol>
+  <li>Type <kbd>Ctrl-S</kbd> [or navigate to File>Save]</li>
+  <li>Enter a filename</li>
+  </ol>
+  </li>
+  <li>Return to bugzilla and select "Create a new attachment"</li>
+  <li>See <a title="FIXME" href="http://www.mozilla.org/quality/help/">helping with
+QA</a> for more information about creating an attachment using bugzilla</li>
+</ol>
+
+<h2><a name="commandline" id="commandline">Command Line syntax for <code>depends.exe</code></a></h2>
+
+<p>Some people are afraid of graphical interfaces. If you are one of them, please
+try this instead:<br>
+<b><code>c:\windows</code>&gt;</b> <code>depends /<a title="Turn all profiling
+options on">pa</a><a title="run Dependency Walker with this setting">1</a>
+/<a title="Starting directory - starting directory for use when profiling the
+module">pd</a>"c:\program files\mozilla"
+/<a title="Program arguments - command line arguments for use when profiling
+the module">pr</a>"-console"
+/<a title="Output file in Dependency Walker Image (DWI) format - This option
+requires that you specify a module or Dependency Walker Image (DWI) file to
+open. Once the module has been processed, the results will be written to the
+specified file in Dependency Walker Image (DWI)
+format.">od</a>"desktop\mozilla.dwi" "c:\program files\mozilla\mozilla.exe"</code></p>
+
+<p>This version is for those of you who prefer html documentation over .hlp<br>
+<b><code>c:\windows</code>></b> <code>depends /<a title="Dependency Walker
+will process the other command line options and exit without displaying its
+graphical interface.  You must specify a module or Dependency Walker Image
+(DWI) file to open when using this option.">c</a>
+/<a title="Auto Expand">a</a>
+<a title="run Dependency Walker with the Auto Expand setting">1</a>
+/<a title="View full paths">f</a>
+<a title="run Dependency Walker with the View Full Paths setting">1</a>
+/<a title="Undecorate C++ functions">u</a>
+<a title="run Dependency Walker with the Undecorate C++ Functions setting">1
+</a>
+/<a title="Simulate ShellExecute by inserting any App Paths directories into
+the PATH environment variable">ps</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Log DllMain calls for process attach and process detach
+messages">pp</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Log DllMain calls for all other messages, including thread attach
+and thread detach">po</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Hook the process to gather more detailed dependency
+information">ph</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Log LoadLibrary function calls">pl</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Log GetProcAddress function calls">pg</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Log thread information">pt</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Use simple thread numbers instead of actual thread IDs">pn</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Log first chance exceptions">pe</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Log debug output messages">pm</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Use full paths when logging file names">pf</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Automatically open and profile child processes">pc</a>
+<a title="run Dependency Walker with this setting">1</a>
+/<a title="Automatically begin profiling after module has been loaded - This
+option requires that you specify a module to open">pb</a>
+/<a title="Starting directory - starting directory for use when profiling the
+module">pd</a>"c:\program files\mozilla"
+/<a title="command line arguments for use when profiling the
+module">pr</a>"-console"
+/<a title="Output file in Dependency Walker Image (DWI) format - This option
+requires that you specify a module or Dependency Walker Image (DWI) file to
+open.  Once the module has been processed, the results will be written to the
+specified file in Dependency Walker Image (DWI)
+format.">od</a>"desktop\mozilla.dwi" "c:\program files\mozilla\mozilla.exe"</code></p>
+
+<p>Later options override earlier options so <code>/pa1 /pc0</code> will run
+Dependency Walker with all options except for <code>pc</code> (Automatically
+open and profile child processes).</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified November 19,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/quality/help/dependency-walker.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" 
+  "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../../images/mozilla-16.png" type="image/png">
+
+  <title>NSPR Reference: Thread Pools (Chapter 31)</title>
+  <link rel="prev" href="./prepcsem.html">
+  <link rel="contents" href="./">
+  <link rel="next" href="./prrng.html">
+<script src="../../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<h1>NSPR Reference</h1>
+<ul class="snav">
+  <li><a href="pripcsem.html">Previous</a>
+  <li><a href="./">Contents</a>
+  <li><a href="prrng.html">Next</a>
+</ul>
+<h1>Thread Pools (Chapter 31)</h1>
+<p>This chapter describes the NSPR API Thread Pools.</p>
+<p class="note">This API is a preliminary version in NSPR 4.0 and is subject to 
+ change.</p>
+<p>Thread pools create and manage threads to provide support for scheduling work
+ (jobs) onto one or more threads. NSPR's thread pool is modeled on the thread 
+ pools described by David R. Butenhof in <cite>Programming with POSIX 
+ Threads</cite> (Addison-Wesley, 1997).</p>
+<ul class="toc">
+  <li><a href="#types">Thread Pool Types</a>
+  <li><a href="#functions">Thread Pool Functions</a>
+</ul>
+<div class="section">
+  <h2 id="types">Thread Pool Types</h2>
+  <ul class="toc">
+    <li><a href="#PRJobIoDesc"><code>PRJobIoDesc</code></a>
+    <li><a href="#PRJobFn"><code>PRJobFn</code></a>
+    <li><a href="#PRThreadPool"><code>PRThreadPool</code></a>
+    <li><a href="#PRJob"><code>PRJob</code></a>
+  </ul>
+  <div class="section">
+    <h4 id="PRJobIoDesc">PRJobIoDesc</h4>
+    <div class="section">
+     <h5>Syntax</h5>
+     <pre class="code">#include &lt;prtpool.h&gt;
+
+typedef struct PRJobIoDesc {
+   PRFileDesc *socket;
+   PRErrorCode error;
+   PRIntervalTime timeout;
+} PRJobIoDesc;</pre>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!-- this was blank in the original too. -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PRJobFn">PRJobFn</h4>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+typedev void (PR_CALLBACK *PRJobFn)(void *arg);</pre>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!--  -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PRThreadPool">PRThreadPool</h4>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;</pre>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!--  -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PRJob">PRJob</h4>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;</pre>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!--  -->
+    </div>
+  </div>
+</div>
+<div class="section">
+  <h2 id="functions">Thread Pool Functions</h2>
+  <ul class="toc">
+    <li><a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>
+    <li><a href="#PR_QueueJob"><code>PR_QueueJob</code></a>
+    <li><a href="#PR_QueueJob_Read"><code>PR_QueueJob_Read</code></a>
+    <li><a href="#PR_QueueJob_Write"><code>PR_QueueJob_Write</code></a>
+    <li><a href="#PR_QueueJobAccept"><code>PR_QueueJobAccept</code></a>
+    <li><a href="#PR_QueueJob_Connect"><code>PR_QueueJob_Connect</code></a>
+    <li><a href="#PR_QueueJob_Timer"><code>PR_QueueJob_Timer</code></a>
+    <li><a href="#PR_CancelJob"><code>PR_CancelJob</code></a>
+    <li><a href="#PR_JoinJob"><code>PR_JoinJob</code></a>
+    <li><a href="#PR_ShutdownThreadPool"><code>PR_ShutdownThreadPool</code></a>
+    <li><a href="#PR_JoinThreadPool"><code>PR_JoinThreadPool</code></a>
+  </ul>
+  <div class="section">
+    <h4 id="PR_CreateThreadPool">PR_CreateThreadPool</h4>
+    <p>Creates a pool of thread for scheduling jobs.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRThreadPool *)
+PR_CreateThreadPool(
+   PRInt32 initial_threads,
+   PRInt32 max_threads,
+   PRUint32 stacksize
+);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameters:</p>
+      <dl>
+        <dt><code>initial_threads</code>
+          <dd>The number of threads to be created within this thread pool.
+        <dt><code>max_threads</code>
+          <dd>The limit on the number of threads that will be created to server 
+           the thread pool.
+        <dt><code>stacksize</code>
+          <dd>Size of the stack allocated to each thread in the thread.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p>Pointer to a <code>PRThreadPool</code> structure or <code>NULL</code> 
+       on error.</p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!--  -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_QueueJob">PR_QueueJob</h4>
+    <p>Queues a job to a thread pool for execution.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRJob *)
+PR_QueueJob(
+   PRThreadPool *tpool,
+   PRJobFn fn,
+   void *arg,
+   PRBool joinable
+);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <dl>
+        <dt><code>tpool</code>
+          <dd>A pointer to a <code>PRThreadPool</code> structure previously 
+           created by a call to 
+           <a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>.
+        <dt><code>fn</code>
+          <dd>The function to be executed when the job is executed.
+        <dt><code>arg</code>
+          <dd>A pointer to an argument passed to fn.
+        <dt><code>joinable</code>
+          <dd>If <code>PR_TRUE</code>, the job is joinable. If 
+           <code>PR_FALSE</code>, the job is not joinable. See 
+           <a href="#PR_JoinJob"><code>PR_JoinJob</code></a>.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p>Pointer to a <code>PRJob</code> structure or <code>NULL</code> on 
+       error.</p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!--  -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_QueueJob_Read">PR_QueueJob_Read</h4>
+    <p>Causes a job to be queued when a socket becomes readable.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRJob *)
+PR_QueueJob_Read(
+   PRThreadPool *tpool,
+   PRJobIoDesc *iod,
+   PRJobFn fn,
+   void *arg,
+   PRBool joinable
+);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameters:</p>
+      <dl>
+        <dt><code>tpool</code>
+          <dd>A pointer to a <code>PRThreadPool</code> structure previously 
+           created by a call to 
+           <a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>.
+        <dt><code>iod</code>
+          <dd>A pointer to a <a href="#PRJobIoDesc"><code>PRJobIoDesc</code></a>
+           structure.
+        <dt><code>fn</code>
+          <dd>The function to be executed when the job is executed.
+        <dt><code>arg</code>
+          <dd>A pointer to an argument passed to <code>fn</code>.
+        <dt><code>joinable</code>
+          <dd>If <code>PR_TRUE</code>, the job is joinable. If 
+           <code>PR_FALSE</code>, the job is not joinable. See 
+           <a href="#PR_JoinJob"><code>PR_JoinJob</code></a>.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p>Pointer to a <code>PRJob</code> structure or <code>NULL</code> on 
+       error.</p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!--  -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_QueueJob_Write">PR_QueueJob_Write</h4>
+    <p>Causes a job to be queued when a socket becomes writable.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRJob *)
+PR_QueueJob_Write(
+   PRThreadPool *tpool,
+   PRJobIoDesc *iod,
+   PRJobFn fn,
+   void * arg,
+   PRBool joinable
+);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameters:</p>
+      <dl>
+        <dt><code>tpool</code>
+          <dd>A pointer to a <code>PRThreadPool</code> structure previously 
+           created by a call to 
+           <a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>.
+        <dt><code>iod</code>
+          <dd>A pointer to a <a href="#PRJobIoDesc"><code>PRJobIoDesc</code></a>
+           structure.
+        <dt><code>fn</code>
+          <dd>The function to be executed when the job is executed.
+        <dt><code>arg</code>
+          <dd>A pointer to an argument passed to <code>fn</code>.
+        <dt><code>joinable</code>
+          <dd>If <code>PR_TRUE</code>, the job is joinable. If 
+           <code>PR_FALSE</code>, the job is not joinable. See 
+           <a href="#PR_JoinJob"><code>PR_JoinJob</code></a>.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p>Pointer to a <code>PRJob</code> structure or <code>NULL</code> on 
+       error.</p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!--  -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_QueueJobAccept">PR_QueueJobAccept</h4>
+    <p>Causes a job to be queued when a socket has a pending connection.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRJob *)
+PR_QueueJob_Accept(
+   PRThreadPool *tpool,
+   PRJobIoDesc *iod,
+   PRJobFn fn,
+   void * arg,
+   PRBool joinable
+);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameters:</p>
+      <dl>
+        <dt><code>tpool</code>
+          <dd>A pointer to a <code>PRThreadPool</code> structure previously 
+           created by a call to 
+           <a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>.
+        <dt><code>iod</code>
+          <dd>A pointer to a <a href="#PRJobIoDesc"><code>PRJobIoDesc</code></a>
+           structure.
+        <dt><code>fn</code>
+          <dd>The function to be executed when the job is executed.
+        <dt><code>arg</code>
+          <dd>A pointer to an argument passed to <code>fn</code>.
+        <dt><code>joinable</code>
+          <dd>If <code>PR_TRUE</code>, the job is joinable. If 
+           <code>PR_FALSE</code>, the job is not joinable. See 
+           <a href="#PR_JoinJob"><code>PR_JoinJob</code></a>.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p>Pointer to a <code>PRJob</code> structure or <code>NULL</code> on 
+       error.</p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!--  -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_QueueJob_Connect">PR_QueueJob_Connect</h4>
+    <p>Causes a job to be queued when a socket can be connected.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRJob *)
+PR_QueueJob_Connect(
+   PRThreadPool *tpool,
+   PRJobIoDesc *iod,
+   const PRNetAddr *addr,
+   PRJobFn fn,
+   void * arg,
+   PRBool joinable
+);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameters:</p>
+      <dl>
+        <dt><code>tpool</code>
+          <dd>A pointer to a <code>PRThreadPool</code> structure previously 
+           created by a call to 
+           <a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>.
+        <dt><code>iod</code>
+          <dd>A pointer to a <a href="#PRJobIoDesc"><code>PRJobIoDesc</code></a>
+           structure
+        <dt><code>addr</code>
+          <dd>Pointer to a 
+           <a href="priotyp.html#17138"><code>PRNetAddr</code></a> structure for
+           the socket being connected.
+        <dt><code>fn</code>
+          <dd>The function to be executed when the job is executed.
+        <dt><code>arg</code>
+          <dd>A pointer to an argument passed to <code>fn</code>.
+        <dt><code>joinable</code>
+          <dd>If <code>PR_TRUE</code>, the job is joinable. If 
+           <code>PR_FALSE</code>, the job is not joinable. See 
+           <a href="#PR_JoinJob"><code>PR_JoinJob</code></a>.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p>Pointer to a <code>PRJob</code> structure or <code>NULL</code> on 
+       error.</p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!-- -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_QueueJob_Timer">PR_QueueJob_Timer</h4>
+    <p>Causes a job to be queued when a timer expires.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRJob *)
+PR_QueueJob_Timer(
+   PRThreadPool *tpool,
+   PRIntervalTime timeout,
+   PRJobFn fn,
+   void * arg,
+   PRBool joinable
+);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameters:</p>
+      <dl>
+        <dt><code>tpool</code>
+          <dd>A pointer to a <code>PRThreadPool</code> structure previously 
+           created by a call to 
+           <a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>.
+        <dt><code>timeout</code>
+          <dd>A value, expressed as a 
+           <a href="prinrvl.html#20947"><code>PRIntervalTime</code></a>, to wait 
+           before queuing the job.
+        <dt><code>fn</code>
+          <dd>The function to be executed when the job is executed.
+        <dt><code>arg</code>
+          <dd>A pointer to an argument passed to <code>fn</code>.
+        <dt><code>joinable</code>
+          <dd>If <code>PR_TRUE</code>, the job is joinable. If 
+           <code>PR_FALSE</code>, the job is not joinable. See 
+           <a href="#PR_JoinJob"><code>PR_JoinJob</code></a>.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p>Pointer to a <code>PRJob</code> structure or <code>NULL</code> on 
+       error.</p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!-- -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_CancelJob">PR_CancelJob</h4>
+    <p>Causes a previously queued job to be canceled. </p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRStatus) PR_CancelJob(PRJob *job);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameter:</p>
+      <dl>
+        <dt><code>job</code>
+          <dd>A pointer to a <a href="#PRJob"><code>PRJob</code></a> structure 
+           returned by a <a href="#PR_QueueJob"><code>PR_QueueJob</code></a> 
+           function representing the job to be cancelled.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p><code>PRStatus</code></p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!-- -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_JoinJob">PR_JoinJob</h4>
+    <p>Blocks the current thread until a job has completed.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRStatus) PR_JoinJob(PRJob *job);</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameter:</p>
+      <dl>
+        <dt><code>job</code>
+          <dd>A pointer to a <a href="#PRJob"><code>PRJob</code></a> structure 
+           returned by a <a href="#PR_QueueJob"><code>PR_QueueJob</code></a> 
+           function representing the job to be cancelled.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p><code>PRStatus</code></p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!-- -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_ShutdownThreadPool">PR_ShutdownThreadPool</h4>
+    <p>Notifies all threads in a thread pool to terminate.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRStatus) PR_ShutdownThreadPool( PRThreadPool *tpool );</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameter:</p>
+      <dl>
+        <dt><code>tpool</code>
+          <dd>A pointer to a <code>PRThreadPool</code> structure previously 
+           created by a call to 
+           <a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p><code>PRStatus</code></p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!-- -->
+    </div>
+  </div>
+  <div class="section">
+    <h4 id="PR_JoinThreadPool">PR_JoinThreadPool</h4>
+    <p>Waits for all threads in a thread pool to complete, then releases 
+     resources allocated to the thread pool.</p>
+    <div class="section">
+      <h5>Syntax</h5>
+      <pre class="code">#include &lt;prtpool.h&gt;
+
+NSPR_API(PRStatus) PR_JoinThreadPool( PRThreadPool *tpool );</pre>
+    </div>
+    <div class="section">
+      <h5>Parameters</h5>
+      <p>The function has the following parameter:</p>
+      <dl>
+        <dt><code>tpool</code>
+          <dd>A pointer to a <code>PRThreadPool</code> structure previously 
+           created by a call to 
+           <a href="#PR_CreateThreadPool"><code>PR_CreateThreadPool</code></a>.
+      </dl>
+    </div>
+    <div class="section">
+      <h5>Returns</h5>
+      <p><code>PRStatus</code></p>
+    </div>
+    <div class="section">
+      <h5>Description</h5>
+      <!-- -->
+    </div>
+  </div>
+</div>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../../security/">Security Updates</a></li>
+<li><a href="../../../../contact/">Contact Us</a></li>
+<li><a href="../../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February  8,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/nspr/reference/html/prtpool.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

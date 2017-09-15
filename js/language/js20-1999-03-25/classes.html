@@ -1,0 +1,338 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Classes</TITLE>
+<LINK rel=stylesheet href="../styles.css">
+<LINK rel=Start href="index.html">
+<LINK rel=Contents href="index.html">
+<LINK rel=Prev href="functions.html">
+<LINK rel=Next href="packages.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>March 1999 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title1>Classes</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="functions.html"><IMG src="../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="packages.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Wednesday, March 24, 1999</P>
+
+<H2>Class Definitions</H2>
+
+<P>In JavaScript 2.0 we define classes using the <CODE class=terminal-keyword>class</CODE> keyword. Limited classes can also
+be defined via <A href="functions.html#function-traditional">JavaScript 1.x-style functions</A>, but doing so is discouraged
+for new code.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>ClassDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>class</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;[<CODE class=terminal-keyword>extends</CODE>&nbsp;<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>class</CODE>&nbsp;<CODE class=terminal-keyword>extends</CODE>&nbsp;<SPAN class=nonterminal>TypeExpression</SPAN>&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+</DIV>
+<P>The first format declares a class with the name <SPAN class=nonterminal>Identifier</SPAN>, binding <SPAN class=nonterminal>Identifier</SPAN>
+to this class in the <A href="declarations.html#scope-rules">scope specified by</A> the <SPAN class=nonterminal>Visibility</SPAN>
+prefix (which usually includes the <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>). <SPAN class=nonterminal>Identifier</SPAN>
+is a constant variable with type <CODE>type</CODE> and can be used anywhere a type expression is allowed.</P>
+
+<P>When the first <SPAN class=nonterminal>ClassDefinition</SPAN> format is evaluated, the following steps take place:</P>
+
+<OL>
+  <LI>A new type <VAR>t</VAR> is created.</LI>
+  <LI>If <CODE class=terminal-keyword>extends</CODE> <SPAN class=nonterminal>TypeExpression</SPAN> is given, <SPAN class=nonterminal>TypeExpression</SPAN>
+    is evaluated to obtain a type <VAR>s</VAR>, which must be another class. If <CODE class=terminal-keyword>extends</CODE>
+    <SPAN class=nonterminal>TypeExpression</SPAN> is absent, type <VAR>s</VAR> defaults to the class <CODE>Object</CODE>.</LI>
+  <LI>Type <VAR>t</VAR> is made a subtype of type <VAR>s</VAR>.</LI>
+  <LI><SPAN class=nonterminal>Identifier</SPAN> is lexically bound in the <A href="declarations.html#scope-rules">scope given
+    by</A> <SPAN class=nonterminal>Visibility</SPAN>; however, at this time <SPAN class=nonterminal>Identifier</SPAN> does not
+    have a legal type yet and any attempt to read or write it results in an error.</LI>
+  <LI><SPAN class=nonterminal>Block</SPAN> is evaluated.</LI>
+  <LI>If <SPAN class=nonterminal>Block</SPAN> is evaluated successfully (without throwing out an exception), all <CODE>const</CODE>,
+    <CODE>var</CODE>, <CODE>function</CODE>, <CODE>constructor</CODE>, and <CODE>class</CODE> declarations evaluated at its
+    top level (or placed at its top level by the <A href="declarations.html#scope-rules">scope rules</A>) become <I>class
+    members</I> of type <VAR>t</VAR>. All <CODE>field</CODE> and <CODE>method</CODE> declarations evaluated at the <SPAN class=nonterminal>Block</SPAN>'s
+    top level (or placed at its top level by the <A href="declarations.html#scope-rules">scope rules</A>) become <I>instance
+    members</I> of type <VAR>t</VAR>.</LI>
+  <LI>The value of <SPAN class=nonterminal>Identifier</SPAN> becomes type <VAR>t</VAR>. From now on <SPAN class=nonterminal>Identifier</SPAN>
+    is a constant and its value cannot be altered.</LI>
+</OL>
+
+<P>A <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN> is evaluated just like any other <SPAN class=nonterminal>Block</SPAN>,
+so it can contain expressions, statements, loops, etc. Such statements that do not contain declarations do not contribute
+members to the class being declared, but they are evaluated when the class is declared.</P>
+
+<H3>Class Extensions</H3>
+
+<P>If a <SPAN class=nonterminal>ClassDefinition</SPAN> omits the class name <SPAN class=nonterminal>Identifier</SPAN>, it extends
+the original class rather than creating a subclass. A class extension may define new methods and class constants and variables,
+but it does not have special privileges in accessing the original class definition's <CODE>private</CODE> members (or <CODE>package</CODE>
+members if in a separate package). A class extension may not override methods, and it may not define constructors or instance
+variables.</P>
+
+<P>Each instance of the original class is automatically also an instance of the extended class. Several extensions can apply
+to the same class.</P>
+
+<P>An extension is useful to add methods to system classes, as in the following code in some user package <CODE>P</CODE>:</P>
+
+<PRE>class extends string {
+  public method scramble() string {...}
+  public method unscramble() string {...}
+}
+
+var x = "abc".scramble();</PRE>
+
+<P>Once the class extension is evaluated, methods <CODE>scramble</CODE> and <CODE>unscramble</CODE> become available on all
+strings. There is no possibility of name clashes with extensions of class <CODE>string</CODE> in other, unrelated packages
+because the names <CODE>scramble</CODE> and <CODE>unscramble</CODE> belong to package <CODE>P</CODE> and not the system package
+that defines <CODE>string</CODE>. Any packages that import package <CODE>P</CODE> will also be able to call <CODE>scramble</CODE>
+and <CODE>unscramble</CODE> on strings, but other packages will not.</P>
+
+<H3>Members</H3>
+
+<P>A class has an associated set of <I>class members</I> and another set of <I>instance members</I>. Class members are properties
+of the class itself, while instance members are properties of each instance object of this class and have independent values
+for different instance objects.</P>
+
+<P>Class members are one of the following:</P>
+
+<UL>
+  <LI>Constants declared with the <CODE>const</CODE> keyword.</LI>
+  <LI>Class variables declared with the <CODE>var</CODE> keyword.</LI>
+  <LI>Class functions declared with the <CODE>function</CODE> keyword.</LI>
+  <LI>Constructors declared with the <CODE>constructor</CODE> keyword.</LI>
+  <LI>Nested classes declared with the <CODE>class</CODE> keyword.</LI>
+</UL>
+<P>Instance members are one of the following:</P>
+
+<UL>
+  <LI>Fields declared with the <CODE>field</CODE> keyword.</LI>
+  <LI>Methods declared with the <CODE>method</CODE> keyword.</LI>
+</UL>
+<P>Members can only be defined within the intersection of the lexical and dynamic extent of a <SPAN class=nonterminal>ClassDefinition</SPAN>'s
+<SPAN class=nonterminal>Block</SPAN>. A few examples illustrate this rule.</P>
+
+<P>The code</P>
+
+<PRE>var bool extended = false;
+
+function callIt(x) {return x()}
+
+class C {
+  extended = true;
+  public function square(integer x) integer {return x*x}
+  if (extended) {
+    public function cube(integer x) integer {return x*x*x}
+  } else {
+    public function reciprocal(number x) number {return 1/x}
+  }
+
+  field string firstName, lastName;
+  method name() string {return firstName + lastName}
+
+  public function genMethod(boolean b) {
+    if (b) {
+      public field time = 0;
+    } else {
+      public field date = 0;
+    }
+  }
+
+  genMethod(true);
+}</PRE>
+
+<P>defines class <CODE>C</CODE> with members <CODE>square</CODE> (a class function), <CODE>cube</CODE> (a class function),
+<CODE>firstName</CODE> (an instance variable), <CODE>lastName</CODE> (an instance variable), <CODE>name</CODE> (an instance
+method), and <CODE>genMethod</CODE> (a class function).</P>
+
+<P>On the other hand, executing the following code after the above example would be illegal due to three different errors:</P>
+
+<PRE>genMethod(false);   // Field date declared outside of C's block's dynamic extent
+
+public field color; // Field declared outside a class's block
+
+function genField() {
+  public field style;
+}
+
+class D {
+  genField();       // Field style declared outside D's block's lexical extent
+}</PRE>
+
+<H4>Visibility</H4>
+
+<P>While a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN> is being evaluated, the already
+defined <I>class members</I> (other than constructors) are visible and usable by the code in that <SPAN class=nonterminal>Block</SPAN>.
+Afterwards members can be accessed in one of several ways:</P>
+
+<UL>
+  <LI>Code inside the <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN> can access <I>class
+    members</I> merely by mentioning their names.</LI>
+  <LI>Code anywhere within the current class, anywhere within the current package (if a member's <SPAN class=nonterminal>Visibility</SPAN>
+    is <CODE>package</CODE> or omitted), or anywhere within the current package or any package that imports the appropriate
+    version of the current package (if a member's <SPAN class=nonterminal>Visibility</SPAN> is <CODE>public</CODE>) can access
+    <I>class members</I> by using the <CODE>.</CODE> operator on the class.</LI>
+  <LI>Code anywhere within the current class, anywhere within the current package (if a member's <SPAN class=nonterminal>Visibility</SPAN>
+    is <CODE>package</CODE> or omitted), or anywhere within the current package or any package that imports the appropriate
+    version of the current package (if a member's <SPAN class=nonterminal>Visibility</SPAN> is <CODE>public</CODE>) can access
+    <I>instance members</I> by using the <CODE>.</CODE> operator on any of the class's instances.</LI>
+</UL>
+
+<H3>Inheritance</H3>
+
+<P>A subclass inherits all members except constructors from its superclass. Class variables have only one global value, not
+one value per subclass. A subclass may override visible methods, but it may not override or shadow any other visible members.
+On the other hand, imports and versioning can hide members' names from some or all users in importing packages, including
+subclasses in importing packages.</P>
+
+<H2><A name="member-definitions"></A>Member Definitions</H2>
+
+<P>We have already seen the definition syntax for <A href="variables.html">variables and constants</A>, <A href="functions.html">functions</A>,
+and classes. Any of these defined at a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>'s
+top level (or placed at its top level by the <A href="declarations.html#scope-rules">scope rules</A>) become class members
+of the class.</P>
+
+<P>Fields, methods, and constructor definitions have their own syntax described below. These definitions must be lexically
+enclosed by a <SPAN class=nonterminal>ClassDefinition</SPAN>'s <SPAN class=nonterminal>Block</SPAN>.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>MemberDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal>FieldDefinition</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>MethodDefinition</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal>ConstructorDefinition</SPAN></DIV>
+</DIV>
+
+<H3><A name="field-definitions"></A>Field Definitions</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>FieldDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>field</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;[<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression</SPAN>]&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;...&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;[<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal>AssignmentExpression</SPAN>]&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+</DIV>
+
+<P>A <SPAN class=nonterminal>FieldDefinition</SPAN> is similar to a <SPAN class=nonterminal>VariableDefinition</SPAN> except that
+it defines an instance variable of the lexically enclosing class. Each new instance of the class contains a new, independent
+set of instance variables initialized to the values given by the <SPAN class=nonterminal>AssignmentExpression</SPAN>s in the
+<SPAN class=nonterminal>FieldDefinition</SPAN>.</P>
+
+<P><SPAN class=nonterminal>Identifier</SPAN> is the name of the instance variable and <SPAN class=nonterminal>TypeExpression</SPAN>
+is its type. <SPAN class=nonterminal>Identifier</SPAN> can be any non-reserved identifier. <SPAN class=nonterminal>TypeExpression</SPAN>
+is evaluated at the time the variable definition is evaluated and should evaluate to a type <VAR>t</VAR>. The <SPAN class=nonterminal>TypeExpression</SPAN>s
+and <SPAN class=nonterminal>AssignmentExpression</SPAN>s are evaluated once, at the time the <SPAN class=nonterminal>FieldDefinition</SPAN>
+is evaluated, rather than every time an instance of the class is constructed; their values are saved for use in constructors.</P>
+
+<P>If omitted, <SPAN class=nonterminal>TypeExpression</SPAN> defaults to type <CODE>any</CODE> for the first <SPAN class=nonterminal>Identifier</SPAN>
+being declared and to the previous <SPAN class=nonterminal>Identifier</SPAN>'s <SPAN class=nonterminal>TypeExpression</SPAN> value
+for each subsequent <SPAN class=nonterminal>Identifier</SPAN> (the previous <SPAN class=nonterminal>Identifier</SPAN>'s <SPAN class=nonterminal>TypeExpression</SPAN>
+is not evaluated twice; only its value is reused).</P>
+
+<P>If provided, <SPAN class=nonterminal>AssignmentExpression</SPAN> gives the instance variable's initial value <VAR>v</VAR>.
+If not, <CODE>undefined</CODE> is assumed; an error occurs if <CODE>undefined</CODE> cannot be <A href="types.html#coercion">coerced</A>
+to type <VAR>t</VAR>. <SPAN class=nonterminal>AssignmentExpression</SPAN> is evaluated just after the <SPAN class=nonterminal>TypeExpression</SPAN>
+is evaluated. The value <VAR>v</VAR> is then coerced to the variable's type <VAR>t</VAR> and stored in the instance variable.
+Any values subsequently assigned to the instance variable are also coerced to type <VAR>t</VAR> at the time of each such assignment.</P>
+
+<P>Multiple instance variables separated by commas can be defined in the same <SPAN class=nonterminal>FieldDefinition</SPAN>.</P>
+
+<P>A field cannot be overridden in a subclass.</P>
+
+<H3><A name="method-definitions"></A>Method Definitions</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>MethodDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;[<CODE class=terminal-keyword>getter</CODE>&nbsp;|&nbsp;<CODE class=terminal-keyword>setter</CODE>]&nbsp;[<CODE class=terminal-keyword>final</CODE>]&nbsp;[<CODE class=terminal-keyword>override</CODE>]&nbsp;<CODE class=terminal-keyword>method</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Parameters</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;[<CODE class=terminal-keyword>getter</CODE>&nbsp;|&nbsp;<CODE class=terminal-keyword>setter</CODE>]&nbsp;[<CODE class=terminal-keyword>final</CODE>]&nbsp;[<CODE class=terminal-keyword>override</CODE>]&nbsp;<CODE class=terminal-keyword>method</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Parameters</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;[<SPAN class=nonterminal>TypeExpression</SPAN>]&nbsp;<CODE class=terminal-keyword>;</CODE></DIV>
+</DIV>
+
+<P>A <SPAN class=nonterminal>MethodDefinition</SPAN> is similar to a <SPAN class=nonterminal>FunctionDefinition</SPAN> except
+that it defines an instance method of the lexically enclosing class. <SPAN class=nonterminal>Parameters</SPAN>, the result <SPAN class=nonterminal>TypeExpression</SPAN>,
+and the body <SPAN class=nonterminal>Block</SPAN> behave just like for <A href="functions.html">function definitions</A>, with
+the following differences:</P>
+
+<UL>
+  <LI>Every method has a predefined parameter <CODE>this</CODE> that refers to the instance object of the method's class on
+    which the method was called.</LI>
+  <LI>A method is not in itself a value and has no type. There is no way to extract an undispatched method from a class. The
+    <CODE>.</CODE> operator produces a function (more specifically, a closure) that is already dispatched and has <CODE>this</CODE>
+    bound to the left operand of the <CODE>.</CODE> operator.</LI>
+  <LI>There is no analogue to <A href="functions.html#function-traditional">functions' <CODE>traditional</CODE> syntax</A>
+    for methods. Optional parameters must be specified explicitly.</LI>
+</UL>
+<P>We call a regular method by combining the <CODE>.</CODE> operator with a function call. For example:</P>
+
+<P class=syntax><CODE>class&nbsp;C&nbsp;{<BR>
+&nbsp;&nbsp;field&nbsp;integer&nbsp;x&nbsp;=&nbsp;3;<BR>
+&nbsp;&nbsp;method&nbsp;m()&nbsp;{return&nbsp;x}<BR>
+&nbsp;&nbsp;method&nbsp;n(x)&nbsp;{return&nbsp;x+4}<BR>
+}<BR>
+<BR>
+var&nbsp;c&nbsp;=&nbsp;new&nbsp;C;<BR>
+c.m();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE> returns
+<CODE>3<BR>
+c.n(7);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE> returns <CODE>11<BR>
+var&nbsp;Function&nbsp;f&nbsp;=&nbsp;c.m;&nbsp;&nbsp;//</CODE> <CODE>f</CODE> is a zero-argument function with <CODE>this</CODE>
+bound to <CODE>c<BR>
+f();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>
+returns <CODE>3<BR>
+c.x&nbsp;=&nbsp;8;<BR>
+f();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>
+returns <CODE>8</CODE></P>
+
+<H4>Method Overriding</H4>
+
+<P>A class <VAR>c</VAR> may override a method <VAR>m</VAR> defined in its superclass <VAR>s</VAR>. To do this, <VAR>c</VAR>
+should define a method <VAR>m'</VAR> with the same name as <VAR>m</VAR> and use the <CODE class=terminal-keyword>override</CODE>
+keyword in the definition of <VAR>m'</VAR>. Overriding a method without using the <CODE class=terminal-keyword>override</CODE>
+keyword or using the <CODE class=terminal-keyword>override</CODE> keyword when not overriding a method results in a warning
+intended to catch misspelled method names. The warning is not an error to allow subclass <VAR>c</VAR> to either define a method
+if it is not present in <VAR>s</VAR> or override it if it is present in <VAR>s</VAR> -- this situation can arise when <VAR>s</VAR>
+is imported from a different package and provides several versions.</P>
+
+<P>The overriding method <VAR>m'</VAR> does not have to have the same number or type of parameters as the overridden method
+<VAR>m</VAR>. In fact, since parameter types can be arbitrary expressions and are evaluated only during a call, checking for
+parameter type compatibility when the overriding method <VAR>m</VAR> is declared would require solving the halting problem.
+Moreover, defining overriding methods that are more general than overridden methods is useful.</P>
+
+<P>A method defined with the <CODE class=terminal-keyword>final</CODE> keyword cannot
+be overridden (or further overridden) in subclasses.</P>
+
+<H4>Getter and Setter Methods</H4>
+
+<P>If a <SPAN class=nonterminal>MethodDefinition</SPAN> contains the keyword <CODE class=terminal-keyword>getter</CODE>&nbsp;or&nbsp;<CODE class=terminal-keyword>setter</CODE>,
+then the defined method is a getter or a setter. These are analogous to <A href="functions.html#getters-and-setters">getter
+and setter functions</A> in that they are invoked without listing the parentheses after the method name.</P>
+
+<P>A getter or setter method cannot be overridden. <SPAN class=issue>We could relax this restriction, but then we'd also
+have to allow overriding of fields by getters, setters, or other fields, and, as a corollary, allow fields to be declared
+<CODE>final</CODE>.</SPAN></P>
+
+<H3><A name="constructor-definitions"></A>Constructor Definitions</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>ConstructorDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;[<SPAN class=nonterminal>Visibility</SPAN>]&nbsp;<CODE class=terminal-keyword>constructor</CODE>&nbsp;<SPAN class=nonterminal>Identifier</SPAN>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal>Parameters</SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;<SPAN class=nonterminal>Block</SPAN></DIV>
+</DIV>
+<P>A constructor is a class function that creates a new instance of the lexically enclosing class <VAR>c</VAR>. A constructor's
+body <SPAN class=nonterminal>Block</SPAN> is required to call one of <VAR>c</VAR>'s superclass's constructors <SPAN class=issue>(when
+and how?)</SPAN>. Afterwards it may access the instance object under construction via the <CODE>this</CODE> local variable.
+A constructor should not return a value with a <CODE>return</CODE> statement; the newly created object is returned automatically.</P>
+
+<P>A constructor can have any non-reserved name, in which case we would invoke it as though it were a class function. In addition,
+a constructor's <SPAN class=nonterminal>Identifier</SPAN> can have the special name <CODE>new</CODE>, in which case we invoke
+it using the <CODE>new</CODE> prefix operator syntax as in JavaScript 1.x.</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Wednesday, March 24, 1999</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="functions.html"><IMG src="../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="index.html"><IMG src="../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="packages.html"><IMG src="../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

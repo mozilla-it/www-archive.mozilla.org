@@ -1,0 +1,272 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<HTML>
+	<HEAD>
+    <TITLE>Re: some changes are coming to nsCOMPtr</TITLE>
+    <LINK REL=StyleSheet HREF="http://www.mozilla.org/projects/xpcom/Standard.css" TYPE="text/css">
+	</HEAD>
+	<BODY>
+		<H1>Re: some changes are coming to <code>nsCOMPtr</code></H1>
+
+<DIV class=author-note>
+	<P>by <A HREF="http://www.meer.net/ScottCollins/">Scott Collins</A><!-- /P -->
+	<P>last modified 25 October 1999</P>
+</DIV>
+
+<div class="document-label">
+	<p>
+		<strong>Document Status</strong>: <span class="warning"><strong>Retired</strong></span>.
+		This document is now obsolete.
+		Coincidentally, the information in this document is <em>mostly</em> accurate.
+		The changes are that one can, again,
+			initialize from or assign raw [XP]COM interface pointers
+			into an an <code>nsCOMPtr</code>;
+			and comparisons between raw [XP]COM interface pointers
+			and <code>nsCOMPtr</code>s are allowed and have the same
+			meaning as comparisons between raw pointers.
+		Please use the
+			<a href="http://www.mozilla.org/projects/xpcom/nsCOMPtr.html"><code>nsCOMPtr</code> User's Manual</a>
+			as your reference.
+	</p>
+</div>
+
+<DIV class="document-label">
+	<A name="abstract">
+		<STRONG>Abstract:</STRONG>
+		An news posting that describes the changes to <code>nsCOMPtr</code>
+			since the documentation.
+	</A>
+</DIV>
+
+<H2>The Message</H2>
+
+<PRE>
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Well, the changes are here.  They have yet to be checked in as they
+will require a carpool and help from |nsCOMPtr| clients.  The short
+story is I have adapted |nsCOMPtr| according to the results of all our
+recent discussions and Gecko's needs.  I have optimized the
+implementation to significantly reduce bloat (possibly even to the
+point of being negligible; though more analysis is required) and also
+to make an |nsCOMPtr| exactly the same size as a raw COM interface
+pointer, so that we can use |nsCOMPtr|s everywhere they make sense. 
+Continue reading for the long story...
+
+
+Interface changes:
+
+  + The |getter_doesnt_AddRef(x)| mechanism is gone.  It didn't appear
+    in the source, so no worries.  Authors of functions that return
+    raw COM interface pointers through parameters, e.g.,
+
+      nsresult GetSomeFoo( IFoo** result ); // or
+      nsresult GetSomeBar( void** result );
+
+    _must_ |AddRef| the pointer before they return it.  This has
+    always been the rule; but now it is officially a bug if you break
+    it.
+
+  + The constructors and assignment operators that accepted raw COM
+    interface pointers are gone.  Essentially, where before you had
+    to make the choice between
+
+        // The OLD way...
+      nsCOMPtr&lt;IFoo&gt; fooP( barP ); // calls |QueryInterface|
+      nsCOMPtr&lt;IFoo&gt; fooP( dont_QueryInterface(barP) );
+
+    where the first choice implicitly called |QueryInterface|, you now
+    choose between |dont_QueryInterface| and its counterpart
+    |do_QueryInterface|, forcing the |QueryInterface| to be explicit.
+    Additionally, you may optionally recover the error, if any, from
+    the underlying |QueryInterface|
+
+        // The NEW way...
+      nsCOMPtr&lt;IFoo&gt; fooP( dont_QueryInterface(barP) );
+      nsCOMPtr&lt;IFoo&gt; fooP( do_QueryInterface(barP) );
+
+        // I may want to recover the result of |QueryInterface|...
+      nsresult error;
+      nsCOMPtr&lt;IFoo&gt; fooP( do_QueryInterface(barP, &amp;error) );
+
+        // Similarly for assignment...
+      fooP = do_QueryInterface(barP);
+      fooP = do_QueryInterface(barP, &amp;error);
+
+    Eliminating construction and assignment from raw pointers is a big
+    change that will break lots of code.  As an intermediate step I
+    can check in initially commenting out the |explicit| in the
+    constructor underlying |do_QueryInterface|.  This will cause most
+    old code to continue to compile, and people who want to help me
+    convert to the new form can just un-comment that line to find all
+    the bad places...
+
+  + The operators for comparing an |nsCOMPtr| with raw COM interface
+    pointers are gone.  It is now illegal to have a bare comparison
+    against a raw COM interface pointer.  Instead, you must select
+    between the two possible meanings of such a comparison...
+
+      nsCOMPtr&lt;IFoo&gt; fooP;
+      IBar* barP;
+ 
+        // ...
+
+        // Are the pointers identical?
+      if ( fooP.get() == barP )
+        // ...
+
+        // Do they point to the same object?
+      if ( fooP == nsCOMPtr&lt;IFoo&gt;(barP) )
+        // ...
+
+      // The former relationship implies the latter.  The reverse
+      // is not true.
+
+    This also means that, although
+
+      if ( NS_NULL != fooP )
+        // ...
+
+    _did_ compile on some (not all) platforms, it will now fail to
+    compile on _all_ platforms.  The appropriate replacement is
+
+      if ( fooP )
+        // ...
+
+        // or conversely
+      if ( !fooP )
+        // ...
+
+  + The short lived mechanism for extracting the last error from an
+    implicit call to |QueryInterface|, i.e., |assignment_error()|,
+    has been removed.  Now calls to |QueryInterface| are explicit,
+    and you have the opportunity to capture the result as show above.
+
+
+Implementation changes:
+
+  + Now that |getter_doesnt_AddRef| and |assignment_error()| are gone,
+    so are the member variables that bloated |nsCOMPtr|s out to eight
+    bytes.  An |nsCOMPtr| is now exactly the same size as a raw COM
+    interface pointer.
+
+  + After profiling the generated code, I have extracted some bulky
+    |inline|s into non-|inline| member functions in a non-|template|
+    base class.  This will add a single file to the XPCOM library.
+
+    The result of this work is that bloating is significantly reduced.
+    Given the following functions, pulled directly from my unit tests,
+    identical except for which mechanism they use
+
+        // Here using raw COM interface pointers...
+      static
+      nsresult
+      TestBloat_Raw()
+        {
+          IBar* barP = 0;
+          nsresult result = CreateIBar(&amp;barP);
+
+          if ( barP )
+            {
+              IFoo* fooP = 0;
+              if ( NS_SUCCEEDED(
+                    result = barP-&gt;QueryInterface(IFoo::IID(), &amp;fooP)
+                   ) )
+                {
+                  fooP-&gt;print_totals();
+                  NS_RELEASE(fooP);
+                }
+
+              NS_RELEASE(barP);
+            }
+
+          return result;
+        }
+
+
+        // ...and here using |nsCOMPtr|s...
+      static
+      nsresult
+      TestBloat_nsCOMPtr()
+        {
+          nsCOMPtr&lt;IBar&gt; barP;
+          nsresult result = CreateIBar( getter_AddRefs(barP) );
+
+          nsCOMPtr&lt;IFoo&gt; fooP( do_QueryInterface(barP, &amp;result) );
+
+          if ( fooP )
+            fooP-&gt;print_totals();
+
+          return result;
+        }
+
+    In an optimized build on my machine, the generated code for the
+    |nsCOMPtr| code is only 4 bytes longer than that of the code
+    using raw COM interface pointers.  At this point, I probably
+    wouldn't call the difference in size `bloat'.  Further reductions
+    may be possible.  Further analysis is called for.
+
+    As a side note, the generated code for an exception safe
+    implementation using raw COM interface pointers exceeded the size
+    of the first example by 160 bytes.
+
+To be done:
+
+  + Carpool this stuff in; changes will be required.
+
+  + Update the documentation to match.
+
+  + Consider renaming |getter_AddRefs| to something that makes sense
+    in the absence of |getter_doesnt_AddRef|, e.g., |assign_into| or
+    the like.
+
+  + Further analysis of speed and size tradeoffs on the major
+    platforms.
+
+Hope this helps,
+______________________________________________________________________
+Scott Collins              &lt;<A href="http://www.meer.net/ScottCollins?Netscape">http://www.meer.net/ScottCollins?Netscape</A>&gt;
+
+
+
+
+
+-----BEGIN PGP SIGNATURE-----
+Version: PGP Personal Privacy 6.0.2
+Comment: get my key at &lt;<A href="http://www.meer.net/ScottCollins/#key">http://www.meer.net/ScottCollins/#key</A>&gt;
+
+iQA/AwUBNsUwZfGmojMuVn+fEQItvACdE8K9fYdqLiIbnG60rXyGfOKU7wgAoI4G
+K2nfEKoaw3U1oGcy/rcYu05N
+=EAJt
+-----END PGP SIGNATURE-----
+</PRE>
+
+<H2>Epilogue</H2>
+
+<P>
+	Of course, as you read this, these changes have been checked in and working for quite some time.
+	Since this message was posted, further changes have been checked in that make
+		<code>nsCOMPtr</code> zero overhead with respect to
+		raw COM interface pointers on both Windows and Macintosh.
+	<code>nsCOMPtr</code> is now the recommended standard
+		mechanism for implementing an owning pointer.
+	The <A href="http://www.mozilla.org/projects/xpcom/nsCOMPtr.html">current documentation</A>
+		has yet to be updated to match these changes;
+		though posting this document and these two email messages
+		(<A href="msg1.html">-1-</A>, and <A href="msg2.html">-2-</A>) should help.
+</P>
+
+<DIV class="author-note">
+  <HR>
+    <A HREF="http://validator.w3.org/check?uri=http://www.mozilla.org/projects/xpcom/nsCOMPtr/news1.html">
+      <IMG BORDER=0 align=left SRC="http://validator.w3.org/images/vh40.gif" ALT="Valid HTML 4.0!" HEIGHT=31 WIDTH=88>
+    </A>
+    <A HREF="http://www.w3.org/Style/CSS/Buttons">
+      <IMG BORDER=0 align=left SRC="http://www.w3.org/Style/CSS/Buttons/cssos" ALT="CSS" HEIGHT=31 WIDTH=88>
+    </A>
+    Copyright&copy; 1999 by Netscape; use is subject to the <A HREF="http://www.mozilla.org/NPL/">NPL</A>.
+</DIV>
+	</BODY>
+</HTML>

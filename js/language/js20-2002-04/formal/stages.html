@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Stages</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="notation.html">
+<LINK rel=Next href="lexer-grammar.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>April 2002 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Formal Description</DIV>
+    <DIV class=title1>Stages</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="notation.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="lexer-grammar.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Thursday, October 18, 2001</P>
+
+<P>The source code is processed in the following stages:</P>
+
+<OL>
+  <LI>If necessary, convert the source code into the Unicode UTF-16 format, <A href="http://www.unicode.org/unicode/reports/tr15">normalized
+    form C</A>.</LI>
+  <LI>Remove any Unicode format control characters (category <TT>Cf</TT>) from the source code.</LI>
+  <LI>Simultaneously split the source code into input elements using the <A href="lexer-grammar.html">lexical grammar</A> and <A href="lexer-semantics.html">semantics</A>
+    and parse it using the <A href="parser-grammar.html">syntactic grammar</A> to obtain a parse tree <VAR>P</VAR>.</LI>
+  <LI>Evaluate <VAR>P</VAR> using the <A href="parser-semantics.html">syntactic semantics</A> by computing the action <SPAN class=action-name>Eval</SPAN>
+    on it.</LI>
+</OL>
+
+<H2>Lexing and Parsing</H2>
+
+<P>Processing stage 3 is done as follows:</P>
+
+<OL>
+  <LI>Let <VAR>inputElements</VAR> be an empty array of input elements (syntactic grammar <A href="parser-grammar.html#terminals">terminals</A>
+    and line breaks).</LI>
+  <LI>Let <VAR>input</VAR> be the input sequence of Unicode characters. Append a special placeholder <SPAN class=terminal>End</SPAN>
+    to the end of <VAR>input</VAR>.</LI>
+  <LI>Let <VAR>state</VAR> be a variable that holds one of the constants <SPAN class=field-name>re</SPAN>, <SPAN class=field-name>div</SPAN>,
+    or <SPAN class=field-name>unit</SPAN>. Initialize it to <SPAN class=field-name>re</SPAN>.</LI>
+  <LI>Apply the <A href="lexer-grammar.html">lexical grammar</A> to parse the longest possible prefix of <VAR>input</VAR>. Use
+    the start symbol <A href="lexer-grammar.html#N-NextInputElement" class=nonterminal>NextInputElement</A><SUP class=nonterminal-attribute>re</SUP>,
+    <A href="lexer-grammar.html#N-NextInputElement" class=nonterminal>NextInputElement</A><SUP class=nonterminal-attribute>div</SUP>,
+    or <A href="lexer-grammar.html#N-NextInputElement" class=nonterminal>NextInputElement</A><SUP class=nonterminal-attribute>unit</SUP>
+    depending on whether <VAR>state</VAR> is <SPAN class=field-name>re</SPAN>, <SPAN class=field-name>div</SPAN>, or
+    <SPAN class=field-name>unit</SPAN>, respectively. The result of the parse should be a lexical grammar parse tree <VAR>T</VAR>.
+    If the parse failed, return a syntax error.</LI>
+  <LI>Compute the action <SPAN class=action-name>InputElement</SPAN> on <VAR>T</VAR> to obtain an <A href="lexer-semantics.html#D-InputElement" class=domain-name>InputElement</A>
+    <VAR>e</VAR>.</LI>
+  <LI>If <VAR>e</VAR> is the <A href="lexer-semantics.html#D-InputElement" class=field-name>end</A> input element, go to step 15.</LI>
+  <LI>Remove the characters matched by <VAR>T</VAR> from <VAR>input</VAR>, leaving only the yet-unlexed suffix of <VAR>input</VAR>.</LI>
+  <LI>Interpret <VAR>e</VAR> as a syntactic grammar <A href="parser-grammar.html#terminals">terminal</A> or line break <VAR><SCRIPT type="text/javascript">document.write(U_tau)</SCRIPT></VAR>
+    as follows:
+    <UL>
+      <LI>A <A href="lexer-semantics.html#D-InputElement" class=field-name>lineBreak</A> is interpreted as a line break, which is
+        not a terminal itself but indicates one or more line breaks between two terminals. It prevents the <A href="parser-grammar.html">syntactic
+        grammar</A> from matching any productions that have a [no&nbsp;line&nbsp;break] annotation in the place where the
+        <SPAN class=field-name>lineBreak</SPAN> occurred.</LI>
+      <LI>An <A href="lexer-semantics.html#D-InputElement" class=field-name>identifier</A> <VAR>s</VAR> is interpreted as the terminal
+        <SPAN class=terminal>Identifier</SPAN>. Applying the semantic action <SPAN class=action-name>Name</SPAN> to the <SPAN class=terminal>Identifier</SPAN>
+        returns the <A href="lexer-semantics.html#D-InputElement" class=field-name>identifier</A>&#8217;s <A href="notation.html#D-String" class=domain-name>String</A>
+        <VAR>s</VAR>.</LI>
+      <LI>A <A href="lexer-semantics.html#D-InputElement" class=field-name>keyword</A> <VAR>s</VAR> is interpreted as the reserved
+        word, future reserved word, or non-reserved word <A href="parser-grammar.html#terminals">terminal</A> corresponding
+        to the <A href="lexer-semantics.html#D-InputElement" class=field-name>keyword</A>&#8217;s <A href="notation.html#D-String" class=domain-name>String</A>
+        <VAR>s</VAR>.</LI>
+      <LI>A <A href="lexer-semantics.html#D-InputElement" class=field-name>punctuator</A> <VAR>s</VAR> is interpreted as the punctuation
+        token or future punctuation token <A href="parser-grammar.html#terminals">terminal</A> corresponding to the <A href="lexer-semantics.html#D-InputElement" class=field-name>punctuator</A>&#8217;s
+        <A href="notation.html#D-String" class=domain-name>String</A> <VAR>s</VAR>.</LI>
+      <LI>A <A href="lexer-semantics.html#D-InputElement" class=field-name>number</A> <VAR>x</VAR> is interpreted as the terminal
+        <SPAN class=terminal>Number</SPAN>. Applying the semantic action <SPAN class=action-name>Eval</SPAN> to the <SPAN class=terminal>Number</SPAN>
+        returns the <A href="lexer-semantics.html#D-InputElement" class=field-name>number</A>&#8217;s <A href="notation.html#D-Float64" class=domain-name>Float64</A>
+        <VAR>x</VAR>.</LI>
+      <LI>A <A href="lexer-semantics.html#D-InputElement" class=field-name>string</A> <VAR>s</VAR> is interpreted as the terminal
+        <SPAN class=terminal>String</SPAN>. Applying the semantic action <SPAN class=action-name>Eval</SPAN> to the <SPAN class=terminal>String</SPAN>
+        returns the <A href="lexer-semantics.html#D-InputElement" class=field-name>string</A>&#8217;s <A href="notation.html#D-String" class=domain-name>String</A>
+        <VAR>s</VAR>.</LI>
+      <LI>A <A href="lexer-semantics.html#D-InputElement" class=field-name>regularExpression</A> <VAR>z</VAR> is interpreted as the
+        terminal <SPAN class=terminal>RegularExpression</SPAN>.</LI>
+    </UL>
+  </LI>
+  <LI>Append the resulting terminal or line break <VAR><SCRIPT type="text/javascript">document.write(U_tau)</SCRIPT></VAR>
+    to the end of the <VAR>inputElements</VAR> array.</LI>
+  <LI>If the <VAR>inputElements</VAR> array forms a valid prefix of the context-free language defined by the <A href="parser-grammar.html">syntactic
+    grammar</A>, go to step 13.</LI>
+  <LI>If <VAR><SCRIPT type="text/javascript">document.write(U_tau)</SCRIPT></VAR> is not a <A href="lexer-semantics.html#D-InputElement" class=field-name>lineBreak</A>
+    but the previous element of the <VAR>inputElements</VAR> array is a <A href="lexer-semantics.html#D-InputElement" class=field-name>lineBreak</A>,
+    then insert a <SPAN class=terminal>VirtualSemicolon</SPAN> terminal between that <A href="lexer-semantics.html#D-InputElement" class=field-name>lineBreak</A>
+    and <VAR><SCRIPT type="text/javascript">document.write(U_tau)</SCRIPT></VAR> in the <VAR>inputElements</VAR> array.</LI>
+  <LI>If the <VAR>inputElements</VAR> array still does not form a valid prefix of the context-free language defined by the <A href="parser-grammar.html">syntactic
+    grammar</A>, signal a syntax error and stop.</LI>
+  <LI>If <VAR><SCRIPT type="text/javascript">document.write(U_tau)</SCRIPT></VAR> is a <SPAN class=terminal>Number</SPAN>,
+    then set <VAR>state</VAR> to <SPAN class=field-name>unit</SPAN>. Otherwise, if the <VAR>inputElements</VAR> array followed
+    by the terminal <CODE class=terminal-keyword>/</CODE> forms a valid prefix of the context-free language defined by the
+    <A href="parser-grammar.html">syntactic grammar</A>, then set <VAR>state</VAR> to <SPAN class=field-name>div</SPAN>;
+    otherwise, set <VAR>state</VAR> to <SPAN class=field-name>re</SPAN>.</LI>
+  <LI>Go to step 4.</LI>
+  <LI>If the <VAR>inputElements</VAR> array does not form a valid sentence of the context-free language defined by the <A href="parser-grammar.html">syntactic
+    grammar</A>, signal a syntax error and stop.</LI>
+  <LI>Return the parse tree obtained by the <A href="parser-grammar.html">syntactic grammar</A>&#8217;s derivation of the sentence
+    formed by the <VAR>inputElements</VAR> array.</LI>
+</OL>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Thursday, October 18, 2001</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="notation.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="lexer-grammar.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+</BODY>
+</HTML>

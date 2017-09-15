@@ -1,0 +1,312 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Classes</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="functions.html">
+<LINK rel=Next href="interfaces.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>July 2000 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Core Language</DIV>
+    <DIV class=title1>Classes</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="functions.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="interfaces.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Monday, May 8, 2000</P>
+
+<H2>Class Definitions</H2>
+
+<P>Classes are defined using the <CODE class=terminal-keyword>class</CODE> keyword. Limited classes can also be defined via
+<A href="functions.html#traditional-function">JavaScript 1.5-style functions</A>, but doing so is discouraged for new code.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ClassDefinition"></A><SPAN class=nonterminal>ClassDefinition<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_omega)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>class</CODE>&nbsp;<A href="expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>&nbsp;<A href="#N-Superclass" class=nonterminal>Superclass</A>&nbsp;<A href="#N-ImplementsList" class=nonterminal>ImplementsList</A>&nbsp;<A href="statements.html#N-Block" class=nonterminal>Block</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>class</CODE>&nbsp;<A href="expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>&nbsp;<SPAN class=nonterminal><A href="statements.html#N-Semicolon">Semicolon</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_omega)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Superclass"></A><SPAN class=nonterminal>Superclass</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>extends</CODE>&nbsp;<SPAN class=nonterminal><A href="expressions.html#N-TypeExpression">TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ImplementsList"></A><SPAN class=nonterminal>ImplementsList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>implements</CODE>&nbsp;<A href="#N-TypeExpressionList" class=nonterminal>TypeExpressionList</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-TypeExpressionList"></A><SPAN class=nonterminal>TypeExpressionList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="expressions.html#N-TypeExpression">TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-TypeExpressionList" class=nonterminal>TypeExpressionList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<SPAN class=nonterminal><A href="expressions.html#N-TypeExpression">TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+</DIV>
+
+<P>Like other <A href="definitions.html">definitions and declarations</A>, a class definition or declaration may be preceded
+by one or more <A href="definitions.html#attribute">attributes</A>, which affect the class's scope, namespace, and semantics.
+Every class is also a value and has type <CODE>Type</CODE>.</P>
+
+<H3>Class Declarations</H3>
+
+<P>A class definition not followed by a <A href="statements.html#N-Block" class=nonterminal>Block</A> is called
+a class declaration. A class declaration indicates that the class will be defined later in the same scope. When a class declaration
+is executed, it defines its <A href="expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>
+as a new class. That <A href="expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>
+may be used in subsequent type expressions, but instances of the class may not be created until the class's definition is
+fully executed. Until then, the only things known about the new class are that <CODE>null</CODE> is a member of it and that
+<CODE>undefined</CODE> coerces to <CODE>null</CODE> when assigned to a variable of the new class.</P>
+
+<P>For example:</P>
+
+<PRE>var x:C;           // Error: C not declared
+function f(a:C):C; // Error: C not declared
+
+class C;           // C is declared
+
+var y:C;           // OK; y is null
+y;                 // null
+y = 5;             // Error: Can't write y until C is defined
+function f(a:C):C {return a} // OK
+new C;             // Error: Can't instantiate C until C is defined
+
+class D extends C {} // Error: Can't subclass C until C is defined
+
+class C {
+  C c = new C;     // Error: Can't instantiate C until C is defined
+  C d;             // OK
+}                  // C is defined at this point
+
+new C;             // OK
+y;                 // null</PRE>
+
+<P>Every class definition at the top level of a block that defines a class with an unqualified name <VAR>n</VAR> also generates
+an implicit class declaration of <VAR>n</VAR> at the top of that block. This helps with defining mutually recursive classes
+by eliminating the need to manually predeclare classes in most cases.</P>
+
+<H3>Superclasses</H3>
+
+<P>A class may have at most one superclass specified by its <CODE>extends</CODE> clause. If omitted, the superclass defaults
+to <CODE>Object</CODE>. A class may also implement one or more <A href="interfaces.html">interfaces</A>, as specified in the
+<CODE>implements</CODE> clause. The <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>s
+in both clauses are evaluated at the time the class definition or declaration is executed, before beginning the execution
+of the <A href="statements.html#N-Block" class=nonterminal>Block</A>.</P>
+
+<P>A class is a subtype of its superclass, but it is <I>not</I> a subtype of the interfaces it implements. See the <A href="interfaces.html">interfaces</A>
+page for more details.</P>
+
+<H3>Body</H3>
+
+<P>When a <A href="#N-ClassDefinition" class=nonterminal>ClassDefinition</A> is evaluated, the following steps
+take place:</P>
+
+<OL>
+  <LI>If a declaration has been previously evaluated for this <A href="expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>,
+    let <VAR>t</VAR> be that declaration's type; otherwise, a new type <VAR>t</VAR> is created and the class's <A href="expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>
+    is bound to the constant <VAR>t</VAR>.</LI>
+  <LI>The <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>s in the <CODE>extends</CODE>
+    and/or <CODE>implements</CODE> clauses are evaluated. <VAR>t</VAR> is made a subtype of its superclass. <VAR>t</VAR> is
+    also annotated as implementing the given interfaces, if any. Any <CODE>static</CODE> members of <VAR>t</VAR>'s superclasses
+    are also defined as properties of the object <VAR>t</VAR>.</LI>
+  <LI>A new, anonymous namespace for holding the class's <CODE>private</CODE> members is constructed and <CODE>use</CODE>d
+    for the lexical extent of the <A href="statements.html#N-Block" class=nonterminal>Block</A>.</LI>
+  <LI><A href="statements.html#N-Block" class=nonterminal>Block</A> is evaluated. Any <CODE>static</CODE> members
+    defined for <A href="statements.html#N-Block" class=nonterminal>Block</A>'s top-level scope are added as properties
+    of the object <VAR>t</VAR> as they are being defined; these may hide <CODE>static</CODE> members inherited from superclasses.</LI>
+  <LI>If <A href="statements.html#N-Block" class=nonterminal>Block</A> is evaluated successfully (without throwing
+    out an exception), all <CODE>instance</CODE> members defined for <A href="statements.html#N-Block" class=nonterminal>Block</A>'s
+    top-level scope (along with those inherited from superclasses) are collected to make a template for creating instances
+    of type <VAR>t</VAR>.</LI>
+</OL>
+
+<P>A <A href="#N-ClassDefinition" class=nonterminal>ClassDefinition</A>'s <A href="statements.html#N-Block" class=nonterminal>Block</A>
+is evaluated just like any other <A href="statements.html#N-Block" class=nonterminal>Block</A>, so it can contain
+expressions, statements, loops, etc. Such statements that do not contain declarations do not contribute members to the class
+being declared, but they are evaluated when the class is declared.</P>
+
+<H2>Static Members</H2>
+
+<P>A class <VAR>C</VAR>'s <CODE>static</CODE> member <VAR>id</VAR> becomes a property of the class object <VAR>C</VAR>. This
+member can be accessed using the expression <VAR>C</VAR><CODE>.</CODE><VAR>id</VAR>. <CODE>static</CODE> members are inherited
+from superclasses and superinterfaces. In the case of a conflict between a superclass and a superinterface, the superclass
+prevails. In the case of a conflict between two superinterfaces, neither is preferred and the lookup either has to be done
+directly on one of the superinterfaces or qualified by the name of the superinterface.</P>
+
+<P>Inherited <CODE>static</CODE> variables have only one global value, not one value per subclass. For example, if class <VAR>C</VAR>
+has a static variable <VAR>v</VAR> and class <VAR>D</VAR> inherits from <VAR>C</VAR>, then <VAR>v</VAR> can be read or written
+either as <VAR>C</VAR><CODE>.</CODE><VAR>v</VAR> or as <VAR>D</VAR><CODE>.</CODE><VAR>v</VAR>; it's the same variable rather
+than two separate variables.</P>
+
+<P>Here is an example of these rules:</P>
+
+<PRE>class C {
+  static var v = "Cv";
+  static var x = "Cx";
+  static var y = "Cy";
+  static var z = "Cz";
+}
+
+interface A {
+  static var x = "Ax";
+  static var i = "Ai";
+  static var j = "Aj";
+}
+
+interface B {
+  static var x = "Bx";
+  static var y = "By";
+  static var j = "Bj";
+}
+
+class D extends C implements A, B {
+  static var v = "Dv";
+}
+
+C.v;    // returns "Cv"
+C.x;    // returns "Cx"
+C.y;    // returns "Cy"
+C.z;    // returns "Cz"
+A.x;    // returns "Ax"
+B.y;    // returns "By"
+
+D.v;    // returns "Dv"
+D.x;    // returns "Cx" (superclass preferred over "Ax" or "Bx")
+D.y;    // returns "Cy" (superclass preferred over "By")
+D.z;    // returns "Cz"
+D.i;    // returns "Ai"
+D.j;    // error because of ambiguity: "Aj" or "Bj"?
+D.A::j; // returns "Aj"
+D.B::j; // returns "Bj"
+D.A::x; // returns "Ax"
+D.A::i; // returns "Ai"
+
+D.x = 5;
+C.x;    // returns 5 (same variable)
+C.v = 7;
+D.v;    // returns "Dv" (different variables)
+C.v;    // returns 7</PRE>
+
+<H3><A name="constructor"></A>Constructors</H3>
+
+<P>A constructor is a function that creates a new instance of a class <VAR>C</VAR>. Constructors are defined using the keyword
+<CODE>constructor</CODE> instead of <CODE>function</CODE>. A constructor is usually given the same name as its class, in which
+case the constructor is known as a <I>default constructor</I> and can be called as <CODE>new</CODE> <VAR>C</VAR>. If a constructor
+has a different name, it is invoked as though it were a <CODE>static</CODE> function of the class:</P>
+
+<PRE>class C {
+  var a:String;
+
+  constructor C(p:String) {this.a = "New "+p}
+  constructor make(p:String) {this.a = "Make "+p}
+  static function obtain(p:String):C {return new C(p)}
+}
+
+var c:C = new C("one");
+var d:C = C.make("two");
+var e:C = C.obtain("three");
+
+c.a;     // Returns "New one"
+d.a;     // Returns "Make two"
+e.a;     // Returns "New three"</PRE>
+
+<P>A constructor can refer to its class's instance variables via <CODE>this</CODE>, but it may not assign to <CODE>this</CODE>
+itself. A constructor should not return a value with a <CODE>return</CODE> statement; the newly created object is returned
+automatically. A constructor's return type is usually omitted, but, if present, it must be its class type.</P>
+
+<P>A contructor for a subclass can call its superclass's constructor as though it were a method of <CODE>this</CODE>: <CODE>this.super::</CODE><VAR>C</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE>
+or <CODE>this.super::</CODE><VAR>n</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE> to call a named constructor <VAR>n</VAR>.
+Such a call can only be made before the first reference to <CODE>this</CODE> in the constructor; if a constructor fails to
+call its superclass's constructor then the superclass's default constructor is called automatically before the first reference
+to <CODE>this</CODE> or before the constructor returns, whichever comes first.</P>
+
+<P>The above syntax for calling a superclass's constructor can only be used from within an immediate subclass's constructor.
+Only constructors can be called this way; a <CODE>static</CODE> function that happens to return an instance of its class (such
+as <CODE>obtain</CODE> above) is not a constructor.</P>
+
+<P>If a class does not define any constructors, an empty default constructor is automatically defined; that constructor merely
+calls the superclass's default constructor with no arguments.</P>
+
+<P>Note that a constructor always returns a new instance. On the other hand, a <CODE>static</CODE> function can return an
+existing instance of its class. It is possible to define a <CODE>static</CODE> function with the same name as its class <VAR>C</VAR>;
+such a function looks like a constructor to the outside (it can be called as <CODE>new</CODE>&nbsp;<VAR>C</VAR>) but can hand
+out existing instances of its class. However, subclasses will see that <VAR>C</VAR> is not a constructor in such a class because
+the subclasses will not be able to invoke <CODE>this.super::</CODE><VAR>C</VAR> in their constructors.</P>
+
+<H2>Instance Members</H2>
+
+<P>A class <VAR>C</VAR>'s <CODE>instance</CODE> member <VAR>id</VAR> becomes a property of instances of <VAR>C</VAR>. If <VAR>c</VAR>
+is an instance of <VAR>C</VAR>, then the member can be accessed using the expression <VAR>c</VAR><CODE>.</CODE><VAR>id</VAR>.
+<CODE>instance</CODE> members are inherited from superclasses and superinterfaces. In the case of a conflict between a superclass
+and a superinterface, the superclass prevails. In the case of a conflict between two superinterfaces, neither is preferred
+and the lookup has to be qualified by the name of the superinterface.</P>
+
+
+
+<H3><A name="method"></A>Methods</H3>
+
+<P>An <CODE>instance</CODE> <CODE>function</CODE> member of a class is called a method. A method may use <CODE>this</CODE>
+to refer to the object on which it was called. The value of <CODE>this</CODE> will always be an instance of the class or one
+of its subclasses. A method may not change the value of <CODE>this</CODE>.</P>
+
+<P>A method is not in itself a value and has no type. There is no way to extract an undispatched method from a class. The
+<CODE>.</CODE> operator produces a function (more specifically, a closure) that is already dispatched and has <CODE>this</CODE>
+bound to the left operand of the <CODE>.</CODE> operator.</P>
+
+<P>A method is called by combining the <CODE>.</CODE> operator with a function call. For example:</P>
+
+<P class=syntax><CODE>class&nbsp;C&nbsp;{<BR>
+&nbsp;&nbsp;var&nbsp;x:Integer&nbsp;=&nbsp;3;<BR>
+&nbsp;&nbsp;function&nbsp;m()&nbsp;{return&nbsp;x}<BR>
+&nbsp;&nbsp;function&nbsp;n(x)&nbsp;{return&nbsp;x+4}<BR>
+}<BR>
+<BR>
+var&nbsp;c&nbsp;=&nbsp;new&nbsp;C;<BR>
+c.m();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE> returns
+<CODE>3<BR>
+c.n(7);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE> returns <CODE>11<BR>
+var&nbsp;f:Function&nbsp;=&nbsp;c.m;&nbsp;&nbsp;//</CODE> <CODE>f</CODE> is a zero-argument function with <CODE>this</CODE>
+bound to <CODE>c<BR>
+f();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>
+returns <CODE>3<BR>
+c.x&nbsp;=&nbsp;8;<BR>
+f();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>
+returns <CODE>8</CODE></P>
+
+<H2>Overriding</H2>
+
+<P>A class <VAR>C</VAR> may override a method <VAR>m</VAR> defined in its superclass <VAR>s</VAR>. To do this, <VAR>C</VAR>
+should define a method <VAR>m'</VAR> with the same name as <VAR>m</VAR> and use the <CODE>override</CODE> or <CODE>mayOverride</CODE>
+keyword in the definition of <VAR>m'</VAR>. Overriding a method without using the <CODE>override</CODE> or <CODE>mayOverride</CODE>
+keyword or using the <CODE>override</CODE> keyword when not overriding a method results in an error intended to catch misspelled
+method names.</P>
+
+<P>If method <VAR>m</VAR> is <CODE>volatile</CODE>, the overriding method <VAR>m'</VAR> does not have to have the same number
+or type of parameters or result type as the overridden method <VAR>m</VAR>. On the other hand, if method <VAR>m</VAR> is <CODE>virtual</CODE>,
+then <VAR>m'</VAR> must be defined with the same argument types and result type, but it may have different default values
+for optional arguments.</P>
+
+<P>A <CODE>final</CODE> method cannot be overridden (or further overridden) in the subclasses in which it is visible.</P>
+
+<P>By default method <VAR>m'</VAR> is put in the same namespace as method <VAR>m</VAR>. If the definition of <VAR>m'</VAR>
+specifies an explicit namespace <VAR>N</VAR>, then <VAR>m'</VAR> is put in both <VAR>N</VAR> and the namespace of <VAR>m</VAR>.</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Monday, May 8, 2000</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="functions.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="interfaces.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

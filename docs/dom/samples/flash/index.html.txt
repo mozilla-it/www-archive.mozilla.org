@@ -1,0 +1,186 @@
+<html>
+<head>
+<title>DOM Level 1 - Exotic Demos - The 3D Text Illusion with moving flash light effect</title>
+<script>
+
+	////////////////////////////////////////////////////////////////////////////////
+	// Produced by Marcio Galli for Netscape Communications.
+	// Uses DOM 1 to dynamically create  a set of text elements using 
+	// the same content for all the texts, but with different sizes. 
+	//
+	// Each vertical slice that you see in the demo
+	// comes from text with a clipped area. The animation
+	// effect is made by changing the color values of each
+	// text element dynamically.
+	//
+	
+	// It uses DOM Level 1 to create the text elements dynamically and
+	// to change style property. References:
+	//
+	// http://www.mozilla.org/docs/dom/technote/tn-dom-table/index.html
+	// http://dmoz.org/Computers/Programming/Languages/JavaScript/W3C_DOM/
+	// http://www.geckonnection.com
+	//
+
+	var clipright=853;		// Right margin clipped area.
+	var clipleft=2;			// Left margin clipped area.
+	var fontsize=40;		// Font size.
+	var posleft=50;			// Initial left position.
+	var postop=100;			// Initial top position.
+
+	pi=3.141516+(3.141516/2);	// 3/2 of PI. 
+
+	// This is the user string. You can change this string. 
+	// The current version only supports a few characters (about 6).
+	//
+	var userString="Gecko!";
+
+	// First step, creating all texts.
+	//
+	function text_generator() {
+
+		// This is fine tuning. Some space is added in the beginning and 
+		// in the end of the user string. 
+		//
+		defaultString="."+userString+"    ";
+
+		// 66 texts are created...
+		for(i=0;i<66;i++) {
+			
+			// with color value=0 (black). 
+			cc=0;
+
+			// node represents the area whose div 
+			// elements include the text that will be created. 
+			//
+			node=document.getElementById("area");
+
+			// Creates a div. 
+			beforediv=document.createElement("DIV");
+
+			// Prepares the attribute string using postop, posleft, clipright,
+			// clipleft, cc as red ,cc as green and cc as blue (black color :-).
+			str="position:absolute;top:"+postop+"px;left:"+posleft+"px;width:860px;height:600px;font-size:"+fontsize+"pt;clip:rect(0px,"+clipright+"px,0px,"+clipleft+"px);overflow:hidden;color:rgb("+cc+","+cc+","+cc+");";
+
+			// Sets the style attribute.
+			beforediv.setAttribute("style",str);
+
+			// Sets the ID attribute.
+			beforediv.setAttribute("id","object"+i);
+
+			// Creates the text string node.
+			newText=document.createTextNode(defaultString);
+
+			// Appends the new text node inside the new div. 
+			beforediv.appendChild(newText);
+
+			// Appends the new div inside the area div. 
+			node.appendChild(beforediv);
+
+			// Defines correct positioning for the next iteration...
+			clipright-=9+((i/66)*10);
+			clipleft+=9+((i/66)*10);
+			fontsize+=4-((i/66)*3);
+			posleft-=(4+((i/66)*10));
+			postop-=4;
+		}
+
+		// Calling the second step - to animate...
+		flashanimate();
+	}
+
+	ii=0;
+
+	// Second step,
+	// Animating the colors of all texts to realize the light effect. 
+	// flashanimate moves the "light" to the right.
+	//
+	function flashanimate() {
+		ii+=1;
+
+		// Note that the colors change from the black to 
+		// white and then back to black again. This was done making the color
+		// a function of the sine function. 
+		//
+		// This for statement changes the color of a block of 15 elements. Note 
+		// also that the "3D text" is block of 66 elements (see text_generator function).
+		//
+		for(i=0;i<15;i++) {
+			sini=(i/15)*pi; 	// this value ranges from 0-pi based on 
+						// i iterator. 
+
+			cc=(Math.sin(sini)*255);     // This is the final composed color
+						     // value from 0-255 based on sin of the 
+						     // previous value. This way the color
+						     // curve generated will be beatiful 
+						     // like a sine curve. 
+
+			aa=ii+i;                     // We need to change the color of the 
+						     // current block of 15 elements. i is the 
+						     // the value of the element inside the block
+						     // (this for statement), and ii is the value of
+						     // the starting element of the block. 
+						     // NOTE that outside this for statement, 
+						     // the ii value is increased by one. Since 
+						     // flashanimate is called 50 times, this block
+						     // of 15 colors moves across the elements based
+						     // on ii. 
+						     // 
+	
+			// This way "object"+aa is the ID of the div element whose color we need to change. 
+	
+			document.getElementById("object"+aa).style.color="rgb("+cc+","+cc+","+cc+")";
+
+		}
+
+		// Will be looping animation during 50 steps.
+
+		if(ii<50) {
+			// Loop animation 
+			setTimeout("flashanimate()",30);
+		} else {
+			// In the end of this animation process, 
+			// call to flashanimate2, to animate the light to the left. 
+			//
+			ii=50;		// set ii to 50.
+			setTimeout("flashanimate2()",30);
+		}
+	}
+
+	// 3rd step,
+	// Animating the colors of all texts to realize the light effect. 
+	// flashanimate2 moves the "light" to the left. Same process again but now NOTE 
+	// that ii is decreasing. 
+	//
+	function flashanimate2() {
+		ii-=1;
+		for(i=0;i<15;i++) {
+			sini=(i/15)*pi;
+			cc=(Math.sin(sini)*255);
+			aa=ii+i;
+			document.getElementById("object"+aa).style.color="rgb("+cc+","+cc+","+cc+")";
+		}
+
+		// Will be looping animation over 50 steps (note that at the end of 
+		// the flashanimate function, ii is initialized with value=50. 
+		//
+		if(ii>0) {
+			setTimeout("flashanimate2()",30);
+		} else {
+			// At the end of the process, the animation repeats with a 
+			// call to flashanimate...
+			//
+			ii=0;
+			setTimeout("flashanimate()",30);
+		}
+	}
+
+
+</script>
+</head>
+
+<body onload="text_generator()" bgcolor="black" text="white">
+<div id="area" style="position:absolute;left:50px;top:100px;">
+</div>
+</body>
+</html>

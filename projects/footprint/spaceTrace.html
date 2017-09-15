@@ -1,0 +1,662 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   
+  <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+  <title>Using SpaceTrace to Inspect Footprint</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+  
+ 
+<div align="Center"> 
+<h1>Using SpaceTrace to Inspect Footprint</h1>
+ 
+<div align="Left">Contact:<br>
+ <a href="mailto:blythe@netscape.com?subject=Using%20SpaceTrace%20to%20Inspect%20Footprint">
+ Garrett Arch Blythe (blythe@netscape.com)</a>
+ <br>
+ <br>
+ 
+<h2></h2>
+ 
+<h2>Introduction</h2>
+ 
+<blockquote>What makes one allocation <i>footprint bloat</i> and another allocation
+  <i>acceptable</i>? &nbsp;This is the question which prompted the creation
+of SpaceTrace.<br>
+   <br>
+ In a project like mozilla, where millions of allocations are recorded by 
+trace-malloc during a normal run of &nbsp;the application, browsing such a
+large data set to find a culprit can be a fruitless task. &nbsp;Some method 
+must be utilized to narrow the data set to a human level. &nbsp;Other trace-malloc 
+genre tools exist to narrow the data. &nbsp;A user of these tools can display 
+the number of different types of objects allocated, list the allocations that
+were not freed, report where live allocations were created at a given point
+in time, et. al.&nbsp; &nbsp;The one piece of information I was after was
+still missing however; allocation lifespan.<br>
+   <br>
+ My answer to the prompting question:&nbsp; "long lived allocations contribute 
+to footprint bloat, short lived allocations are acceptable". &nbsp;There need
+be no mention of size, number, or type of allocation, but just simply how
+long an allocation exists or lives.<br>
+   <br>
+ SpaceTrace is a tool which reads a trace-malloc output log and allows the 
+user to browse all allocations recorded by trace-malloc in an interactive 
+manner by accepting http requests. &nbsp;SpaceTrace intends to target allocations 
+with longer lifespans contributing to footprint bloat. &nbsp;This targeting 
+is done by sorting all allocations using the concept of weight (described 
+below).<br>
+   </blockquote>
+   
+  <h2>Main Concepts</h2>
+   
+  <blockquote>There are two concepts used throughout SpaceTrace which if explained
+beforehand will make the understanding come easier.<br>
+     <br>
+ One concept is that of lifespan. &nbsp;The lifespan of an allocation can 
+be determined by subtracting the time of destruction from the time of creation.
+&nbsp;Once the allocation's lifespan has been garnered more interesting decisions
+regarding the allocation can take place. &nbsp;The composite lifespan from
+first creation to final destruction is known; that interval is assumed to
+be the total run time of the application.<br>
+     <br>
+ Another concept is that of weight. &nbsp;An allocation's weight is the product 
+of the allocation's size and the allocation's lifespan (weight = size * lifespan). 
+&nbsp;While an allocation's weight is often a very large number, you should 
+immediately gloss over the digits and look directly at the lifetime and size 
+of the allocation. &nbsp;The allocation's weight is meant to represent how 
+much the allocation contributed to overall footprint bloat and &nbsp;by default 
+all lists are sorted by weight in SpaceTrace.<br>
+     </blockquote>
+     
+    <h2>Configuring, Building, Running</h2>
+     
+    <blockquote>Skip this section if you are only interested in using a dedicated 
+server hosting SpaceTrace. &nbsp;Information on were to find such a server 
+is beyond the scope of this document.<br>
+       <br>
+ The mozilla build system by default does not have trace-malloc enabled by 
+default. &nbsp;Perform the following platform specific instructions to get 
+a trace-malloc build in order to use SpaceTrace.<br>
+       <br>
+       
+      <h3>WIN32</h3>
+       
+      <blockquote>Follow normal win32 debug build instructions, with the
+following environment variable enabled:<br>
+        <blockquote>
+          <pre>set MOZ_TRACE_MALLOC=1<br></pre>
+          </blockquote>
+After your mozilla build completes, should you have <a href="http://www.boutell.com/gd">
+http://www.boutell.com/gd</a>
+ installed, SpaceTrace is capable of producing some useful graphs. &nbsp;This
+step is totally optional. &nbsp;I had to jump through a few hoops to get
+the library compiled with the various other libraries it wants, with the
+correct LIBC (/MDd), and to use Mozilla's zlib_s.lib. &nbsp;Other than those
+hangups, set the following environment variable to the directory where the
+build system can find gd.lib and the appropriate gd headers:<br>
+          <blockquote>set HAVE_BOUTELL_GD=C:\gd-1.8.4<br>
+            </blockquote>
+The tools to analyze trace-malloc output are not checked out or built by
+default. &nbsp;From the parent directory of your existing mozilla source
+tree:<br>
+            <blockquote>
+              <pre>cvs checkout mozilla/tools/trace-malloc<br>cd mozilla\tools\trace-malloc<br>nmake /f makefile.win<br></pre>
+              </blockquote>
+From your dist bin directory (i.e. mozilla/dist/WIN32_D.OBJ/bin), you can
+use the following commands to execute mozilla to produce trace-malloc output,
+and once through running, to execute SpaceTrace to examine the data:<br>
+              <blockquote>
+                <pre>mozilla.exe --trace-malloc=C:\TEMP\TM.LOG<br>spacetrace.exe C:\TEMP\TM.LOG<br></pre>
+                </blockquote>
+Once SpaceTrace has loaded the data (could take a while depending on your
+machine), a message stating connections are being accepted on port 1969.
+&nbsp;Simply point your everyday browser to <a href="http://localhost:1969/">
+http://localhost:1969/</a>
+ to view the SpaceTrace reports interactively.<br>
+                </blockquote>
+         
+                <h3>Linux</h3>
+         
+                <blockquote>From the parent directory of your existing mozilla
+source tree:<br>
+           
+                  <blockquote>             
+                    <pre>cvs checkout mozilla/tools/trace-malloc<br></pre>
+             </blockquote>
+ From the root of your mozilla source tree:<br>
+             
+                    <blockquote>               
+                      <pre>./configure --enable-cpp-rtti --enable-trace-malloc --disable-debug --enable-optimize="-O -g"<br></pre>
+               </blockquote>
+ Should you have <a href="http://www.boutell.com/gd">http://www.boutell.com/gd</a>
+  installed, SpaceTrace is capable of producing some useful graphs. &nbsp;My 
+redhat linux 7.1 workstation installation already had the required files (/usr/lib/libgd.a).
+&nbsp;Set the following environment variable in whatever way you normally
+use:<br>
+               
+                      <blockquote>                 
+                        <pre>export HAVE_BOUTELL_GD=1<br></pre>
+                 </blockquote>
+ From the root of your mozilla source tree:<br>
+                 
+                        <blockquote>                   
+                          <pre>make<br></pre>
+                   </blockquote>
+ Once the build completes, it is time to create the trace-mallloc output
+log. &nbsp;From you mozilla/dist/bin directory, you will start mozilla with
+a special command line argument. &nbsp;Be aware that the log file produced 
+may range well into the hundreds of megabytes; be sure to use a partition 
+with enough space. &nbsp;Once mozilla starts, perform whatever tasks that 
+will be of interest to you, and then normally close the application. &nbsp;Perform 
+the desired actions as quickly as possible as the trace-malloc output log 
+tends to fill up even during an idle state.<br>
+                   
+                          <blockquote>                     
+                            <pre>./mozilla --trace-malloc=/tmp/tm.log<br></pre>
+                     </blockquote>
+ Next you should be ready to have SpaceTrace process the log. &nbsp;Type
+the following commands from the mozilla/dist/bin directory. &nbsp;The LD_LIBRARY_PATH 
+is needed as SpaceTrace utilizes NSPR.<br>
+                     
+                            <blockquote>                       
+                              <pre>export LD_LIBRARY_PATH=.<br>./spacetrace /tmp/tm.log<br></pre>
+                       </blockquote>
+ Once the tool has finished loading the data, a message stating that SpaceTrace 
+is accepting connections on port 1969 will be displayed. &nbsp;Simply point 
+your everyday browser to <a href="http://localhost:1969/">http://localhost:1969/</a>
+  to view the SpaceTrace reports interactively.<br>
+                       </blockquote>
+                       </blockquote>
+                       
+                              <h2>Available Reports</h2>
+                       
+                              <blockquote>Upon loading the SpaceTrace Index,
+you are presented with some very plain machine generated HTML. &nbsp;All
+the pages you visit while interactively using SpaceTrace are generated on
+the fly and some may require many millions of iterations to produce the results 
+you see; be patient if the host machine is slow.<br>
+                         <br>
+ A description of the reports you encounter and their intended meaning are 
+listed below. &nbsp;Note that the image graphs will not be present unless 
+image support was turned on during the build process.<br>
+                         <br>
+                         
+                                <h3>Root Callsites</h3>
+                         
+                                <blockquote>A hunt-and-peck method of browsing
+through the allocation callsites. &nbsp;Interesting for manual discovery
+purposes alone.<br>
+                           <br>
+ Should a user know a callstack they are interested in, they can browse to 
+it and discover the allocation characteristics using this bottom-up method.<br>
+                           </blockquote>
+                           
+                                  <h3>Top Callsites Report</h3>
+                           
+                                  <blockquote>A sorted list of the top allocation 
+callsites.<br>
+                             <br>
+ Allocation callsites represent one or more allocations that occurred at
+the callsite. &nbsp;These are the callsites which rank highest in SpaceTrace's 
+ability to identify the source code behavior which contributes most to footprint 
+bloat.<br>
+                             <br>
+ By clicking on a callsite you can see the entire backtrace as well as the 
+top allocations which took place at the callsite.<br>
+                             <br>
+ Considered by me to be the most important report generated by SpaceTrace.<br>
+                             </blockquote>
+                             
+                                    <h3>Top Allocations Report</h3>
+                             
+                                    <blockquote>A sorted list of the top
+individual allocations.<br>
+                               <br>
+ These are the allocations which rank highest in SpaceTrace's ability to
+identify footprint bloat.<br>
+                               <br>
+ By clicking on an allocation you can see the callsite backtrace which created 
+the allocation as well as the life events which occurred to the allocation 
+(malloc, free, et. al.).<br>
+                               </blockquote>
+                               
+                                      <h3>Memory Leak Report</h3>
+                               
+                                      <blockquote>A sorted list of the allocations 
+for which trace-malloc did not record a destruction or free event.<br>
+                                 <br>
+ Produced by SpaceTrace simply because it can.<br>
+                                 </blockquote>
+                                 
+                                        <h3>Footprint Graph</h3>
+                                 
+                                        <blockquote>Reports how much memory
+was alive over the run of the application.<br>
+                                   <br>
+ Very useful for visually explaining how much memory was used at different 
+times during the run.<br>
+                                   </blockquote>
+                                   
+                                          <h3>Allocation Lifespans Graph</h3>
+                                   
+                                          <blockquote>Reports how much memory
+lived a particular lifespan.<br>
+                                     <br>
+ This graph is a bit hard to understand at first glance. &nbsp;The important 
+thing to note is that the X axis is the lifespan of an allocation, not the 
+total run interval of the application.<br>
+                                     <br>
+ You may notice that the short lived allocations do not show up; by default 
+SpaceTrace ignores allocations that do not at least have a lifespan of 10 
+seconds (configurable in the options should these be of interest to you).<br>
+                                     <br>
+ This graph is most useful for obtaining information for tuning the options 
+to target allocations which lived a particular amount of time.<br>
+                                     </blockquote>
+                                     
+                                            <h3>Allocation Times Graph</h3>
+                                     
+                                            <blockquote>Report how much memory
+was allocated at particular intervals during the run of of the application.<br>
+                                       <br>
+ Very useful for obtaining information for tuning the options to target a
+time slice in which large amounts of memory were allocated.<br>
+                                       </blockquote>
+                                       
+                                              <h3>Allocation Weights Graph</h3>
+                                       
+                                              <blockquote>Nearly identical
+to the Allocation Times Graph, except that the Y axis is weight as opposed 
+to size.<br>
+                                         <br>
+ This graph is most useful for finding out at what time slice the heaviest 
+footprint bloat allocations took place.<br>
+                                         <br>
+ While a hard to digest graph, this is considered by me to be the most important 
+graph generated by SpaceTrace. &nbsp;The graph can be more useful after having 
+narrowed the data set via the options.<br>
+                                         </blockquote>
+                                         </blockquote>
+                                         
+                                                <h2>Global Options</h2>
+                                         
+                                                <blockquote>Multiple User
+Caution: &nbsp;See Implementation Issues.<br>
+                                           <br>
+ Listed below are the options available from the SpaceTrace command line. 
+&nbsp;All options are configurable interactively at runtime as well via the 
+options form provided. &nbsp;Note that the graph options are not available 
+if SpaceTrace was not build with graph support.<br>
+                                           <br>
+                                           
+                                                  <h4>-h</h4>
+                                           
+                                                  <blockquote>Provide command
+line help.<br>
+                                             </blockquote>
+                                             
+                                                    <h4>-c&lt;text&gt;</h4>
+                                             
+                                                    <blockquote>Restrict
+callsite backtraces to those only containing &lt;text&gt;.<br>
+                                               <br>
+ All allocations that do not have callsite backtraces matching &lt;text&gt; 
+will be excluded from the generated reports.<br>
+                                               <br>
+ Very useful for targeting a genre of code or specific object creation functions.<br>
+                                               </blockquote>
+                                               
+                                                      <h4>-o&lt;num&gt;</h4>
+                                               
+                                                      <blockquote>Control
+the sort order of the lists printed in the reports.<br>
+                                                 <br>
+ -o0 is to sort by allocation weight.<br>
+ -o1 is to sort by allocation size.<br>
+ -o2 is to sort by allocation lifespan.<br>
+                                                        </blockquote>
+                                                        <h4>-a&lt;num&gt;</h4>
+                                                        <blockquote>Set the
+allocation alignment boundary to &lt;num&gt;<br>
+                                                          <br>
+By default, the allocation boundary is 16.<br>
+                                                          <br>
+Allocations sizes are rounded up to the nearest boundary, simulating actual
+heap usage on the platform's heap implementation; Windows is known to have
+such a heap implementation.<br>
+                                                          <br>
+Set this value to 1 in order to only see the actual sizes passed to the allocation
+routines, effectively turning off this feature.<br>
+                                                          </blockquote>
+                                                                        
+                         
+                                                          <h4>-smin&lt;num&gt;</h4>
+                                                 
+                                                          <h4>-smax&lt;num&gt;</h4>
+                                                 
+                                                          <blockquote>Restrict
+the size of allocations being shown in generated reports to the minimum or
+maximum provided.<br>
+                                                   <br>
+ Very useful for excluding large or small allocations you consider noise.<br>
+                                                   </blockquote>
+                                                   
+                                                            <h4>-tmin&lt;num&gt;</h4>
+                                                   
+                                                            <h4>-tmax&lt;num&gt;</h4>
+                                                   
+                                                            <blockquote>Restrict
+the lifetime of allocations being shown in the generated reports to the minimum 
+or maximum second provided.<br>
+                                                     <br>
+ By default allocations with a lifespan less than 10 seconds are ignored. 
+&nbsp;You can override that default using these options.<br>
+                                                     <br>
+ Useful for excluding short lived allocations or allocations which live the 
+entire length of the applications (leaks).<br>
+                                                     </blockquote>
+                                                     
+                                                              <h4>-wmin&lt;num&gt;</h4>
+                                                     
+                                                              <h4>-wmax&lt;num&gt;</h4>
+                                                     
+                                                              <blockquote>
+Restrict the weight of allocations being shown in the generated reports to
+the minimum or maximum provided.<br>
+                                                       <br>
+ Useful for narrowing the data set by weight.<br>
+                                                       </blockquote>
+                                                       
+                                                                <h4>-imin&lt;num&gt;</h4>
+                                                       
+                                                                <h4>-imax&lt;num&gt;</h4>
+                                                       
+                                                                <blockquote>
+Do not consider allocations existing solely before or after the minimum or
+maximum second provided.<br>
+                                                         <br>
+ Useful for having SpaceTrace report on the live memory solely within the
+time slice.<br>
+                                                         </blockquote>
+                                                         
+                                                                  <h4>-amin&lt;num&gt;</h4>
+                                                         
+                                                                  <h4>-amax&lt;num&gt;</h4>
+                                                         
+                                                                  <blockquote>
+Do not consider allocations that were not created before the minimum or after
+the maximum second.<br>
+                                                           <br>
+ Very useful for targeting allocations which occurred during a particular
+time slice.<br>
+                                                           </blockquote>
+                                                           
+                                                                    <h4>-gmin&lt;num&gt;</h4>
+                                                           
+                                                                    <h4>-gmax&lt;num&gt;</h4>
+                                                           
+                                                                    <blockquote>
+Zoom in or out to particular X axis ranges on all reported graphs by second.<br>
+                                                             <br>
+ Great for getting more detail in a time slice, but a bit confusing when
+used with the Allocation Lifetimes graph.<br>
+                                                             </blockquote>
+                                                             
+                                                                      <h4>
+-p&lt;port&gt;</h4>
+                                                             
+                                                                      <blockquote>
+Use &lt;port&gt; to listen for http requests.<br>
+                                                               </blockquote>
+                                                               
+                                                                        <h4>
+-l&lt;max&gt;</h4>
+                                                               
+                                                                        <blockquote>
+ Do not list more than &lt;max&gt; items in each list in the reports to avoid 
+information overload.<br>
+                                                                 </blockquote>
+                                                                 
+                                                                          <h4>
+-b&lt;filepath&gt;</h4>
+                                                                 
+                                                                          <blockquote>
+ Specifying this options causes SpaceTrace to execute in <b>batch mode</b>
+  and not as an interactive httpd server. &nbsp;Multiple -b options may be 
+used on the command line.<br>
+                                                                   <br>
+ In batch mode, SpaceTrace will load the trace-malloc data file, write the 
+requested &lt;filepath&gt;(s) to disk, and then exit. &nbsp;As an example, 
+-bfootprint.png would save the footprint graph to disk and then exit SpaceTrace 
+normally.<br>
+                                                                   <br>
+ If you need to save everything and get tired of specifying batch mode options, 
+you might want to consider using an automated fetch tool like wget on an interactive
+SpaceTrace server.<br>
+                                                                   </blockquote>
+                                                                   
+                                                                            <h4>
+-d&lt;dir&gt;</h4>
+                                                                   
+                                                                            <blockquote>
+ Specify the directory that batch mode files will get saved. &nbsp;Leave
+off the trailing slash.<br>
+                                                                     </blockquote>
+                                                                     </blockquote>
+                                                                     
+                                                                              <blockquote></blockquote>
+                                                                       
+                                                                                <h2>
+ Getting the Most Out of SpaceTrace</h2>
+                                                                       
+                                                                                <blockquote>
+ Feedback on SpaceTrace has been very positive. However I observed users
+of the tool encountering information overload, and they often end up asking 
+themselves "what am I looking at?". &nbsp;In defense, SpaceTrace and trace-malloc 
+help answer the question of "where is the bloat?", every allocation and every 
+detail is right there in front of the user, but <i>the brutal reality is that
+millions of allocations and all the details presented to the user will eventually
+cause blurred vision</i>.<br>
+                                                                        
+                                                                                  <br>
+ In order to maximize your experience, you have to use the options to narrow 
+the data set to something more relevant to you. &nbsp;There are some dangers 
+in doing this if in a multiple user scenario (see Implementation Issues). 
+&nbsp;Only through use and familiarity can you begin to mine relevant information.<br>
+                                                                                  <br>
+The number one option to consider is -c&lt;text&gt;. &nbsp;If you happen
+to know the creation routine or a central pathway to the code you are responsible
+for, by all means set the option to restrict only reporting that data to
+yourself. &nbsp;Things will make a lot more sense and be a lot more relevant
+to you if you do.<br>
+                                                                        
+                                                                        
+ </blockquote>
+                                                                        
+                                                                                  <h2>
+ Implementation Issues</h2>
+                                                                        
+                                                                                  <blockquote>
+ The current incarnation of SpaceTrace is a C source file; this is acceptable 
+so long as the abilities of the program keep up with the demands of the people 
+using it.<br>
+                                                                                    <br>
+One area of concern will be the plain HTML and large tables used to present
+the data. &nbsp;Please, if you have the means, feel free to improve the presentation
+to your liking. &nbsp;I am no expert in such details and was only interested
+in getting the data into the hands of the people that need it.<br>
+                                                                                    <br>
+Futher, the lack of graphs on the platforms without GD will eventually be
+a hinderance, and some simple tables with colored cell backgrounds could
+represent the same data but in a rougher format. &nbsp;If you have the means,
+again, please feel free to help out.<br>
+                                                                        
+  <br>
+Perhaps the biggest issue, one other area of concern is the options effect
+the entire SpaceTrace process in a global sweeping manner. &nbsp;As a disclaimer,
+the tool was originally written with only a single user in mind; &nbsp;in
+my perfect little world each developer would run the tool at their leisure
+inspecting their own trace-malloc output files. &nbsp;I soon discovered that
+with a large trace-malloc output file SpaceTrace will grow in memory usage
+significantly. &nbsp;Alas, the number of machines capable of running SpaceTrace 
+with adequate performance waned and ideas of hosting the data on dedicated
+machines obviously sprung to mind. &nbsp;In a multiple user scenario, this
+dubious shared options feature will likely lead to some red herrings while
+the data set changes beneath the users' feet with no warning. &nbsp;On the
+flip side, a user can then point random people to the server without any
+trouble and have them see what was intended. &nbsp;I would be lying if I
+said correcting the behavior would be easy. &nbsp;Giving each client their
+own view of the data set will be hard to implement in the C code because
+of some of the data stamping and caching code I wrote. &nbsp;The issue can
+be corrected in time, but then I truly wonder about the performance aspects
+of such a tool where cache misses are common and each page view could cause
+many millions of iterations.... &nbsp;I need to mention the code is single
+threaded, though I think a multiple thread transition would be attainable 
+by almost anyone.<br>
+                                                                        
+  <br>
+ For now, a usage pattern must emerge to minimize the effects of the implementation. 
+&nbsp;I suggest that the options URL with appropriate GET form data be copied 
+and pasted into bug reports, emails, or other messages before the actual URL
+of interest. &nbsp;In this manner, you can ensure that the recipient can
+load the desired options when they want to view the data.<br>
+                                                                        
+  <br>
+ Onward to an answer, I believe real power of SpaceTrace will be in allowing 
+users of the tool to have their own custom queries performed on the data set.
+&nbsp;The final solution seems obvious, but as there is a lack of time to
+go back and do things right I will document my simple thoughts here in the
+hopes one day someone will pick up the torch.<br>
+                                                                        
+  <br>
+ The trace-malloc output file combined with the SpaceTrace reader of that 
+file should insert their datum into a database such as MySQL. &nbsp;Some time
+will have to be spent architecting the various database tables involved, but
+the concepts should mostly follow what is there today in the C data structures. 
+&nbsp;A web front end written in a scripting language such as PHP could then 
+be written for casual users of the data not unlike what is provided today 
+in the C version. More formal users could write their own database queries 
+using dedicated tools or by hand. &nbsp;An entire barrage of automated reports 
+could be written, a veritable dream when you need to track footprint and publish
+the results to a community like mozilla.<br>
+                                                                        
+  </blockquote>
+                                                                        
+  
+                                                                                    <h2>
+ Non-Mozilla Usage</h2>
+                                                                        
+  
+                                                                                    <blockquote>
+ The only code in SpaceTrace that is possibly specific to mozilla, restricting 
+SpaceTrace usage on other projects, is the format of trace-malloc output to
+be parsed. &nbsp;Should you intend to use SpaceTrace on a project other than
+mozilla, you need to either output data in a compatible trace-malloc format
+(easier) or put a new parser into SpaceTrace (harder).<br>
+                                                                        
+    </blockquote>
+                                                                        
+    </div>
+                                                                        
+    </div>
+                                                                        
+    
+                                                                                      
+                                                                                      
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified November 29,  2001</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/footprint/spaceTrace.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

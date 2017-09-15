@@ -1,0 +1,61 @@
+
+<html>
+<title>The Mozilla History Project</title>
+
+
+<HR>
+<P><B>STATUS NOTE:</B> this document needs updating. Some details may no
+longer be accurate.
+</P>
+<HR>
+
+
+<center>
+<h3>The Mozilla History Project</h3><br>
+<a href="mailto:guha@netscape.com">guha</a><BR>
+<a href="mailto:valeski@netscape.com">Judson Valeski</a><BR>
+<a href="mailto:rjc@netscape.com">Robert Churchill</a><BR>
+</center>
+
+<h3>Goals</h3>
+<OL>
+<LI> Better (i.e., faster, leaner, easier to use) organizations and
+presentations of history.
+<LI> More intuitive auto-complete, possibly using history for pre-caching.
+</OL>
+
+<h3>How it works today</h3>
+
+
+mozilla.hst (or netscape.hst) is a DBM hashtable of the pages that have
+been visited in the last N (where N is typically equal to 9) days. Each
+entry has a title, date stamp, etc. The code that creates and maintains
+this hashtable is in ns/lib/libmisc/glhist.c
+<BR>
+ns/modules/rdf/hist2rdf.c walks over this database and creates in-memory
+RDF structures corresponding to the clustering presented in the history
+section of NavCenter. Since the clustering is done when the browser comes up, 
+
+<OL>
+<LI> We can't afford to do very sophisticated clustering.
+<LI> It wastes memory
+</OL>
+
+<h3>How it should work</h3>
+
+<OL>
+<LI> We have a simple history update API that netlib uses to update
+the history database. The API is implemented on top of the RDF APIs.
+<LI> The on-disk representation should include the clustering which should
+be adaptive. The code for this can be taken from nlcstore.c. 
+modules/rdf/src/hist2rdf and lib/libmisc/glhist.c should be replaced with this.
+<LI> glhist currently stores a lot more than it needs to --- images,
+interior frames, etc. We should avoid this. It would also be good
+to store trail information.
+<LI> glhist also currently supports auto-completion and this should be
+supported by the new representation.
+<LI> It should be possible for the history to be stored on a remote server
+(using some other on-disk representation --- this will be handled by the
+RDF abstraction layer).
+<LI> We should look into using trail information for pre-caching.
+</OL>

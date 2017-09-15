@@ -1,0 +1,371 @@
+<!DOCTYPE html public "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en-US">
+<head>
+  <title>Helper Apps (and a bit of Save As) Tech Talk, 2002-09-12</title>
+  <style type="text/css">
+
+  html, body {
+    height: 100%;
+    overflow: visible;
+  }
+
+  body {
+    font-size: 1.2em;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    background: white;
+    color: black;
+  }
+
+  h1, h2, p {
+    margin: 0;
+  }
+
+  h1 {
+    font: inherit;
+    font-size: 1.5em;
+    /* text-align: center; */
+    margin-bottom: 0.25em;
+    border-bottom: 0.1em solid black;
+  }
+
+  h2 {
+    font: inherit;
+    font-size: 1.2em;
+    text-align: left;
+    margin: 0.15em 0;
+  }
+
+  ul, ol {
+    padding: 0 0 0 1.5em;
+    margin: 0;
+  }
+
+  li { margin: 0; padding: 0; }
+
+  div.slide {
+    position: relative;
+    min-height: 100%;
+  }
+
+  div.nav {
+    /*
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    */
+    float: right;
+    margin: 4px;
+  }
+
+  div.nav :link, div.nav :visited, div.nav span {
+    text-decoration: none;
+    background: #006;
+    color: white;
+    padding: 0 0.4em 0.2em 0.4em;
+    line-height: 1.4em;
+  }
+
+  div.nav :link:hover, div.nav :visited:hover {
+    background: #00f;
+  }
+
+  table.tree {
+    margin: auto;
+  }
+
+  table.tree td {
+    text-align: center;
+    empty-cells: hide;
+  }
+
+  table.tree tr:not(.arrows) td {
+    font-family: monospace;
+    border: 0.1em solid;
+  }
+
+  </style>
+</head>
+<body>
+
+<div class="slide" id="s0">
+  <div class="nav">
+    <a href="#s1">&gt;</a>
+  </div>
+  <table style="margin: auto"><tr><td>
+  <center>
+    <h1>Helper Apps<br>(and a bit of Save As)</h1>
+    <p>Sept. 12, 2002</p>
+    <p style="margin-top: 0.3em">by Boris Zbarsky</p>
+  </center>
+  </td></tr></table>
+
+</div>
+
+<div class="slide" id="s1">
+  <div class="nav">
+    <a href="#s0">&lt;</a>
+    <a href="#s2">&gt;</a>
+  </div>
+  <h1>Bird's Eye View</h1>
+
+  <center style="padding-top: 2em">
+    <img src="overview.png">
+  </center>
+</div>
+
+<div class="slide" id="s2">
+  <div class="nav">
+    <a href="#s1">&lt;</a>
+    <a href="#s3">&gt;</a>
+  </div>
+  <h1>Flow of control</h1>
+
+  <ol>
+    <li><code>URILoader</code> tries to find a content listener for the
+    MIME type in question.</li>
+    
+    <li>When this fails, <code>URILoader</code> asks an
+    <code>nsIExternalHelperAppService</code> to handle the load.</li>
+    
+    <li>The <code>nsExternalHelperAppService</code> looks up the
+    <code>nsIMIMEInfo</code> for the load and creates an
+    <code>nsIHelperAppLauncher</code> to manage the load.</li>
+
+    <li>The <code>nsExternalAppHandler</code> (which implements
+    <code>nsIHelperAppLauncher</code>) uses the <code>nsIMIMEInfo</code>
+    and an <code>nsIHelperAppLauncherDialog</code> to decide what to do
+    with the data.</li>
+
+    <li>The <code>nsExternalAppHandler</code> does whatever it decided to
+    do.</li>
+  </ol>
+</div>
+
+<div class="slide" id="s3">
+  <div class="nav">
+    <a href="#s2">&lt;</a>
+    <a href="#s4">&gt;</a>
+  </div>
+  <h1><code>nsIMIMEInfo</code> lookup</h1>
+
+  <ol>
+    <li>Look in built-in list which the user cannot override (types we
+    handle internally).</li>    
+    <li>Look in user preferences.</li>
+    <li>Ask the OS:
+    <ul>
+      <li>Registry on Windows.</li>
+      <li>Internet Config on the Mac.</li>
+      <li><code>mailcap</code>/<code>mime.types</code> on Linux.</li>
+    </ul>
+    </li>
+    <li>Look in second built-in list, which the user can override.</li>
+  </ol>
+  
+</div>
+
+<div class="slide" id="s4">
+  <div class="nav">
+    <a href="#s3">&lt;</a>
+    <a href="#s5">&gt;</a>
+  </div>
+  <h1><code>nsExternalAppHandler</code> details</h1>
+
+  <ul>
+    <li>Implements <code>nsIStreamListener</code>.</li>
+    <li>Gets notifications from Necko as the data comes in.</li>
+    <li>Four primary tasks:
+      <ol>
+
+        <li>Sets up temporary file and instantiate the
+        <code>nsIHelperAppLauncherDialog</code> in
+        <code>OnStartRequest</code>.</li>
+
+        <li>Puts the data in the file as <code>OnDataAvailable</code>
+        notifications come in.</li>
+
+        <li>Knows how to launch a helper application on the data based on
+        the <code>nsIMIMEInfo</code>.</li>
+
+        <li>Knows how to save the data to disk at a given location if the
+        user decides to do so.</li>
+        
+      </ol>
+  </ul>
+</div>
+
+<div class="slide" id="s5">
+  <div class="nav">
+    <a href="#s4">&lt;</a>
+    <a href="#s6">&gt;</a>
+  </div>
+  <h1><code>nsExternalAppHandler::OnStartRequest</code></h1>
+  <ol>
+  <li>Creates a temporary file with a salted name to hold the data.</li>
+  <li>Decides on a suggested filename for the data in case it will be saved.</li>
+
+  <li>Decides whether the data should be content-decoded (based on
+  some not-so-great heuristics).</li>
+
+  <li>Decides whether the user should be prompted (based on a preference).</li>
+
+  <li>Calls <code>Show()</code> on the
+  <code>nsIHelperAppLauncherDialog</code>, which asynchronously puts up
+  the helper app dialog.</li>
+  
+  </ol>
+</div>
+
+<div class="slide" id="s6">
+  <div class="nav">
+    <a href="#s5">&lt;</a>
+    <a href="#s7">&gt;</a>
+  </div>
+  <h1><code>nsExternalAppHandler::OnDataAvailable</code></h1>
+
+  <ul>
+  <li>Here we just copy the newly arrived data over into our temporary file.</li>
+  <li>If any read or write errors occur, abort the whole process:
+    <ol>
+     <li>Cancel the channel.</li>
+     <li>Pull down the helper app dialog (if any).</li>
+     <li>Remove the temp file.</li>
+    </ol>
+  </li>
+  </ul>  
+
+</div>
+
+<div class="slide" id="s7">
+  <div class="nav">
+    <a href="#s6">&lt;</a>
+    <a href="#s8">&gt;</a>
+  </div>
+  <h1><code>nsExternalAppHandler::OnStopRequest</code></h1>
+  <p>Set a flag that we're done, then do whatever the user wants if the
+user has decided (save to disk and open in helper are the current
+options the user has).</p>
+</div>
+
+<div class="slide" id="s8">
+  <div class="nav">
+    <a href="#s7">&lt;</a>
+    <a href="#s9">&gt;</a>
+  </div>
+  <h1>Helper App dialog</h1>
+
+  <p>This is our implementation of <code>nsIHelperAppLauncherDialog</code></p>
+
+  <center style="padding-top: 2em">
+    <img src="helper-app-dialog.png">
+  </center>
+
+  <p>It calls back to the <code>nsExternalAppHandler</code> to let it
+  know what the user picked</p>
+
+</div>
+
+<div class="slide" id="s9">
+  <div class="nav">
+    <a href="#s8">&lt;</a>
+    <a href="#s10">&gt;</a>
+  </div>
+  <h1>Saving to disk</h1>
+  <p>If a user decides to "save to disk", we just move/copy the
+  temporary file over to the chosen location once the download
+  completes. If an error occurs while we do this we delete the temp file
+  and put up an error dialog.</p>
+  
+</div>
+
+<div class="slide" id="s10">
+  <div class="nav">
+    <a href="#s9">&lt;</a>
+    <a href="#s11">&gt;</a>
+  </div>
+  <h1>Launching a helper application</h1>
+
+  <p>This is delegated to the <code>nsPIExternalAppLauncher</code> (also
+  implemented by the <code>nsExternalHelperAppHandler</code>):</p>
+  
+  <ul>
+    <li>Windows: launch either directly via <code>nsIProcess</code> or
+    via the <code>::ShellExecute()</code> method depending on where the
+    MIMEInfo came from.  Last-ditch check for executable files
+    here.</li>
+
+    <li>Mac: use the <code>LaunchWithDoc()</code> method on <code>nsILocalFileMac</code>.</li>
+
+    <li>Unix: launch directly via <code>nsIProcess</code>.</li>
+  </ul>
+
+</div>
+
+<div class="slide" id="s11">
+  <div class="nav">
+    <a href="#s10">&lt;</a>
+    <a href="#s12">&gt;</a>
+  </div>
+  <h1>Security considerations</h1>
+
+  Multiple checks for whether a file is executable (on Windows) to keep
+  from launching such files via <code>::ShellExecute()</code>.  Checks
+  happen in <code>OnStartRequest</code>, in the helper app dialog, and
+  as a last ditch in the launching code.
+ </div>
+
+<div class="slide" id="s12">
+  <div class="nav">
+    <a href="#s11">&lt;</a>
+    <a href="#s13">&gt;</a>
+  </div>
+  <h1>Limitations of <code>nsIMIMEInfo</code></h1>
+
+  <ul>
+    <li>No way to say "do whatever the OS default is."</li>
+    <li>No support for command-line arguments.</li>
+    <li>No support for multiple commands connected by pipes (mostly useful on Unix).</li>
+  </ul>
+</div>
+
+<div class="slide" id="s13">
+  <div class="nav">
+    <a href="#s12">&lt;</a>
+    <a href="#s14">&gt;</a>
+  </div>
+  <h1>Ongoing work</h1>
+
+  <ul>
+    <li>Support synchronous dialogs, not just asynchronous ones (fixes
+    many issues related to pre-downloading, content-decoding, etc).</li>
+
+    <li>Reworking the <code>nsIMIMEService</code> API to improve the
+    quality of the MIMEInfo we get.</li>
+
+    <li>Reworking the helper app dialog to save user choices better.</li>
+
+    <li>GNOME integration for Unix.</li>
+  </ul>
+</div>
+
+<div class="slide" id="s14">
+  <div class="nav">
+    <a href="#s13">&lt;</a>
+  </div>
+  <h1>Future work</h1>
+
+  <ul>
+    <li>Fix the deficiencies in <code>nsIMIMEInfo</code>.</li>
+    <li>Better support for <code>mailcap</code> syntax.</li>
+    <li>Possible KDE integration.</li>
+    <li>Possibly reflecting the OS settings in our helper app
+        preferences (readonly? writable?).</li>
+    <li>Have a way for users to override things in the "not overridable"
+    built-in list.</li>    
+  </ul>
+</div>
+
+</body>
+</html>

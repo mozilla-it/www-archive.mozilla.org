@@ -1,0 +1,211 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+                                           
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="DC.subject" content="Tinderbox performance tests">
+  <meta name="DC.title" content="Tinderbox performance tests">
+  <meta name="DC.date.created" content="2002-02-06T17:46:03+11:00" scheme="W3CDTF">
+  <meta name="DC.date.modified" content="2005-03-31T09:54:03+11:00" scheme="W3CDTF">
+<title>Tinderbox performance tests</title>
+
+<link rel="section" href="#Notes" title="Notes before starting">
+<link rel="section" href="#Ts" title="Startup time">
+<link rel="section" href="#Txul" title="XUL window open time">
+<link rel="section" href="#Tp" title="Pageloader time">
+<link rel="section" href="#Tdhtml" title="DHTML performance">
+<link rel="section" href="#RefcntBlLk" title="Refcount Bloat &amp; leak">
+<link rel="section" href="#TraceMalloc" title="Trace Malloc Bloat &amp; leak">
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+  
+<h1><a href="http://wiki.mozilla.org/Performance:Tinderbox_Tests">This page has moved to http://wiki.mozilla.org/Performance:Tinderbox_Tests</a></h1>
+<h1>Tinderbox Tests</h1>
+<address class="author">Chris McAfee &lt;<i><a href="mailto:mcafee@netscape.com">mcafee@netscape.com</a></i>&gt;</address>
+
+<div style="color: #A00;">
+<h3><a name="Notes">Notes before starting:</a></h3>
+<ul>
+  <li>When running these tests on your local machine, be sure to turn<br>
+off extra stuff to reduce noise in your results. This means, irc, browsers,<br>
+aim, httpd, things like that.</li>
+  <li>Test with an optimized build.  --enable-optimize, --disable-debug<br>
+  <li>Running X & twm will reduce gnome noise.</li>
+  <li>Install the Time::HiRes perl module for better timer resolution (see <br>
+mozilla/tools/performance/startup/gettime.pl).</li>
+  <li>Set this pref for stdout test output:<br>
+ user_pref("browser.dom.window.dump.enabled", true);</li>
+</ul>
+</div>
+
+<h3><a name="Ts">Ts: Startup time</a></h3>
+
+<p>This test passes in begin time as a cgi argument, and JS onload handler in startup-test.html computes the end time.</p>
+
+<pre class="code">
+    cvs co mozilla/tools/performance/startup
+    startup-unix.pl &lt;path&gt;/dist/bin/mozilla
+</pre>
+
+<h3><a name="Txul">Txul: XUL window open time</a></h3>
+
+<p>10 windows are opened/closed and median and average times are printed.</p>
+
+<pre class="code">
+    mozilla -chrome "file:/&lt;path&gt;/mozilla/xpfe/test/winopen.xul"
+</pre>
+
+<h3><a name="Tp">Tp: Pageloader time</a></h3>
+
+<p>jrgm's pageload test.  Currently inside the Netscape firewall.
+Point your browser at this url and it crunches for up to 15-20 min
+depending on your machine speed, and produces a graph and average
+time value:<br>
+<br>
+    <a href="http://cowtools/page-loader/loader.pl?delay=1000&amp;nocache=0&amp;maxcyc=4&amp;timeout=15000&amp;auto=1">cowtools</a><br>
+<br>
+If you have a slow machine (e.g. &lt; 300MHz) you may need to increase the timeout value from 15000 to say 30000.</p>
+
+<h3><a name="Tdhtml">Tdhtml: DHTML performance</a></h3>
+
+<p>This test runs a number of DHTML testcases several times, then prints out median and average
+    times for each testcase, as well as the raw data, and the geometric mean of the median times.
+    To run, just load the <a href="test-cases/dhtml/runTests.html">test driver</a>.</p>
+
+<h3><a name="RefcntBlLk">Classic (refcnt) Bl/Lk: Bloat &amp; Leak numbers.</a></h3>
+
+<p>For a non-debug build, add this to your .mozconfig:</p>
+<pre class="code">
+ac_add_options --enable-logrefcnt
+</pre>
+<p>and reconfigure &amp; rebuild. Then run mozilla on the bloaturls list of urls:</p>
+<pre class="code">
+  mozilla -f &lt;path&gt;/mozilla/build/bloaturls.txt
+</pre>
+<p>Bloat and leak summaries dumped out to stdout.<br>
+If you want to compare two runs (e.g. test a change) do something like this:</p>
+
+<pre class="code">
+  cvs co mozilla/tools/tinderbox/bloatdiff.pl
+  mozilla -f bloaturls.txt > a.out
+    **make change**
+  mozilla -f bloaturls.txt > b.out
+  bloatdiff.pl a.out b.out
+</pre>
+
+<h3><a name="TraceMalloc">Trace-Malloc Bl/Lk: Bloat &amp; Leak numbers</a></h3>
+
+<p>Add this to your .mozconfig:</p>
+<pre class="code">
+mk_add_options MOZ_CO_MODULE="SeaMonkeyAll mozilla/tools/trace-malloc"
+ac_add_options --enable-trace-malloc
+</pre>
+
+<p>cvs co mozilla/tools/trace-malloc; gmake<br>
+
+Then run mozilla on the bloaturls list of urls:</p>
+<pre class="code">
+  mozilla -f &lt;path&gt;/mozilla/build/bloaturls.txt
+</pre>
+<p>Bloat and leak summaries dumped out to stdout.
+More info about both bloat tests <a href="http://www.mozilla.org/performance/leak-brownbag.html#tbox">here</a>.</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March  9,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/performance/tinderbox-tests.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

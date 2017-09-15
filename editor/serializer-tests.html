@@ -1,0 +1,257 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+  <title>Serializer Tests</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<h1>Care and Feeding of the DOM Serializer Tests</h1>
+<span style="font-style: italic;"><br>
+by Akkana Peck, akkzilla at shallowsky dot com.</span>
+
+<h2>Introduction</h2>
+The <a href="http://www.mozilla.org/editor/serializers.html">DOM
+Serializers</a> are the code which controls all output from Mozilla --
+they're what translates html into plaintext when you send as plaintext
+from the html mail compose window, what produces the plaintext or html
+you see when you copy something in mozilla and paste it into another
+window, and what produces the html output from Composer.<br>
+<br>
+Since historically the output of the serializers have been very
+sensitive to changes, the mozilla build now includes a set of automated
+serializer tests which are run as part of the Tinderbox cycle.&nbsp;
+This document will describe how those tests work, how to add a new
+test, and what to do if something breaks one of the tests.<br>
+<br>
+<h2>Overview of the tests</h2>
+In a source tree, the serializer tests live in <a
+ href="http://lxr.mozilla.org/seamonkey/source/htmlparser/tests/outsinks/">htmlparser/tests/outsinks</a>.&nbsp;
+This may seem like a strange place given that the serializers
+themselves live in content/base/src.&nbsp; Indeed it is -- it's left
+over from when the serializers were part of the parser.&nbsp; When they
+got moved, the tests didn't move with them.&nbsp; <br>
+<br>
+The tests consist of several components:<br>
+<ul>
+  <li>The test program, a C++ program called <span
+ style="font-style: italic;">TestOutput</span> (which is run from
+dist/bin just like the mozilla application itself).&nbsp; Most of the
+code implementing this is in <a
+ href="http://lxr.mozilla.org/seamonkey/source/htmlparser/tests/outsinks/Convert.cpp">Convert.cpp</a>.</li>
+  <li>Input samples, generally named *.html in <span
+ style="font-style: italic;">htmlparser/tests/outsinks</span>.&nbsp;
+During a build these are copied or linked to <span
+ style="font-style: italic;">dist/bin/OutTestData</span>.</li>
+  <li>Output samples: generally named *.out in <span
+ style="font-style: italic;">htmlparser/tests/outsinks</span>, copied
+to <span style="font-style: italic;">dist/bin/OutTestData</span> during
+a build.&nbsp; <span style="font-style: italic;">TestOutput</span>
+takes each input sample, runs it through the appropriate serializer with
+appropriate flags, then compares the result against one of the output
+samples.</li>
+  <li>A perl script, <a
+ href="http://lxr.mozilla.org/seamonkey/source/htmlparser/tests/outsinks/TestOutSinks.pl">TestOutSinks.pl</a>,
+which contains the master list of tests, input and output files and
+flags.&nbsp; This is the script which is run from Tinderbox and which
+should be run by hand after making changes that might affect the
+serializer code.</li>
+</ul>
+<h2>What do I do if I broke the tests and need to fix them, fast?</h2>
+<ul>
+  <li><span style="font-style: italic;">TestOutSinks.pl</span> will
+print the name of the test that's failing in English -- for example,
+"Mail quoting test failed."&nbsp; Read <span
+ style="font-style: italic;">the TestOutSinks.pl</span> script to find
+out the command corresponding to that message (a command starting with
+./TestOutput, for example, <span
+ style="font-style: italic; color: rgb(153, 0, 0);">./TestOutput -i
+text/html -o text/plain -f 2 -w 50 -c OutTestData/mailquote.out
+OutTestData/mailquote.html</span>).&nbsp; Run that command by hand from <span
+ style="font-style: italic;">dist/bin</span> to see the output, which
+should include the offset where the error occurred.<br>
+  </li>
+  <li>Then run that command by hand, but omit the "<span
+ style="font-style: italic; color: rgb(153, 0, 0);">-o
+OutTestDate/filename</span>" part to see the actual output.  Perhaps
+capture it in a file to make it easier to debug.&nbsp; Note the
+filename you're omitting (<span
+ style="font-style: italic; color: rgb(153, 0, 0);">mailquote.out</span>
+in this case): this is the "comparison file" and you'll need it for
+comparison later.<br>
+  </li>
+  <li>In your favorite text editor, view both the .out file and the
+saved output from running the test, search forward the appropriate
+number of characters from the beginning of the file (in emacs, that's <span
+ style="font-style: italic;">ctrl-U &lt;number&gt; ctrl-f</span>), then
+compare the saved output with the .out file to see how they differ.<br>
+  </li>
+  <li>If the change is actually correct behavior (it's behaving better
+now than before), then just modify the comparison file in <span
+ style="font-style: italic;">htmlparser/tests/outsinks/*.out</span> and
+check that in along with the patch (be sure the reviewer knows about
+that part of the change and that everybody agrees the change in
+behavior is appropriate).  If it's an error and the old behavior was
+better, then your patch introduced a bug and should be fixed.</li>
+</ul>
+<h2>How do I add a new test?</h2>
+Thanks for asking!&nbsp; There are two ways to add a new test: <span
+ style="font-weight: bold;">1.</span> Add new cases to an existing test,
+or <span style="font-weight: bold;">2.</span> Add a n entirely new test.<br>
+<ol>
+  <li>If you are adding another case which relates to one of the
+existing tests -- for example, if you have been working on a specific
+behavior in mail quotation blocks and want to make sure that the
+current behavior does not regress, but it's not covered in the current
+mail quotation test -- then just add a block into the existing .html
+file, add a corresponding block to the appropriate .out file (the
+easiest way may be just to run the appropriate test and capture the
+output in the .out file), and check them both in.&nbsp; You're done!</li>
+  <li>Adding an entirely new html-&gt;plaintext test is slightly more
+difficult (but still pretty easy).&nbsp; You will need to</li>
+  <ol style="list-style-type: lower-alpha;">
+    <li>Make a new .html file.</li>
+    <li>Add an appropriate <span style="font-style: italic;">./TestOutput</span>
+line to <span style="font-style: italic;">TestOutSinks.pl</span>.</li>
+    <li>Generate a new .out file.</li>
+    <li>Add the new files (.html and .out) to <span
+ style="font-style: italic;">the Makefile.in</span> so they'll be
+installed into <span style="font-style: italic;">dist/bin/OutTestData</span>.</li>
+    <li>Check in the new .html, the new .out, and the modified <span
+ style="font-style: italic;">TestOutSinks.pl</span> and <span
+ style="font-style: italic;">Makefile.in</span>.</li>
+  </ol>
+</ol>
+<h3>What if I want to test a different combination, say, html to html
+or xml to plaintext?</h3>
+That used to be easy, but unfortunately a change in the serializer
+architecture has made it harder, and the TestOutput program no longer
+automatically supports any type besides html to plaintext.&nbsp; That
+doesn't mean it's impossible; it just means the system needs some work
+and no one has done it yet.<br>
+<br>
+Here's what needs to be done for this to work:<br>
+The routine <a
+ href="http://lxr.mozilla.org/seamonkey/source/htmlparser/tests/outsinks/Convert.cpp#94">HTML2text</a>
+currently takes inType and outType parameters (they're mime types), but
+it returns an error if inType != text/html or outType !=
+text/plain.&nbsp; That's because it next creates an output sink of type <span
+ style="font-style: italic;">NS_PLAINTEXTSINK_CONTRACTID</span>.&nbsp;
+Back when all serialization was done through creating parser sinks,
+that was no problem -- there was a contractid for the html content sink
+too.&nbsp; But that all changed when the sinks were turned into
+serializers, and now there's no contractid that specifically claims to
+be an html sink.<br>
+<br>
+Is that a problem?&nbsp; Really all we need is to create a serializer
+object (<a href="http://www.mozilla.org/editor/serializers.html">serializers
+can act like parser sinks</a>), so it would probably work to use any
+contractid that happened to result in an <a
+ href="http://lxr.mozilla.org/seamonkey/source/content/base/src/nsHTMLContentSerializer.h">nsHTMLContentSerializer</a>
+or <a
+ href="http://lxr.mozilla.org/seamonkey/source/content/base/src/nsXMLContentSerializer.h">nsXMLContentSerializer</a>
+object .&nbsp; So it's possible that all that is needed is to find the
+appropriate contactid definitions, add them to the top of Convert.cpp,
+then use them inside <span style="font-style: italic;">HTML2text</span>
+depending on what <span style="font-style: italic;">inType</span> and <span
+ style="font-style: italic;">outType</span> are.<br>
+<br>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September 10,  2003</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/editor/serializer-tests.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

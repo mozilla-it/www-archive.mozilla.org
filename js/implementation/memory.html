@@ -1,0 +1,257 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<BODY BGCOLOR="#FFFFFF">
+<H3 ALIGN="CENTER">JS 2.0 Memory Management Discussion</H3>
+<P ALIGN="CENTER">March 16, 1999</P>
+<H3><br>
+  JS Values</H3>
+<P>The new scheme for encoding JS values differs little from that used in SpiderMonkey: 
+  The JS <tt>true</tt>, <tt>false</tt>, <tt>null</tt> (and <tt>undefined</tt> 
+  ?) constants will have distinguished tagged values.&nbsp; As before, FP numbers, 
+  strings and objects are represented using pointers into the garbage-collected 
+  JS heap.&nbsp; There was some discussion as to whether small integer values 
+  would benefit from being heap-allocated also.&nbsp; (Perl, for example, implements 
+  integers as heap-allocated objects and caches conversions from integers to strings 
+  and vice-versa in the object.)&nbsp; However, we'll probably begin by using 
+  the current SpiderMonkey scheme of encoding small integers as scalars.</P>
+<H3> JS Objects</H3>
+
+<P>Unlike SpiderMonkey, objects in the JS heap can be of variable length. Objects 
+  will not be relocatable since this adds a lot of complexity to interactions 
+  with host objects and makes it more difficult to debug.&nbsp; Waldemar thinks 
+  memory management can be done efficiently, at least for objects that make use 
+  of the JS memory manager, by making use of a first-fit allocator that can perform 
+  allocations and deallocation/coalescing in constant time. </P>
+<P>Objects must be aligned on 8-byte boundaries, so as to allow aligned 64-bit 
+  floating-point values within the object.&nbsp; All heap-allocated blocks share 
+  this common prefix:</P>
+<center>
+  <table CELLSPACING=0 CELLPADDING=5 >
+    <tr> 
+      <td> </td>
+      <td WIDTH="200" BGCOLOR="#33CCFF"> 
+        <center>
+          Header 
+        </center>
+      </td>
+    </tr>
+    <tr> 
+      <td> 
+        <center>
+          object pointer ==> 
+        </center>
+      </td>
+      <td BGCOLOR="#33CCFF"> 
+        <center>
+          vtable pointer (nsIGCAble) 
+        </center>
+      </td>
+    </tr>
+  </table>
+  <P ALIGN="LEFT"><br>
+    Floating point values are represented like this: </P>
+</center>
+
+<center><table CELLSPACING=0 CELLPADDING=5 >
+<tr>
+<td>
+</td>
+
+<td WIDTH="200" BGCOLOR="#33CCFF">
+<center>Header</center>
+</td>
+</tr>
+
+<tr>
+<td>
+<center>object pointer ==></center>
+</td>
+
+<td BGCOLOR="#33CCFF">
+<center>vtable pointer (nsIGCAble)</center>
+</td>
+</tr>
+
+<tr>
+<td HEIGHT="50">
+</td>
+
+<td BGCOLOR="#33CCFF">
+<center>64-bit double</center>
+</td>
+</tr>
+</table></center>
+
+<H4><br>
+  Object Header</H4>
+<P>The header word contains fields used for garbage collection, memory management 
+  and locking. The exact contents of the header word are not yet decided. If it 
+  turns out that the object header can be made small, say a byte, we can consider 
+  how to pack them together for space efficiency, i.e. so that objects and headers 
+  are not contiguous. These are some of the pieces of data that might be present 
+  in the header:</P>
+<UL>
+  <LI> GC 
+    <UL>
+      <LI>Marked [1 bit] (If concurrent GC is performed, then two bits will likely 
+        be necessary to allow for white/black/gray marking.)</LI>
+      <LI>Weakly reachable flag ?&nbsp; [1 bit] (No consensus as to whether support 
+        for weak references was useful enough to warrant inclusion.)</LI>
+    </UL>
+  </LI>
+  <LI> Memory management 
+    <UL>
+      <LI> Length of object (but only if there's unused bits in the header, otherwise 
+        we'll have an ObjectLength() virtual method which an object uses to report 
+        its length)</LI>
+      <LI>Flag to indicate if block is free [1 bit]</LI>
+      <LI>Flag to indicate if preceding block is free [1 bit]</LI>
+    </UL>
+  </LI>
+  <LI>Locking
+    <UL>
+      <LI>There was no agreement as to whether high-performance reentrant per-object 
+        locks were necessary. If reentrant locking is a possibility, then efficient 
+        locking may require a field that is roughly pointer-sized. Otherwise, 
+        a single-bit semaphore should be sufficient. In order to make progress 
+        on this decision, we need to specify the semantics of multithreaded JS, 
+        both with respect to the language semantics and to its implementation.</LI>
+    </UL>
+  </LI>
+</UL>
+<H4>Object interfaces</H4>
+<P>The second word of each object contains a pointer to the vtable of a C++ object.&nbsp; 
+  All collectible objects must implement the nsIGCAble XPCOM interface. In addition, 
+  these objects may implement other XPCOM interfaces.&nbsp; Here's a first cut 
+  at what the interface inheritance hierarchy might look like for those interfaces 
+  that are related to the JS engine:<br>
+</P>
+<center><table CELLPADDING=8 >
+<tr>
+<td COLSPAN="2">
+<blockquote>
+<center>nsISupports</center>
+</blockquote>
+</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">
+<blockquote>
+<center>nsIGCable</center>
+</blockquote>
+</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">
+<blockquote>
+<center>nsIScriptable</center>
+</blockquote>
+</td>
+</tr>
+
+<tr>
+<td>
+<blockquote>
+<center>
+            nsIFunction
+</center>
+</blockquote>
+</td>
+
+<td>
+<blockquote>
+<center>nsINativeScriptable</center>
+</blockquote>
+</td>
+</tr>
+
+<tr>
+<td>
+<blockquote>
+<center>nsINativeFunction</center>
+</blockquote>
+</td>
+
+<td>
+<blockquote>&nbsp;</blockquote>
+</td>
+</tr>
+</table></center>
+
+<blockquote>&nbsp; </blockquote>
+<P>The nsIGCAble interface contains two methods: one for determining the size 
+  of an object (so that it need not be stored in the header of every object) and 
+  one for marking other reachable objects.&nbsp; (There is no method in nsIGCAble 
+  for finalizing an object - that will be done when nsISupport's Release() method 
+  is called.)&nbsp;&nbsp; nsIScriptable is roughly analogous to Rhino's Scriptable 
+  interface; It will contain methods for manipulating object properties, i.e. 
+  get, set, delete, add and lookup operations. nsIScriptFunction is comparable 
+  to Rhino's Function interface; It adds methods for invoking a function or constructor. 
+  It's possible that we'll have two more JS interfaces, nsINativeScriptable and 
+  nsINativeFunction, which will extend nsIScriptable and nsIFunction respectively, 
+  adding methods that are only applicable to builtin and native JS objects.<br>
+</P>
+<H4>More on nsIGCAble</H4>
+<P>The JS runtime and its universe of objects collectively hold a single reference 
+  to every reachable JS object in the collectible heap. When an object becomes 
+  unreachable, as determined by garbage collection, the nsISupport's Release() 
+  method is invoked.</P>
+<P>The JS runtime itself never calls nsISupport's AddRef() method since the initial 
+  reference is implicit with the object's creation. However, it's possible for 
+  external code to call AddRef() on a JS object, so every JS object must support 
+  a reference count. However, the overhead of a full refcount word on a JS object 
+  is a cost that we would rather avoid. One possibility is to store small refcounts 
+  in the object header and larger ones in a global hash table that is indexed 
+  by object address.</P>
+<H4>Host Objects</H4>
+<P>JS host objects are represented no differently than native objects, i.e. they 
+  are XPCOM objects that implement the nsIScriptable or nsIFunction interfaces. 
+  The JS engine will expose its memory allocator API so that 3rd-party implementors 
+  can create new JS objects in the collectible heap.</P>
+<P> Most XPCOM objects, however, will want to use their own memory allocator. 
+  To represent these host objects, a proxy JS object is created in the JS heap 
+  with a reference to the host object that it wraps:</P>
+<DIV ALIGN="CENTER">
+  <TABLE CELLSPACING=0 CELLPADDING=5 >
+    <TR> 
+      <TD> 
+      </TD>
+      <TD WIDTH="200" BGCOLOR="#33CCFF"> 
+        <CENTER>
+          Header 
+        </CENTER>
+      </TD>
+    </TR>
+    <TR> 
+      <TD> 
+        <CENTER>
+          object pointer ==> 
+        </CENTER>
+      </TD>
+      <TD BGCOLOR="#33CCFF"> 
+        <CENTER>
+          vtable pointer (nsIGCAble) 
+        </CENTER>
+      </TD>
+    </TR>
+    <TR> 
+      <TD> </TD>
+      <TD BGCOLOR="#33CCFF"> 
+        <CENTER>
+          Pointer to host object 
+        </CENTER>
+      </TD>
+    </TR>
+  </TABLE>
+</DIV>
+<P>&nbsp;</P>
+<P>The proxy delegates all methods to the host object that is wrapped, except 
+  for nsISupports and nsIGCable. </P>
+<CENTER>
+</CENTER>
+<H4></H4>
+<P>&nbsp;</P>
+<P>&nbsp;</P>
+</html>

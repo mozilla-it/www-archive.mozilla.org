@@ -1,0 +1,68 @@
+<HTML>
+<HEAD>
+   <TITLE>NET_GetURL()</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+NET_GetURL()</H1>
+<FONT COLOR="#3333FF">int</FONT> <B>NET_GetURL</B> (<FONT COLOR="#990000">URL_Struct
+*URL_s,</FONT>
+<BR><FONT COLOR="#990000">     FO_Present_Types output_format,</FONT>
+<BR><FONT COLOR="#990000">     MWContext *window_id,</FONT>
+<BR><FONT COLOR="#990000">     Net_GetUrlExitFunc* exit_routine</FONT>)
+
+<P><B>implementation:</B> ns/lib/libnet/mkgeturl.c
+<BR><B>include:</B> net.h
+<BR>
+<H4>
+<FONT COLOR="#990000">Arguments:</FONT></H4>
+URL_s (ns\include\net.h) - A pointer to a url struct which describes the
+url to retrieve.
+<BR>output_format - An FO_Present_Type which describes the context that
+the url data retrieved will go to.
+<BR>window_id - A pointer to the context.
+<BR>exit_routine - A pointer to the function to be called (prior to completion)
+when the url has been completely processed.
+<BR>
+<H4>
+<FONT COLOR="#3333FF">Returns:</FONT></H4>
+An integer. If the return value is less than zero on error, or if the entire
+transfer completed during the first call. Otherwise it returns zero or
+greater.
+
+<P>A call to NET_GetURL() is made when a caller wants to receive or send
+data. How the data is received or sent (including whether data should be
+received or sent) is determined by the properties of the URL_Struct passed
+in. One of the first things NET_GetURL() does is parse the url to determine
+what scheme/protocol (i.e. http, ftp, data) it's dealing with. It then
+determines whether a proxy auto-configuration file or proxy config file
+is to be used. If so the config file is loaded first, putting the orginal
+url in a temporary queue which will call NET_GetURL() again once the config
+file is loaded. The total number of processing urls count is incremented.
+If a plugin is supposed to handle the url, it takes over processing and
+it will call the exit_routine passed in, NET_GetURL() won't. If the url
+passed in only contains the two forward slashes after the <I>scheme</I>:,
+and no others, one slash is appended to the end.
+
+<P>Next, the cache is consulted for existance of the url. If the url exists
+in the cache and hasn't expired, it is used. If the there's room for processing
+(eg. the maximun number of connections won't be exceeded), continue processing.
+Otherwise place the url on the wait queue which will call NET_GetURL()
+with it later.
+
+<P>At this point a new entry (type ActiveEntry) is created, intiailized
+(includes adding the passed in URL_Struct to a member variable) and added
+to the entry list. If we have a config file (loaded from a previous call
+to NET_GetURL(), see above), ask it whether or not a proxy or socks server
+is supposed to be used for this url. If so, add it to the entry properties
+so it gets used later in processing.
+
+<P>Finally, a protocol implementation is found for the given url, hooked
+up with it's active entry, and the protocol implementation's init routine
+is run.
+
+<P><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

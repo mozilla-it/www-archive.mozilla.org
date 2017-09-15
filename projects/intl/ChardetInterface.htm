@@ -1,0 +1,306 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+ <title>Charset Detector Interface</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+<h1>Charset Detector Interface</h1>
+<p>This is the charset detector's interface that is exposed
+to outside world, in our case, the browser. In the very beginning, caller
+calls detector's "Init()" method and let detector know how it would like
+to be notified about the detecting result. Observer pattern is used in
+this case. Then the caller just need to feed charset detector with text
+data through "DoIt()". This can be done through a series "DoIt()" calls,
+with each call only contains part of the data. This can be very useful
+if the data is only partially available at one time. In our case, since
+the data comes from network, we can start detecting long before network
+finishes transferring all data. When detector is confident enough about
+one encoding, it will notify its caller and stop detecting. If all data
+has been feed to detector but detector still is not confident enough about
+any encoding, method "Done" will tell detector to make a best guess.</p>
+
+<pre class="code">class nsICharsetDetector : public nsISupports {
+  public:
+  NS_DEFINE_STATIC_IID_ACCESSOR(NS_ICHARSETDETECTOR_IID)
+
+  //Setup the observer so it know how to notify the answer
+  NS_IMETHOD Init(nsICharsetDetectionObserver* observer) = 0;
+
+  //Feed a block of bytes to the detector.
+  //It will call the Notify function of the nsICharsetObserver if it
+  //find out the answer.
+  // aBytesArray - array of bytes
+  // aLen - length of aBytesArray
+  // oDontFeedMe - return PR_TRUE if the detector do not need the
+  // following block
+  // PR_FALSE it need more bytes.
+  // This is used to enhance performance
+  NS_IMETHOD DoIt(const char* aBytesArray, PRUint32 aLen, PRBool* oDontFeedMe) = 0;
+
+  //It also tell the detector the last chance the make a decision
+  NS_IMETHOD Done() = 0;
+};</pre>
+
+<h2>Inside Charset Detector</h2>
+<p>Inside Charset Detector, major work is done by function
+"HandleData()". In fact, "DoIt" has very little extra thing to do other
+than call "HandleData". The following is the algorithm logic using C-Like
+Pseudo-Language. Some detail is drop in order to make main point more clear.</p>
+<pre class="code">HandleData(batch_of_text)
+{
+  if (batch_of_text contains BOM)
+    report UCS2;
+  if ((inputState is PureAscii) || (inputState is EscAscii))
+    if (batch_of_text contains 8-bits-byte)
+      inputState = HighByte;
+    else if ((inputState is PureAscii ) && (batch_of_text contains Esc_Sequence) )
+      inputState = EscAscii;
+
+  if (inputState is HighByte)
+  {
+    Remove Ascii character that is not neighboring to 8-bits byte
+    For each prober in multibyte_probers
+    Prober.HandleData(batch_of_text);
+    For each prober in singlebyte_probers
+    Prober.HandleData(batch_of_text);
+  }
+  else if (inputState is EscAscii)
+  {
+    For each prober in (ISO2022_XX or HZ)
+    Prober.HandleData(batch_of_text);
+  }
+}</pre>
+<p><code class="filename">nsUniversalDetector.h</code>
+<br><code class="filename">nsUniversalDetector.cpp</code></p>
+<p>Implemented the high level
+control logic.</p>
+
+<h2>Charset Prober</h2>
+<p>A charset prober verifies if the input data is belong
+to certain encoding or group of encoding. It maintains its state in member
+"mState", which has 3 possible value. State "eDetecting" means it has not
+found any sure answer yet, "eFoundIt" and "eNotMe" carries the same meaning
+as their names. Method "GetCharSetName" tell its caller its sure answer
+or best guess.</p>
+<p>Generally, for each encoding we implemented a charset
+prober. Several probers can be wrapped together with a wrapper prober.
+It is also possible for a prober to "probe" several encodings. Each charset
+prober is designed, implemented and working independently. This enables
+prober caller to eliminate certain probers when it has any pre-knowledge.
+For example, if user know that an html page is some kind of Japanese encoding,
+non-Japanese charset probers will not be fired. If user have not interest
+in certain languages, they can also eliminate those charset probers. Those
+measures will lead to a small footprint and faster performance.</p>
+<pre class="code">typedef enum {
+  eDetecting = 0,
+  eFoundIt = 1,
+  eNotMe = 2
+} nsProbingState;
+
+class nsCharSetProber {
+  public:
+    nsCharSetProber(){};
+    virtual const char* GetCharSetName() {return "";};
+    virtual nsProbingState HandleData(const char* aBuf, PRUint32 aLen) = 0;
+    nsProbingState GetState(void) {return mState;};
+    virtual void Reset(void) {mState = eDetecting;};
+    virtual float GetConfidence(void) = 0;
+    virtual void SetOpion() {};
+  protected:
+    nsProbingState mState;
+};</pre>
+
+<h2>How multi-byte encoding charset prober works</h2>
+<p>For charset prober verifying SJIS, EUC-JP, EUC-KR, EUC-CN
+(or GB2312), EUC-TW, Big5 encodings, each prober embeds state machine (mCodingSM),
+which identify legal byte sequence base on its encoding scheme. If an illegal
+byte sequence is met, this state machine will reach "eError" state. That
+signifies a failure for this prober, and prober will report negative answer
+to its caller. Once state machine reach "eStart" state, it means sequence
+of bytes has been identified as a character. This character will be sent
+to Character distribution analyzer (mDistributionAnalyser) and 2-Char sequence
+analyzer (mContextAnalyser) for statistic sampling. "GetConfidence" call
+will let its caller know the likelihood of input charset being of this
+encoding.</p>
+<p>Inside "HandleData" method each time after a batch of
+text has been processed, shortcut judgement is performed. If the prober
+receives enough data and reaches certain confidence level, it will set
+its state to be "eFoundIt" and notify its caller an immediate sure answer.</p>
+<p>For encoding like ISO_2022 and HZ, since the embedded
+state machine can do almost a perfect job along, no other statistic sampling
+is done.</p>
+<ul>
+ <li><code class="filename">Big5Freq.tab</code></li>
+ <li><code class="filename">EUCKRFreq.tab</code></li>
+ <li><code class="filename">EUCTWFreq.tab</code></li>
+ <li><code class="filename">GB2312Freq.tab</code></li>
+ <li><code class="filename">JISFreq.tab</code></li>
+</ul>
+<p>Those files defined the frequency table (Character
+to frequency order mapping) for each language. Since Big5 and EUC-TW are
+not basing on the same charset standard like EUC-JP and SJIS do, 2 tables
+is defined.</p>
+<ul>
+ <li><code class="filename">CharDistribution.h</code></li>
+ <li><code class="filename">CharDistribution.cpp</code></li>
+ <li>Implementation for Character distribution analyzer.</li>
+ <li><code class="filename">nsPkgInt.h</code></li>
+ <li><code class="filename">nsCodingStateMachine.h</code></li>
+ <li>Those are bases of state machine implementation.</li>
+ <li><code class="filename">nsEscSM.cpp</code></li>
+ <li>State machine for ISO-2022XX and HZ.</li>
+ <li><code class="filename">nsMBCSSM.cpp</code></li>
+ <li>>State machines for Big5, EUC-JP, EUC-KR, EUC-TW, GB2312,
+  SJIS, and UTF8.</li>
+ <li><code class="filename">JpCntx.h</code></li>
+ <li><code class="filename">JpCntx.cpp</code></li>
+ <li>Japanese hiragana sequence analyzer.</li>
+ <li><code class="filename">nsBig5Prober.h</code></li>
+ <li><code class="filename">nsBig5Prober.cpp</code></li>
+ <li><code class="filename">nsEUCKRProber.h</code></li>
+ <li><code class="filename">nsEUCKRProber.cpp</code></li>
+ <li><code class="filename">nsEUCJPProber.h</code></li>
+ <li><code class="filename">nsEUCJPProber.cpp</code></li>
+ <li><code class="filename">nsEUCTWProber.h</code></li>
+ <li><code class="filename">nsEUCTWProber.cpp</code></li>
+ <li><code class="filename">nsSJISProber.h</code></li>
+ <li><code class="filename">nsSJISProber.cpp</code></li>
+ <li><code class="filename">nsGB2312Prober.h</code></li>
+ <li><code class="filename">nsGB2312Prober.cpp</code></li>
+ <li><code class="filename">nsUTF8Prober.h</code></li>
+ <li><code class="filename">nsUTF8Prober.cpp</code></li>
+ <li>Charset Prober classes definition and implementation
+for each encoding. Each prober has an embedded state machine and a character
+distribution analyzer except UTF8, which state machine is good enough.</li>
+ <li><code class="filename">nsMBCSProber.h</code></li>
+ <li><code class="filename">nsMBCSProber.cpp</code></li>
+ <li>This is a wrapper of all the MBCS probers. I was expecting
+to put some high level logic which base on multiple encoding knowledge
+to appears here in the very beginning. That might still be needed in future.</li>
+</ul>
+
+<h2>How single-byte encoding charset prober works</h2>
+<p>For each encoding, a table is used to map a character
+to an encoding independent identification number. Those identification
+numbers in fact come from characters' frequency order but with some adjustment.
+For each language, a 2-D matrix is defined as language model. If cell &lt;x,
+y&gt; is 0, it means sequence &lt;character(x), character(y)&gt; is a rarely
+used sequence in this language, with character(x) representing the character
+whose identification number is x. The 2-D matrix only defines sequence
+of a subset of all the characters. For characters whose identification
+number is out of this range, those characters are ignored. Since some of
+the sequences, like ascii-to-ascii sequences, have no relation with the
+language we try to verify, and those sequences should not be counted. In
+current implementation, a sequence will be counted if both characters are
+8-bits ones. In some situations, one 8-bits character sequence is expected
+to be counted.</p>
+<p><code class="filename">LangCyrillicModel.cpp</code> : these files defined a mapping
+table for each encoding and a 2-D matrix for all Cyrillic languages. A
+"SequenceModel" structure is also defined for each encoding. This structure
+will be used to initialize a single-byte character prober class. All Cyrillic
+encodings are sharing the same prober class implementation.</p>
+<p><code class="filename">nsSBCharSetProber.h</code></p>
+<p><code class="filename">nsSBCharSetProber.cpp</code> : These 2 files defined and implemented
+single-byte charset prober.</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March 27,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/intl/ChardetInterface.htm&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

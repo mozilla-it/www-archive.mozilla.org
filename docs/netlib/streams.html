@@ -1,0 +1,46 @@
+<HTML>
+<HEAD>
+   <TITLE>netlib Streams</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+netlib Streams</H1>
+NET_StreamClass defined: ns/include/net.h
+
+<P>Netlib "runs" within contexts (MWContext). A browser window is an example
+of a context. The contexts are consumers of data that netlib gives them,
+and they consume the data via streams. In order for a context to consume
+data, it must register itself with netlib as being the consumer for that
+data. Data is identified by it's content-type/mime-type association and
+contexts register functions (content converters) to handle (load, parse,
+render, etc.) given mime-types via a call to NET_RegisterContentTypeConverter().
+There can be only one converter registered for a given content-type, per
+output format (FO_Present_Types). A content-type's converter is called
+when netlib encounters data of the given content-type and output format
+combination. The converter returns a NET_StreamClass struct which includes
+write/write-ready/abort/complete routines. During a url load netlib pushes
+data to the stream returned by the converter by calling it's write routine.
+If the url load is interrupted, the abort routine is called. Once the url
+load is complete, the converter's complete routine is called.
+
+<P>The stream returned by the converter is stored in the connection data
+of an <A HREF="active.html">active entry</A>, and remains there until the
+load is interrupted or complete.
+
+<P>Here's how the browser registers itself to handle html files:
+
+<P><TT>NET_RegisterContentTypeConverter (TEXT_HTML, FO_PRESENT, NULL, INTL_ConvCharCode);</TT><TT></TT>
+
+<P><B><TT>TEXT_HTML</TT></B> - is a macro that expands to "text/html" (these
+macros are defined in ns/include/net.h)
+<BR><TT><B>FO_PRESENT</B> </TT>- is a macro that expands to a bit flag
+to designate the output format (these macros are defined in ns/include/net.h)
+<BR><B><TT>INTL_ConvCharCode</TT></B> - is the content converter (a function
+pointer)
+<BR>
+
+<P><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

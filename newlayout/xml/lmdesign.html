@@ -1,0 +1,279 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <title>Link Manager Design Documentation</title>
+   <style>
+     .link1start1 {
+       background-color: lightgreen;
+     }
+     .link1end1 {
+       background-color: lightyellow;
+     }
+     .link1start2 {
+       background-color: green;
+     }
+     .link1end2 {
+       background-color: orange;
+     }
+     .link1start3 {
+       text-decoration: underline;
+     }
+     .doca,.docb {
+       background-color: lightgrey;
+     }
+     .head {
+       font-weight: bold;
+     }
+   </style>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<p>Author: <a href="mailto:heikki@netscape.com?Link+Manager">Heikki Toivonen</a></p>
+<p>$Date: 2001/03/22 23:51:47 $ $Revision: 1.2 $ $State: Exp $</p>
+
+<h1>Link Manager Design Documentation</h1>
+
+<p>Link manager is a component that can recognize links and knows where a link can end.
+For HTML a links, simple XLinks and the like, a link manager is not really needed as a single
+element will have all the necessary information about the link. For extended XLinks (or other
+arbitrary links) a link manager is a necessity. Extended XLinks can define a link in different
+place than the link starting element, the link can be bidirectional, there can be several link
+ends, there can be restrictions on the traversal and so on. And in fact, the link start and
+end need not be complete elements - they can be regions of text or just about anything.</p>
+
+<p>Because links can have multiple ending resources, the simple <tt>:visited</tt> etc. 
+CSS styles will not be completely accurate. Should a starting resource be marked 
+<tt>:visited</tt> if only some of the ending resources have been visited? Or do we 
+need a new pseudo style, <tt>:partly-visited</tt>?</p>
+
+<p>Below is an illustration of a situation with extended links. Document C defines one
+link. The starting and ending resources are in documents A and B. There are two 
+starting resources in document A, and two ending resources in document B. Additionally 
+part of the other ending resource is also a starting resource.</p>
+
+<p>We can have the link define traversal rules as follows:</p>
+
+<ol>
+<li>Starting resource 1 can lead to ending resource 1 or 2</li>
+<li>Starting resource 2 can lead to ending resource 1</li>
+<li>Starting resource 3 can lead to ending resource 1</li>
+</ol>
+
+<p>Legend:</p>
+
+<ul>
+<li><span class="link1start1">Starting resource 1</span></li>
+<li><span class="link1start2">Starting resource 2</span></li>
+<li><span class="link1end1">Ending resource 1</span></li>
+<li><span class="link1end2">Ending resource 2</span></li>
+<li><span class="link1start3">Starting resource 3</span></li>
+</ul>
+
+<table border="1">
+
+<tr class="head">
+<td>Document A</td>
+<td>Document C<br>Defines the links,<br>the starting and ending resources<br>in documents A and B</td>
+<td>Document B</td>
+</tr>
+
+<tr>
+<td class="doca">
+&lt;p>Let <span class="link1start1">ther</span>e be &lt;span>lig<span class="link1start1">ht&lt;/span>.</span>&lt;p><br>
+&lt;p>Cl<span class="link1start2">ick</span>!&lt;p>
+</td>
+<td></td>
+<td class="docb">
+&lt;p>An<span class="link1end1">d &lt;span>n</span>ig<span class="link1end2">ht&lt;/span> ca</span>me.&lt;p><br>
+&lt;p><span class="link1start3">Good ni<span class="link1end1">ght</span>!</span>&lt;p>
+</td>
+</tr>
+
+</table>
+
+<p>The above example makes it clear that we must be able to style and detect click regions
+other than elements. Range lists can hold that kind of information. 
+Also the CSS pseudo style <tt>:link</tt>
+must be expanded to work for arbitrary ranges. The example also illustrates that there must 
+be some visual indication of what exactly is the ending resource. CSS3 offers help here,
+but even simpler way is to make link traversal select the link target. Finally, when a link
+can lead to more than one ending resource there must be a way for the user to select the
+ending resource. One way would be to pop up a menu listing the possible ending resource
+URLs and/or showing some content from the ending resources.</p>
+
+<p>Link manager can also offer optimizations for simple link handling cases.</p>
+
+
+<h2>Architecture</h2>
+
+<p>The link manager is a document observer. This means that it will be notified
+when a document loads, changes and unloads. The link manager has a link database
+that contains information about all the links defined in documents that are 
+currently loaded.</p>
+
+<p>Interested parties can register as link observers (on the link manager).
+They can observe all starting and/or ending resources, or starting and/or
+ending resources in a document, or a single starting and/or ending resource,
+or all starting and/or ending resources where an element participates.</p>
+
+<p>Alternatively, the link manager could listen to document load, unload and 
+mutation events in order to keep its link database up to date. It could
+also send events about link changes to link event listeners.</p>
+
+<p>Finally, interested parties could explicitly ask
+the link manager about links.</p>
+
+<p>Below is an illustration that combines observer architecture with questions
+that interested parties can ask from the link manager:</p>
+
+<pre>
++--------------+                                                 +----------+
+| Style System | - - - - - - - - - - - - - - - - - - - - - - - ->| Element  |+
++--------------+                                           +- - -+----------+|
+       |                                                   |      +----------+
+       |                                                               |                          
+       |[1]                                             [2]|           |
+       |                                                               |
+       |                                                   |           |
+       |             +---------------------+<- - - -  - - -+     +-----+----+
+       +------------>| Link Manager        |-------------------->| Document |+
+                     +---------+-----------+     Observe         +----------+|
+                               |                                  +----------+
+                               |
+                               |           
+                            /------\
+                            | Link |
+                            | DB   |
+                            \------/
+
+Legend:
+ [1] Observe("all starting resources in all documents")
+     GetStartingResources(in node, out linkidlist)
+     GetStartingResourceRangeList(in linkid, out rangelist)
+     GetEndingResources(in node, out linkidlist)
+     GetEndingResourceRangeList(in linkid, out rangelist)
+
+ [2] Observe("all starting resources where the element participates")
+     GetStartingResources(in node, out linkidlist)                                    
+     GetEndingResources(in node, out linkidlist)
+     GetStartingResourceRangeList(in linkid, out rangelist)
+     GetEndingResourceRangeList(in linkid, out rangelist)
+
+ [3] GetStartingResources(out linkidlist)
+     GetStartingResourceRangeList(in linkid, out rangelist)
+     GetEndingResources(in node, out linkidlist)
+     GetEndingResourceRangeList(in linkid, out rangelist)
+     
+
+ --- Required relationship
+ - - Optional relationship (optimization)
+</pre>                                
+
+<p>The solid lines show the required relationships. The dotted lines represent a
+chance of optimization: an element could Observe links that overlap with its area
+and cache the values so that it can answer quickly when queried about link properties.</p>
+
+<p>The diagram is missing the link handler components, i.e. how do we make link interaction
+happen. Currently an element knows if it is a starting resource, and will respond to
+mouseover and click events by calling the link handler (nsILinkHandler).</p>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March 22,  2001</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/newlayout/xml/lmdesign.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

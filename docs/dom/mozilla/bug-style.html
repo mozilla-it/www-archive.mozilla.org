@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+
+  <title>Bug Sheet for DOM Level 2 Style</title>
+  <link rel="stylesheet" type="text/css" href="../domsite.css">
+  <link rel="stylesheet" type="text/css" href="bugsheet.css">
+  <script type="text/javascript">
+  function linkBugs()
+  {
+    if(document.all) {
+      document.getElementById("bugzilladiv").style.visibility = "visible";
+      document.getElementById("summarydiv").style.display = "none";
+    }
+    if(document.layers) {
+      document.layers["justforfun"].visibility = "hide";
+      document.layers["summarydiv"].visibility = "hide";
+      return;
+    }
+    
+    // I had to separate the bugs and the perf bugs because otherwise the summary at
+    // the end of the page would also be affected by this, and we DON'T want that.
+
+    // Get the "bugs" unordered list tag then grab all its <li> children.
+    var bugul = document.getElementById("bugs");
+    var lis = bugul.getElementsByTagName("li");
+    // Get the "perf" unordered list tag then grab all its <li> children.
+    var perful = document.getElementById("perf");
+    var lis2 = perful.getElementsByTagName("li");
+
+    // For the first set of li's
+    for(var i = 0; i < lis.length; i++)
+    {
+      // Get the string that is composed of the bug number, then its summary.
+      var str = lis[i].firstChild.nodeValue;
+      // Parse the integer that is the bug number
+      var bugNbr = parseInt(str);
+      // Just in case...
+      if(!bugNbr)
+        continue;
+      // Create a new link.
+      var newLink = document.createElement("a");
+      // Set its href to the relevant Bugzilla URL.
+      newLink.setAttribute("href", "http://bugzilla.mozilla.org/show_bug.cgi?id=" + bugNbr);
+      // Create a first text node, with the bug number.
+      var numberNode = document.createTextNode(bugNbr);
+      // Create a second text node, with the rest of the sentence. This is kind of a hack and will break once we reach the 100k bugs... argh! I should probably use toString().
+      var textNode = document.createTextNode(str.substring(5, str.length));
+      // Append the bug number text node as child of the link node.
+      newLink.appendChild(numberNode);
+      // Remove the string next to the original <li>
+      lis[i].removeChild(lis[i].firstChild);
+      // Append the link node to the <li> node.
+      lis[i].appendChild(newLink);
+      // Append the second text node after the link node.
+      lis[i].appendChild(textNode);
+    }
+
+    // Idem for the perf bugs.
+    for(var i = 0; i < lis2.length; i++)
+    {
+      var str = lis2[i].firstChild.nodeValue;
+      var bugNbr = parseInt(str);
+      if(!bugNbr)
+        continue;
+      var newLink = document.createElement("a");
+      newLink.setAttribute("href", "http://bugzilla.mozilla.org/show_bug.cgi?id=" + bugNbr);
+      var numberNode = document.createTextNode(bugNbr);
+      var textNode = document.createTextNode(str.substring(5, str.length));
+      newLink.appendChild(numberNode);
+      lis2[i].removeChild(lis2[i].firstChild);
+      lis2[i].appendChild(newLink);
+      lis2[i].appendChild(textNode);
+    }
+
+    // Add the number of real and perf bugs to the summary
+    var summary = document.getElementById("summary");
+    var realBugs = summary.firstChild.nextSibling;
+    // second <li>
+    var perfBugs = realBugs.nextSibling.nextSibling;
+    // Number to add before the real bugs summary
+    var realBugsNbr = lis.length;
+    // Number to add before the perf bugs summary
+    var perfBugsNbr = lis2.length;
+    // Create a new text node containing the number of real bugs
+    var realBugsNbrNode = document.createTextNode(realBugsNbr.toString() + " ");
+    // Create a new text node containing the number of perf bugs
+    var perfBugsNbrNode = document.createTextNode(perfBugsNbr.toString() + " ");
+    // Append the text node before the sentence of the real bugs
+    realBugs.insertBefore(realBugsNbrNode, realBugs.firstChild);
+    // Append the text node before the sentence of the perf bugs
+    perfBugs.insertBefore(perfBugsNbrNode, perfBugs.firstChild);
+  }
+
+  </script>
+
+  
+</head>
+
+<body onload="linkBugs();">
+
+<table id="navigation">
+  <tbody>
+    <tr>
+      <td><a href="../index.html">DOM</a></td>
+      <td>&gt;</td>
+      <td><a href="index.html">Mozilla</a></td>
+      <td>&gt;</td>
+      <td><a href="known.html">Known Bugs</a></td>
+      <td>&gt;</td>
+      <td>DOM Style</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 class="centered">Bug Sheet for the DOM Level 2 Style</h2>
+
+<p class="warning">
+Warning: Some of the bugs listed below are maybe FIXED. If you find any of those that work for you, please comment in the bug, thank you!
+</p>
+
+<div id="bugsdiv">
+Bugs
+  <ul id="bugs">
+  <li>35614 : CSSFontFaceRule not implemented</li>
+  <li>35615 : CSSPageRule not implemented</li>
+  <li>37468 : CSSStyleRuleImpl::SetSelectorText() doesn't work</li>
+  <li>42417 : Tracking bug for getComputedStyle implementation</li>
+  <li>45424 : getOverrideStyle not implemented (Help on this one would be very appreciated!)</li>
+  <li>62682 : CSSStyleDeclaration.getPropertyCSSValue() doesn't work</li>
+  <li>63850 : document.implementation.createCSSStyleSheet() not implemented</li>
+  <li>74281 : inline style sheet's href is document url instead of null</li>
+  <li>77882 : Incorrect font-weight value if |font-weight:bolder| or |font-weight:lighter|</li>
+  </ul>
+</div>
+
+<div id="perfdiv">
+Performance issues
+  <ul id="perf">
+  <li>70156 : a dhtml animation which runs slowly in Mozilla</li>
+  </ul>
+</div>
+
+<div id="summarydiv">
+Summary
+  <ul id="summary">
+    <li>real bugs in our support for this part of the DOM</li>
+    <li>performance issues</li>
+  </ul>
+</div>
+
+<div id="bugzilladiv" style="visibility: hidden;">
+<form action="http://bugzilla.mozilla.org/show_bug.cgi">
+<div>
+Enter the bug number: 
+<input type="text" name="id">
+<input type="submit" value="Look at the bug">
+</div>
+</form>
+</div>
+
+<div id="justforfun">
+<div style="text-align: center;">And just for the fun:</div>
+The links to the Bugzilla bugs are generated via a nice little <a href="bugsheet.js">DOM script</a>. It saves me some large typing!
+</div>
+
+</body>
+</html>

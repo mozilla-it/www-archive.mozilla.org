@@ -1,0 +1,796 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+	<title>Tinderbox Mail/News Smoke Test</title>
+<SCRIPT TYPE="text/javascript" SRC="mntimer.js">
+</SCRIPT>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<script type="text/javascript">
+var inboxfolder;
+var timeoutid;
+var intervalid;
+// AccountManager interface
+var accountManager;
+// SmtpService Interface
+var smtpservice;
+// SmtpServer - used for CreateSmtpServer()
+var smtpserver;
+// Default Account (if no previous accounts then it should be the one we create
+var defaultAccount;
+// The server type (pop3,imap,news) of the default account
+var serverType;
+// The default account's incoming server
+var incomingserver;
+// The inteface for the incomingserver
+var verifiedincomingserver;
+// The default idenity
+var identity;
+var currentunread;
+var numberofunreadmessages;
+
+// Time Stamp used for the subject header
+var time;
+
+// Pop instance
+var instanceofpop3service;
+// Pop interface
+var interfaceofpop3service;
+// Contains messages from inboxfolder 
+var arrayofmessages;
+// Contains messages after being converted to javascript
+var convertedarrayofmessages;
+
+
+netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+const nsIScriptableInputStream = Components.interfaces.nsIScriptableInputStream;
+const nsILocalFile = Components.interfaces.nsILocalFile;
+const nsIFileChannel = Components.interfaces.nsIFileChannel;
+var lines = new Array();
+var words = new Array();
+var final_result = "Passed";
+
+var rv = "";  //contains the results of all the testcases and this is written to the file.
+var msgwindow = Components.classes["component://netscape/messenger/msgwindow"].getService(Components.interfaces.nsIMsgWindow);
+
+function changePref() {
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+	var pref = Components.classes["component://netscape/preferences"].getService(Components.interfaces.nsIPref);
+	var signed_applet = pref.GetBoolPref("signed.applets.codebase_principal_support");
+
+	// dump("signed_applet = " + signed_applet + "\n");
+
+	// dump("Before Setting....\n");
+	pref.SetBoolPref("signed.applets.codebase_principal_support", true);
+	// dump("After setting.....\n");
+	// dump("signed_applet = " + signed_applet + "\n");
+}
+
+function write_to_file() {
+	
+	var path = "c:\\temp\\result";
+	var buffer = rv;
+	var buffSize = rv.length;
+
+	// // dump("PATH = " + path + "\n");
+	// dump("BUFFER = " + buffer + "\n");
+	// dump("BUFFSIZE = " + buffSize + "\n");
+
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+	//const nsILocalFile = Components.interfaces.nsILocalFile;
+	//const nsIFileChannel = Components.interfaces.nsIFileChannel;
+	var file = Components.classes["component://mozilla/file/local"].
+			              createInstance(nsILocalFile);
+
+	try 
+	{
+		file.initWithPath(path);
+
+		if(!file.exists())
+			file.create(0, 0777);
+		
+		var fileChannel = Components.classes["component://netscape/network/file-channel"].
+				                     createInstance(nsIFileChannel);
+		
+
+		// dump("FileChannel = " + fileChannel + "\n");
+		//// dump("FileChannet contentLength " + fileChannel.contentLength + "\n");
+		//var file = fileChannel.file;
+		// dump("FILE = " + file + "\n");
+		//file.initWithPath( path );
+
+		fileChannel.init(file, 
+			             0777,
+						 "html/text", 
+                         null,                // content length
+                         null,                // nsILoadGroup aLoadGroup,
+                         null,                // nsIInterfaceRequestor notificationCallbacks,
+                         null,                // nsLoadFlags loadAttributes,
+                         null,                // nsIURI originalURI,
+                          256,                // unsigned long bufferSegmentSize,
+                          256);               // long bufferMaxSize
+	
+
+		// dump("PATH = " + file.path + "\n");
+		//file.fileSize = buffSize;
+		var fileSize = file.fileSize;
+		// dump("fileSize = " + fileSize + "\n");
+
+		var outStream = fileChannel.openOutputStream(fileSize);
+
+		//var str = "Testcase1:" + "\t" + "Passed" + "\n";
+		//str += "Testcase2:" + "\t" + "Passed" + "\n";
+		//str += "Testcase3:" + "\t" + "Failed" + "\n";
+		
+		outStream.Write(buffer, buffSize);
+		// dump('fileSize = ' + file.fileSize + '\n');
+		outStream.Flush();
+
+		//looks like delete is not yet implemented.
+		//// dump("Before deleting...\n");
+		//file.delete(false);
+		//// dump("After deleting...\n");
+	
+    }
+    catch (e) 
+	{
+        // dump("Error Returned " + e + "\n");
+    }
+}
+
+function analyzeResult() {
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+	var filepath = "c:\\temp\\result";
+	var inputStream = Components.classes["component://netscape/scriptableinputstream"].
+			              createInstance(nsIScriptableInputStream);
+
+	var file = Components.classes["component://mozilla/file/local"].
+			              createInstance(nsILocalFile);
+
+	// dump("FILEPATH = " + filepath + "\n");
+	// dump("FILE = " + file + "\n");
+	// dump("INPUTSTREAM = " + inputStream + "\n");
+
+	try {
+		file.initWithPath(filepath);
+	//	if(!file.exists()) {
+	//		// dump("File does not exists...\n");
+	//		return;
+	//	}
+		
+		var fileChannel = Components.classes["component://netscape/network/file-channel"].
+				                     createInstance(nsIFileChannel);
+		
+		var offset = 0;
+
+		// dump("FileChannel = " + fileChannel + "\n");
+		// dump("PATH = " + file.path + "\n");
+
+		fileChannel.init(file, 
+			             0777,
+						 "html/text", 
+                         null,                // content length
+                         null,                // nsILoadGroup aLoadGroup,
+                         null,                // nsIInterfaceRequestor notificationCallbacks,
+                         null,                // nsLoadFlags loadAttributes,
+                         null,                // nsIURI originalURI,
+                          256,                // unsigned long bufferSegmentSize,
+                          256);               // long bufferMaxSize
+
+		var inStream = fileChannel.openInputStream(offset, -1);
+		// dump("INSTREAM = " + inStream + "\n");
+		inputStream.init(inStream);
+		// dump("INPUTSTREAM = " + inputStream + "\n");
+		var rv = inputStream.read(inputStream.available());
+		// dump("RV = " + rv + "\n");
+
+		// dump(" AVAILABLE = " + inputStream.available() + "\n");
+		//while(inputStream.available()) {
+		//	// dump(" AVAILABLE = " + inputStream.available() + "\n");
+		//	var rv = inputStream.read(19);
+		//	// dump("RV = " + rv + "\n");
+			//offset += 20;
+		//}
+
+		lines = rv.split(/[\n\r]+/);
+		// dump("Number of lines = " + lines.length + "\n");
+		for (var l in lines) {
+			words = lines[l].split("\t");
+			// dump("Number of words in line " + l + " = " + words.length + "\n");
+			for (var i in words) {
+				// dump("WORDS[ " + i + "] = <" + words[i] + ">\n");
+				// dump("I = " + i + "\n");
+				if (words[i] == "Failed") {
+					final_result = "Failed";
+					// dump("FINAL RESULT = " + final_result + "\n");
+					// dump("Testcase Failed = " + words[i-1] + "\n");
+					//return;
+				}
+			}
+		}
+
+		// dump("FINAL RESULT = " + final_result + "\n");
+
+	}
+
+	catch (e) 
+	{
+        // dump("Error Returned " + e + "\n");
+    }
+}
+
+function getAccountManager()
+{
+
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+	accountManager = Components.classes["component://netscape/messenger/account-manager"].getService(Components.interfaces.nsIMsgAccountManager);
+	// dump("AM = " + accountManager + "\n");
+}
+
+function getSmptServer()
+{
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+	smtpservice = Components.classes["component://netscape/messengercompose/smtp"].getService(Components.interfaces.nsISmtpService);
+	// dump("SMTPSERVICE =	" + smtpservice + "\n");
+
+	smtpserver = smtpservice.defaultServer;
+	//smtpserver.username = "parp4";
+	//smtpserver.password = "parp4";
+	smtpserver.hostname = "parp.mcom.com";
+
+	// dump("SMTPSERVER CREATED \n");
+}
+
+function disableXPConnectSecurity()
+{
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+}
+
+function createAccount() {
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+// POP Account
+	try { 
+
+	dump("********Now we have " + accountManager.accounts.Count() + " accounts\n");
+	var orig_count = accountManager.accounts.Count();
+	var account = accountManager.createAccount();
+	var identity = accountManager.createIdentity();
+	var server = accountManager.createIncomingServer("parp4", "parp.mcom.com", "pop3");
+	
+	account.addIdentity(identity);
+	account.incomingServer = server;
+
+	// dump("Created identity " + identity + "\n");
+	// dump("Created server " + server + "\n");
+	//dump("Now we have " + accountManager.allServers.Count() + " servers\n");
+	server.prettyName = "parp4";
+	server.hostName = "parp.mcom.com";
+	server.username = "parp4";
+	server.password = "parp4";
+	server.rememberPassword = true;
+
+//	server.localPath = "c:\\Program Files\\Netscape\\users\\parp3\\ImapMail\\parp.mcom.com";
+
+	identity.identityName = "parp4";
+	identity.fullName = "parp4";
+	identity.email = "parp4@parp.mcom.com";
+
+	dump("********Now we have " + accountManager.accounts.Count() + " accounts\n");
+	var new_count = accountManager.accounts.Count();
+	if (new_count == orig_count + 1) {
+		dump("Sucessfully created an Account\n");
+		rv += "createAccount:" + "\t" + "Passed" + "\n";
+	}
+	else {
+		dump("Failed to create an account \n");
+		rv += "createAccount:" + "\t" + "Failed" + "\n";
+		if (final_result == "Passed")
+			final_result = "Failed";
+	}
+
+	}   //try
+	catch (e) {
+		dump("E = " + e + "\n");
+	}
+}
+
+function removeAccount() {
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+//Imap Account
+try { 
+
+	dump("********Now we have " + accountManager.accounts.Count() + " accounts\n");
+	var old_count = accountManager.accounts.Count();
+
+	if(old_count == 0) {
+		dump("NO Accounts Found..\n");
+		rv += "removeAccount:" + "\t" + "Failed" + "\n";
+		dump("Writing Failed to file for removeAccount...\n");
+		if (final_result == "Passed")
+			final_result = "Failed";
+	}
+	else {
+		var accounts = accountManager.accounts;
+		// dump(" #ACCounts = " + accounts.Count() + "\n");
+		var JSAccounts = nsISupportsArray2JSArray(accounts, Components.interfaces.nsIMsgAccount);
+		for (var i=0; i < JSAccounts.length; i++) {
+			
+			if (i == 0) {
+				accountManager.removeAccount(JSAccounts[i]);
+			}
+		}
+		
+
+		dump("********Now we have " + accountManager.accounts.Count() + " accounts\n");
+		var	new_count = accountManager.accounts.Count();
+		if (new_count == old_count - 1 ) {
+			dump("Sucessfully Deleted an Account\n");
+			// Code to write to File Passed
+			rv += "removeAccount:" + "\t" + "Passed" + "\n";
+			dump("Writing Passed to file for RemoveAccount...\n");
+		} 
+		else {
+			// Code to write to file Failed
+			rv += "removeAccount:" + "\t" + "Failed" + "\n";
+			dump("Writing Failed to file for removeAccount...\n");
+			if (final_result == "Passed")
+				final_result = "Failed";
+		} //else
+	} //else
+	} catch (e) {
+	
+	dump("E = " + e + "\n");
+
+	}
+	
+	dump("RV: " + rv + "\n");
+	document.writeln("<br>" + "RV:" + rv + "<br>");
+	dump("MAILNEWS TEST: " + final_result + "\n");
+	//document.close();
+
+}
+
+function DeleteMessage() {
+
+		var flag = 0;
+		netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+		var supportsarray = Components.classes["component://netscape/supports-array"].getService(Components.interfaces.nsISupportsArray);
+		netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+		
+		dump("MSGWINDOW = " + msgwindow + "\n");
+
+		for (var j=0; j < accountManager.allServers.Count(); j++) {
+		var server = accountManager.allServers.GetElementAt(j).QueryInterface(Components.interfaces.nsIMsgIncomingServer);
+		if ((server.type == 'imap') || (server.type == 'pop3'))  {
+			var rootFolder = server.RootFolder;
+			var subFolderEnumerator = rootFolder.GetSubFolders();
+			var subfolders = nsIEnumerator2JSArray(subFolderEnumerator, Components.interfaces.nsIMsgFolder);
+			for (var i=0; i< subfolders.length; i++) {
+				if((subfolders[i].name == 'Inbox') || (subfolders[i].name == 'INBOX')) {
+					var messages_enumerator = subfolders[i].getMessages(msgwindow);
+					var messages = nsISimpleEnumerator2JSArray(messages_enumerator, Components.interfaces.nsIMessage);
+					for (var k=0; k < messages.length; k++) {
+						if (messages[k].subject == time) {
+							dump(k + " subject = " + messages[k].subject + "\n");
+							dump(k + " Recepients = " + messages[k].recipients + "\n");
+
+							supportsarray.AppendElement(messages[k]);
+							// dump("Added to Array \n");
+
+							subfolders[i].deleteMessages(supportsarray, msgwindow, true, false);
+							dump("After Delete Msg \n");
+							
+							flag = 1;
+							
+
+						} //if
+
+					}  //for
+				} //if
+			}  //for
+				
+		}  //if
+		} //for
+
+		if (flag == 1) {
+			rv += "DeleteMsg:" + "\t" + "Passed" + "\n";
+			dump("Writing Passed to file for DeleteMsg...\n");
+		}
+		else {
+			rv += "DeleteMsg:" + "\t" + "Failed" + "\n";
+			dump("Writing Failed to file for DeleteMsg...\n");
+			if (final_result == "Passed")
+				final_result = "Failed";
+		}
+} //fn
+
+
+function getServerObjects()
+{
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+	if (accountManager)
+		dump("accountManager is okay\n");
+	defaultAccount = accountManager.defaultAccount;
+	if (defaultAccount)
+		dump("defaultAccount is okay\n");
+	serverType = defaultAccount.incomingServer.type;
+		dump("Server Type is " + serverType + "\n");
+	incomingserver = defaultAccount.incomingServer;
+		dump("Incoming Server is " + incomingserver + "\n");
+	// identity is a global variable
+	identity = defaultAccount.defaultIdentity;
+}
+
+// nsIMsgCompose InitCompose(in nsIDOMWindow aWindow, in wstring originalMsgURI, in long type, in long format, in long compFieldsAddr);
+function SendTheMessage()
+{
+		
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+	var msgComposeService = Components.classes["component://netscape/messengercompose"].getService();
+	msgComposeService = msgComposeService.QueryInterface(Components.interfaces.nsIMsgComposeService);
+	var msgCompose = null;
+	var MAX_RECIPIENTS = 0;
+	var numAttachments = 0;
+	var currentAttachment = null;
+	var other_header = "";
+	var update_compose_title_as_you_type = true;
+
+	var mycompose = msgComposeService.InitCompose(window, null, 0, 0, null,identity);
+	mycompose.compFields.SetFrom(identity.email);
+	mycompose.compFields.SetTo(identity.email);
+	time = getTimeStamp();
+	mycompose.compFields.SetSubject(time);
+	mycompose.compFields.SetCharacterSet("ISO-8859-1");
+	mycompose.compFields.SetBody("This is the body\n");
+
+	mycompose.SendMsg(0, identity, null);
+}
+
+function getPopInterface()
+{
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+	instanceofpop3service = Components.classes['component://netscape/messenger/popservice'].getService();
+	interfaceofpop3service = instanceofpop3service.QueryInterface(Components.interfaces.nsIPop3Service);
+
+	if (interfaceofpop3service)
+	{
+		dump("interfaceofpop3service is okay\n");
+	} else {
+		dump("interfaceofpop3service does not exist\n");
+	}
+}
+
+function nsISupportsArray2JSArray(array, IID) {
+    var result = new Array;
+    var length = array.Count();
+    for (var i=0; i< length; i++) {
+      result[i] = array.GetElementAt(i).QueryInterface(IID);
+    }
+    return result;
+}
+
+function nsIEnumerator2JSArray(enumerator, iface) {
+    var array = new Array;
+    var i=0;
+    var done = false;
+	while (!done) {
+        var element = enumerator.currentItem();
+        array[i] = element.QueryInterface(iface);
+        try {
+             enumerator.next();
+        } 
+		catch (ex) {
+               done=true;
+        }
+               i++;
+    }
+    return array;
+}
+
+function nsISimpleEnumerator2JSArray(enumerator, iface) {
+    var array = new Array;
+    var i=0;
+    while (enumerator.HasMoreElements()) {
+         var element = enumerator.GetNext();
+         array[i] = element.QueryInterface(iface);
+         i++;
+    }
+    return array;
+}
+
+
+
+var urlListener = {
+  OnStartRunningUrl: function  (aUrl) {
+},
+  OnStopRunningUrl: function (aUrl, aExitCode) {
+}
+};
+
+
+// Here is all the statements
+
+//changePref();
+getAccountManager();
+getSmptServer();
+createAccount();
+getServerObjects();
+SendTheMessage();
+getPopInterface();
+getAndCheckForMail();
+// verifyrecvmail();
+
+function getAndCheckForMail() {
+
+if (incomingserver.type == 'pop3')
+{
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+	verifiedincomingserver = 	incomingserver.QueryInterface(Components.interfaces.nsIPop3IncomingServer);
+	dump("Verified Server is " + verifiedincomingserver + "\n");
+	var test = interfaceofpop3service.GetNewMail(msgwindow, urlListener, verifiedincomingserver);
+	var checktest = interfaceofpop3service.CheckForNewMail(urlListener,inboxfolder,verifiedincomingserver);
+	dump("CheckTest is " + checktest + "\n");
+} 
+else if (incomingserver.type == 'imap')
+{
+	verifiedincomingserver = incomingserver.QueryInterface(Components.interfaces.nsIImapIncomingServer);
+	dump("Verified Server is " + verifiedincomingserver + "\n");
+}
+else if (incomingserver.type == 'nntp')
+{
+	verifiedincomingserver = incomingserver.QueryInterface(Components.interfaces.nsINntpIncomingServer);
+	dump("Verified Server is " + verifiedincomingserver + "\n");
+}
+else if (incomingserver.type == 'none')
+{
+	dump("There is no incoming server\n");
+
+	// error code needed here
+}
+
+if ((incomingserver.type == 'imap') || (incomingserver.type == 'pop3'))
+{
+	// Get the phantom root folder
+	var rootFolder = incomingserver.RootFolder;
+	// Get all the subfolders for this account
+	var subFolderEnumerator = rootFolder.GetSubFolders();
+	// Convert the subfolders into a javascript array containing nsIMsgFolder interfaces
+	var subfolders = nsIEnumerator2JSArray(subFolderEnumerator, Components.interfaces.nsIMsgFolder);
+	// Out the names of the folders and save the Inbox folder into a variable
+	for (var i=0; i < subfolders.length; i++)
+	{
+		if ((subfolders[i].name == 'INBOX') || (subfolders[i].name == "Inbox"))
+		{
+			inboxfolder = subfolders[i];
+			// dump("Have now have the inbox folder\n");
+		}
+		var foldername = subfolders[i].name;
+		// dump("foldername is " + foldername + "\n");
+	}
+}
+
+dump("Step 2\n");
+
+// Get all the messages from the Inbox
+try {
+	arrayofmessages = inboxfolder.getMessages(msgwindow);
+} catch (ex) {
+	dump("Could not get the Messages from the inbox\n");
+}
+
+dump("Step 3\n");
+// Convert the array of messages into a javascript array containing nsIMessage interfaces
+try {
+	convertedarrayofmessages = nsISimpleEnumerator2JSArray(arrayofmessages,Components.interfaces.nsIMessage);
+	document.write("<br>" + "The converted array of messages is " + convertedarrayofmessages.length + "\n");
+} catch (ex) {
+dump("Could not get converted nsIMessage array:" + ex + "\n");
+}
+
+dump("Step 4\n");
+// Get the number of Unread Messages from the Inbox. 
+// Do not go into any subfolders that might exist under Inbox
+numberofunreadmessages = inboxfolder.getNumUnread(false);
+
+// Display the number of unread messages before we start our testcase
+document.writeln("<br>" + "The number of unread messages is " + numberofunreadmessages + "<br>");
+
+// Make the current number of unread messages the same as the number of unread messages
+currentunread = numberofunreadmessages;
+
+} // end of getAndCheckForMail
+
+// function we will use later
+function getnumunread()
+{
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+	// numberofunreadmessages = inboxfolder.getNumUnread(false);
+	currentunread = inboxfolder.getNumUnread(false);
+	dump("Inside getnumread: currentunread = " + currentunread + "\n");
+}
+
+// function we will use later
+function displaymessage() 
+{
+	dump("Inside displaymessage: currentunread is " + currentunread  + "\n");
+	dump("Inside displaymessage(): numberofunreadmessages is " + numberofunreadmessages + "\n");
+	document.writeln("<br>" + "currentunread is " + currentunread + "<br>");
+}
+
+function stopthetestifok()
+{
+	dump("Inside stopthetestifok: currentunread is " + currentunread + "\n");
+	dump("numberofunreadmessages is " + numberofunreadmessages + "\n");
+	if (currentunread > numberofunreadmessages)
+	{
+		clearInterval(intervalid);
+		rv += "getMail:" + "\t" + "Passed" + "\n";
+		dump("Writing Passed to file for getMail...\n");
+	}
+	else {
+		rv += "getMail:" + "\t" + "Failed" + "\n";
+		dump("Writing Failed to file for getMail...\n");
+		if (final_result == "Passed")
+			final_result = "Failed";
+	}
+}
+
+function getNewMail()
+{
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+	interfaceofpop3service.GetNewMail(msgwindow, urlListener, verifiedincomingserver);
+}
+
+function checkForNewMail()
+{
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+	netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+	interfaceofpop3service.CheckForNewMail(urlListener,inboxfolder,verifiedincomingserver);
+}
+
+
+// This function does the actual checking of mail. 
+// We assume that the Send message operation from above works
+// dothecheck() will be called from within a setInterval() call so that
+// if we do not have the message yet we will rerun dothecheck()
+function dothecheck() 
+{
+	dump("Inside dothecheck: currentunread = " + currentunread + "\n");
+	dump("Inside dothecheck: numberofunreadmessages = " + numberofunreadmessages + "\n");
+	if (currentunread <= numberofunreadmessages)
+	{
+		dump("currentunread is " + currentunread + "\n");
+		dump("Now get mail\n");
+		netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead"); 
+		netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect"); 
+		timeoutid = setTimeout("getNewMail()",1000);
+		timeoutid = setTimeout("checkForNewMail()",2000);
+		timeoutid = setTimeout("getnumunread()",3000);
+		timeoutid = setTimeout("displaymessage()",4000);
+	}
+	
+	timeoutid = setTimeout("stopthetestifok()",5000);
+	
+
+}
+
+//  start the check process in 10 seconds
+intervalid = setInterval("dothecheck()",10000);
+timeoutid = setTimeout("DeleteMessage()",20000);
+timeoutid = setTimeout("removeAccount()",22000);
+
+// timeoutid = setTimeout("write_to_file()", 14000);
+//timeoutid = setTimeout("analyzeResult()", 16000);
+
+
+</script>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February 17,  2000</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/quality/mailnews/APITest.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

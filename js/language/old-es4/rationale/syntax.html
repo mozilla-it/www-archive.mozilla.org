@@ -1,0 +1,359 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>ECMAScript 4 Syntax Rationale</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="unit-patterns.html">
+<LINK rel=Next href="miscellaneous.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=es-title>ECMAScript 4 Netscape Proposal</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Syntax</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="unit-patterns.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="miscellaneous.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Tuesday, November 19, 2002</P>
+
+<!--IMPORT "../../js20/rationale/syntax.html" -class=js2 -class=js2-hidden +class=es4 +class=es4-hidden -->
+
+<P>This section presents a number of syntactic alternatives that were considered while developing this proposal.</P>
+
+<H2><A name="semicolon-insertion"></A>Semicolon Insertion</H2>
+
+<H3>Definitions</H3>
+
+<P>The term semicolon insertion informally refers to the ability to write programs while omitting semicolons between statements.
+In both ECMAScript 3 and ECMAScript 4 there are two kinds of semicolon insertion:</P>
+
+<DL>
+  <DT><A name="grammatical-semicolon-insertion"></A>Grammatical Semicolon Insertion</DT>
+  <DD>Semicolons before a closing <CODE class=terminal-keyword>}</CODE> and the end of the program are optional in both ECMAScript
+    3 and 2.0. In addition, the ECMAScript 4 parser allows semicolons to be omitted before the <CODE class=terminal-keyword>else</CODE>
+    of an <CODE>if</CODE>-<CODE>else</CODE> statement and before the <CODE class=terminal-keyword>while</CODE> of a <CODE>do</CODE>-<CODE>while</CODE>
+    statement.</DD>
+  <DT><A name="line-break-semicolon-insertion"></A>Line-Break Semicolon Insertion</DT>
+  <DD>If the first through the <VAR>n</VAR><SUP>th</SUP> tokens of an ECMAScript program form are grammatically valid but the
+    first through the <VAR>n</VAR>+1<SUP>st</SUP> tokens are not and there is a line break between the <VAR>n</VAR><SUP>th</SUP>
+    tokens and the <VAR>n</VAR>+1<SUP>st</SUP> tokens, then the parser tries to parse the program again after inserting a
+    <SPAN class=terminal>VirtualSemicolon</SPAN> token between the <VAR>n</VAR><SUP>th</SUP> and the <VAR>n</VAR>+1<SUP>st</SUP>
+    tokens.</DD>
+</DL>
+
+<P>Grammatical semicolon insertion is implemented directly by the <A href="../formal/parser-grammar.html">syntactic grammar&#8217;s</A>
+productions, which simply do not require a semicolon in the aforementioned cases. Line breaks in the source code are not relevant
+to grammatical semicolon insertion.</P>
+
+<P>Line-break semicolon insertion cannot be easily implemented in the <A href="../formal/parser-grammar.html">syntactic grammar</A>.
+This kind of semicolon insertion turns a syntactically incorrect program into a correct program and relies on line breaks
+in the source code.</P>
+
+<H3>Discussion</H3>
+
+<P>Grammatical semicolon insertion is harmless. On the other hand, line-break semicolon insertion suffers from the following
+problems:</P>
+
+<OL>
+  <LI>Line breaks are relevant in the program&#8217;s source code</LI>
+  <LI>The consequences of this kind of semicolon insertion appear inconsistent to programmers</LI>
+  <LI>Existing program behavior can change unexpectedly when new syntax is introduced</LI>
+</OL>
+
+<P>The first problem presents difficulty for some preprocessors such as the one for XML attributes which turn line breaks
+into spaces. The second and third ones are more serious. Programmers are confused when they discover that the program</P>
+
+<PRE>a = b + c
+(d + e).print()</PRE>
+
+<P>doesn&#8217;t do what they expect:</P>
+
+<PRE>a = b + c;
+(d + e).print();</PRE>
+
+<P>Instead, that program is parsed as:</P>
+
+<PRE>a = b + c(d + e).print();</PRE>
+
+<P>The third problem is the most serious. New features are added to the language turn illegal syntax into legal syntax. If
+an existing program relies on the illegal syntax to trigger line-break semicolon insertion, then the program will silently
+change behavior once the feature is added. For example, the juxtaposition of a numeric literal followed by a string literal
+(such as <CODE>4&nbsp;"in"</CODE>) is illegal in ECMAScript 3. ECMAScript 4 makes this legal syntax for expressions with
+units. This syntax extension has the unfortunate consequence of silently changing the meaning of the following ECMAScript
+3 program:</P>
+
+<PRE>a = b + 4
+"in".print()</PRE>
+
+<P>from:</P>
+
+<PRE>a = b + 4;
+"in".print();</PRE>
+
+<P>to:</P>
+
+<PRE>a = b + 4"in".print();</PRE>
+
+<P>ECMAScript 4 gets around this incompatibility by adding a [no&nbsp;line&nbsp;break] restriction in the grammar that requires
+the numeric and string literals to be on the same line. Unfortunately, this compatibility is a double-edged sword. Due to
+ECMAScript 3 compatibility, ECMAScript 4 has to have a large number of these [no&nbsp;line&nbsp;break] restrictions. It
+is hard to remember all of them, and forgetting one of them often silently causes an ECMAScript 4 program to be reinterpreted.
+Some programmers will be dismayed to find that:</P>
+
+<PRE>internal
+  function f(x) {return x*x}</PRE>
+
+<P>turns into:</P>
+
+<PRE>internal;
+function f(x) {return x*x}</PRE>
+
+<P>(where <CODE>internal;</CODE> is an expression statement) instead of:</P>
+
+<PRE>internal function f(x) {return x*x}</PRE>
+
+<P>An earlier version of ECMAScript 4 disallowed line-break semicolon insertion. The current version allows it but only
+in non-strict mode. Strict mode removes all [no&nbsp;line&nbsp;break] restrictions, simplifying the language again. As a side
+effect, it is possible to write a program that does different things in strict and non-strict modes (the last example above
+is one such program), but this is the price to pay to achieve simplicity.</P>
+
+<H2><A name="regular-expressions"></A>Regular Expression Literals</H2>
+
+<P>ECMAScript 4 retains compatibility with ECMAScript 3 by adopting the same rules for detecting regular expression literals.
+This complicates the design of programs such as syntax-directed text editors and machine scanners because it makes it impossible
+to find all of the tokens in an ECMAScript program without parsing the program.</P>
+
+<P>Making ECMAScript 4&#8217;s lexical grammar independent of its syntactic grammar significantly would have allowed tools to
+easily process an ECMAScript program and escape all instances of, say, <CODE>&lt;/</CODE> to properly embed an ECMAScript 4
+or later program in an HTML page. The full parser changes for each version of ECMAScript. To illustrate the difficulties,
+compare such ECMAScript 3 gems as:</P>
+
+<PRE>for (var x = a in foo &amp;&amp; "&lt;/x&gt;" || mot ? z:/x:3;x&lt;5;y&lt;/g/i) {xyz(x++);}
+for (var x = a in foo &amp;&amp; "&lt;/x&gt;" || mot ? z/x:3;x&lt;5;y&lt;/g/i) {xyz(x++);}</PRE>
+
+<H3>Alternate Regular Expression Syntax</H3>
+
+<P>One idea explored early in the design of ECMAScript 4 was providing an alternate, unambiguous syntax for regular expressions
+and encouraging the use of the new syntax. A <SPAN class=terminal>RegularExpression</SPAN> could have been specified unambiguously
+using <CODE>&laquo;</CODE> and <CODE>&raquo;</CODE> as its opening and closing delimiters instead of <CODE>/</CODE> and <CODE>/</CODE>.
+For example, <CODE>&laquo;3*&raquo;</CODE> would be a regular expression that matches zero or more <CODE>3</CODE>&#8217;s. Such
+a regular expression could be empty: <CODE>&laquo;&raquo;</CODE> is a regular expression that matches only the empty string,
+while <CODE>//</CODE> starts a comment. To write such a regular expression using the slash syntax one needs to write <CODE>/(?:)/</CODE>.</P>
+
+<H3><A name="syntactic-resynchronization"></A>Syntactic Resynchronization</H3>
+
+<P>Syntactic resynchronization occurs when the lexer needs to find the end of a block (the matching <CODE>}</CODE>) in order
+to skip a portion of a program written in a future version of ECMAScript. Ordinarily this would not be a problem, but regular
+expressions complicate matters because they make lexing dependent on parsing. The rules for recognizing regular expression
+literals must be changed for those portions of the program. The rule below might work, or a simplified parse might be performed
+on the input to determine the locations of regular expressions. <SPAN class=issue>This is an area that needs further work.</SPAN></P>
+
+<P>During syntax resynchronization ECMAScript 4 determines whether a <CODE>/</CODE> starts a regular expression or is a
+division (or <CODE>/=</CODE>) operator solely based on the previous token:</P>
+
+<TABLE border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TH nowrap align=left><CODE>/</CODE> interpretation</TH>
+  <TH nowrap align=left>Previous token</TH>
+</TR>
+<TR>
+  <TD nowrap valign=top><CODE class=terminal-keyword>/</CODE> or <CODE class=terminal-keyword>/=</CODE> &nbsp;</TD>
+  <TD><SPAN class=terminal>Identifier</SPAN> &nbsp; <SPAN class=terminal>Number</SPAN> &nbsp; <SPAN class=terminal>RegularExpression</SPAN>
+    &nbsp; <SPAN class=terminal>String</SPAN><BR>
+    <CODE class=terminal-keyword>)</CODE> &nbsp; <CODE class=terminal-keyword>++</CODE> &nbsp; <CODE class=terminal-keyword>--</CODE>
+    &nbsp; <CODE class=terminal-keyword>]</CODE> &nbsp; <CODE class=terminal-keyword>}</CODE><BR>
+    <CODE class=terminal-keyword>class</CODE> &nbsp; <CODE class=terminal-keyword>false</CODE> &nbsp; <CODE class=terminal-keyword>null</CODE>
+    &nbsp; <CODE class=terminal-keyword>private</CODE> &nbsp; <CODE class=terminal-keyword>protected</CODE> &nbsp; <CODE class=terminal-keyword>public</CODE>
+    &nbsp; <CODE class=terminal-keyword>super</CODE> &nbsp; <CODE class=terminal-keyword>this</CODE> &nbsp; <CODE class=terminal-keyword>true</CODE><BR>
+    <CODE class=terminal-keyword>get</CODE> &nbsp; <CODE class=terminal-keyword>set</CODE><BR>
+    Any other punctuation</TD>
+</TR>
+<TR>
+  <TD nowrap valign=top><SPAN class=terminal>RegularExpression</SPAN> &nbsp;</TD>
+  <TD><CODE class=terminal-keyword>!</CODE> &nbsp; <CODE class=terminal-keyword>!=</CODE> &nbsp; <CODE class=terminal-keyword>!==</CODE>
+    &nbsp; <CODE class=terminal-keyword>#</CODE> &nbsp; <CODE class=terminal-keyword>%</CODE> &nbsp; <CODE class=terminal-keyword>%=</CODE>
+    &nbsp; <CODE class=terminal-keyword>&amp;</CODE> &nbsp; <CODE class=terminal-keyword>&amp;&amp;</CODE> &nbsp; <CODE class=terminal-keyword>&amp;&amp;=</CODE>
+    &nbsp; <CODE class=terminal-keyword>&amp;=</CODE> &nbsp; <CODE class=terminal-keyword>(</CODE> &nbsp; <CODE class=terminal-keyword>*</CODE>
+    &nbsp; <CODE class=terminal-keyword>*=</CODE> &nbsp; <CODE class=terminal-keyword>+</CODE> &nbsp; <CODE class=terminal-keyword>+=</CODE>
+    &nbsp; <CODE class=terminal-keyword>,</CODE> &nbsp; <CODE class=terminal-keyword>-</CODE> &nbsp; <CODE class=terminal-keyword>-=</CODE>
+    &nbsp; <CODE class=terminal-keyword>-&gt;</CODE> &nbsp; <CODE class=terminal-keyword>.</CODE> &nbsp; <CODE class=terminal-keyword>..</CODE>
+    &nbsp; <CODE class=terminal-keyword>...</CODE> &nbsp; <CODE class=terminal-keyword>/</CODE> &nbsp; <CODE class=terminal-keyword>/=</CODE>
+    &nbsp; <CODE class=terminal-keyword>:</CODE> &nbsp; <CODE class=terminal-keyword>::</CODE> &nbsp; <CODE class=terminal-keyword>;</CODE>
+    &nbsp; <CODE class=terminal-keyword>&lt;</CODE> &nbsp; <CODE class=terminal-keyword>&lt;&lt;</CODE> &nbsp; <CODE class=terminal-keyword>&lt;&lt;=</CODE>
+    &nbsp; <CODE class=terminal-keyword>&lt;=</CODE> &nbsp; <CODE class=terminal-keyword>=</CODE> &nbsp; <CODE class=terminal-keyword>==</CODE>
+    &nbsp; <CODE class=terminal-keyword>===</CODE> &nbsp; <CODE class=terminal-keyword>&gt;</CODE> &nbsp; <CODE class=terminal-keyword>&gt;=</CODE>
+    &nbsp; <CODE class=terminal-keyword>&gt;&gt;</CODE> &nbsp; <CODE class=terminal-keyword>&gt;&gt;=</CODE> &nbsp; <CODE class=terminal-keyword>&gt;&gt;&gt;</CODE>
+    &nbsp; <CODE class=terminal-keyword>&gt;&gt;&gt;=</CODE> &nbsp; <CODE class=terminal-keyword>?</CODE> &nbsp; <CODE class=terminal-keyword>@</CODE>
+    &nbsp; <CODE class=terminal-keyword>[</CODE> &nbsp; <CODE class=terminal-keyword>^</CODE> &nbsp; <CODE class=terminal-keyword>^=</CODE>
+    &nbsp; <CODE class=terminal-keyword>^^</CODE> &nbsp; <CODE class=terminal-keyword>^^=</CODE> &nbsp; <CODE class=terminal-keyword>{</CODE>
+    &nbsp; <CODE class=terminal-keyword>|</CODE> &nbsp; <CODE class=terminal-keyword>|=</CODE> &nbsp; <CODE class=terminal-keyword>||</CODE>
+    &nbsp; <CODE class=terminal-keyword>||=</CODE> &nbsp; <CODE class=terminal-keyword>~</CODE><BR>
+    <CODE class=terminal-keyword>abstract</CODE> &nbsp; <CODE class=terminal-keyword>break</CODE> &nbsp; <CODE class=terminal-keyword>case</CODE>
+    &nbsp; <CODE class=terminal-keyword>catch</CODE> &nbsp; <CODE class=terminal-keyword>const</CODE> &nbsp; <CODE class=terminal-keyword>continue</CODE>
+    &nbsp; <CODE class=terminal-keyword>debugger</CODE> &nbsp; <CODE class=terminal-keyword>default</CODE> &nbsp; <CODE class=terminal-keyword>delete</CODE>
+    &nbsp; <CODE class=terminal-keyword>do</CODE> &nbsp; <CODE class=terminal-keyword>else</CODE> &nbsp; <CODE class=terminal-keyword>enum</CODE>
+    &nbsp; <CODE class=terminal-keyword>export</CODE> &nbsp; <CODE class=terminal-keyword>extends</CODE> &nbsp; <CODE class=terminal-keyword>final</CODE>
+    &nbsp; <CODE class=terminal-keyword>finally</CODE> &nbsp; <CODE class=terminal-keyword>for</CODE> &nbsp; <CODE class=terminal-keyword>function</CODE>
+    &nbsp; <CODE class=terminal-keyword>goto</CODE> &nbsp; <CODE class=terminal-keyword>if</CODE> &nbsp; <CODE class=terminal-keyword>implements</CODE>
+    &nbsp; <CODE class=terminal-keyword>import</CODE> &nbsp; <CODE class=terminal-keyword>in</CODE> &nbsp; <CODE class=terminal-keyword>instanceof</CODE>
+    &nbsp; <CODE class=terminal-keyword>interface</CODE> &nbsp; <CODE class=terminal-keyword>is</CODE> &nbsp; <CODE class=terminal-keyword>namespace</CODE>
+    &nbsp; <CODE class=terminal-keyword>native</CODE> &nbsp; <CODE class=terminal-keyword>new</CODE> &nbsp; <CODE class=terminal-keyword>package</CODE>
+    &nbsp;<CODE class=terminal-keyword>return</CODE> &nbsp; <CODE class=terminal-keyword>static</CODE> &nbsp; <CODE class=terminal-keyword>switch</CODE>
+    &nbsp; <CODE class=terminal-keyword>synchronized</CODE> &nbsp; <CODE class=terminal-keyword>throw</CODE> &nbsp; <CODE class=terminal-keyword>throws</CODE>
+    &nbsp; <CODE class=terminal-keyword>transient</CODE> &nbsp; <CODE class=terminal-keyword>try</CODE> &nbsp; <CODE class=terminal-keyword>typeof</CODE>
+    &nbsp; <CODE class=terminal-keyword>use</CODE> &nbsp; <CODE class=terminal-keyword>var</CODE> &nbsp; <CODE class=terminal-keyword>volatile</CODE>
+    &nbsp; <CODE class=terminal-keyword>while</CODE> &nbsp; <CODE class=terminal-keyword>with</CODE></TD>
+</TR>
+</TABLE>
+
+<P>Regardless of the previous token, <CODE>//</CODE> is interpreted as the beginning of a comment.</P>
+
+<P>The only controversial choices are <CODE>)</CODE> and <CODE>}</CODE>. A <CODE>/</CODE> after either a <CODE>)</CODE> or
+<CODE>}</CODE> token can be either a division symbol (if the <CODE>)</CODE> or <CODE>}</CODE> closes a subexpression or an
+object literal) or a regular expression token (if the <CODE>)</CODE> or <CODE>}</CODE> closes a preceding statement or an
+<CODE>if</CODE>, <CODE>while</CODE>, or <CODE>for</CODE> expression). Having <CODE>/</CODE> be interpreted as a <SPAN class=terminal>RegularExpression</SPAN>
+in expressions such as <CODE>(x+y)/2</CODE> would be problematic, so it is interpreted as a division operator after <CODE>)</CODE>
+or <CODE>}</CODE>. If one wants to place a regular expression literal at the very beginning of an expression statement, it&#8217;s
+best to put the regular expression in parentheses. Fortunately, this is not common since one usually assigns the result of
+the regular expression operation to a variable.</P>
+
+<H2><A name="type-declarations"></A>Type Declarations</H2>
+
+<P>The current ECMAScript 4 proposal uses Pascal-style colons to introduce types in declarations. For example:</P>
+
+<PRE>var x:Integer = 7;
+function square(a:Number):Number {return a*a}</PRE>
+
+<P>This is due to a consensus decision of the ECMA working group, with Waldemar the only dissenter. There are a couple of
+alternative syntaxes:</P>
+
+<H3>C-Style</H3>
+
+<P>We could allow modified C-style type declarations as long as a function&#8217;s return type is listed after its parameters:</P>
+
+<PRE>var Integer x = 7;
+var Integer y = 8, Integer z = 9;  // Declares two Integer variables
+function square(Number a) Number {return a*a}</PRE>
+
+<P>A function&#8217;s return type cannot be listed before the parameters because this would make the grammar ambiguous.</P>
+
+<P>In fact, an implementation could unambiguously admit both the Pascal-style and the modified C-style declarations by replacing
+the <A href="../core/variables.html#N-TypedIdentifier" class=nonterminal>TypedIdentifier</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>
+and <A href="../core/functions.html#N-Result" class=nonterminal>Result</A> grammar rules with the ones listed
+below. The resulting grammar is still LALR(1).</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-TypedIdentifier"></A><SPAN class=nonterminal>TypedIdentifier</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<CODE class=terminal-keyword>:</CODE>&nbsp;<A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP>&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A href="../core/functions.html#N-Result" class=nonterminal>Result</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>:</CODE>&nbsp;<A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;[lookahead<SCRIPT type="text/javascript">document.write(U_notin)</SCRIPT>{<CODE class=terminal-keyword>{</CODE>}]&nbsp;<A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+</DIV>
+
+<P>Advantages of using the modified C-style syntax include:</P>
+
+<UL>
+  <LI>On the Pascal/Modula/Ada vs. C/C++/Java syntax debate, ECMAScript tends to use syntax more similar to Java.</LI>
+  <LI>We already use the colon syntax for statement labels and object literal elements (for example <CODE>{a:17, b:33}</CODE>).
+    The latter would present a conundrum if we ever wanted to declare field types in an object literal. Some programmers have
+    been using these as a convenient facility for passing named arguments to functions.</LI>
+</UL>
+
+<H3><A name="attribute-style"></A>Attribute-Style</H3>
+
+<P>Since attributes are simple expressions, we could allow attributes that evaluate to types. For <CODE>var</CODE> and <CODE>const</CODE>
+declarations, these attributes would specify the type of the declared variables. For <CODE>function</CODE> declarations, these
+attributes would specify the function&#8217;s return type. For stylistic consistency, types of arguments would also be listed before
+their identifiers.</P>
+
+<PRE>Integer var x = 7;
+Integer var y = 8, z = 9;        // Declares two Integer variables
+Number function square(Number a) {return a*a}</PRE>
+
+<P>This style is simple and reads fairly naturally.</P>
+
+<P>Again, an implementation could unambiguously admit both the Pascal-style and the attribute-style declarations, with the
+resulting grammar still being LALR(1). However, it&#8217;s better if the language made a choice rather than propagating the confusion
+of having two or three styles; this flexibility could be used for compatibility with existing programs.</P>
+
+<H2>Type Expressions</H2>
+
+<P>ECMAScript 4 uses the same syntax for type expressions as for value expressions for the following reasons:</P>
+
+<UL>
+  <LI>Creating two different syntaxes for two kinds of expressions would add to the complexity of the language.</LI>
+  <LI>ECMAScript is a dynamic language and it is useful to manipulate types as though they were first-class values.</LI>
+  <LI>It&#8217;s difficult to unambiguously distinguish type expressions from value expressions. In the expression <CODE>(expr1)(expr2)</CODE>,
+    is <CODE>expr1</CODE> a type or a value expression? If the two have the same syntax, it doesn&#8217;t matter.</LI>
+</UL>
+
+<H2>Function Declarations</H2>
+
+<H3><A name="getter-setter"></A>Getters and Setters</H3>
+
+<P>By consensus in the ECMA TC39 modularity subcommittee, we decided to use the syntax <CODE>function&nbsp;get&nbsp;</CODE><VAR>id</VAR><CODE>&nbsp;(</CODE>...<CODE>)</CODE>
+rather than <CODE>getter&nbsp;function&nbsp;</CODE><VAR>id</VAR><CODE>&nbsp;(</CODE>...<CODE>)</CODE> for defining a getter
+and <CODE>function&nbsp;set&nbsp;</CODE><VAR>id</VAR><CODE>&nbsp;(</CODE>...<CODE>)</CODE> rather than <CODE>setter&nbsp;function&nbsp;</CODE><VAR>id</VAR><CODE>&nbsp;(</CODE>...<CODE>)</CODE>
+for defining a setter. The latter would have simplified the <A href="../core/functions.html#N-FunctionName" class=nonterminal>FunctionName</A>
+rule to:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A href="../core/functions.html#N-FunctionName" class=nonterminal>FunctionName</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+</DIV>
+
+<P>while creating two additional attributes, <CODE>getter</CODE> and <CODE>setter</CODE>. The decision was based on aesthetics;
+neither syntax is more difficult to implement than the other.</P>
+
+<H2><A name="language-directives"></A>Language Directives</H2>
+
+<P>An alternative to <A href="../core/pragmas.html">pragmas</A> that was considered early was to report syntax errors at the
+time the relevant statement was executed rather than at the time it was parsed. This way a single program could include parts
+written in a future version of ECMAScript without getting an error unless it tries to execute those portions on a system that
+does not understand that version of ECMAScript. If a program part that contains an error is never executed, the error never
+breaks the script. For example, the following function finishes successfully if <CODE>whizBangFeature</CODE> is <CODE>false</CODE>:</P>
+
+<PRE>function move(x:Integer, y:Integer, d:Integer) {
+  x += 10;
+  y += 3;
+  if (<CODE>whizBangFeature</CODE>) {
+    simulate{@x and #y} along path
+  } else {
+    x += d; y += d;
+  }
+  return [x,y];
+}</PRE>
+
+<P>The code <CODE>simulate{@x and #y} along path</CODE> is a syntax error, but this error does not break the script unless
+the script attempts to execute that piece of code.</P>
+
+<P>One problem with this approach is that it frustrates debugging; a script author benefits from knowing about syntax errors
+at compile time rather than at run time.</P>
+
+<!--/IMPORT-->
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Tuesday, November 19, 2002</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="unit-patterns.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="miscellaneous.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+</BODY>
+</HTML>

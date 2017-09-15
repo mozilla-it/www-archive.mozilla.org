@@ -1,0 +1,39 @@
+# run as:
+# awk -f gprof2html <gprof_output_file >gprof.html
+#
+BEGIN {
+    print "<HTML><HEAD><TITLE>HTML/Hiprof</TITLE></HEAD><BODY>"
+    print "<CENTER><H1> Contents </H1></CENTER>"
+    print "<hr>"
+    print "<A HREF=\"#[1]\"> Hierarchial Profile </A><br>"
+    print "<A HREF=\"#Total\"> Flat Profile </A><br>"
+    print "<hr><PRE>"
+}
+
+function firstAlpha(naIndex)
+{
+    for(naIndex=1; naIndex<=NF; ++naIndex) {
+        if($(naIndex)~"^[a-zA-Z_]") return naIndex;
+    }
+}
+
+{
+    if($0 ~ "^\[[0-9]") {
+	printf("<A NAME=\"%s\">\n", $1)
+	print $0
+    } else if ($0 ~ "]$") {
+	gsub(/<cycle [0-9]*>/, " ")
+	naIndex = firstAlpha()
+	pos = index($0, $(naIndex))
+	start_str = substr($0, 1, pos-1)
+	stop_str  = substr($0, pos)
+	printf("%s <A HREF=\"#%s\"> %s </A>\n", start_str, $NF, stop_str)
+    } else if ($0 ~ "^total " || $0 ~ "^ time ") {
+	printf("<A NAME=\"Total\"> %s\n",$0)
+    } else {
+	print $0
+    }
+}
+END {
+    print "</PRE></BODY></HTML>"
+}

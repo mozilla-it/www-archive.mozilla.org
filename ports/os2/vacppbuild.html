@@ -1,0 +1,192 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+<TITLE>Build Instructions for Warpzilla with VisualAge 3.6.5</TITLE><script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+<H1>Build Instructions for Warpzilla with VisualAge 3.6.5</H1>
+<H2>Tweak VisualAge, Toolkit, and TCP/IP - only needs to be done once</H2>
+Open <TT>Ibmcxxo\include\stdlib.h</TT> in an editor. Search for "min" and add the following bold lines to the code:
+<PRE>
+<B>#ifndef XP_OS2_VACPP</B>
+#ifndef max
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+#define min(a, b) (((a) &lt; (b)) ? (a) : (b))
+#endif
+<B>#endif /* XP_OS2_VACPP */</B>
+</PRE>
+<P>Open <TT>Toolkit\h\stack16\utils.h</TT> in an editor. Search for "strcasecmp" and add the following bold lines to the code:
+<PRE>
+<B>#ifndef XP_OS2_VACPP</B>
+#define strcasecmp(x,y) strcmpi((x),(y))
+#define strncasecmp(x,y,z) strnicmp(x,y,z)
+<B>#endif /* XP_OS2_VACPP */</B>
+</PRE>
+<P>
+On your boot drive, go to the tcpip/bin directory, and if you have <TT>ln.exe</TT>, rename it to <TT>ln-old.exe</TT>.
+<H2>Step 1: Setup your environment</H2>
+<P>
+SETMOZENV.CMD uses environment variables to locate the various tools that are needed for the build. The following
+environment variables should be set to point to where your tools are located:
+<PRE>
+GLIB
+LIBIDL
+AUTOCONF
+EMX
+VACPP365
+MOZTOOLS
+</PRE>
+Note that if you have all of your tools directory of off your root directory, you do not need to set these values.
+When you have set up the variables, type:
+<PRE>
+SETMOZENV vacpp
+</PRE>
+<H2>Step 2: Get the Code</H2>
+To get the code from CVS, go the directory where you want to put Warpzilla and type:
+<PRE>
+cvs checkout mozilla/client.mk
+</PRE>
+Then type:
+<PRE>
+cd mozilla
+gmake -f client.mk pull_all
+</PRE>
+<H2>Step 3: The .mozconfig file</H2>
+The .mozconfig file is a file you create in the mozilla directory that specifies options for the build. Some
+of the more common options are creating an obj directoy (builds objs separate from source) or enabling security
+(--enable-crypto) To create a .mozconfig file, see the <A HREF="http://webtools.mozilla.org/build/config.cgi">Unix Build Configurator</A>
+This is also how you turn on extensions like irc or venkman.
+<P>
+<B>We strongly recommend that you build with an obj directory</B>
+<P>
+Here is what our typical .mozconfig files look like for a debug build:
+<PRE>
+# sh
+# Build configuration script
+#
+# See http://www.mozilla.org/build/unix.html for build instructions.
+#
+
+# Options for client.mk.
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj
+
+# Options for 'configure' (same as command-line options).
+#ac_add_options --disable-tests
+#ac_add_options --enable-optimize
+#ac_add_options --disable-debug
+ac_add_options --enable-crypto
+ac_add_options --with-extensions=all
+</PRE>
+<H2>Step 4: Build the code</H2>
+Go to the mozilla directory and type:
+<PRE>
+gmake -f client.mk build_all
+</PRE>
+The build itself is actually two steps, an export step that builds required tools and copies headers into the dist, and a
+libs step that actually builds the code. If you encounter a situation where the export step appears to complete,
+but the libs step does not begin, you can type
+<PRE>
+gmake libs
+</PRE>
+to continue the build.
+<H2>Step 5: Run the code</H2>
+<P>The executable is located in mozilla/dist/bin. Type:
+<PRE>
+mozilla
+</PRE>
+to run it.
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified November 27,  2001</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/ports/os2/vacppbuild.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

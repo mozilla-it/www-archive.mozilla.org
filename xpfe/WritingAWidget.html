@@ -1,0 +1,273 @@
+<HTML>
+<HEAD>
+<TITLE>Untitled Document</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000"
+      LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+<H1>Birthing a Widget</H1>
+
+
+<P><I>Written by Dave Hyatt<BR>
+  Last Modified 12/04/98</I></P>
+
+<P>This document contains a list of the steps involved in creating a new widget 
+  (and in making sure that it is possible to instantiate the widget from within 
+  the viewer test app).</P>
+
+<P><B>The Interface</B></P>
+
+<P>You should first decide whether or not your widget is implementing an interface 
+  in addition to nsIWidget (e.g., if you're writing a toolbar you might need to 
+  have an nsIToolbar interface). This interface is only necessary if you have 
+  specific additional interface methods that you expect will be necessary in order 
+  to effectively communicate with the widget.</P>
+
+<P>Some sample code shown below illustrates how a stubbed interface for a new 
+  widget might look:</P>
+
+<PRE>#ifndef nsIMyInterface_h___
+#define nsIMyInterface_h___
+
+// <I>{FC41CD61-796E-11d2-BF86-00105A1B0627}</I>
+#define NS_IMYINTERFACE_IID      \
+{ 0xfc41cd61, 0x796e, 0x11d2, { 0xbf, 0x86, 0x0, 0x10, 0x5a, 0x1b, 0x6, 0x27 } }
+
+class nsIMyInterface : public nsISupports
+{
+public:
+	NS_IMETHOD ASampleMethod() = 0;
+};
+
+#endif /* nsIMyInterface_h___ */</PRE>
+
+<P>Note the #define at the top of the file. This is an <I>interface ID</I>, a 
+  way of uniquely identifying your new interface. You can generate new IIDs by 
+  running the guidgen program. 
+</P>
+
+<P>Your interface will typically inherit from nsISupports 
+  (thus picking up AddRef, QueryInterface, 
+  and Release). Methods in your 
+  interface should be pure virtual functions, and have a return value of nsresult. 
+  The macro NS_METHOD takes care of declaring the function virtual and giving 
+  it a return value of nsresult. 
+  (Also make sure your interfaces don't take non-interface structs or classes 
+  as arguments. Don't pass around non-interface pointers to structs or classes 
+  either.)</P>
+
+<P>Once you've made your interface, you need to make sure it gets exported where 
+  others can see it. This document will assume that you're adding something to 
+  mozilla/widget. Interfaces are 
+  placed into the public subdirectory 
+  of widget. You will need to modify the Makefile.in 
+  and makefile.win files 
+  in that directory for Linux and Windows.</P>
+
+<P><B>The Class</B></P>
+
+<P>Now that you have the interface specified, you'll want to write your implementation. 
+  Let's look at a sample .h file for your new widget first.</P>
+
+<PRE>#ifndef nsMyWidget_h___
+#define nsMyWidget_h___
+
+#include "nsIMyWidget.h"
+
+class nsMyWidget : public nsIMyWidget, public nsWindow
+{
+public:
+    nsMyWidget();
+    virtual ~nsMyWidget();
+
+    // <I>nsISupports Interface</I>
+    NS_DECL_ISUPPORTS
+	
+    // <I>nsIMyWidget Interface</I>
+    NS_IMETHOD ASampleMethod();
+
+protected:
+    void MyOwnInternalMethod();
+
+protected:
+    // <I>Data members</I>
+};
+
+#endif /* nsMyWidget_h___ */</PRE>
+
+<P>Your class inherits from your new interface (assuming you have one) and from 
+  another class (e.g., nsWindow) 
+  that ultimately inherits from nsIWidget 
+  (and that provides an implementation for nsIWidget's methods). Your class should 
+  declare a constructor, since you will need to initialize your mRefCnt 
+  variable (which is part of the implementation of nsISupports). 
+</P>
+
+<P>In order to say that your widget is implementing the nsISupports 
+  functions you use the macro NS_DECL_ISUPPORTS. This puts the member functions 
+  for AddRef, QueryInterface, 
+  and Release into your header 
+  file and ensures that your class has a member variable (mRefCnt) 
+  for reference counting.</P>
+
+<P>Note that your class can contain as many additional internal methods as you 
+  need, although anyone referring to your class through an interface won't be 
+  able to invoke these methods.</P>
+
+<P>The corresponding .cpp file for this class follows.</P>
+
+<PRE>#include "nsWindow.h"
+#include "nsMyWidget.h"
+
+static NS_DEFINE_IID(kIMyWidgetIID, NS_IMYWIDGET_IID);
+
+// <I>ISupports Implementation</I>
+NS_IMPL_ADDREF(nsMyWidget)
+NS_IMPL_RELEASE(nsMyWidget)
+
+nsresult nsTreeView::QueryInterface(REFNSIID aIID, void** aInstancePtr)      
+{                                                                        
+  if (NULL == aInstancePtr) {                                            
+    return NS_ERROR_NULL_POINTER;                                        
+  }                                                                      
+  if (aIID.Equals(kIMyWidgetIID)) {                                          
+    *aInstancePtr = (void*) (nsIMyWidget *)this;                                        
+    AddRef();                                                           
+    return NS_OK;                                                        
+  }     
+  return (nsWindow::QueryInterface(aIID, aInstancePtr));
+} </PRE>
+
+<PRE>// <I>nsIMyWidget Implementation</I>
+NS_METHOD nsMyWidget::ASampleMethod()
+{
+  // <I>Do some stuff</I>
+  return NS_OK;
+}
+// <I>nsMyWidget Methods</I>
+
+nsMyWidget::nsMyWidget() : nsIMyWidget(), nsWindow()
+{
+  NS_INIT_REFCNT();
+}
+
+nsMyWidget::~nsMyWidget()
+{}
+
+void nsMyWidget::MyOwnInternalMethod()
+{
+  // <I>Do stuff</I>
+}</PRE>
+
+<P>The NS_DEFINE_IID macro simply places an ID into a variable (which is passed 
+  in as the first argument to the macro). You can then use the variable within 
+  the file to refer to the ID. </P>
+
+<P>AddRef and Release implementations for nsISupports are specified using the 
+  NS_IMPL_ADDREF and NS_IMPL_RELEASE macros. QueryInterface you have to write 
+  yourself. The implementation shown in the .cpp file above shows the proper code 
+  for returning an interface pointer to your new interface. If another interface 
+  ID is requested, then it passes the buck to nsWindow (which can handle requests 
+  for nsISupports and nsIWidget interfaces).</P>
+
+<P>The constructor for the class contains a macro called NS_INIT_REFCNT, which 
+  takes care of initializing your ref count variable (that you got by saying you 
+  implemented nsISupports in the header file). </P>
+
+<P>The sample interface method for the nsIMyWidget interface uses the NS_METHOD 
+  macro to declare its return value. (Use NS_IMETHOD in your .h files, and NS_METHOD 
+  in your .cpp files.) An interface method that succeeds should return NS_OK.</P>
+
+<P><B>Where does the widget implementation go?</B></P>
+
+<P>If you are implementing an entirely cross-platform widget (like the tree view 
+  and toolbar), then you should place your .h and .cpp files into the xpwidgets 
+  directory under mozilla/widget/src. 
+  If you are writing a platform-specific widget, then it should go under the directory 
+  for that platform, e.g., mozilla/widget/src/windows.</P>
+
+<P>The makefiles in the corresponding directory should be modified to add your 
+  .cpp files. (Makefile.in and makefile.win in most cases.)</P>
+
+<P><B>Teaching the widget library to instantiate your widget </B></P>
+
+<P>Now that you have a widget ready to go, you need to make sure that the <I>widget 
+  factory </I>knows how to instantiate your widget when a request comes in to 
+  create an instance of the widget. First, you need to make a <I>class ID </I>for 
+  your widget implementation. While the IID (the interface ID) uniquely identifies 
+  the interface, this CID uniquely identifies your specific implementation. There 
+  is a one-to-many mapping from an interface to implementations of that interface. 
+  You can use guidgen to generate 
+  a class ID for your implementation.</P>
+
+<P>You then need to add your class ID to the nsWidgetsCid.h 
+  header file (found in the mozilla/widget/public 
+  directory).</P>
+
+<P>A sample snippet of what you have to add for you widget implementation is shown 
+  below:</P>
+
+<PRE>// <I>{0FAF80A1-815C-11d2-96ED-00104B7B7DEB}</I>
+#define NS_MYWIDGET_CID	\
+{ 0xfaf80a1, 0x815c, 0x11d2, { 0x96, 0xed, 0x0, 0x10, 0x4b, 0x7b, 0x7d, 0xeb } }</PRE>
+
+<P>Now that you have a CID for your implementation, you have to make sure that 
+  the widget factory knows to make your object when it gets a request with your 
+  CID attached to it. Each platform (e.g., GTK, Mac, Windows) has a widget factory 
+  file in the mozilla/widget/src/build 
+  directory. For example, the windows factory implementation is nsWinWidgetFactory.cpp. 
+</P>
+
+<P>(1) Near the top of the file are the #includes. You should add the header file 
+  for your implementation to this list, e.g., #include &quot;nsMyWidget.h&quot;. 
+</P>
+
+<P>(2) Put your CID into a variable for later use in the section where all the 
+  NS_DEFINE_IID macros are used for all of the implementations the factory knows 
+  about.</P>
+
+<P>static NS_DEFINE_IID(kCMyWidget, NS_MYWIDGET_CID);</P>
+
+<P>(3) There should be some code to instantiate different widgets in <I>CreateInstance</I>. 
+  Your code snippet should be added to the series of if-else statements. It will 
+  look something like this.</P>
+
+<PRE>else if (mClassID.Equals(kCMyWidget)) {
+		inst = (nsISupports*)(nsWindow*)new nsMyWidget();
+}</PRE>
+
+<P>Do this in each factory .cpp file for each platform your widget supports.</P>
+
+<P><B>Teaching the Viewer App To Instantiate My Widget</B></P>
+
+<P>This section is just a quick and dirty explanation of how to make sure you 
+  can instantiate your widget from somewhere within the viewer app. This is just 
+  what to do to make your code work with the viewer app. (The viewer code is under 
+  mozilla/webshell/tests/viewer.)</P>
+
+<P>(1) In nsSetupRegistry.cpp, 
+  you should use NS_DEFINE_IID to define kCMyWidget. 
+  Then add the following snippet of code to NS_SetupRegistry</P>
+
+<PRE>nsRepository::RegisterFactory(kCMyWidgetCID, WIDGET_DLL, PR_FALSE, PR_FALSE);   </PRE>
+
+<P>(2) When you actually need to instantiate your widget, you can use a code snippet 
+  similar to the one below:</P>
+
+<PRE>
+nsIMyWidget* pMyWidget;
+nsresult rv = nsRepository::CreateInstance(kCMyWidgetCID, nsnull, 
+					   kIMyWidgetIID,
+					   (void**)&pMyWidget);
+if (NS_OK != rv) {
+  return;
+}</PRE>
+
+<P>You'll know all of this was successful if rv is NS_OK after you make the CreateInstance 
+  call. </P>
+
+<P></P>
+
+<P></P>
+</BODY>
+</HTML>

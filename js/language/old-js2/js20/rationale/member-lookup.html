@@ -1,0 +1,388 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Member Lookup</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="execution-model.html">
+<LINK rel=Next href="versioning.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=top-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Member Lookup</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="execution-model.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="versioning.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Friday, September 20, 2002</P>
+
+<H2 class=issue>This page is somewhat out of date.</H2>
+
+<H2>Introduction</H2>
+
+<P>There have been much discussion in the TC39 subgroup about the meaning of a member lookup operation. Numerous considerations
+intersect here.</P>
+
+<P>We will express a general unqualified member lookup operation as <VAR>a</VAR><CODE>.</CODE><VAR>b</VAR>, where <VAR>a</VAR>
+is an expression and <VAR>b</VAR> is an identifier. We will also consider qualified member lookup operations and write them
+as <VAR>a</VAR><CODE>.</CODE><VAR>n</VAR><CODE>::</CODE><VAR>b</VAR>, where <VAR>n</VAR> is an expression that evaluates to
+some namespace. In almost all cases we will be interested in the dynamic type <VAR>Td</VAR> of <VAR>a</VAR>. In one scheme
+we will also consider the static type <VAR>Ts</VAR> of the expression <VAR>a</VAR>. If the language is sound, we will always
+have <VAR>Td</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_sube)</SCRIPT>&nbsp;<VAR>Ts</VAR>.</P>
+
+<P>In the simplest approach, we treat an object as merely an association table of member names and member values. In this
+interpretation we simply look inside object <VAR>a</VAR> and check if there is a member named b. If there is, we return the
+member&#8217;s value; if not, we return <CODE>undefined</CODE> or signal an error.</P>
+
+<P>There are a number of difficulties with this simple approach, and most object-oriented languages have not adopted it:</P>
+
+<UL>
+  <LI>Members cannot be made <CODE>private</CODE> or <CODE>internal</CODE>.</LI>
+  <LI><A href="../rationale/versioning.html#collision">Accidental clashes</A> can occur when programming in the large.</LI>
+</UL>
+<P>Once we allow <CODE>private</CODE> or <CODE>internal</CODE> members, we must allow for the possibility that object <VAR>a</VAR>
+will have more than one member named <VAR>b</VAR> &#8212; abstraction considerations require that users of a class <VAR>C</VAR>
+not be aware of expose <VAR>C</VAR>&#8217;s private members, so, in particular, a user should be able to create a subclass <VAR>D</VAR>
+of <VAR>C</VAR> and add members to <VAR>D</VAR> without knowing the names of <VAR>C</VAR>&#8217;s private members. Both C++ and
+Java allow this. We must also allow for the possibility that object <VAR>a</VAR> will have a member named <VAR>b</VAR> but
+we are not allowed to access it. We will assume that access control is specified by lexical scoping, as is traditional in
+modern languages.</P>
+
+<H2>Desirable Criteria</H2>
+
+<P>Some of the criteria we would like the member lookup model to satisfy are:</P>
+
+<OL>
+  <LI><B><A name="safety"></A>Safety</B>. The lookup does not permit access to a <CODE>private</CODE> member outside the class
+    where the member is defined, nor does it allow access to an <CODE>internal</CODE> member outside the package where the
+    member is defined. Furthermore, if a class <VAR>C</VAR> accesses its private member <VAR>m</VAR>, a hostile subclass <VAR>D</VAR>
+    of <VAR>C</VAR> cannot silently substitute a member <VAR>m'</VAR> that would masquerade as <VAR>m</VAR> inside <VAR>C</VAR>&#8217;s
+    code.</LI>
+  <LI><B><A name="abstraction"></A>Abstraction</B>. <CODE>private</CODE> and <CODE>internal</CODE> members are invisible outside
+    their respective classes or packages. For programming in the large, a class can provide several <CODE>public</CODE> versions
+    to its importers, and <CODE>public</CODE> members of more recent versions are invisible to importers of older versions.
+    This is needed to provide <A href="../rationale/versioning.html#collision">robust libraries</A>.</LI>
+  <LI><B><A name="robustness"></A>Robustness</B>. We can make any of the following program changes without having to restructure
+    the program:
+    <OL>
+      <LI>Add valid type annotations to variables and functions.</LI>
+      <LI>Change a member&#8217;s visibility to <CODE>private</CODE>, <CODE>internal</CODE>, or <CODE>public</CODE>, assuming, of
+        course, that that member is not used outside its new visibility.</LI>
+      <LI>Split a complicated expression statement <VAR>e</VAR> into several statements that compute subexpressions of <VAR>e</VAR>,
+        store them in local variables, and then combine them to compute <VAR>e</VAR>. We should be able to do this without
+        intimate knowledge of what <VAR>e</VAR> does or calls.</LI>
+      <LI>Rename a member to a different name, assuming, of course, that the new name does not cause conflicts and that we
+        fix up all references to that member.</LI>
+    </OL>
+  </LI>
+  <LI><B><A name="namespace-independence"></A>Namespace independence</B>. If one class <VAR>C</VAR> has a member named <VAR>m</VAR>,
+    this should not place restrictions on an unrelated class <VAR>D</VAR> having an unrelated member with the same name <VAR>m</VAR>.</LI>
+  <LI><B><A name="compatibility"></A>Compatibility</B>. A JavaScript 2.0 class should be usable from JavaScript 1.5 code and
+    JavaScript 1.5 code minimally upgraded to JavaScript 2.0 without having to restructure the latter code. Achieving compatibility
+    should not require the JavaScript 2.0 class itself to be restructured or give up any of the other desirable criteria.
+    Code without type annotations works as expected.</LI>
+</OL>
+
+<H2>Lookup Models</H2>
+
+<P>There are three main competing models for performing a general unqualified member lookup operation as <VAR>a</VAR><CODE>.</CODE><VAR>b</VAR>.
+Let <VAR>S</VAR> be the set of members named <VAR>b</VAR> of the object obtained by evaluating expression <VAR>a</VAR> (hereafter
+shortened to just "object <VAR>a</VAR>") that are accessible via the <A href="../core/concepts.html#namespace">namespace rules</A>
+applied in the lexical scope where <VAR>a</VAR><CODE>.</CODE><VAR>b</VAR> is evaluated. All three models pick some member
+<VAR>s</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<VAR>S</VAR>. Clearly, if the set <VAR>S</VAR>
+is empty, then the member lookup fails. In addition, the Spice and pure Static models may sometimes deliberately fail even
+when set <VAR>S</VAR> is not empty. Except for such deliberate failures, if the set <VAR>S</VAR> contains only one member
+<VAR>s</VAR>, all three models return that element <VAR>s</VAR>. If the set <VAR>S</VAR> contains multiple members, the three
+models will likely choose different members.</P>
+
+<P>Another interesting (and useful) tidbit is that the Static and Dynamic models always agree on the interpretation of member
+lookup operations of the form <CODE>this.</CODE><VAR>b</VAR>. All three models agree on on the interpretation of member lookup
+operations of the form <CODE>this.</CODE><VAR>b</VAR> in the case where <VAR>b</VAR> is a member defined in the current class.</P>
+
+<P>A note about overriding: When a subclass <VAR>D</VAR> overrides a member <VAR>m</VAR> of its superclass <VAR>C</VAR>, then
+the definition of the member <VAR>m</VAR> is conceptually replaced in all instances of <VAR>D</VAR>. However, the three models
+are only concerned with the topmost class in which member <VAR>m</VAR> is declared. <I>All three models handle overriding
+the way one would expect of an object-oriented language</I>. They differ in the cases where class <VAR>C</VAR> has a member
+named <VAR>m</VAR>, subclass <VAR>D</VAR> of <VAR>C</VAR> has a member with the same name <VAR>m</VAR>, but <VAR>D</VAR>&#8217;s
+<VAR>m</VAR> does not override <VAR>C</VAR>&#8217;s <VAR>m</VAR> because <VAR>C</VAR>&#8217;s <VAR>m</VAR> is not visible inside <VAR>D</VAR>
+(it&#8217;s not well known, but such non-overriding does and must happen in C++ and Java as well).</P>
+
+<H3>Static Model</H3>
+
+<P>In the Static model we look at the static type <VAR>Ts</VAR> of expression <VAR>a</VAR>. Let <VAR>S1</VAR> be the subset
+of <VAR>S</VAR> whose class is either <VAR>Ts</VAR> or one of <VAR>Ts</VAR>&#8217;s ancestors. We pick the member in <VAR>S1</VAR>
+with the most derived class.</P>
+
+<P>The pure static model above is implemented by Java and C++. It would not work well in that form in JavaScript because many,
+if not most, expressions have type <CODE>Any</CODE>. Because type <CODE>Any</CODE> has no members, users would have to cast
+expression <VAR>a</VAR> to a given type <VAR>T</VAR> before they could access members of type <VAR>T</VAR>. Because of this
+we must extend the static model to handle the case where the subset <VAR>S1</VAR> is empty, or, in other words, the static
+lookup fails. (Rather than doing this, we could extend the static model in the case where the static type <VAR>Ts</VAR> is
+some special type, but then we would have to decide which types are special and which ones are not. <CODE>Any</CODE> is clearly
+special. What about <CODE>Object</CODE>? What about <CODE>Array</CODE>? It&#8217;s hard to draw the line consistently.)</P>
+
+<P>In whichever cases way we extend the static model, we also have a choice of which member we choose. We could back off to
+the dynamic model, we could choose the most derived member in <VAR>S</VAR>, or perhaps we could choose some other approach.</P>
+
+<P>Constraints:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=TOP nowrap><A href="#safety">Safety</A></TD>
+    <TD valign=TOP>Good within the pure static model. Problems in the extended static model (a subclass could silently shadow
+      a member) that could perhaps be addressed by warnings.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A href="#abstraction">Abstraction</A></TD>
+    <TD valign=TOP>Good.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#robustness">Robustness</A>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>Very bad. Updating a function&#8217;s or global variable return type silently changes the meaning of all code
+      that uses that function or global variable; in a large project such a change would be quite difficult. Difficult to
+      correctly split expressions into subexpressions.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#namespace-independence">Namespace independence</A>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>Good.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#compatibility">Compatibility</A></TD>
+    <TD valign=TOP>Bad within the pure static model (type casts needed everywhere). May be good in the extended static model,
+      depending on the choice of how we extend it.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left>Other</TD>
+    <TD valign=TOP>
+      <P>This model may be difficult to compile well because the compiler may have difficulty in determining the intermediate
+      types in compound expressions. Languages based on the static model have traditionally been compiled off-line, and such
+      compilers tend to be difficult to write for on-line compilation without requiring the programmer to predeclare all of
+      his data structures (if there are any forward-referenced ones, then the compiler doesn&#8217;t know whether they should have
+      a type or not). A more dynamic execution model may actually help because it defers compilation until more information
+      is known.</P>
+
+      </TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+
+<H3>Spice Model</H3>
+
+<P>In the Spice model we think of each member <VAR>m</VAR> defined in a class <VAR>C</VAR> as though it were a function definition
+for a (possibly overloaded) function whose first argument has type <VAR>C</VAR>. Definitions in an inner lexical scope shadow
+definitions in outer scopes. The Spice model does not consider the static type <VAR>Ts</VAR> of expression <VAR>a</VAR>.</P>
+
+<P>Let <VAR>L</VAR> be the innermost lexical scope enclosing the member lookup expression <VAR>a</VAR><CODE>.</CODE><VAR>b</VAR>
+such that some member named <VAR>b</VAR> is defined in <VAR>L</VAR>. Let <VAR>Lb</VAR> be the set of all members named <VAR>b</VAR>
+defined in lexical scope <VAR>L</VAR>, and let <VAR>S1</VAR> = <VAR>S</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_cap)</SCRIPT>&nbsp;<VAR>Lb</VAR>
+(the intersection of <VAR>S</VAR> and <VAR>Lb</VAR>). If <VAR>S1</VAR> is empty, we fail. If <VAR>S1</VAR> contains exactly
+one member <VAR>s</VAR>, we use <VAR>s</VAR>. If <VAR>S1</VAR> contains several members, we fail (this would only happen for
+import conflicts).</P>
+
+<P>Constraints:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=TOP nowrap><A href="#safety">Safety</A></TD>
+    <TD valign=TOP>Good.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A href="#abstraction">Abstraction</A></TD>
+    <TD valign=TOP>Good.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#robustness">Robustness</A>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>Poor. Renaming an <CODE>internal</CODE> member may break code outside the class that defines that member
+      even if that code does not access that member. Converting a member from <CODE>private</CODE> to one of the other two
+      visibilities also can introduce conflicts in other, unrelated classes in the same package that just happen to have an
+      unrelated member with the same name. Fortunately these conflicts usually (but not always) result in errors rather than
+      silent changes to the meaning of the program, so one can often find them by exhaustively testing the program after making
+      a change.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#namespace-independence">Namespace independence</A>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>Bad. Members with the same name in unrelated classes often conflict.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#compatibility">Compatibility</A></TD>
+    <TD valign=TOP>Poor? Many existing programs rely on namespace independence and would have to be restructured.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left>Other</TD>
+    <TD valign=TOP>
+      <P>Most object-oriented programmers would be confused by a violation of namespace independence. Programming without
+      this assumption requires a different point of view than most programmers are used to. (I am not talking about Lisp and
+      Self programmers, who are familiar with that way of thinking.)</P>
+
+    </TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+
+<P>[There are numerous other variants of the Spice model as well.]</P>
+
+
+
+<H3>Dynamic Model</H3>
+
+<P>In the Dynamic model we pick the member <VAR>s</VAR> in <VAR>S</VAR> defined in the innermost lexical scope <VAR>L</VAR>
+enclosing the member lookup expression <VAR>a</VAR><CODE>.</CODE><VAR>b</VAR>. We fail if the innermost such lexical
+scope <VAR>L</VAR> contains more than one member in <VAR>S</VAR> (this would only happen for import conflicts).</P>
+
+<P>Constraints:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=TOP nowrap><A href="#safety">Safety</A></TD>
+    <TD valign=TOP>Good at the language level, but see "other" below.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><A href="#abstraction">Abstraction</A></TD>
+    <TD valign=TOP>Good.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#robustness">Robustness</A>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>Good. All of these changes are easy to do.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#namespace-independence">Namespace independence</A>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>Good.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><A href="#compatibility">Compatibility</A></TD>
+    <TD valign=TOP>Good.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left>Other</TD>
+    <TD valign=TOP>
+      <P>Packages using the dynamic model may be vulnerable to hijacking (coerced into doing something other than what the
+      author intended) by a determined intruder. It is possible for a compiler to detect such vulnerabilities and warn about
+      them.</P>
+
+    </TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<H2><A name="namespaces"></A>Namespaces</H2>
+
+<P>The various models make it possible to get into situations where either there is no way to access a visible member of an
+object or it is not safe to do so (see <A href="#hijacking">member hijacking</A>). In these cases we&#8217;d like to be able to
+explicitly choose one of several potential members with the same name. The <CODE>::</CODE> namespace syntax allows this. The
+left operand of <CODE>::</CODE> is an expression that evaluates to a package or class; we may also allow special keywords
+such as <CODE>public</CODE>, <CODE>internal</CODE>, or <CODE>private</CODE> instead of an expression here, or omit the expression
+altogether. The right operand of <CODE>::</CODE> is a name. The result is the name qualified by the namespace.</P>
+
+<P>As we have seen, the name <VAR>b</VAR> in a member access expression <VAR>a</VAR><CODE>.</CODE><VAR>b</VAR> does not necessarily
+refer to a unique accessible member of object <VAR>a</VAR>. In a qualified member access expression <VAR>a</VAR><CODE>.</CODE><VAR>n</VAR><CODE>::</CODE><VAR>b</VAR>,
+the namespace <VAR>n</VAR> narrows the set of members considered, although it&#8217;s possible that the set may still contain more
+than one member, in which case the lookup model again disambiguates. Let <VAR>S</VAR> be the set of members named <VAR>b</VAR>
+of object <VAR>a</VAR> that are accessible. The following table shows how <VAR>a</VAR><CODE>.</CODE><VAR>n</VAR><CODE>::</CODE><VAR>b</VAR>
+subsets set <VAR>S</VAR> depending on <VAR>n</VAR>:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT><SPAN class=nonterminal>n</SPAN>&nbsp;&nbsp;</TH>
+    <TH valign=TOP align=LEFT>Subset</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap>None</TD>
+    <TD valign=TOP>Only the dynamic member named <VAR>b</VAR>, if any exists</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap>A class <VAR>C</VAR></TD>
+    <TD valign=TOP>The fixed member of <VAR>C</VAR> named <VAR>b</VAR>, if it exists; if not, try <VAR>C</VAR>&#8217;s superclass
+      instead, and so on up the chain</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left>A package <VAR>P</VAR>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>The subset of <VAR>S</VAR> containing all accessible members of <VAR>P</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><CODE>private</CODE></TD>
+    <TD valign=TOP>The fixed member named <VAR>b</VAR> of the current class</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><CODE>internal</CODE></TD>
+    <TD valign=TOP>The subset of <VAR>S</VAR> containing all accessible members that have package (<CODE>internal</CODE>)
+      visibility</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap align=left><CODE>public</CODE></TD>
+    <TD valign=TOP>The subset of <VAR>S</VAR> containing all accessible members that have <CODE>public</CODE> visibility</TD>
+  </TR>
+  </TABLE>
+
+</DIV>
+<P>The <CODE>::</CODE> operator serves a different role from the <CODE>.</CODE> operator. The <CODE>::</CODE> operator produces
+a <I>qualified name</I>, while the <CODE>.</CODE> operator produces a <I>value</I>. A <I>qualified name</I> can be used as
+the right operand of <CODE>.</CODE>; a value cannot. If a qualified name is used in a place where a value is expected, the
+qualified name is looked up using the lexical scoping rules to obtain the value (most likely a global variable).</P>
+
+<H2>Dynamic Members</H2>
+
+<P>All of the models above address only access to <A href="../core/concepts.html#fixed-property">fixed properties</A> of a class.
+JavaScript also allows one to dynamically add properties to individual instances of a class. For simplicity we do not provide
+access control or versioning on these <A href="../core/concepts.html#dynamic-property">dynamic properties</A> &#8212; all of them are
+public and open to everyone. Because of the <A href="#safety">safety criterion</A>, a member lookup of a <CODE>private</CODE>
+or <CODE>internal</CODE> member must choose the <CODE>private</CODE> or <CODE>internal</CODE> member even if there is a dynamic
+member of the same name. To satisfy the <A href="#robustness">robustness criterion</A>, we should treat <CODE>public</CODE>
+members as similarly as possible to <CODE>private</CODE> or <CODE>internal</CODE> members, so we always give preference to
+a fixed property when there is a dynamic property of the same name.</P>
+
+<P>To access a dynamic property that is shadowed by a fixed property, we can either prefix the member&#8217;s name with <CODE>::</CODE>
+or use an indirect property access.</P>
+
+<H2>Indirect Member Access</H2>
+
+<P>How should we define the behavior of the expression <VAR>a</VAR><CODE>[</CODE><VAR>b</VAR><CODE>]</CODE> (assuming <VAR>a</VAR>&#8217;s
+class is not a typed array or other class that overrides the default meaning of the <CODE>[]</CODE> operator)? There are a
+couple of possibilities:</P>
+
+<OL>
+  <LI>We could evaluate the expression <VAR>b</VAR> to some string <VAR><CODE>"</CODE>s<CODE>"</CODE></VAR> and
+    treat <VAR>a</VAR><CODE>[</CODE><VAR>b</VAR><CODE>]</CODE> as though it were <VAR>a</VAR><CODE>.</CODE><VAR>s</VAR>. This
+    is essentially what JavaScript 1.5 does. Unfortunately it&#8217;s hard to keep this behavior consistent with JavaScript 1.5
+    programs&#8217; expectations (they expect no more than one member with the same name, etc.), and this kind of indirection is
+    also vulnerable to <A href="#hijacking">hijacking</A>. It may be possible to solve the hijacking problem by devising restricted
+    variants of the <CODE>[]</CODE> operator such as <VAR>a</VAR><CODE>.</CODE><VAR>n</VAR><CODE>::[</CODE><VAR>b</VAR><CODE>]</CODE>
+    that follow the rules given in the <A href="#namespaces">namespaces section</A> above.</LI>
+  <LI>We could evaluate the expression <VAR>b</VAR> to some string <VAR><CODE>"</CODE>s<CODE>"</CODE></VAR> and treat <VAR>a</VAR><CODE>[</CODE><VAR>b</VAR><CODE>]</CODE>
+    as though it were <VAR>a</VAR><CODE>.::</CODE><VAR>s</VAR>, thus limiting our selection to dynamic members. Dynamic members
+    are well-behaved, but this kind of behavior would violate the <A href="#compatibility">compatibility criterion</A> when
+    JavaScript 1.5 scripts try to reflect a JavaScript 2.0 object using the <CODE>[]</CODE> operator.</LI>
+</OL>
+
+<P>In general it seems like it would be a bad idea to extend the syntax of the string <VAR><CODE>"</CODE>s<CODE>"</CODE></VAR>
+to allow <CODE>::</CODE> operators inside the string. Such strings are too easily forged to play the role of pointers to members.</P>
+
+<H2><A name="hijacking"></A>Member Hijacking</H2>
+
+<P class=issue>[explain security attacks]</P>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Friday, September 20, 2002</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="execution-model.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="versioning.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

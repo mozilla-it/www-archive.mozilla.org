@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+
+   <title>Undo System</title>
+
+<link rel="up" href="./" title="Editor project page">
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+<p class="crumbs"><em>You are here:</em> <a href="./">Editor project page</a> &gt; <strong>Transaction Manager / Undo System</strong></p>
+
+<h1>Transaction Manager / Undo System</h1>
+
+<p class="author">Contributors: Greg Kostello, Kin Blas, Akkana Peck</p>
+
+<h3>Overview</h3>
+
+<p>A standard feature of any editing system is the ability to undo a user
+action. This can be manifested by either a single level or multi-level
+undo system. In modern word processors, multi-level undo is standard and
+our design will attempt to describe a system which supports multi-level
+undo support.</p>
+
+<h3>Requirements</h3>
+
+<p><em>A system that allows the developer to easily develop 
+and record commands.</em><br>
+Ideally, these commands could be created from a series of subcommands.
+This would allow the creation of complex commands from simple commands.</p>
+
+<p><em>A system which is not bound to the current content model.</em><br>
+We can safely assume that HTML will grow and that we would like an
+undo system that can also be used to modify XML documents. We cannot predict
+the kinds document types that may be supported by future versions of HTML/XML,
+but we can probably expect to see graphics, charting, presentations, etc..</p>
+
+<p><em>A system which handle multiple documents.</em><br>
+Undo is a relevant to the currently active document, but undo events
+can happen in multiple disjoint documents. The system needs to be able
+to handle that.</p>
+
+<p><em>The system must allow for efficient coalescing of events 
+and aggregation of commands.</em><br>
+<a href="txmgr/transaction-manager.html">txmgr/transaction-manager.html</a></p>
+
+<h3>Implementation</h3>
+
+<p>An implementation that matches all those needs can be described as a transaction
+system.</p>
+
+<p>A transaction system includes a transaction manager, a transaction stack,
+an editing manager that creates particular commands and the commands themselves.</p>
+
+<p>Transactions (or commands) are objects which are relevant to a particular
+state of a document. The command describes the selection, the action that
+is to be applied to the document, any data required to apply that action
+and <strong>importantly</strong> the action, data and selection that describes how
+to undo the action.</p>
+
+<p>After a GUI or semantic event enters the system and is routed to a particular
+document, the editing manager determines if the event should be processed
+as a transaction. All events which can modify the document <strong>must</strong>
+be processed as a transaction for the system to work correctly. Any action
+that by passes the transaction system and modifies the content model will
+require a reset of the undo stack. This is required because each command
+depends on the document being in a particular state. Events which do not
+modify the content model can be processed by the transaction system, but
+it is not a requirement.</p>
+
+<p>The transaction manager is able to execute commands. Command stacks
+are keyed to individual documents. Commands are created by the editing
+manager in response to events. These commands are placed on the <em>do</em>
+command stack and then executed by the transaction manager. When an <em>undo</em>
+is requested, the transaction takes the command on the top of the do stack
+and the command is requested to execute an undo. Afterwards, the transaction
+manager places the command on the <em>undo</em> command stack. Undo requests
+can be repeated until the do stack is empty. When a redo is requested,
+the transaction manager pulls the command from the undo stack and has the
+command execute a redo. Any time a new command is created and added to
+the stack, the redo stack is pruned.</p>
+
+<p>"Redo" is identical to "Do" by default, but you certainly want a mechanism
+to describe arbitrary actions in the "Redo" case for those times when it's
+not the same. As I recall, the way we did this in Xena was simply
+to have a list of Do, Undo, and Redo actions in each transaction, and the
+transaction manager was smart enough to execute the Do action if Redo was
+null and the caller requested a "redo."</p>
+
+<p>I would also add that you need a way to efficiently query the undo system.
+Is there a transaction on the undo stack, or the redo stack?&nbsp; An example
+of use would be to know whether the "undo" and "redo" menu items should
+be enabled.&nbsp; You might further want the ability to associate a human-readable
+string with each transaction, so the undo menu could read "Undo typing"
+instead of just "Undo." This gives the user a little bit more feedback
+and predictability.</p>
+
+<p>Aggregation allows a command to be played and then absorbed by the command
+at the top of the command stack. An example of aggregation can be replace
+all. A replace all command is first created, then a series of replace commands
+are executed against the document and each of these commands is aggregated
+into the the replace all command. Coelesing of events involves actually
+modifying a command that is already in place. An example of this would
+handling typing events. When a key press happens, the command stack is
+analyzed to see if a previous key press command is on top of the stack.
+If it is, and the key press event represents a character insertion, then
+the character is inserted directly into the document and the command on
+top of the stack is augmented with the character event data.</p>
+
+<h3>Dependencies</h3>
+
+<p>For individual commands, not for the transaction system:<br>
+DOM, the style system, parsing system</p>
+
+<h3>Issues/Black Holes</h3>
+
+<p>How do we efficiently store commands?</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified October 31,  2006</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/editor/undo.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

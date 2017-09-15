@@ -1,0 +1,391 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+ <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+ <title>Mozilla LDAP C SDK: Chapter 13 - Using SASL Authentication</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<ul class="snav">
+ <li><a href="ssl.htm">Previous</a>
+ <li><a href="./">Contents</a>
+ <li><a href="ix.htm">Index</a>
+ <li><a href="controls.htm">Next</a>
+</ul>
+
+<h1>Mozilla LDAP C SDK Programmer's Guide</h1>
+<h2>Chapter 13 - Using SASL Authentication</h2>
+
+<p>This chapter describes the process of using a SASL mechanism 
+to authenticate an LDAP client to an LDAP server.</p>
+
+<p>The chapter includes the following sections:</p>
+
+<ul>
+ <li><a href="sasl.htm#understand_sasl">Understanding SASL</a></li>
+ <li><a href="sasl.htm#determine_sasl_support">Determining the SASL Mechanisms Supported</a></li>
+ <li><a href="sasl.htm#auth_sasl_mechanism">Authenticating Using a SASL Mechanism</a></li>
+</ul>
+
+<h3 id="understand_sasl">Understanding SASL</h3>
+
+<p>Simple Authentication and Security Layer (SASL) is described 
+in RFC 2222, which you can find at this location:</p>
+
+<p>
+ <a href="http://www.ietf.org/rfc/rfc2222.txt">http://www.ietf.org/rfc/rfc2222.txt</a> 
+</p>
+
+<p>SASL provides the means to use mechanisms other than simple 
+authentication and SSL to authenticate to the Mozilla LDAP C SDK.</p>
+
+<p>The ability to authenticate to an LDAP server using a SASL 
+mechanism is a feature new to LDAPv3 (LDAPv2 servers do not 
+support this method of authentication).</p>
+
+<h3 id="determine_sasl_support">Determining the SASL Mechanisms Supported</h3>
+
+<p>To determine the SASL mechanisms supported 
+by an LDAPv3 server, get the <a href="glossary.htm#root_dse">root DSE</a> 
+of the server, and check the <code>supportedSASLMechanisms</code> 
+attribute. The values of this attribute are the names of the SASL 
+mechanisms supported by the server.</p>
+
+<p>If the root DSE does not have a <code>supportedSASLMechanisms</code> 
+attribute, the server does not support any SASL mechanisms.</p>
+
+<p>For information on getting the root DSE, see 
+<a href="srvrinfo.htm#get_root_dse">"Getting the Root DSE"</a>.</p>
+
+<h3 id="auth_sasl_mechanism">Authenticating Using a SASL Mechanism</h3>
+
+<p>To authenticate to the server using a SASL mechanism, call one 
+of the following functions:</p>
+
+<ul>
+ <li>
+  The synchronous <code><a href="function.htm#sasl-bind-s">ldap_sasl_bind_s()</a></code> 
+  function (see <a href="sasl.htm#sync_sasl_bind">Performing a Synchronous 
+  SASL Bind Operation"</a>).
+ </li>
+ <li>
+  The asynchronous <code><a href="function.htm#sasl-bind">ldap_sasl_bind()</a></code> 
+  function (see <a href="sasl.htm#sync_sasl_bind">"Performing a Synchronous SASL Bind Operation</a>").
+ </li>
+</ul>
+
+<p>For more information about the difference between synchronous 
+and asynchronous functions, see <a href="using.htm#call_sync_async_function">"Calling 
+Synchronous and Asynchronous Functions"</a>.</p>
+
+<p>If you call the asynchronous function 
+<code><a href="function.htm#sasl-bind">ldap_sasl_bind()</a></code>, 
+you need to call the 
+<code><a href="function.htm#result">ldap_result()</a></code> and 
+<code><a href="function.htm#parse-sasl-bind-result">ldap_parse_sasl_bind_result()</a></code> 
+functions to get the result of the SASL bind operation.</p>
+
+<p>Authentication using a SASL mechanism may take one or more 
+round trips between your LDAP client and the server. (The server 
+may send a number of "challenges" to the client.) You may need 
+to call <code><a href="function.htm#sasl-bind-s">ldap_sasl_bind_s()</a></code> 
+several times (or 
+<code><a href="function.htm#sasl-bind">ldap_sasl_bind()</a></code>, 
+<code><a href="function.htm#result">ldap_result()</a></code>, and 
+<code><a href="function.htm#parse-sasl-bind-result">ldap_parse_sasl_bind_result()</a></code> 
+several times) in order to respond to each server challenge.</p>
+
+<p>Before calling the function to perform a SASL bind operation, 
+make sure to specify that your client is LDAPv3 compliant. If you 
+do not, an <code>LDAP_NOT_SUPPORTED</code> result code is returned. 
+For details, see <a href="writing.htm#spec_client_version">"Specifying the LDAP 
+Version of Your Client"</a>.</p>
+
+<h3 id="sync_sasl_bind">Performing a Synchronous SASL Bind Operation</h3>
+
+<p>If you want to wait for the results of the SASL bind operation 
+to complete before continuing, call the synchronous 
+<code><a href="function.htm#sasl-bind-s">ldap_sasl_bind_s()</a></code> 
+function. This function sends a SASL bind request to the server 
+and blocks until the server sends the results of the operation 
+back to your client.</p>
+
+<p>The <code>ldap_sasl_bind_s()</code> function returns one of the 
+following values:</p>
+
+<ul>
+ <li>
+  <code>LDAP_SUCCESS</code> if your client has successfully authenticated.
+ </li>
+ <li>
+  <code>LDAP_SASL_BIND_IN_PROGRESS</code> if the server sends a 
+  challenge to your client. If you receive this result code, 
+  check the <code>servercredp</code> argument for the 
+  <code>berval</code> structure containing the server's challenge. 
+  Call the <code>ldap_sasl_bind_s()</code> function again to send 
+  a response to that challenge.</p>
+ </li>
+ <li>An LDAP error code, if a problem occurred or if authentication failed.</li>
+</ul>
+
+<p>See the documentation on the 
+<code><a href="function.htm#sasl-bind-s">ldap_sasl_bind_s()</a></code> 
+function for a list of the possible result codes.</p>
+
+<h3 id="async_sasl_bind">Performing an Asynchronous SASL Bind Operation</h3>
+
+<p>If you want to perform other work (in parallel) while waiting 
+the SASL bind operation to complete, do the following:</p>
+
+<ol>
+ <li>
+  To send an LDAP SASL bind request, call the asynchronous 
+  <code><a href="function.htm#sasl-bind">ldap_sasl_bind()</a></code> 
+  function.
+  <p></p>
+  This function returns an <code>LDAP_SUCCESS</code> result code 
+  if the request was successfully sent (or an LDAP result code if 
+  an error occurred while sending the request). The function also 
+  sets the <code>msgidp</code> argument to point to a message ID 
+  identifying the SASL bind operation.
+ </li>
+ <li>
+  To determine whether the server sent a response for this operation 
+  to your client, call the 
+  <code><a href="function.htm#result">ldap_result()</a></code> 
+  function and pass in this message ID.
+  <p></p>
+  The <code>ldap_result()</code> function uses the message ID to 
+  determine if the server sent a SASL bind response. The function 
+  passes back the response in an 
+  <code><a href="datatype.htm#LDAPMessage">LDAPMessage</a></code> structure.
+ </li>
+ <li>
+  Call the 
+  <code><a href="function.htm#parse-sasl-bind-result">ldap_parse_sasl_bind_result()</a></code> 
+  function to parse the 
+  <code><a href="datatype.htm#LDAPMessage">LDAPMessage</a></code> 
+  structure and retrieve information from the server's response.
+  <p></p>
+  If the server sent a challenge to your client, the challenge is 
+  specified in the <code>berval</code> structure passed back as the 
+  <code>servercredp</code> argument.
+ </li>
+ <li>
+  Call the <code><a href="function.htm#get-lderrno">ldap_get_lderrno()</a></code> 
+  function to get the LDAP result code for the operation. The 
+  function can return one of the following values:
+  <p></p>
+  <ul>
+   <li>
+    <code>LDAP_SUCCESS</code> if your client 
+    successfully authenticated to the server.
+   </li>
+   <li>
+    <code>LDAP_SASL_BIND_IN_PROGRESS</code> if 
+    the server sent a challenge to your client.
+   </li>
+   <li>
+    An LDAP error code, if a problem occurred 
+    or if authentication failed.
+   </li>
+  </ul>
+  See the documentation on the return values of the 
+  <code><a href="function.htm#sasl-bind-s">ldap_sasl_bind_s()</a></code> 
+  function for a list of result codes that the server can return 
+  for this operation.
+  <p></p>
+  If the server returned an <code>LDAP_SASL_BIND_IN_PROGRESS</code> 
+  result code, check the <code>servercredp</code> argument for 
+  the <code>berval</code> structure containing the server's challenge.
+ </li>
+ <li>
+  If the result code is <code>LDAP_SASL_BIND_IN_PROGRESS</code> 
+  and the server passed back another challenge, determine the 
+  response to that challenge and call the <code>ldap_sasl_bind()</code> 
+  function again to send that response to the server.
+  <p></p>
+  You can call 
+  <code><a href="function.htm#result">ldap_result()</a></code> and 
+  <code><a href="function.htm#parse-sasl-bind-result">ldap_parse_sasl_bind_result()</a></code>
+  again to get the next challenge sent from the server, if the 
+  result is <code>LDAP_SASL_BIND_IN_PROGRESS</code> again.
+ </li>
+</ol>
+
+<p>The following example is an LDAP client that 
+authenticates using the SASL mechanism named <code>babsmechanism</code>.</p>
+
+<p><strong>Code Example 13-1 - Authenticating over SASL</strong></p>
+
+<pre>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;time.h&gt;
+#include "ldap.h"
+
+int
+main( int argc, char **argv )
+{
+    LDAP        *ld;
+    LDAPMod     mod0;
+    LDAPMod     mod1;
+    LDAPMod     *mods[ 3 ];
+    char        *vals0[ 2 ];
+    char        *vals1[ 2 ];
+    time_t      now;
+    char        buf[ 128 ];
+    struct berval   cred;
+    struct berval   *servcred;
+    int         version;
+    /* get a handle to an LDAP connection */
+    if ( (ld = ldap_init( "localhost", 389 )) == NULL ) {
+  perror( "ldap_init" );
+  return( 1 );
+    }
+    /* Set the LDAP protocol version supported by the client
+       to 3. (By default, this is set to 2. SASL authentication
+       is part of version 3 of the LDAP protocol.) */
+    version = LDAP_VERSION3;
+    ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+    /* authenticate */
+    cred.bv_val = "magic";
+    cred.bv_len = sizeof( "magic" ) - 1;
+    if ( ldap_sasl_bind_s( ld, "uid=bjensen,ou=people,dc=example,dc=com", \ 
+      "babsmechanism", &cred, NULL, NULL, &servcred ) != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_sasl_bind_s" );
+  return( 1 );
+    }
+    /* get and print the credentials returned by the server */
+    printf( "Server credentials: %s\n", servcred->bv_val );
+    /* construct the list of modifications to make */
+    mod0.mod_op = LDAP_MOD_REPLACE;
+    mod0.mod_type = "mail";
+    vals0[0] = "babs@example.com";
+    vals0[1] = NULL;
+    mod0.mod_values = vals0;
+    mod1.mod_op = LDAP_MOD_ADD;
+    mod1.mod_type = "description";
+    time( &now );
+    sprintf( buf, "This entry was modified with the modattrs program on %s",
+      ctime( &now ));
+    /* Get rid of \n which ctime put on the end of the time string */
+    if ( buf[ strlen( buf ) - 1 ] == '\n' ) {
+  buf[ strlen( buf ) - 1 ] = '\0';
+    }
+    vals1[ 0 ] = buf;
+    vals1[ 1 ] = NULL;
+    mod1.mod_values = vals1;
+    mods[ 0 ] = &mod0;
+    mods[ 1 ] = &mod1;
+    mods[ 2 ] = NULL;
+    /* make the change */
+    if ( ldap_modify_s( ld, "uid=bjensen,ou=people,dc=example,dc=com", mods )
+      != LDAP_SUCCESS ) {
+  ldap_perror( ld, "ldap_modify_s" );
+  return( 1 );
+    }
+    ldap_unbind( ld );
+    printf( "modification was successful\n" );
+    return( 0 );
+}</pre>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March 16,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/directory/csdk-docs/sasl.htm&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

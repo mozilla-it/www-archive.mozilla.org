@@ -1,0 +1,483 @@
+[%# How to Release Bugzilla %]
+[% PROCESS "inc/header.html.tmpl"
+    title = "How to Release Bugzilla" %]
+
+<h1>How to Release Bugzilla</h1>
+
+<p>This document describes the entire process of releasing a version
+    of Bugzilla. The sections are in order of how things should be 
+    done.</p>
+    
+<h2>Table of Contents</h2>
+
+<ul>
+    <li><a href="#release_planning">Release Planning</a>
+        <ul><li><a href="#file_bugs">File Bugs</a></li>
+            <li><a href="#motivate_people">Motivate People</a></li></ul>
+    </li>
+    <li><a href="#pre_release">Pre-Release</a>
+        <ul><li><a href="#security_advisory">Security Advisory</a></li>
+            <li><a href="#release_notes">Release Notes</a></li></ul>
+    </li>
+    <li><a href="#right_before_release">Right Before Release</a>
+        <ul><li><a href="#web_site_updates">Web Site Updates</a></li>
+            <li><a href="#commit_security_bugs">Check-In Security Bugs</a></li>
+            <li><a href="#freeze_the_tree">Freeze the Tree</a></li>
+            <li><a href="#update_versions">Update the Version 
+                Numbers</a></li>
+            <li><a href="#tag_releases">Tag the Releases in CVS</a></li>
+            <li><a href="#create_the_tarballs">Create the Tarballs</a></li>
+            <li><a href="#make_diffs">Make the Diff Files</a></li>
+            <li><a href="#update_checksetup_tinderbox">Update the Checksetup
+                Tinderbox</a></li>
+        </ul>
+    </li>
+    <li><a href="#release">Release</a>
+        <ul><li><a href="#post_the_files">Post the Files</a></li>
+            <li><a href="#commit_website">Check-In the Website 
+                Updates</a></li>
+            <li><a href="#send_security_advisory">Send the Security 
+                Advisory</a></li>
+            <li><a href="#send_release_announcement">Send the Release
+                Announcement</a></li>
+        </ul>
+    </li>
+    <li><a href="#post_release">Post-Release</a></li>
+</ul>
+    
+<h2><a name="release_planning"></a>Release Planning</h2>
+
+<p>This is where we <em>plan</em> to have a release, long before
+    the actual release is done.</p>
+
+<h3><a name="file_bugs"></a>File Bugs</h3>
+
+<p>File bugs for the following things...</p>
+
+<ol>
+    <li>&quot;Release Bugzilla X.YY, Z.AA&quot; and mark it
+        as severity &quot;blocker.&quot; It should block 
+        <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=bz-release">bug
+        286269</a>, which has the alias <strong>bz-release</strong>. (Sample: 
+        <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=286271">bug 
+        286271</a>)</li>
+    
+    <li><strong>Status Update</strong>: Make it block the first bug. (Sample: 
+        <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=286275">bug 286275</a>)
+        </li>
+     
+    <li><strong>Download</strong> page: Make it block the first bug. (Sample: 
+        <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=286276">bug 
+        286276</a>)</li>
+    
+    <li><strong>Changes</strong> page: Make it block the first bug. 
+        (Sample: <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=286277">
+        bug 286277</a>)</li>
+        
+    <li><strong>Release/News Announcement</strong>: Make it block the first bug.
+        (Sample: <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=286281">
+        bug 286281</a>)</li>
+        
+    <li>The <strong>Release Info</strong> page: Make it block the first bug.
+        (Sample: <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=287544">
+        bug 287544</a>)</li>
+        
+    <li><strong>Security Advisory</strong>: It should block the first bug,
+        and and Security bugs targeted at this release should be dependencies.
+        (Sample: <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=290249">bug
+        290249</a>)</li>
+    
+    <li><strong>Release Notes</strong>: Point releases and rc1 versions
+        need release notes. Each version being released needs a separate
+        Release Notes bug filed. These bugs should block the first bug. For 
+        final releases of major versions, you need a &quot;clean up release
+        notes&quot; bug. (Sample: <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=286274">bug
+        286274</a>)</li>
+        
+    <li><strong>New Features Page</strong> (Release Candidates and Final 
+        Releases Only): Make this bug depend on the appropriate Release 
+        Notes bug. (Sample: <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=286278">bug 
+        286278</a>)</li>
+</ol>
+
+
+<h3><a name="motivate_people"></a>Motivate People</h3>
+
+<p>Basically, just make it <em>really</em> easy to find and access
+    all the bugs that need to be fixed for the release. I usually do
+    this a few days after I file the above bugs.</p>
+    
+<p>This means:</p>
+
+
+<ol>
+    <li>Do a search for blockers for the release, and make the query link into
+        a <a href="http://tinyurl.com">tinyurl</a>.
+        When creating a tinyurl, make sure that no "order by" information is
+        part of the URL so that you don't break people's LASTORDER cookies.</li>
+    <li>Put that tinyurl at the very end of the topic line of the #mozwebtools
+        IRC channel on irc.mozilla.org, with a brief explanation like 
+        &quot;2.20 Blockers: <var>tinyurl</var>&quot;.</li>
+    <li>Send out an email to developers&#64;bugzilla.org explaining
+        that we're releasing, and include the tinyurl. Having just <em>one</em>
+        link in the email gets people to focus a bit more.</li>
+    <li>If you are desperate: Send out an email to 
+        <a href="http://lists.mozilla.org/listinfo/support-bugzilla">support-bugzilla</a>
+        with a tinyurl pointing to <em>all</em> bugs targeted at your release,
+        sorted by Importance. Explain that you'd like some help, and
+        link them also to the 
+        <a href="../docs/contributor.html">Contributor's Guide</a></li>
+</ol>
+
+
+<h2><a name="pre_release"></a>Pre-Release</h2>
+
+<p>Basically, you just have to get all the bugs to have patches with
+    review+ on them. A few of them require some special handling:</p>
+    
+<h3><a name="security_advisory"></a>Security Advisory</h3>
+
+<h4>Format</h4>
+
+<p>The actual &quot;issues&quot; in a security advisory normally look 
+    something like this:</p>
+
+<pre>Class:       Cross-site scripting
+Versions:    2.15 through 2.18rc3 and 2.19.1 (from cvs)
+Description: It is possible to blah blah blah...
+             And here are some details on how it can be made less bad...
+Reference:   https://bugzilla.mozilla.org/show_bug.cgi?id=272620
+CVE Name:    CAN-2004-1061</pre>
+
+<p>The different values for <strong>Class</strong> can be found in
+    older <a href="../security/">Security Advisories</a>.
+    The &quot;CVE Name&quot; is, obviously, not always needed.</p>
+
+<h4>Determining Affected Versions</h4>
+
+<p>It also can be a bit tricky to determine the earliest version affected
+    by a security bug. What I do is use 
+    <a href="http://bonsai.mozilla.org/">Bonsai's</a> &quot;blame&quot; 
+    interface to find the place where the patched code was first introduced.
+    (That is, the code the Security bug is modifying.) Then, by looking at
+    the cvs log in Bonsai, you can match that up with the dates on the
+    <a href="../releases/">Release Information</a> 
+    page.</p>
+    
+<h4>Getting it Reviewed</h4>
+
+<p>Security Advisories get sent to security&#64;bugzilla.org for review.
+    Allow at least two or three days for the members of the list to
+    respond.</p>
+
+<p>If you don't get a response after three or four days, that probably
+    means the advisory is fine. But still check with people on IRC and
+    get them to look at it.</p>
+
+<h3><a name="release_notes"></a>Release Notes</h3>
+
+<p>The actual process of writing Release Notes is described in the
+    <a href="../docs/releasenote.html">Release Noting Guide</a>. The
+    important thing to remember about Release Notes is that they should
+    be sent to reviewers&#64;bugzilla.org for comment. Give the list
+    about two days to respond.</p>
+
+<p>They should also be attached normally to the bug, and you should ask
+    some Documentation reviewer to look over them.</p>
+
+
+<h2><a name="right_before_release"></a>Right Before Release</h2>
+
+<p>Releasing Bugzilla takes a <em>long time</em>. I think the fastest I ever
+    did it was six hours. Start the process a day or two before you actually
+    want to release.</p> 
+
+<h3><a name="web_site_updates"></a>Web Site Updates</h3>
+
+<ol>
+    <li>Check-out a copy of bugzilla.org from CVS, to apply your patches
+        to. The best place to do this is on 
+        <a href="http://landfill.bugzilla.org/">landfill</a>, because it
+        already has the environment set up to do it. Make sure you have
+        checkin access on cvs-www.mozilla.org.
+        
+        <p>The CVS info is:</p>
+        
+        <p><kbd>CVSROOT=:pserver:user%domain.com@cvs-www.mozilla.org:/cvsroot<br />
+            cvs -z3 checkout mozilla-org/html/projects/bugzilla</kbd></p>
+
+        <p>Or, if you don't have checkin access, but you want to
+           work on the web site updates anyhow, the CVSROOT for 
+           anonymous access is:</p>
+
+        <p><kbd>CVSROOT=:pserver:anonymous@cvs-mirror.mozilla.org:/www
+        </kbd></p>
+    </li>
+    
+    <li>Create a directory for the Security Advisory. The directory is always
+        numbered by <em>the lowest <strong>unfixed</strong> version that is
+        being <strong>fixed</strong></em>. For example, if you release
+        versions 2.16.9, 2.18.1, and 2.19.3, and they all have a single
+        Security Advisory, the security advisory goes into the 2.16.8/ 
+        directory.</li>
+    
+    <li>For each new release, create a &quot;Release Info&quot; page:
+        <ul>
+            <li>Create a directory in the releases/ directory for 
+                the new release.</li>
+            <li>Copy over the index.html.tmpl file from the previous 
+                release on that branch.</li>
+            <li>Edit any links to point to the right place for the new
+                version.</li>
+            <li>Change any text that refers to the previous version to instead
+                refer to this version. This includes at least the title and
+                the text at the top.</li>
+            <li>Put the Release Notes into HTML format. 
+                (<a href="http://www.bugzilla.org/releases/2.18.1/release-notes.html">Sample</a>)
+                You will have to HTML-escape the text Release Notes, 
+                and also remove any &quot;%&quot; characters (because
+                they otherwise might confuse Template Toolkit.)
+                You can use the following command to do that: 
+                <p><kbd>perl -MCGI::Util -pe '$_ = CGI::Util::simple_escape($_);
+                   $_ =~ s/%/&amp;#37\;/g' &lt; docs/rel_notes.txt 
+                   &gt; release-notes.html.tmpl</kbd></li>
+            <li>Link to the appropriate new Security Advisory.</li>
+        </ul>
+    </li>
+    
+    <li>Update the index.html.tmpl in the /releases/ directory.</li>
+    
+    <li>Put the Status Update into the /status/ directory, dated 
+        appropriately. Make sure that you get &quot;Dave's Corner&quot;
+        from justdave.</li>
+    <li>Update the index.html.tmpl in the /status/ directory to point to the
+        new Status Update.</li>
+        
+    <li>Patch the /status/changes.html.tmpl to reflect the new releases.
+        If the patch has a &quot;FIXME&quot; date in it, remember 
+        to fix it!</li>
+
+    <li>Post the News announcement in /news/.</li>
+    
+    <li>Update the main index.html.tmpl to point to the new News item,
+        and remove the last News item from being listed on the main page.</li>
+    
+    <li>Now actually put the Security Advisory into the directory. You
+        could have done this earlier, but it usually takes a while to
+        get the Security Advisory complete and reviewed, so I put it last,
+        here.</li>
+
+    <li>Update security/index.html.tmpl to include a link to the new 
+        Security Advisory.</li>
+
+    <li>Update docs/index.html.tmpl to display the latest version numbers
+        for the links to the docs.</li>
+
+</ol>
+
+<p>And now you should be done with the web site update! Don't check in
+your changes to CVS yet -- that comes later.</p>
+
+<h3><a name="commit_security_bugs"></a>Check-In Security Bugs</h3>
+
+<p>Locate approved patches on Security bugs, and check them in now 
+    to CVS. If the person who wrote the patches is around, 
+    have them do it.</p>
+
+<p>Once you hit this point, you are committed to releasing, because
+    you've essentially exposed Security bugs publically without
+    a release that fixes them.</p>
+
+<h3><a name="freeze_the_tree"></a>Freeze the Tree</h3>
+
+<p>This is only here so that you remember to do it. Basically, just make
+    sure that from this point until after you post the tarballs, there
+    aren't any checkins to any branch, from anybody but you.</p>
+
+<h3><a name="update_versions"></a>Update Version Numbers</h3>
+
+<p>For each branch that you are releasing:
+
+<ol>
+    <li>Update Bugzilla/Config.pm's VERSION variable (or 
+      Bugzilla/Constants.pm's BUGZILLA_VERSION variable, in more modern
+      versions).</li>
+    <li>Update docs/xml/Bugzilla-Guide.xml. bz-ver, bz-date, and
+        bz-nextver need to be updated.</li>
+</ol>
+
+<h3><a name="tag_releases"></a>Tag the Releases in CVS</h3>
+
+<p>You need to create CVS tags for each new release, and move the -BRANCH
+   and _Stable tags. Remember, for each tag that you're going to
+   <em>move</em>, you need to:</p>
+
+<ol>
+  <li>Update to that tag.</li>
+  <li>Delete the tag.</li>
+  <li>Update to the release tag.</li>
+  <li>Create that tag.</li>
+</ol>
+
+<p>That's to make sure that you actually remove the tag even from
+   deleted files.</p>
+
+<p>Here's an example series of commands that would be used to tag the 2.18.1,
+   2.19.3, and 2.16.9 releases:</p>
+    
+<pre>cd /var/www/html/mkanat218/
+cvs update -dP -rBUGZILLA-2_18-BRANCH -C
+cvs tag -FR BUGZILLA-2_18_1
+
+cvs update -dP -rBUGZILLA-2_18-STABLE
+cvs tag -R -d BUGZILLA-2_18-STABLE
+cvs update -dP -rBUGZILLA-2_18_1
+cvs tag -FR BUGZILLA-2_18-STABLE
+
+cvs update -dP -rBugzilla_Stable
+cvs tag -R -d Bugzilla_Stable
+cvs update -dP -rBUGZILLA-2_18_1
+cvs tag -FR Bugzilla_Stable
+
+cd /var/www/html/mkanat216/
+cvs update -dP -rBUGZILLA-2_16-BRANCH -C
+cvs tag -FR BUGZILLA-2_16_9
+
+cvs update -dP -rBUGZILLA-2_16-STABLE
+cvs tag -R -d BUGZILLA-2_16-STABLE
+cvs update -dP -rBUGZILLA-2_16_9
+cvs tag -FR BUGZILLA-2_16-STABLE
+
+cd /var/www/html/checkinmkanat/
+cvs update -dP -CA
+cvs tag -FR BUGZILLA-2_19_3</pre>
+    
+<p>For this release, 2.18 was the most current stable series, 2.19 was
+   the development series, and 2.16 was the &quot;old stable&quot; series.</p>
+
+<h3><a name="create_the_tarballs"></a>Create the Tarballs</h3>
+
+<p>First, wait about 5 minutes after you do the CVS tags.
+    This is because tarballs are pulled from cvs-mirror.mozilla.org, 
+    and you need to wait for that server to be updated with the tags.</p>
+    
+<p>Now, there's a script for building Bugzilla tarballs. 
+   mkanat&#64;bugzilla.org has the latest version, usually.</p>
+
+<p>Just build a tarball for each release, using the version-specific
+    CVS tags that you made above. (Don't use the -BRANCH or _Stable tags.)</p>
+
+<h3>Make the Diff Files</h3>
+
+<p>In addition to tarballs, you also need to generate the .diff files.
+    For this, you'll need an unpacked tarball of every Bugzilla release
+    from each series you're releasing against.</p>
+
+<p>There's a script called makediffs.pl that you can probably get from
+    mkanat&#64;bugzilla.org. You have to edit it and make a new version
+    for each branch that you're releasing against.</p>
+
+<p>Development versions don't need .diff files, and neither do
+    Release Candidates.</p>
+
+<h3><a name="update_checkseutp_tinderbox"></a>Update the Checksetup
+    Tinderbox</h3>
+
+<p>There is a tinderbox that lives on landfill.bugzilla.org for testing
+    checksetup.pl's upgrade ability. It does this by having a copy
+    of a populated database from every version.</p>
+
+<p>When you make a new release, you need to copy the &quot;_branch&quot;
+    or &quot;_tip&quot; database to a database named after the release.</p>
+
+<p>For example, for the 2.18.1 and 2.19.3 release, I did this:</p>
+
+<pre>mysqlclone bugs_tip bugs_2_19_3
+mysqlclone bugs_bugzilla2_18_branch bugs_2_18_1</pre>
+
+<p>I didn't make a 2.16.9 database, because 2.16.9 had no updates to
+    checksetup.pl (so it wasn't any different from 2.16.8, which I
+    already had a database for).</p>
+
+<p>Then the <kbd>/var/www/html/checksetup/test-checksetup.pl</kbd> file
+    also needs to be updated. Find the DB_LIST variable and add
+    the new databases to it. (The format of the variable is obvious
+    once you see it.)</p>
+
+<h2><a name="release"></a>Release</h2>
+    
+<h3><a name="post_the_files"></a>Post the Files</h3>
+
+<p>Upload the tarballs and .diff files to stage.mozilla.org, 
+    to the /pub/webtools directory.</p>
+
+<p>Remember to fix the <code>bugzilla-LATEST</code> and 
+  <code>bugzilla-STABLE</code> symlinks, if necessary.</p>
+
+<h3><a name="commit_website"></a>Check-In the Website Updates</h3>
+
+<p>Now, you commit the changes you made to the website, above. Double-check
+    everything to make sure that all the dates and times are correct
+    anywhere that you had to put a date/time.</p>
+
+<h3><a name="send_security_advisory"></a>Send Security Advisory</h3>
+
+<p>Double-check the Security Advisory before you send it. Make
+    sure that any links you have in the Advisory actually work.</p>
+
+<p>Usually, we GPG sign the Security Advisory with a key that
+   has its public half available from either public keyservers
+   or the bugzilla.org website.</p>
+
+<p>The Security Advisory is sent to:</p>
+
+<ul>
+    <li><a href="http://www.securityfocus.com/archive/post/1">BugTraq</a></li>
+    <li>announce&#64;bugzilla.org</li>
+    <li>support-bugzilla&#64;lists.mozilla.org</li>
+</ul>
+
+<p>Send each as a <em>separate email</em>. This is because you will
+    get a lot of bounce messages, and you don't want them to be
+    spread around to the other lists. (Some things sending bounce
+    messages are really stupid and will attempt to do this.)</p>
+
+<h3><a name="send_release_announcement"></a>Send Release Announcement</h3>
+    
+<p>This is the Release Announcement that you created on the
+    <a href="#file_bugs">bug that you filed</a>.</p>
+
+<p>Make sure that you put <kbd>[ANN]</kbd> at the beginning of
+ the Subject line.</p>
+    
+<p>Send it to:
+
+<ul>
+    <li>announce&#64;bugzilla.org</li>
+    <li>support-bugzilla&#64;lists.mozilla.org</li>
+</ul>
+
+<p>Once again, send each as a separate email.</p>
+
+<h2>Post-Release</h2>
+        
+<p>Stuff you do after you've posted the release and sent the 
+    announcements:</p>
+
+<ol>
+    <li>Unlock the Security Bugs. Just remove them from the webtools-security
+        group.</li>
+    <li>Update the Version Trackers:
+        <ul>
+            <li><a href="http://freshmeat.net/projects/bugzilla/">FreshMeat</a></li>
+            <li><a href="http://www.versiontracker.com/dyn/moreinfo/mac/11828">VersionTracker</a></li>
+            <li><a href="http://www.macupdate.com/info.php/id/6255">MacUpdates</a></li>
+        </ul>
+    </li>
+    <li>Update the VERSION number in Bugzilla/Config.pm on the tip, to have
+        a &quot;+&quot; after it.</li>
+    <li>If needed, update Bundle::Bugzilla to have the right version
+        numbers and modules for the latest stable release.</li>
+    
+</ol>
+[% PROCESS "inc/footer.html.tmpl" %]

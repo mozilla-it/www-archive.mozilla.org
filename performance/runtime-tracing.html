@@ -1,0 +1,380 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+   <title>performance: runtime tracing</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+<center>
+<h1>performance: runtime tracing</h1>
+</center>
+
+Contact:
+<a href="mailto:waterson@netscape.com">Chris Waterson</a> (waterson@netscape.com)<br>
+Last Updated: 29-September-1998
+
+<p>
+A key element in any performance effort is getting specific,
+quantifiable measurments about what is going on. Tools called
+<i>profilers</i> often do this by inserting bits of code into (or
+<i>instrumenting</i>) a program. This instrumentation code starts and
+stops a timer, and accumulates the amount of time spent performing
+certain events.
+</p>
+
+<p>
+Unfortunately, most profilers are (1) very expensive (and therefore
+unavailable to the mozilla.org community at large), and (2) not good at
+handling asynchronous processing (which Mozilla is currently chock
+full of). So we decided to build our own little instrumentation
+library that would help developers gather timing statistics for
+<i>coarse grained</i> events like network traffic.
+</p>
+
+<p>
+This page describes
+
+<a href="#collect">how to run Mozilla to collect data</a>
+
+and
+
+<a href="#instrument">how to instrument Mozilla code</a>
+
+to gather your own statistics.
+</p>
+
+<a name="collect">
+<h2>Collecting Data</h2>
+</a>
+
+<ul>
+
+<p>
+We are currently in the process of building the mother of all
+performance databases for Mozilla. We want to take "normal" browsing
+sessions and rip them apart, both at a detailed page-by-page level to
+identify <i>specific sites</i> that cause Mozilla to suck, and at an
+aggregate "10,000 foot" level to identify <i>content trends</i> that
+cause Mozilla to suck. <b>Here is how you can help.</b>
+</p>
+
+<p>
+Mozilla binaries (as of August 10, 1998) contain code that will dump
+out timing information to a log file when certain environment
+variables are set. Setup your environment to turn tracing on, run the
+browser normally, and send us the log file. Here are the details:
+</p>
+
+<ol>
+
+<li>
+<b>Enable Logging.</b> First, you need to tell Mozilla (or Gromit) to
+start collecting performance statistics:
+
+<ul>
+
+<p>
+<b>Win32</b>. In <tt>c:\autoexec.bat</tt> (on Win95) or <b>System
+Properties/Environment</b> (on Windows NT), set the
+<tt>NSPR_LOG_FILE</tt> environment variable to
+<tt>c:\tmp\nspr.log</tt> (or something else that you'll remember). Set
+your the <tt>NSPR_LOG_MODULES</tt> variable to <tt>nsTiming:5</tt>.
+</p>
+
+<b>Unix</b>. As with Win32: set <tt>NSPR_LOG_FILE</tt> to
+<tt>/tmp/nspr.log</tt>, set <tt>NSPR_LOG_MODULES</tt> to
+<tt>nsTiming:5</tt>.
+
+<p>
+<b>Mac</b>. Coming soon.
+</p>
+
+</ul>
+
+<p>
+This will work in debug <i>and optimized</i> builds.
+</p>
+
+</li>
+
+<li>
+<b>Run Mozilla</b>. Now, each time you run Mozilla, a file called
+<tt>nspr.log</tt> (or whatever you chose to name it) will be
+created. This file will contain some horrid-looking information that
+is not really meant for human consumption.
+</li>
+
+<p>
+
+<li>
+<b>Mail the log to <tt>perfstat@zeeb.mcom.com</tt></b>. Take the
+log file and attach it to an
+
+<a href="mailto:perfstat@zeeb.mcom.com">email</a>.
+
+When the performance server receives the mail, it will run a script to
+load your logfile into the database. This will take a while, depending
+on how big the log file is, etc. We don't currently have any good
+feedback mechanism (like a response, that says "I'm done"), but we're
+working on it...
+</li>
+
+</ol>
+
+<p>
+Note that <b>the log file will get clobbered each time you restart the
+browser</b>. So copy it or rename it if you don't want to mail it out
+right away.
+</p>
+</ul>
+
+<a name="instrument">
+<h2>Instrumenting Mozilla Yourself</h2>
+</a>
+
+<ul>
+
+<p>
+So there's something that <i>you</i> want to time? Here's how to do it:
+</p>
+
+<ol>
+
+<li>
+Add <tt>#include "timing.h"</tt> to your file:
+<tt>mozilla/include/timing.h</tt> contains a couple of fairly simple
+macros that you can use to start and stop "clocks" that are associated
+with individual events.
+</li>
+
+<p>
+
+<li>
+Use one of the following macros to start a "clock" that will be
+associated with your event:
+
+<ul>
+
+<p>
+
+<li>
+<tt>TIMING_STARTCLOCK_OBJECT(char* <i>op</i>, void* <i>obj</i>)</tt>.
+
+This creates and starts a "clock" that is uniquely identified by the
+named operation <tt><i>op</i></tt> and the pointer
+<tt><i>obj</i></tt>. The clock should be stopped using
+<tt>TIMING_STOPCLOCK_OBJECT()</tt>.
+
+<p>
+
+<li>
+<tt>TIMING_STARTCLOCK_NAME(char* <i>op</i>, char* <i>name</i>)</tt>.
+
+This creates and starts a "clock" that is uniquely identified by the
+names operation <tt><i>op</i></tt> and the string
+<tt><i>name</i></tt>. The clock should be stopped using
+<tt>TIMING_STOPCLOCK_NAME()</tt>.
+</li>
+
+</li>
+
+</ul>
+
+<p>
+"Starting a clock" involves noting the current system time, and
+inserting an entry into a table.
+</p>
+
+</li>
+
+<p>
+
+<li>
+Use the corresponding macro to stop a "clock" and print out a message
+to the timing log:
+
+<ul>
+
+<p>
+
+<li>
+<tt>TIMING_STOPCLOCK_OBJECT(char* <i>op</i>, void* <i>obj</i>, void* <i>cx</i>, char* <i>msg</i>)</tt>.
+
+Stops a clock that was started using
+<tt>TIMING_STARTCLOCK_OBJECT()</tt>. This prints a message into the
+log of the form:
+
+<pre>
+<i>timestamp</i>: <b>clock</b>,<i>op</i>,<i>obj</i>,<i>elapsed</i>,<i>cx</i>,<i>msg</i>
+</pre>
+
+Where <tt><i>op</i></tt> is the "operation" string used to identify
+the timer, <tt><i>obj</i></tt> is the 32-bit hexadecimal value of the
+object pointer, <tt><i>elapsed</i></tt> is the elapsed time in
+microseconds, <tt><i>cx</i></tt> is a 32-bit hexadecimal
+<i>context</i> (usually the <tt>MWContext</tt> structure), and
+<tt><i>msg</i></tt> is the message string. For example:
+
+<pre>
+TIMING_STOPCLOCK_OBJECT("lo:blk-tab", lo_ele, cx, "ok")
+</pre>
+
+would result in an entry like this in the log:
+
+<pre>
+19980810.104233.250000: clock,lo:blk-tab,6abde0,2340000,6bd000,ok
+</pre>
+
+</li>
+
+<li>
+<tt>TIMING_STOPCLOCK_NAME(char* <i>op</i>, char* <i>name</i>, void* <i>cx</i>, char* <i>msg</i>)</tt>.
+
+Stops a clock that was started using
+<tt>TIMING_STARTCLOCK_NAME()</tt>. This prints a message into the
+log of the form:
+
+<pre>
+<i>timestamp</i>: <b>clock</b>,<i>op</i>,<i>name</i>,<i>elapsed</i>,<i>cx</i>,<i>msg</i>
+</pre>
+
+Where <tt><i>op</i></tt> is the "operation" string used to identify
+the timer, <tt><i>name</i></tt> is the character string name used to
+identify the clock, <tt><i>elapsed</i></tt> is the elapsed time in
+microseconds, <tt><i>cx</i></tt> is a 32-bit hexadecimal
+<i>context</i> (usually the <tt>MWContext</tt> structure), and
+<tt><i>msg</i></tt> is the message string. For example:
+
+<pre>
+TIMING_STOPCLOCK_OBJECT("dns:lookup", hostname, cx, "ok")
+</pre>
+
+would result in an entry like this in the log:
+
+<pre>
+19980810.104526.750000: clock,dns:lookup,www.frobaz.com,41000,6bd000,ok
+</pre>
+</li>
+
+</ul>
+
+</li>
+
+</ol>
+
+<p>
+That's it. If you want to take a look at some examples, <tt>grep</tt>
+through <tt>mozilla/network/main</tt>,
+<tt>mozilla/network/protocols/http</tt>, and
+<tt>mozilla/lib/layout</tt> for starters. The actual implementation of
+the timer functions is in <tt>mozilla/network/main/mktrace.c</tt>. All
+the logging stuff is based on top of NSPR's log facility.
+</p>
+
+<p>
+So how will this all get used? We're working on building a
+database that includes <i>session</i>, <i>document</i>, and
+<i>event</i> information. More on this soon...
+</p>
+
+</ul>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September 29,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/performance/runtime-tracing.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

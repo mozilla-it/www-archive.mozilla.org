@@ -1,0 +1,617 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>ECMAScript 4 Miscellaneous Rationale</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="syntax.html">
+<LINK rel=Next href="../compatibility.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=es-title>ECMAScript 4 Netscape Proposal</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Miscellaneous</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="syntax.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="../compatibility.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Wednesday, June 4, 2003</P>
+
+<!--IMPORT "../../js20/rationale/miscellaneous.html" -class=js2 -class=js2-hidden +class=es4 +class=es4-hidden -->
+
+<P>This section presents a number of miscellaneous alternatives that were considered while developing this proposal.</P>
+
+<H2><A name="types"></A>Types</H2>
+
+<H3><CODE>Object</CODE></H3>
+
+<P>The root of the type hierarchy was chosen to be the existing ECMAScript 3 type <A href="../libraries/types.html#Object"><CODE>Object</CODE></A>.
+Primitive numbers, strings, and booleans were made into instances of subclasses of <CODE>Object</CODE> and the existing wrapper
+classes eliminated, thereby eliminating the confusing distinction between boolean primitives and objects, etc. in ECMAScript
+3.</P>
+
+<P>The alternative was to define a new root type, <CODE>any</CODE>, that is an ancestor of <CODE>Object</CODE> as well as
+primitive numbers, strings, and booleans, which could have their own types <CODE>number</CODE>, <CODE>string</CODE>, and <CODE>boolean</CODE>
+respectively. In this scenario the ECMAScript 3 classes <CODE>Number</CODE>, <CODE>String</CODE>, and <CODE>Boolean</CODE>
+would still be subclasses of <CODE>Object</CODE>, but the primitive values could not be members of these classes &#8212; for
+example, <CODE>false</CODE> would be a member of the class <CODE>boolean</CODE> but not <CODE>Boolean</CODE>. The object obtained
+by boxing <CODE>false</CODE> would be a member of the class <CODE>Boolean</CODE> but not <CODE>boolean</CODE> and would evaluate
+to true (!) if used in an <CODE>if</CODE> statement.</P>
+
+<P>The <CODE>any</CODE> alternative was more compatible with ECMAScript 3, but the added complexity and confusion was not
+deemed worthwhile for the extra compatibility. Instead, ECMAScript 4 simplifies and regularizes the behavior of ECMAScript
+3 in this area.</P>
+
+<H3><CODE>Never</CODE> and <CODE>Void</CODE></H3>
+
+<P>The types <A href="../libraries/types.html#Never"><CODE>Never</CODE></A> and <A href="../libraries/types.html#Void"><CODE>Void</CODE></A>
+are different and serve different purposes. When used as a return type, <CODE>Never</CODE> describes the inability to return
+from a function, while <CODE>Void</CODE> states that the function returns, but the value returned is not useful (it&#8217;s
+always <CODE>undefined</CODE>).</P>
+
+<P>The following example illustrates the use of <CODE>Never</CODE> and <CODE>Void</CODE>:</P>
+
+<PRE>// This function returns no useful value.
+function display(message:String):Void {
+  document.write("&lt;\_P&gt;" + message + "&lt;\/P&gt;\n");
+}
+
+// This function cannot return.
+function abort(message:String):Never {
+  display(message);
+  throw AbortException;
+}
+
+function chickenCount(myChickens:Array[Chicken]):Integer {
+  if (notHatched(myChickens))
+    abort("Can&#8217;t count the chickens yet");
+  else
+    return myChickens.length;
+}</PRE>
+
+<P>Note that if the function <CODE>abort</CODE> had no explicit return type or any return type other than <CODE>Never</CODE>,
+then the compiler would likely issue a warning inside the function <CODE>chickenCount</CODE> because it contains a code path
+(the false case of its <CODE>if</CODE>) that appears to fall out of the function without returning a value, while <CODE>chickenCount</CODE>
+is declared to return an <CODE>Integer</CODE>. The <CODE>Never</CODE> return type on <CODE>abort</CODE> tells the compiler
+that there is no such code path inside <CODE>chickenCount</CODE>.</P>
+
+<P>It might be a good idea for a compiler to issue a warning for a function that is declared as returning type <CODE>Never</CODE>
+for which the compiler can&#8217;t verify that the function can&#8217;t return.</P>
+
+<H3><A name="typed-arrays"></A>Typed Arrays</H3>
+
+<P>The proposal originally had additional array types which were dropped for simplicity. The following are some candidates
+for a future revision of the language:</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Type</TH>
+    <TH valign=TOP align=LEFT>Set of Values</TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>Array</CODE></TD>
+    <TD valign=TOP>Same as <CODE>Array[Object]</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>Array[</CODE><VAR>t</VAR><CODE>]</CODE></TD>
+    <TD valign=TOP><CODE>null</CODE> as well as all arrays (dense or sparse) capable of holding elements of type <VAR>t</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>List[</CODE><VAR>t</VAR><CODE>]</CODE></TD>
+    <TD valign=TOP><CODE>null</CODE> as well as all resizeable, dense arrays capable of holding elements of type <VAR>t</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>t</VAR><CODE>[]</CODE></TD>
+    <TD valign=TOP><CODE>null</CODE> as well as all nonresizeable, dense arrays capable of holding elements of type <VAR>t</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>ConstArray</CODE></TD>
+    <TD valign=TOP>Same as <CODE>ConstArray[Object]</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>ConstArray[</CODE><VAR>t</VAR><CODE>]</CODE></TD>
+    <TD valign=TOP><CODE>null</CODE> as well as all constant arrays capable of holding elements of type <VAR>t</VAR></TD>
+  </TR>
+  </TABLE>
+</DIV>
+
+<P>A sparse array may have holes. A dense array always has contiguous elements indexed starting from zero. Resizeable arrays
+may be resized by writing to the <CODE>length</CODE> property.</P>
+
+<P>When <VAR>A</VAR> is one of the type expressions <CODE>Array[</CODE><VAR>t</VAR><CODE>]</CODE>, <CODE>List[</CODE><VAR>t</VAR><CODE>]</CODE>,
+<VAR>t</VAR><CODE>[]</CODE>, <CODE>ConstArray</CODE>, or <CODE>ConstArray[</CODE><VAR>t</VAR><CODE>]</CODE>, the following
+three operations can be used to create an array of type <VAR>A</VAR> or coerce to one:</P>
+
+<UL>
+  <LI><CODE>new&nbsp;</CODE><VAR>A</VAR><CODE>(</CODE><VAR>elt1</VAR><CODE>,&nbsp;</CODE><VAR>elt2</VAR><CODE>,&nbsp;</CODE>...<CODE>)</CODE>
+    creates an instance of the corresponding array type with the given elements; this is true even if there is only one element
+    given.</LI>
+  <LI><CODE>new&nbsp;</CODE><VAR>A</VAR><CODE>(length:&nbsp;</CODE><VAR>n</VAR><CODE>)</CODE> creates an instance of the corresponding
+    array type with a length of <VAR>n</VAR>. The initial elements are holes if the array is sparse or the default value for
+    <VAR>A</VAR>&#8217;s element type if the array is dense. Note that this form requires the <A href="named.html">named function
+    parameters</A> extension.</LI>
+  <LI><VAR>A</VAR><CODE>(</CODE><VAR>B</VAR><CODE>)</CODE> creates an instance of the corresponding array type. The new instance&#8217;s
+    elements are copied from <VAR>B</VAR>, which should be any kind of an array. It&#8217;s unresolved what should happen
+    if <VAR>A</VAR> is a dense array and <VAR>B</VAR> has holes.</LI>
+</UL>
+
+<P>Instances of non-<CODE>ConstArray</CODE> array types are equal only when they are the same object. Instances of <CODE>ConstArray</CODE>
+array types are equal when they have the same contents and the same element type <VAR>t</VAR>.</P>
+
+<H3><A name="type-expressions"></A>Type Expressions</H3>
+
+<P>We could define other type operators such as the ones in the table below. <VAR>s</VAR> and <VAR>t</VAR> are type expressions.</P>
+
+<DIV class=indent>
+  <TABLE border=1 cellspacing=2 cellpadding=0>
+  <TR>
+    <TH valign=TOP nowrap align=LEFT>Type&nbsp;&nbsp;</TH>
+    <TH valign=TOP align=LEFT>Values</TH>
+    <TH valign=TOP align=LEFT>Implicit coercion of value <VAR>v</VAR></TH>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>t</VAR><CODE>[]</CODE></TD>
+    <TD valign=TOP><CODE>null</CODE> as well as nonresizable arrays of values of type <VAR>t</VAR></TD>
+    <TD valign=TOP><CODE>undefined</CODE> <SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT> <CODE>null</CODE></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>const&nbsp;</CODE><VAR>t</VAR></TD>
+    <TD valign=TOP>Makes type <VAR>t</VAR>, which must be an array type, into a read-only array type</TD>
+    <TD valign=TOP>None</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>-</CODE> <VAR>t</VAR></TD>
+    <TD valign=TOP>Any value belonging to type <VAR>t</VAR> except <CODE>null</CODE></TD>
+    <TD valign=TOP></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>~</CODE> <VAR>t</VAR></TD>
+    <TD valign=TOP><CODE>undefined</CODE> or any value belonging to type <VAR>t</VAR></TD>
+    <TD valign=TOP><CODE>undefined</CODE> <SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT> <CODE>undefined</CODE>;
+      any other implicit coercions already defined for <VAR>t</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>+</CODE><VAR>t</VAR></TD>
+    <TD valign=TOP><CODE>null</CODE> or any value belonging to type <VAR>t</VAR></TD>
+    <TD valign=TOP><CODE>null</CODE> <SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT> <CODE>null</CODE>; <CODE>undefined</CODE>
+      <SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT> <CODE>null</CODE> (if <CODE>undefined</CODE> is not a
+      member of <VAR>t</VAR>); any other implicit coercions already defined for <VAR>t</VAR></TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>s</VAR> <CODE>+</CODE> <VAR>t</VAR></TD>
+    <TD valign=TOP>All values belonging to either type <VAR>s</VAR> or type <VAR>t</VAR> or both</TD>
+    <TD valign=TOP>If <VAR>v</VAR><SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT><VAR>s</VAR><CODE>+</CODE><VAR>t</VAR>,
+      then use <VAR>v</VAR>; otherwise, if <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR> is defined then use <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR>;
+      otherwise, if <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>t</VAR> is defined then use <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>t</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>s</VAR> <CODE>*</CODE> <VAR>t</VAR></TD>
+    <TD valign=TOP>All values simultaneously belonging to both type <VAR>s</VAR> and type <VAR>t</VAR></TD>
+    <TD valign=TOP>If <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>t</VAR> is defined
+      and is a member of <VAR>s</VAR><CODE>*</CODE><VAR>t</VAR>, then use <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>t</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><VAR>s</VAR> <CODE>/</CODE> <VAR>t</VAR></TD>
+    <TD valign=TOP>All values belonging to type <VAR>s</VAR> but not type <VAR>t</VAR></TD>
+    <TD valign=TOP>If <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR> is defined and is a member of <VAR>s</VAR><CODE>/</CODE><VAR>t</VAR>,
+      then use <VAR>v</VAR>&nbsp;<CODE>as</CODE>&nbsp;<VAR>s</VAR>.</TD>
+  </TR>
+  </TABLE>
+</DIV>
+
+<P>The <CODE>[]</CODE> suffix operator could be used to make array types. Unlike <CODE>Array</CODE>, these arrays would be
+dense, indexable only by integers, nonresizable, and non-subclassable &#8212; <VAR>t</VAR><CODE>[]</CODE> has the <A href="../core/definitions.html#class-attributes">class
+modifier</A> <CODE>final</CODE>.</P>
+
+<P>A new <A href="../core/expressions.html#unary">unary operator</A>, <CODE>const</CODE>, could be added. This operator would
+take a <A href="operators.html#N-PostfixExpressionOrSuper" class=nonterminal>PostfixExpressionOrSuper</A> <VAR>x</VAR>
+as an operand. If <VAR>x</VAR> is an instance of a non-<CODE>ConstArray</CODE> array, <CODE>const&nbsp;</CODE><VAR>x</VAR>
+would return a <CODE>ConstArray[</CODE><VAR>T</VAR><CODE>]</CODE> copy of <VAR>x</VAR>, where <VAR>T</VAR> is the most specific
+type such that every element of <VAR>x</VAR> is a member of <VAR>T</VAR>. If <VAR>x</VAR> is an array type, <CODE>const&nbsp;</CODE><VAR>x</VAR>
+would be the corresponding <CODE>ConstArray</CODE> type.</P>
+
+<UL>
+  <LI><VAR>t</VAR><CODE>[]</CODE> is the type of writable arrays of <VAR>t</VAR>.</LI>
+  <LI><CODE>const&nbsp;</CODE><VAR>t</VAR><CODE>[]</CODE> is the type of constant arrays of <VAR>t</VAR>.</LI>
+  <LI><VAR>t</VAR><CODE>[][]</CODE> is the type of writable arrays of writable arrays of <VAR>t</VAR>.</LI>
+  <LI><CODE>const&nbsp;</CODE><VAR>t</VAR><CODE>[][]</CODE> is the type of constant arrays of writable arrays of <VAR>t</VAR>
+    &#8212; <CODE>const</CODE> binds looser than <CODE>[]</CODE> so it&#8217;s the same as <CODE>const&nbsp;(</CODE><VAR>t</VAR><CODE>[])[]</CODE>.</LI>
+  <LI><CODE>(const&nbsp;</CODE><VAR>t</VAR><CODE>[])[]</CODE> is the type of writable arrays of constant arrays of <VAR>t</VAR>.</LI>
+</UL>
+
+<H2><A name="constructors"></A>Multiple Constructors</H2>
+
+<P>Earlier ECMAScript 4 proposals allowed a class to have multiple constructors with different names, callable using the
+same syntax as calling static functions. These were dropped to keep the language simple. Since now each class can have at
+most one constructor, the <CODE>this(</CODE><VAR>args</VAR><CODE>)</CODE> form for calling another constructor from the same
+class was also dropped. Constructors had been defined as described below.</P>
+
+<P>A constructor is a function that creates a new instance of a class <VAR>C</VAR>. Constructors are defined using the attribute
+<CODE>constructor</CODE>. A constructor is usually given the same name as its class, in which case the <CODE>constructor</CODE>
+attribute is optional and the constructor is known as a <I>default constructor</I> and can be called as <CODE>new</CODE> <VAR>C</VAR>.
+If a constructor has a different name, it is invoked as though it were a <CODE>static</CODE> function of the class:</P>
+
+<P class=indent><CODE>class&nbsp;C&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;var&nbsp;a:String;</CODE><BR>
+<BR>
+<CODE>&nbsp;&nbsp;constructor&nbsp;function&nbsp;C(p:String)&nbsp;{this.a&nbsp;=&nbsp;"New&nbsp;"+p}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;The&nbsp;attribute&nbsp;<CODE>constructor</CODE>&nbsp;is&nbsp;optional&nbsp;here<BR>
+<CODE>&nbsp;&nbsp;constructor&nbsp;function&nbsp;make(p:String)&nbsp;{this.a&nbsp;=&nbsp;"Make&nbsp;"+p}</CODE><BR>
+<CODE>&nbsp;&nbsp;static&nbsp;function&nbsp;obtain(p:String):C&nbsp;{return&nbsp;new&nbsp;C(p)}</CODE><BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>var&nbsp;c:C&nbsp;=&nbsp;new&nbsp;C("one");</CODE><BR>
+<CODE>var&nbsp;d:C&nbsp;=&nbsp;C.C("two");</CODE><BR>
+<CODE>var&nbsp;e:C&nbsp;=&nbsp;C.make("three");</CODE><BR>
+<CODE>var&nbsp;f:C&nbsp;=&nbsp;C.obtain("four");</CODE><BR>
+<BR>
+<CODE>c.a;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Returns&nbsp;<CODE>"New&nbsp;one"</CODE><BR>
+<CODE>d.a;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Returns&nbsp;<CODE>"New&nbsp;two"</CODE><BR>
+<CODE>e.a;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Returns&nbsp;<CODE>"Make&nbsp;three"</CODE><BR>
+<CODE>f.a;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Returns&nbsp;<CODE>"New&nbsp;four"</CODE></P>
+
+<P>A constructor can refer to its class&#8217;s instance variables via <CODE>this</CODE>. If a class <VAR>C</VAR> inherits
+from class <VAR>B</VAR>, then when <VAR>B</VAR>&#8217;s constructor is called while creating an instance of <VAR>C</VAR>,
+<VAR>B</VAR>&#8217;s constructor will be able to call virtual methods of class <VAR>C</VAR> on the partially constructed instance.
+Likewise, <VAR>B</VAR>&#8217;s constructor could store <CODE>this</CODE> into a global variable <VAR>v</VAR> and some other
+function could call a method of <VAR>C</VAR> on the partially constructed object <VAR>v</VAR>. Class <VAR>C</VAR>&#8217;s
+methods can be assured that they are only called on fully initialized instances of <VAR>C</VAR> only if neither <VAR>C</VAR>
+nor any of its ancestors contains a constructor that exhibits either of the behaviors above.</P>
+
+<P>A constructor should not return a value with a <CODE>return</CODE> statement; the newly created object is returned automatically.
+A constructor&#8217;s return type must be omitted.</P>
+
+<P>A <CODE>constructor</CODE> function always returns a new instance. On the other hand, a <CODE>static</CODE> function can
+return an existing instance of its class. It is possible to define a <CODE>static</CODE> function with the same name as its
+class <VAR>C</VAR>; such a function looks like a constructor to the outside (it can be called as <CODE>new&nbsp;</CODE><VAR>C</VAR>)
+but can hand out existing instances of its class. However, subclasses will see that <VAR>C</VAR> is not a constructor in such
+a class because they will not be able to invoke <VAR>C</VAR>&#8217;s pseudo-constructor from their constructors.</P>
+
+<P>If a class <VAR>C</VAR> does not define the default constructor <VAR>C</VAR><CODE>.</CODE><VAR>C</VAR>, the default constructor
+<VAR>C</VAR><CODE>.</CODE><VAR>C</VAR> is automatically defined; that constructor takes the arguments that <VAR>C</VAR>&#8217;s
+superclass&#8217;s default constructor <VAR>B</VAR><CODE>.</CODE><VAR>B</VAR> takes. <VAR>C</VAR><CODE>.</CODE><VAR>C</VAR>
+calls <VAR>B</VAR><CODE>.</CODE><VAR>B</VAR> and then initializes <VAR>C</VAR>&#8217;s new instance members to their default
+values.</P>
+
+<H3>Calling a Superconstructor</H3>
+
+<P>Let <VAR>C</VAR> be a class and <VAR>B</VAR> its superclass. Any constructor <VAR>C</VAR><CODE>.</CODE><VAR>n</VAR> must
+call a constructor <VAR>B</VAR><CODE>.</CODE><VAR>m</VAR> or <VAR>C</VAR><CODE>.</CODE><VAR>m</VAR> before it accesses <CODE>this</CODE>
+or <CODE>super</CODE> or before it returns. The call can be either explicit or implicit; if <VAR>C</VAR><CODE>.</CODE><VAR>n</VAR>
+does not contain any calls to a constructor <VAR>B</VAR><CODE>.</CODE><VAR>m</VAR> or <VAR>C</VAR><CODE>.</CODE><VAR>m</VAR>,
+then a call to <VAR>B</VAR><CODE>.</CODE><VAR>B</VAR> with no arguments is automatically inserted as the first statement of
+<VAR>C</VAR><CODE>.</CODE><VAR>n</VAR>. The constructor <VAR>C</VAR><CODE>.</CODE><VAR>n</VAR> does not have to call another
+constructor if it exits by throwing an exception. <VAR>C</VAR><CODE>.</CODE><VAR>n</VAR> may not make a constructor call more
+than once.</P>
+
+<P>A constructor <VAR>C</VAR><CODE>.</CODE><VAR>n</VAR> can call another constructor using one of the following statements:</P>
+
+<DIV class=indent>
+  <TABLE border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=TOP nowrap><CODE>super(</CODE><VAR>args</VAR><CODE>)</CODE></TD>
+    <TD valign=TOP>Calls <VAR>B</VAR>&#8217;s default constructor <VAR>B</VAR><CODE>.</CODE><VAR>B</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>super.</CODE><VAR>m</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE>&nbsp;&nbsp;</TD>
+    <TD valign=TOP>Calls <VAR>B</VAR>&#8217;s constructor <VAR>B</VAR><CODE>.</CODE><VAR>m</VAR>. <VAR>m</VAR> must be a <A href="../core/expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>
+      that names one of <VAR>B</VAR>&#8217;s constructors.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>this(</CODE><VAR>args</VAR><CODE>)</CODE></TD>
+    <TD valign=TOP>Calls <VAR>C</VAR>&#8217;s default constructor <VAR>C</VAR><CODE>.</CODE><VAR>C</VAR>.</TD>
+  </TR>
+  <TR>
+    <TD valign=TOP nowrap><CODE>this.</CODE><VAR>m</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE></TD>
+    <TD valign=TOP>Calls <VAR>C</VAR>&#8217;s constructor <VAR>C</VAR><CODE>.</CODE><VAR>m</VAR>. <VAR>m</VAR> must be a <A href="../core/expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>
+      that names one of <VAR>C</VAR>&#8217;s constructors.</TD>
+  </TR>
+  </TABLE>
+</DIV>
+
+<P>The above must be complete statements, not subexpressions of larger expressions. The first of the four forms above is unambiguously
+a <A href="../core/statements.html#N-SuperStatement" class=nonterminal>SuperStatement</A>, but the remaining three are parsed as <A href="../core/statements.html#N-ExpressionStatement" class=nonterminal>ExpressionStatement</A>s.
+The following rules indicate whether one of these three forms (<CODE>super.</CODE><VAR>m</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE>,
+<CODE>this(</CODE><VAR>args</VAR><CODE>)</CODE>, or <CODE>this.</CODE><VAR>m</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE>)
+is treated as an expression or a call to a constructor:</P>
+
+<UL>
+  <LI>If the form is part of a larger expression (for example, <CODE>this(3,4)+5</CODE>), then it is an expression.</LI>
+  <LI>If the form is not located inside a constructor (excluding nested functions), then it is an expression.</LI>
+  <LI>If <VAR>m</VAR> in <CODE>super.</CODE><VAR>m</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE> does not name one of the
+    superclass&#8217;s constructors, then the form is an expression (that, in this case, looks up the superclass&#8217;s property
+    <VAR>m</VAR> on <CODE>this</CODE> and invokes it as a method with the arguments <VAR>args</VAR>).</LI>
+  <LI>If <VAR>m</VAR> in <CODE>this.</CODE><VAR>m</VAR><CODE>(</CODE><VAR>args</VAR><CODE>)</CODE> does not name one of the
+    current class&#8217;s constructors, then the form is an expression (that, in this case, looks up the property <VAR>m</VAR>
+    on <CODE>this</CODE> and invokes it as a method with the arguments <VAR>args</VAR>).</LI>
+  <LI>Otherwise, the form is a constructor call.</LI>
+</UL>
+
+<P>It is not possible to skip class hierarchy levels while constructing an object &#8212; if <VAR>C</VAR>&#8217;s superclass
+is <VAR>B</VAR> and <VAR>B</VAR>&#8217;s superclass is <VAR>A</VAR>, then one of <VAR>C</VAR>&#8217;s constructors may not
+directly call one of <VAR>A</VAR>&#8217;s constructors.</P>
+
+<H2><A name="class-extension"></A>Class Extensions</H2>
+
+<P>A class extension is the ability to add methods to a class defined somewhere else. Class extensions were part of the ECMAScript
+4 proposal but were dropped to keep the language simple; although useful, they significantly complicated the design of classes
+and introduced some pesky problems such as what to do when a package <VAR>P</VAR> first imports a base class <VAR>C</VAR>
+from package <VAR>Q</VAR>, then defines a subclass <VAR>D</VAR> of <VAR>C</VAR>, and finally extends <VAR>C</VAR> with an
+extension with the same name and namespace as a method of <VAR>D</VAR>.</P>
+
+<P>The proposed class extensions were created using the <CODE>extend</CODE> attribute described below.</P>
+
+<H3><CODE>extend</CODE> Attribute</H3>
+
+<P>The <CODE>extend</CODE> attribute takes a parameter <VAR>C</VAR>, which should be a <A href="../core/expressions.html#compile-time-constant">compile-time
+constant expression</A> that evaluates to a class, and adds the definition as a new member of class <VAR>C</VAR>. This allows
+one to add a method to an existing class <VAR>C</VAR> even if <VAR>C</VAR> is in an already defined package <VAR>P</VAR>.
+There are several restrictions:</P>
+
+<UL>
+  <LI>The <CODE>extend</CODE> attribute can only be used on <CODE>function</CODE>, <CODE>const</CODE>, <CODE>class</CODE>,
+    or <CODE>namespace</CODE> definitions, or on <CODE>static&nbsp;var</CODE> definitions. Thus, a class extension cannot
+    add new instance variables to objects of class <VAR>C</VAR>; it can, however, add getters and setters. <A href="operators.html">Operators</A>
+    cannot be defined in class extensions.</LI>
+  <LI>The new member must be either <CODE>static</CODE> or <CODE>final</CODE>, and it cannot override any existing member.
+    If the new member is a <CODE>function</CODE>, the default is <CODE>final</CODE>.</LI>
+  <LI>The new member must be defined in a namespace that has been defined in the current package. In particular, it means
+    that the new member cannot be <CODE>public</CODE>, because the <CODE>public</CODE> namespace is predefined by the system
+    and not by any package. The default namespace is <CODE>internal</CODE>, which makes the new member of <VAR>C</VAR> visible
+    only from inside the current package.</LI>
+  <LI>The new member does not get any special access privileges granted to <VAR>C</VAR>&#8217;s indigenous members. For example,
+    it cannot see <VAR>C</VAR>&#8217;s <CODE>private</CODE> members, and it cannot see <VAR>P</VAR>&#8217;s <CODE>internal</CODE>
+    members if <VAR>P</VAR> is not the current package. On the other hand, it can see the current package&#8217;s <CODE>internal</CODE>
+    members.</LI>
+</UL>
+
+<P>The following example indicates adding methods to the system class String, using a newly created namespace <CODE>StringExtension</CODE>:</P>
+
+<PRE>namespace StringExtension;
+
+StringExtension extend(String) function scramble():String {...}
+StringExtension extend(String) function unscramble():String {...}
+
+use namespace(StringExtension);
+
+var x:String = "abc".scramble();</PRE>
+
+<P>Once the class extension is evaluated, methods <CODE>scramble</CODE> and <CODE>unscramble</CODE> become available on all
+strings in code within the scope of a <CODE>use&nbsp;namespace(StringExtension)</CODE>. There is no possibility of name clashes
+with extensions of class <CODE>String</CODE> in other, unrelated packages because the names <CODE>scramble</CODE> and <CODE>unscramble</CODE>
+only acquire their special meanings when qualified by the namespace <CODE>StringExtension</CODE>.</P>
+
+<P>Unless one desires to export a class extension to other packages, the default namespace <CODE>internal</CODE> generally
+works best and simplifies the above example to:</P>
+
+<PRE>extend(String) {
+  function scramble():String {...}
+  function unscramble():String {...}
+}
+
+var x:String = "abc".scramble();</PRE>
+
+<H2><A name="interfaces"></A>Interfaces</H2>
+
+<P>Interfaces were considered for ECMAScript 4 but were dropped to keep the language simple &#8212; they are not needed
+as much in a dynamically typed language than in a statically typed one.</P>
+
+<P>Interfaces might be defined by adding the syntax and semantics below.</P>
+
+<H3>Interface Definition</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-InterfaceDefinition"></A><SPAN class=nonterminal>InterfaceDefinition</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_omega)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>interface</CODE>&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<A href="#N-ExtendsList" class=nonterminal>ExtendsList</A>&nbsp;<A href="../core/statements.html#N-Block" class=nonterminal>Block</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>interface</CODE>&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<A href="../core/statements.html#N-Semicolon" class=nonterminal>Semicolon</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_omega)</SCRIPT></SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ExtendsList"></A><SPAN class=nonterminal>ExtendsList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>extends</CODE>&nbsp;<A href="#N-TypeExpressionList" class=nonterminal>TypeExpressionList</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-TypeExpressionList"></A><SPAN class=nonterminal>TypeExpressionList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-TypeExpressionList" class=nonterminal>TypeExpressionList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+</DIV>
+
+<P>Interfaces behave much like classes except that an interface <VAR>I</VAR> is not a supertype of a class <VAR>C</VAR> that
+implements <VAR>I</VAR>. Instead, an instance <VAR>c</VAR> of <VAR>C</VAR> may be <A href="../libraries/types.html#implicit-coercion">implicitly
+coerced</A> to type <VAR>I</VAR>, which creates an instance <VAR>i</VAR> of <VAR>I</VAR>. <A href="../libraries/types.html#implicit-coercion">Implicitly
+coercing</A> <VAR>i</VAR> to type <VAR>C</VAR> yields the original instance <VAR>c</VAR>. It is unspecified whether <VAR>c</VAR><CODE>&nbsp;==&nbsp;</CODE><VAR>i</VAR>.</P>
+
+<P>An interface may have both concrete and abstract members, but it may not have constructors.</P>
+
+<P>In the absence of name conflicts, an interface <VAR>I</VAR>&#8217;s members may be accessed as properties of any instance
+<VAR>c</VAR> of a class <VAR>C</VAR> that implements <VAR>I</VAR>. However, it is legal to define an interface <VAR>I</VAR>
+with a member <VAR>m</VAR> with the same name as a member of class <VAR>C</VAR> and yet have the two members be different.
+It is also legal for a class to implement two interfaces <VAR>I</VAR> and <VAR>J</VAR> both of which have a member named <VAR>m</VAR>
+and have the two <VAR>m</VAR>&#8217;s remain distinct. Which one gets extracted when one performs the property lookup operation
+<VAR>c</VAR><CODE>.</CODE><VAR>m</VAR> depends on whether <VAR>c</VAR> was last coerced to one of the interfaces or to an
+object type.</P>
+
+<H3>Class Definitions</H3>
+
+<P>The <A href="#N-Inheritance" class=nonterminal>Inheritance</A> clause of class definitions would be modified to accommodate
+interfaces, as listed in an <CODE>implements</CODE> clause:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ClassDefinition"></A><SPAN class=nonterminal>ClassDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>class</CODE>&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<A href="#N-Inheritance" class=nonterminal>Inheritance</A>&nbsp;<A href="../core/statements.html#N-Block" class=nonterminal>Block</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Inheritance"></A><SPAN class=nonterminal>Inheritance</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>extends</CODE>&nbsp;<A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>implements</CODE>&nbsp;<A href="#N-TypeExpressionList" class=nonterminal>TypeExpressionList</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>extends</CODE>&nbsp;<A href="../core/expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP>&nbsp;<CODE class=terminal-keyword>implements</CODE>&nbsp;<A href="#N-TypeExpressionList" class=nonterminal>TypeExpressionList</A></DIV>
+</DIV>
+
+<P>The newly defined class inherits instance and static members from the superclass and superinterfaces, if any. In the case
+of a conflict between a superclass and a superinterface, the superclass prevails. In the case of a conflict between two superinterfaces,
+neither is preferred and the lookup has to be qualified by the name of the superinterface for instance members or done directly
+on one of the superinterfaces for static members.</P>
+
+<H2>Attributes</H2>
+
+<H4><A name="primitive"></A><CODE>primitive</CODE></H4>
+
+<P>A <CODE>primitive</CODE> <A href="../core/definitions.html#class-attributes">class modifier attribute</A> was considered.
+This attribute would exclude <CODE>null</CODE> from the set of values that can be stored in variables typed with this class:
+if a class <VAR>C</VAR> is defined using the <CODE>primitive</CODE> attribute, then <CODE>null</CODE> is not considered to
+be a member of the type <VAR>C</VAR> (there would have to be a way to specify a default value for uninitialized variables
+of type <VAR>C</VAR>). This attribute would permit user-defined classes to behave like some predefined classes such as <CODE>Number</CODE>.</P>
+
+<P>This attribute was dropped for now because of circularity problems with classes that haven&#8217;t been defined yet. If
+class <VAR>C</VAR> hasn&#8217;t been defined yet, one can still create a variable of type <VAR>C</VAR>; such a variable is
+initialized to <CODE>null</CODE>. If <VAR>C</VAR> turned out to be a primitive class then the variable&#8217;s value would
+need to be retroactively changed.</P>
+
+<H2><A name="import"></A>Importing Packages</H2>
+
+<P>The <A href="../core/packages.html#import"><CODE>import</CODE> directive</A> can be extended with more options for better
+identifier and namespace management, as described below:</P>
+
+<P>A package <VAR>P</VAR> can reference another package <VAR>Q</VAR> via an <CODE>import</CODE> directive:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ImportDirective"></A><SPAN class=nonterminal>ImportDirective</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<A href="#N-ImportBinding" class=nonterminal>ImportBinding</A>&nbsp;<A href="#N-IncludesExcludes" class=nonterminal>IncludesExcludes</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>import</CODE>&nbsp;<A href="#N-ImportBinding" class=nonterminal>ImportBinding</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<CODE class=terminal-keyword>namespace</CODE>&nbsp;<A href="../core/expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A>&nbsp;<A href="#N-IncludesExcludes" class=nonterminal>IncludesExcludes</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ImportBinding"></A><SPAN class=nonterminal>ImportBinding</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/packages.html#N-PackageName" class=nonterminal>PackageName</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<A href="../core/packages.html#N-PackageName" class=nonterminal>PackageName</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-IncludesExcludes"></A><SPAN class=nonterminal>IncludesExcludes</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<CODE class=terminal-keyword>exclude</CODE>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<A href="#N-NamePatterns" class=nonterminal>NamePatterns</A>&nbsp;<CODE class=terminal-keyword>)</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<CODE class=terminal-keyword>include</CODE>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<A href="#N-NamePatterns" class=nonterminal>NamePatterns</A>&nbsp;<CODE class=terminal-keyword>)</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamePatterns"></A><SPAN class=nonterminal>NamePatterns</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NamePatternList" class=nonterminal>NamePatternList</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamePatternList"></A><SPAN class=nonterminal>NamePatternList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="../core/expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NamePatternList" class=nonterminal>NamePatternList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="../core/expressions.html#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A></DIV>
+</DIV>
+
+<P>If provided, <A href="../core/expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A> should be a list
+of namespaces provided by the package. These namespaces are <CODE>use</CODE>d by the <CODE>import</CODE> statement. In order
+to resolve name conflicts between packages, <A href="#N-IncludesExcludes" class=nonterminal>IncludesExcludes</A> provides
+finer-grain control over which names are imported. <CODE>include</CODE> or <CODE>exclude</CODE> clauses specify which sets
+of names are shared as top-level variables. If <CODE>include</CODE> is used, only the listed names are made accessible; if
+<CODE>exclude</CODE> is used, all names except the listed ones are made accessible. For example:</P>
+
+<P class=indent><CODE>package&nbsp;My.P1&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;explicit&nbsp;namespace&nbsp;N;</CODE><BR>
+<BR>
+<CODE>&nbsp;&nbsp;N&nbsp;const&nbsp;a&nbsp;=&nbsp;"global&nbsp;a";</CODE><BR>
+<CODE>&nbsp;&nbsp;N&nbsp;const&nbsp;b&nbsp;=&nbsp;"global&nbsp;b";<BR>
+&nbsp;&nbsp;N&nbsp;class&nbsp;C&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;&nbsp;&nbsp;static&nbsp;var&nbsp;x&nbsp;=&nbsp;2;</CODE><BR>
+<CODE>&nbsp;&nbsp;}</CODE><BR>
+<CODE>&nbsp;&nbsp;N&nbsp;const&nbsp;c&nbsp;=&nbsp;new&nbsp;C(i:5);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Initializes&nbsp;<CODE>c.i</CODE>&nbsp;to&nbsp;<CODE>5</CODE><BR>
+<CODE>&nbsp;&nbsp;const&nbsp;x&nbsp;=&nbsp;"global&nbsp;x";</CODE><BR>
+<CODE>}</CODE><BR>
+<BR>
+<CODE>package&nbsp;My.P2&nbsp;{</CODE><BR>
+<CODE>&nbsp;&nbsp;import&nbsp;P&nbsp;=&nbsp;My.P1,&nbsp;namespace(N),&nbsp;exclude(N::b,&nbsp;x);&nbsp;&nbsp;//</CODE>&nbsp;Imports&nbsp;<CODE>My.P1</CODE>&nbsp;and&nbsp;<CODE>use</CODE>s&nbsp;namespace&nbsp;<CODE>N</CODE>,&nbsp;excluding&nbsp;<CODE>N::b</CODE>
+and &nbsp;<CODE>x</CODE><BR>
+<CODE>&nbsp;&nbsp;c;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;OK;&nbsp;evaluates&nbsp;to&nbsp;the&nbsp;instance&nbsp;of&nbsp;class&nbsp;<CODE>C</CODE><BR>
+<CODE>&nbsp;&nbsp;N;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Error:&nbsp;<CODE>N</CODE>&nbsp;not&nbsp;found&nbsp;because&nbsp;it&#8217;s&nbsp;<CODE>explicit</CODE><BR>
+<CODE>&nbsp;&nbsp;P.N;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;OK;&nbsp;evaluates&nbsp;to&nbsp;namespace&nbsp;<CODE>N</CODE>&nbsp;in&nbsp;package&nbsp;<CODE>My.P1</CODE><BR>
+<CODE>&nbsp;&nbsp;a;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;OK;&nbsp;evaluates&nbsp;to&nbsp;<CODE>"global&nbsp;a"</CODE><BR>
+<CODE>&nbsp;&nbsp;b;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Error:&nbsp;<CODE>N::b</CODE>&nbsp;not&nbsp;found
+because it&#8217;s excluded<BR>
+<CODE>&nbsp;&nbsp;P.b;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;OK;&nbsp;evaluates&nbsp;to&nbsp;<CODE>"global&nbsp;b"</CODE><BR>
+<CODE>&nbsp;&nbsp;(P.N)::b;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Error:&nbsp;<CODE>N::b</CODE>&nbsp;not&nbsp;found
+because it&#8217;s excluded<BR>
+<CODE>&nbsp;&nbsp;x;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;Error:
+the global&nbsp;<CODE>x</CODE>&nbsp;not&nbsp;found because it&#8217;s excluded<BR>
+<CODE>&nbsp;&nbsp;C.x;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//</CODE>&nbsp;OK;&nbsp;evaluates&nbsp;to&nbsp;<CODE>2</CODE><BR>
+<CODE>}</CODE></P>
+
+<P>If no <CODE>include</CODE> or <CODE>exclude</CODE> clause is listed, the effect is the same as if <CODE>exclude()</CODE>
+were listed.</P>
+
+<P>An <CODE>import</CODE> directive does the following:</P>
+
+<UL>
+  <LI>Locate the target package specified by <A href="../core/packages.html#N-PackageName" class=nonterminal>PackageName</A>. If the package has
+    not yet been loaded, then load it and wait until the target package&#8217;s <A href="../core/statements.html#N-Block" class=nonterminal>Block</A>
+    is done evaluating. If loading the target package causes an import of the current package then throw a package circularity
+    exception.</LI>
+  <LI>Let <VAR>P</VAR> be the target package object.</LI>
+  <LI>If <A href="../core/expressions.html#N-Identifier" class=nonterminal>Identifier</A> is given, <CODE>const</CODE>-bind it to
+    <VAR>P</VAR> in the current scope.</LI>
+  <LI>For each non-<CODE>explicit</CODE> top-level definition <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> (<VAR>n</VAR> in namespace
+    <VAR>N</VAR>) in <VAR>P</VAR>, if <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> is excluded by the given <A href="#N-IncludesExcludes" class=nonterminal>IncludesExcludes</A>,
+    then skip that definition; otherwise, bind an alias <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> to <VAR>P</VAR>&#8217;s <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR>
+    in the global scope unless <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> is already defined in the global scope.</LI>
+  <LI>If <A href="../core/expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A> is provided, evaluate
+    each expression <VAR>E</VAR> in <A href="../core/expressions.html#N-ParenListExpression" class=nonterminal>ParenListExpression</A>,
+    looking up each free identifier in <VAR>E</VAR> as though it were prefixed with <VAR>P</VAR><CODE>.</CODE>. Each such
+    expression <VAR>E</VAR> should evaluate to a namespace <VAR>S</VAR>. Evaluate <CODE>use&nbsp;namespace(</CODE><VAR>S</VAR><CODE>)</CODE>
+    using the given <A href="#N-IncludesExcludes" class=nonterminal>IncludesExcludes</A>.</LI>
+</UL>
+
+<P>If package <VAR>P</VAR> has a <CODE>public</CODE> top-level definition <VAR>n</VAR> and package <VAR>Q</VAR> imports <VAR>P</VAR>
+using <CODE>import&nbsp;PkgP&nbsp;=&nbsp;</CODE><VAR>P</VAR>, then package <VAR>Q</VAR> can refer to <VAR>n</VAR> as either
+<VAR>n</VAR> or <CODE>PkgP.</CODE><VAR>n</VAR>. The shorter form <VAR>n</VAR> is not available if it conflicts with some other
+<VAR>n</VAR>. To avoid polluting its top-level scope, package <VAR>Q</VAR> can import package <VAR>P</VAR> using either <CODE>import&nbsp;PkgP&nbsp;=&nbsp;</CODE><VAR>P</VAR><CODE>,&nbsp;include()</CODE>
+or <CODE>import&nbsp;PkgP&nbsp;=&nbsp;</CODE><VAR>P</VAR><CODE>,&nbsp;exclude(</CODE><VAR>n</VAR><CODE>)</CODE>, in which
+case package <VAR>Q</VAR> can refer to <VAR>n</VAR> only as <CODE>PkgP.</CODE><VAR>n</VAR>.</P>
+
+<P>If package <VAR>P</VAR> has an <CODE>explicit</CODE> top-level definition <VAR>n</VAR> and package <VAR>Q</VAR> imports
+<VAR>P</VAR>, then package <VAR>Q</VAR> can refer to that <VAR>n</VAR> only as <CODE>PkgP.</CODE><VAR>n</VAR>.</P>
+
+<P>If package <VAR>P</VAR> has a top-level definition <VAR>n</VAR> in namespace <VAR>N</VAR> and package <VAR>Q</VAR> imports
+<VAR>P</VAR> using <CODE>import&nbsp;PkgP&nbsp;=&nbsp;</CODE><VAR>P</VAR>, then package <VAR>Q</VAR> can refer to <VAR>n</VAR>
+as either <CODE>PkgP.</CODE><VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> or <VAR>N</VAR><CODE>::</CODE><VAR>n</VAR> (in either
+of these the name <VAR>N</VAR> has to be accessible as well, which may require qualifying it if the accessibility of <VAR>N</VAR>
+is not <CODE>public</CODE> or using <CODE>(PkgP.</CODE><VAR>N</VAR><CODE>)</CODE> instead of <VAR>N</VAR> if the accessibility
+of <VAR>N</VAR> is <CODE>explicit</CODE>). Package <VAR>Q</VAR> can instead import <VAR>P</VAR> using <CODE>import&nbsp;PkgP&nbsp;=&nbsp;</CODE><VAR>P</VAR><CODE>,&nbsp;namespace(</CODE><VAR>N</VAR><CODE>)</CODE>
+to be able to refer to <VAR>n</VAR> as plain <VAR>n</VAR>, barring name collisions. Alternatively, package <VAR>Q</VAR> can
+execute <CODE>import&nbsp;PkgP&nbsp;=&nbsp;</CODE><VAR>P</VAR> followed by <CODE>use&nbsp;namespace(</CODE><VAR>N</VAR><CODE>)</CODE>
+(or <CODE>use&nbsp;namespace(PkgP.</CODE><VAR>N</VAR><CODE>)</CODE>) to achieve the same effect.</P>
+
+<H2>Wrap Mode</H2>
+
+<P>Earlier drafts of this proposal had a wrap <A href="../core/pragmas.html">pragma</A> that caused implicit coercions of
+an out-of-range integer to an integral <A href="../libraries/machine-types.html">machine type</A> to wrap around instead of
+generating an error. The pragma would only affect the portions of the program in which the pragma was lexically in effect.
+The basic effect of this pragma would be to make arithmetic on <CODE>sbyte</CODE>, <CODE>byte</CODE>, <CODE>short</CODE>,
+<CODE>ushort</CODE>, <CODE>int</CODE>, <CODE>uint</CODE>, <CODE>long</CODE>, and <CODE>ulong</CODE> wrap around instead of
+generating errors when the result doesn&#8217;t fit in the destination.</P>
+
+<P>Although useful for performance-critical code, this pragma was dropped to keep the language simple. Wrap-around can still
+be achieved using an explicit cast to one of the integral machine types.</P>
+
+<!--/IMPORT-->
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=BOTTOM nowrap>
+    <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+    Last modified Wednesday, June 4, 2003</ADDRESS>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="syntax.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="../compatibility.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+</BODY>
+</HTML>

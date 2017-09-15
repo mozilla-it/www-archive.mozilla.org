@@ -1,0 +1,327 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+  <title>Performance: profiling juju</title>
+
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+
+
+<h1>Performance: profiling juju</h1>
+
+<address class="author">Contact: <a href="mailto:waterson@netscape.com">Chris Waterson</a> (waterson@netscape.com)</address>
+
+<p>This page contains tricks and tips for the black art of Profiling
+Mozilla. For information about the tools that are available for
+profiling, please see <a href="tools.html">this page</a>.</p>
+
+<h2>Quantify</h2>
+
+<p>Rational Software's
+<a href="http://www.rational.com/products/quantify/index.jtmpl?borschtid=30142038831761639304">Quantify</a>
+product can be a truly wonderful tool to work with. If you can get it
+to work.</p>
+
+<h3>Collecting Data</h3>
+
+<p>Collecting data is actually the "riskiest" part. Mozilla is,
+unfortunately, a big 500 pound gorilla of a product to profile, and it
+really pushes Quantify to its limits. Here is the magic recipe that
+I've used to get traces out of the tool on Win32.</p>
+
+<p><b>Have lots of swap space</b>. Configure your machine so that you've
+got a <em>ton</em> of swap space. (I've heard reports of needing as
+much as 3,000MB -- that's three gigabytes, baby!)</p>
+
+<p><b>Build with <code>MOZ_DEBUG_SYMBOLS=1</code> set and 
+<code>--enable-optimize --disable-debug --enable-quantify</code></b>. 
+Rule Number One in profiling is to <em>profile what you'll
+ship</em>. Profiling debug bits means you'll fight with
+<code>sprintf()</code> calls that generate debugging strings that go
+nowhere, sloppy (but quickly) generated code from the compiler, and
+all the <code>#ifdef DEBUG</code> cruft that people have left in to
+verify internal structures. In other words, you'll risk spending the
+afternoon chasing down a "big win", only to discover somebody's sanity
+checking code is really, really slow.</p>
+
+<p><b>Build in a separate tree</b>. Don't combine debug and optimized
+bits in the same tree. Doing so risks the anger of the profiling gods.</p>
+
+<p><b>Run the app once before starting to profile</b>. After a clean
+build, you should run the app once to let XPCOM autoregistration and
+other "first time" tasks take place; e.g., selecting the default
+profile. (Unless, of course, your goal is to profile these "first
+time" tasks.)</p>
+
+<p><b>Use "function level timing" for a module that Quantify can't
+instrument</b>. By default, Quantify will try to instrument each DLL
+using <em>line-level</em> instrumentation. This is the most accurate;
+however, sometimes (when appropriate chickens have not been
+sacrificed), doing line-level instrumentation will cause the target
+app to crash. If this happens, try changing the instrumentation for
+the module that was being instrumented when the crash occurred to
+<em>function-level</em>. To do this:</p>
+
+<ul>
+ <li>Click the <b>Setting...</b> button in the <b>Run Program</b>
+dialog. This will bring up the <b>Program Settings</b> dialog.</li>
+ <li>Click the <b>Modules...</b> button in the <b>Program Settings</b>
+dialog. This will bring up the <b>Module Instrumentation</b> dialog.</li>
+ <li>Find the module that was being instrumented when the crash occurred,
+and change its <b>Measurement</b> from <b>Default</b> to
+<b>Function</b>.</li>
+</ul>
+
+<p>(Tip o' the hat to kipp for that trick.)</p>
+
+<p><b>Remove all the files from your Quantify cache directory</b> if the
+above doesn't seem to work. (This is what the tech support people at
+Rational say, anyway.) I think maybe this has worked for me. Or maybe
+it was because I did it under the light of a full moon...</p>
+
+<p><b>"Pause" recording of data until you get to the task you want to
+profile</b>. You do this by clicking the little "VCR pause" button in
+the toolbar, and then clicking the "Rewind" button to clear out any
+partially-collected results. Get the app to a state where you are
+<em>just about</em> to perform the task you want to profile, then
+"un-pause" the data recorder, perform the task, re-pause the recorder,
+and shut the app down cleanly. Besides avoiding a <em>ton</em> of
+unnecessary cruft, you will greatly increase the chances that Quantify
+will actually be able to parse the collected data set.</p>
+
+<h3>Analyzing Data</h3>
+
+<p>Once you've collected the data, you'll quickly find yourself weeding
+through more information than you probably care to know. Here are some
+tips for isolating the stuff that's important.</p>
+
+<p><b>Plan to take notes</b>. As you start to walk through this data,
+you'll stumble on <em>dozens</em> of things that surprise you. Rather
+than trying to address each individually, <em>take notes</em> so you
+can come back to stuff.</p>
+
+<p><b>Focus on the thread that did the work when analyzing the
+data</b>. Quantify will collect timing information from <em>all</em>
+the threads that ran during your task, and will include "dead time"
+spent waiting in Necko threads even if you didn't happen to load
+anything. Wading through that just makes your life harder. Start by
+finding the "green thread" (i.e., the thread that did all the work),
+and then use the <b>Call Graph</b> window and the right-mouse to
+<b>Focus on Subtree</b>. I've found it <em>amazingly</em> useful to
+recursively "focus down the tree" on hot operations.</p>
+
+<p><b>Use the "Function List" to find hot function</b>. The function list
+can be sorted by column, so you can find functions by name, function
+time, and call count. The "function+descendant time" and "call count"
+columns are most useful for finding the Big Kahunae of low hanging
+fruit. Start there.</p>
+
+<p><b>Use the "Function Detail" window to walk up and down call
+chains</b>. The function list will give you a crude overview of where
+time is being spent. But you know the code better than Quantify. Use
+the function list (sorted alphabetically) to find key entry points
+(e.g., where layout is starting, where a reflow is triggered), and
+then switch to the function detail view to navigate up and down the
+tree to see <em>who is calling it</em> and <em>who it calls</em>. You
+may be surprised. Use the <b>Call Graph</b> window to re-focus on
+subroutines if you become particularly interested in one place or
+another.</p>
+
+<p><b>Use call counts to identify opportunities for algorithmic
+change</b>. A high call count may indicate an opportunity for
+algorithmic change; e.g., replacing a list with a hashtable.</p>
+
+<p><b>Use the "Annotated Source" to examine leaf-level functions</b> that
+are taking a lot of time, or have high call counts. You can access
+this menu by right-clicking in the <b>Function Detail</b> menu, choose
+<b>Annotated Source</b> in the <b>Switch To</b> submenu.</p>
+
+<p><b>Compare profiles against each other after optimizing</b>. Make sure
+the performance optimization you <em>thought</em> you made actually
+worked. Save the original profile as a baseline, and then refer back
+to it as you tune the code. Not only will this keep you honest, it'll
+give you bragging rights ("I made <code>foo()</code> go 200% faster!").</p>
+
+<h2>Visual Studio 2005 Notes</h2>
+
+<p>If you're attempting to use Quantify with Visual Studio 2005, you'll
+need to be using version 7.0 of the Rational suite.  Data collection
+with VS2005 built binaries seems to require much more profiling space
+than previous required.  Discussion with Rational support gave these
+steps to allow data collection, in addition to the normal Quantify
+instructions above:</p>
+
+<ul>
+ <li>Enable 3GB mode in Windows.  Edit <code>boot.ini</code> and add
+<code>/3GB</code> to the end of line in the <code>[operating systems]</code>
+section. Reboot to make this take effect.</li>
+ <li>Before you start a run, you need to add some quantify options:
+ <ol>
+  <li>In the <b>Run Program</b> dialog, click on <b>Settings...</b></li>
+  <li>Click on the <b>Files</b> tab</li>
+  <li>Add the following to <b>Additional options</b>:
+<code>-large-address-aware=yes -map-entire-shared-mem-range=yes<br>
+-runtime-data-size=0x3f000000</code></li>
+ </ol>
+ </li>
+</ul>
+
+<p>If you've already tried profiling before adding those options, make
+sure Quantify reinstruments the EXE/DLLs by clearing the cache -
+<b>Run Program</b>, click on <b>Settings...</b>, select the
+<b>PowerTune</b> tab, click on <b>Configure...</b>, click on <b>Clear
+Cache</b>.</p>
+
+<h2>Mac Profiling Tips</h2>
+
+<p>These courtesy
+<a href="mailto:pierre@netscape.com">Pierre Saslawski</a> (pierre@netscape.com),
+who posted them in
+<a href="news://news.mozilla.org/37F0B9AE.AD60306%40netscape.com">this article</a>.
+</p>
+
+<h3>Resolving aliases is slow!</h3>
+
+<p>Launching the app after restarting the Mac takes about 37 seconds with a
+debug build with aliases and about 19 seconds with the real files.</p>
+
+<p>It takes 4.5s to load the 43 DLLs instead of 3.06s, which means that
+using aliases makes it 50% slower for relatively big files. It must be
+worse for plenty of small files (like xpt, xul, gif...).</p>
+
+<p>Result: if you are working on performance, you should use
+a copy of the debug build with real files instead of aliases
+otherwise you may not be able to appreciate your improvements to
+their fullest.</p>
+
+<h3>File cache makes a big difference</h3>
+
+<p>With VM on and a cache of 8Mb, it takes 37 seconds to launch a debug
+build with aliases. With a cache of 128Kb (the minimum allowed by MacOS),
+it takes 1 minute and 5 seconds. The time needed to load just the DLLs
+was 12 seconds instead of 4.5.</p>
+
+<h3>Virtual Memory makes almost no difference</h3>
+
+<p>Turning the Virtual Memory on and off, makes no difference at all
+for launching the app for the first time: 37 seconds in both cases.
+However, VM-on improves quite a bit the time needed to relaunch the
+app just after a Quit: about 9 seconds instead of 12. Most of this
+difference comes from the time needed to reload the DLLs: 0.8 seconds
+in one case, 2.9 seconds in the other.</p>
+
+<h3>Optimized builds are a little bit faster</h3>
+
+<p>We suspected it, however the difference is not very important. I compared
+a debug build without aliases and a daily build from Mozilla.org.
+After restarting the Mac, the debug build takes about 19 seconds to
+launch, the optimized build about 16 seconds. We have about the same
+difference when relaunching the applications a second time: 12 seconds
+versus 9. It can be explained by a smaller size of DLLs in optimized
+builds rather than by a better code (but it is just my guess).</p>
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified January 20,  2007</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/performance/profiling-juju.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

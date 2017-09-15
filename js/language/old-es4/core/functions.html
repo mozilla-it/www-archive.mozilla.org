@@ -1,0 +1,295 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>ECMAScript 4 Functions</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="variables.html">
+<LINK rel=Next href="classes.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=es-title>ECMAScript 4 Netscape Proposal</SPAN></DIV>
+    <DIV class=title2>Core Language</DIV>
+    <DIV class=title1>Functions</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="variables.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="classes.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Monday, April 28, 2003</P>
+
+<!--IMPORT "../../js20/core/functions.html" -class=js2 -class=js2-hidden +class=es4 +class=es4-hidden -->
+
+<H2>Syntax</H2>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FunctionDefinition"></A><SPAN class=nonterminal>FunctionDefinition</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>function</CODE>&nbsp;<A href="#N-FunctionName" class=nonterminal>FunctionName</A>&nbsp;<A href="#N-FunctionCommon" class=nonterminal>FunctionCommon</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FunctionName"></A><SPAN class=nonterminal>FunctionName</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>get</CODE>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>set</CODE>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FunctionCommon"></A><SPAN class=nonterminal>FunctionCommon</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<A href="#N-Parameters" class=nonterminal>Parameters</A>&nbsp;<CODE class=terminal-keyword>)</CODE>&nbsp;<A href="#N-Result" class=nonterminal>Result</A>&nbsp;<A href="statements.html#N-Block" class=nonterminal>Block</A></DIV>
+</DIV>
+
+<P>Like other <A href="definitions.html">definitions</A>, a function definition may be preceded by one or more <A href="definitions.html#attribute">attributes</A>,
+which affect the function&#8217;s scope, namespace, and semantics. Every function (except a <A href="#getter">getter</A> or a <A href="#setter">setter</A>)
+is also a value and has type <CODE>Function</CODE>.</P>
+
+<P>Unless a function <VAR>f</VAR> is defined with the <A href="definitions.html#prototype"><CODE>prototype</CODE> attribute</A>
+(either explicitly or by default because <VAR>f</VAR> is <A href="#unchecked">unchecked</A>), that function does <I>not</I>
+define a class, <VAR>f</VAR>&#8217;s name cannot be used in a <CODE>new</CODE> expression, and <VAR>f</VAR> cannot refer to
+<CODE>this</CODE> unless <VAR>f</VAR> is an instance method or constructor of a class.</P>
+
+<P>A <A href="#N-FunctionDefinition" class=nonterminal>FunctionDefinition</A> can specify a function, <A href="#getter">getter</A>
+(if its name is preceded by <CODE>get</CODE>), or <A href="#setter">setter</A> (if its name is preceded by <CODE>set</CODE>).</P>
+
+<P><A href="#N-Parameters" class=nonterminal>Parameters</A> give the names and the types of the function&#8217;s parameters.
+<A href="#N-Result" class=nonterminal>Result</A> gives the type of the function&#8217;s result. The <A href="statements.html#N-Block" class=nonterminal>Block</A>
+contains the function body and is evaluated only when the function is called.</P>
+
+<H3><A name="parameters"></A>Parameter Declarations</H3>
+
+<P>A function may take zero or more parameters and an optional rest parameter. Optional parameters may follow but not precede
+required parameters (this condition is not in the grammar but is checked by the formal semantics).</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Parameters"></A><SPAN class=nonterminal>Parameters</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NonemptyParameters" class=nonterminal>NonemptyParameters</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NonemptyParameters"></A><SPAN class=nonterminal>NonemptyParameters</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ParameterInit" class=nonterminal>ParameterInit</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ParameterInit" class=nonterminal>ParameterInit</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-NonemptyParameters" class=nonterminal>NonemptyParameters</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-RestParameter" class=nonterminal>RestParameter</A></DIV>
+</DIV>
+
+<P>Individual parameters have the forms:</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Parameter"></A><SPAN class=nonterminal>Parameter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-ParameterAttributes" class=nonterminal>ParameterAttributes</A>&nbsp;<A href="variables.html#N-TypedIdentifier" class=nonterminal>TypedIdentifier</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ParameterAttributes"></A><SPAN class=nonterminal>ParameterAttributes</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>const</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ParameterInit"></A><SPAN class=nonterminal>ParameterInit</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Parameter" class=nonterminal>Parameter</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Parameter" class=nonterminal>Parameter</A>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<A href="expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-RestParameter"></A><SPAN class=nonterminal>RestParameter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>...</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>...</CODE>&nbsp;<A href="#N-ParameterAttributes" class=nonterminal>ParameterAttributes</A>&nbsp;<A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A></DIV>
+</DIV>
+
+<P>The <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A> gives the parameter&#8217;s type and defaults
+to type <CODE>Object</CODE>. The <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A> must evaluate
+to a type other than <CODE>Never</CODE>.</P>
+
+<P>If a <A href="#N-Parameter" class=nonterminal>Parameter</A> is followed by a <CODE>=</CODE>, then that parameter is optional.
+If a function call does not provide an argument for an optional parameter, then that parameter is set to the value of its
+<A href="expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A>, <A href="../libraries/types.html#implicit-coercion">implicitly
+coerced</A> to the parameter&#8217;s type if necessary. The <A href="expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A>
+must be a <A href="expressions.html#compile-time-constant">compile-time constant</A>.</P>
+
+<P>If a <A href="#N-Parameter" class=nonterminal>Parameter</A> is prefixed with <CODE>const</CODE>, then the parameter is
+declared using <CODE>const</CODE> instead of <CODE>var</CODE>. The effect is that the parameter&#8217;s value cannot be changed
+from within the function. Without the <CODE>const</CODE>, the function can change the parameter&#8217;s value, which, however, has
+no effect on the argument.</P>
+
+<P>If a function call does not provide an argument for a required <A href="#N-Parameter" class=nonterminal>Parameter</A>,
+then an error occurs unless the function is <A href="#unchecked">unchecked</A>, in which case the parameter gets the value
+<CODE>undefined</CODE>, <A href="../libraries/types.html#implicit-coercion">implicitly coerced</A> to the parameter&#8217;s
+type if necessary.</P>
+
+<P>The parameters&#8217; <A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A>s are local variables with types
+given by the corresponding <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>s inside the function&#8217;s
+<A href="statements.html#N-Block" class=nonterminal>Block</A>. Code in the <A href="statements.html#N-Block" class=nonterminal>Block</A>
+may read and write these variables. Arguments are passed by value, so writes to these variables do not affect the passed arguments&#8217;
+values in the caller.</P>
+
+<P>Attempting to define a function with two different parameters with the same name is an error.</P>
+
+<H3><A name="rest"></A>Rest Parameter</H3>
+
+<P>If the <CODE>...</CODE> is present, the function accepts arguments not matched by any of the other listed parameters. If
+a parameter is given after the <CODE>...</CODE>, then that parameter&#8217;s identifier is bound to an array of all remaining
+arguments. That identifier is declared as a local <CODE>var</CODE> or <CODE>const</CODE> using the type <CODE>Array</CODE>.
+The remaining arguments are stored as elements of the rest array with numeric indices starting from 0.</P>
+
+<P><A name="arguments-array"></A>Each <A href="#unchecked">unchecked</A> function also has a predefined <CODE>const</CODE>
+<CODE>arguments</CODE> local variable which holds an array (of type <CODE>Array</CODE>) of all arguments passed to this function.</P>
+
+<H3>Result Type</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Result"></A><SPAN class=nonterminal>Result</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>:</CODE>&nbsp;<A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></DIV>
+</DIV>
+
+<P>The function&#8217;s result type is <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>, which defaults
+to type <CODE>Object</CODE> if not given. The <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>
+must evaluate to a type.</P>
+
+<P>If the function does not return a useful value, it&#8217;s good practice to set <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>
+to <CODE>Void</CODE> to document this fact. If the function cannot return at all (it either always falls into an infinite
+loop or throws an exception), then it&#8217;s good practice to set <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>
+to <CODE>Never</CODE> to document this fact; this also lets the compiler know that code after a call to this function is unreachable,
+which can help cut down on spurious warnings.</P>
+
+<H2>Evaluation Order</H2>
+
+<P>A function&#8217;s parameter and result <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>s are
+evaluated at the time the function definition or declaration is <I>executed</I>. These types are then saved for use in argument
+and result coercions at the time the function is called.</P>
+
+<P>The static and dynamic extent of a parameter includes all subsequent parameters&#8217; and the result type&#8217;s <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>s
+and <A href="expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A>s. However, the case where
+a subsequent parameter&#8217;s or the result type&#8217;s <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>
+or <A href="expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A> references a prior parameter
+is reserved for a future language extension. For now, an implementation should raise an error in this case:</P>
+
+<PRE>const t = Integer;
+function choice(a:Boolean, t:Type, c:t, d:t):t {
+  return a ? c : d;
+}</PRE>
+
+<P>This definition of <CODE>choice</CODE> should (for now) be an error and not:</P>
+
+<PRE>function choice(a:Boolean, t:Type, c:Integer, d:Integer):Integer {
+  return a ? c : d;
+}</PRE>
+
+<P>The intent is that a future language extension might make the first definition of <CODE>choice</CODE> legal and permit
+calls to it like <CODE>choice(true,String,"Be","Not Be")</CODE>, which would return <CODE>"Be"</CODE>.</P>
+
+
+<P>When a function is called, the following list indicates the order of evaluation of the various expressions in a <A href="#N-FunctionDefinition" class=nonterminal>FunctionDefinition</A>.
+These steps are taken only <I>after</I> all of the argument names and values have been evaluated.</P>
+
+<OL>
+  <LI>If the function is <A href="#unchecked">unchecked</A>, bind the <CODE>arguments</CODE> local variable to an array of
+    all arguments and their names.</LI>
+  <LI>Get the saved type <VAR>t</VAR> that was the result of evaluating the first parameter&#8217;s <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>
+    at the time the function was defined.</LI>
+  <LI>If the first parameter is required and no argument has been supplied for it, then raise an error unless the function
+    is <A href="#unchecked">unchecked</A>, in which case let <CODE>undefined</CODE> be the first parameter&#8217;s value.</LI>
+  <LI>If the first parameter is optional and there is an argument remaining, use the value of the argument. If there are no
+    remaining arguments, then evaluate the first parameter&#8217;s <A href="expressions.html#N-AssignmentExpression" class=nonterminal>AssignmentExpression</A>
+    and let it be the first parameter&#8217;s value.</LI>
+  <LI><A href="../libraries/types.html#implicit-coercion">Implicitly coerce</A> the argument (or default) value to type <VAR>t</VAR>
+    and bind the parameter&#8217;s <A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A> to the result.</LI>
+  <LI>Repeat steps 2-5 for each additional parameter.</LI>
+  <LI>If there is a <A href="#N-RestParameter" class=nonterminal>RestParameter</A> with an <A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A>,
+    bind that <A href="expressions.html#N-Identifier" class=nonterminal>Identifier</A> to an array of the remaining arguments
+    using indices starting from 0.</LI>
+  <LI>If there is no <A href="#N-RestParameter" class=nonterminal>RestParameter</A> and any arguments remain, raise an error
+    unless the function is <A href="#unchecked">unchecked</A>.</LI>
+  <LI>Evaluate the body.</LI>
+  <LI>Get the saved type <VAR>r</VAR> that was the result of evaluating the result <A href="expressions.html#N-TypeExpression" class=nonterminal>TypeExpression</A>
+    at the time the function was defined.</LI>
+  <LI><A href="../libraries/types.html#implicit-coercion">Implicitly coerce</A> the result to type <VAR>r</VAR> and return
+    it.</LI>
+</OL>
+
+<H2><A name="getters-and-setters"></A>Getters and Setters</H2>
+
+<P>If a <A href="#N-FunctionName" class=nonterminal>FunctionName</A> contains the keyword <CODE>get</CODE>&nbsp;or&nbsp;<CODE>set</CODE>,
+then the defined function is a getter or a setter.</P>
+
+<P><A name="getter"></A>A getter must not take any parameters. Unlike an ordinary function, a getter is invoked by merely
+mentioning its name <I>without</I> an <A href="expressions.html#N-Arguments" class=nonterminal>Arguments</A> list in any expression
+except as the destination of an assignment. For example, the following code returns the string &#8220;<CODE>&lt;2,3,1&gt;</CODE>&#8221;:</P>
+
+<PRE>var x:Integer = 0;
+function get serialNumber():Integer {return ++x}
+
+var y = serialNumber;
+return "&lt;" + serialNumber + "," + serialNumber + "," + y + "&gt;";</PRE>
+
+<P>A getter must either evaluate a <CODE>return</CODE> statement or throw an exception; it cannot fall off the end without
+returning a value.</P>
+
+<P><A name="setter"></A>A setter must take exactly one required parameter. Unlike an ordinary function, a setter is invoked
+by merely mentioning its name (<I>without</I> an <A href="expressions.html#N-Arguments" class=nonterminal>Arguments</A> list)
+on the left side of an assignment or as the target of a mutator such as <CODE>++</CODE> or <CODE>--</CODE>. The setter should
+not return a value and should be declared as returning type <CODE>Void</CODE> or <CODE>Never</CODE>. The result of an assignment
+expression is the argument passed to the setter. For example, the following code returns the string &#8220;<CODE>&lt;1,2,42,43&gt;</CODE>&#8221;:</P>
+
+<PRE>var x:Integer = 0;
+function get serialNumber():Integer {return ++x}
+function set serialNumber(n:Integer):Void {x=n}
+
+var s = "&lt;" + serialNumber + "," + serialNumber;
+s += "," + (serialNumber = 42);
+return s + "," + serialNumber + "&gt;";</PRE>
+
+<P>A setter cannot return a value; it may invoke a <CODE>return</CODE> statement as long as that statement does not supply
+an expression.</P>
+
+<P>A setter can have the same name as a getter in the same lexical scope. A getter or setter cannot be extracted from its
+variable, so the notion of the type of a getter or setter is vacuous; a getter or setter can only be called.</P>
+
+<P>Contrast the following:</P>
+
+<PRE>var x:Integer = 0;
+function f():Integer {return ++x}
+function g():Function {return f}
+function get h():Function {return f}
+
+f;     // Evaluates to function f
+g;     // Evaluates to function g
+h;     // Evaluates to function f (not h)
+f();   // Evaluates to 1
+g();   // Evaluates to function f
+h();   // Evaluates to 2
+g()(); // Evaluates to 3</PRE>
+
+<P class=issue>See also the <A href="../rationale/syntax.html#getter-setter">discussion of getter and setter syntax</A>.</P>
+
+<H2><A name="unchecked"></A>Unchecked Functions</H2>
+
+<P>An <I>unchecked</I> function relaxes argument checking. Unchecked function definitions are provided for compatibility with
+ECMAScript 3.</P>
+
+<P>A <CODE>function</CODE> definition is unchecked if all of the following are true:</P>
+
+<UL>
+  <LI><A href="pragmas.html#strict-mode">strict mode</A> is disabled at the point of the function definition;</LI>
+  <LI>the function is not a class member;</LI>
+  <LI>the function has no optional or rest parameters;</LI>
+  <LI>none of the function&#8217;s parameters has a declared type;</LI>
+  <LI>the function does not have a declared return type;</LI>
+  <LI>the function is not a getter or setter.</LI>
+</UL>
+
+<P>An unchecked function also has the <A href="definitions.html#prototype"><CODE>prototype</CODE> attribute</A> set by default.</P>
+
+<!--/IMPORT-->
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Monday, April 28, 2003</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="variables.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="classes.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

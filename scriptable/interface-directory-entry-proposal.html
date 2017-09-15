@@ -1,0 +1,141 @@
+<html>
+<head>
+<title>Interface Directory Entry proposal</title>
+</head>
+<body bgcolor="white">
+
+<center><h2>Interface Directory Entry proposal</h2></center>
+<center><a href="mailto:jband@netscape.com">John Bandhauer &lt;jband@netscape.com&gt;</a> - 16 Jan 1999</center>
+<p>
+
+<h3>Introduction</h3>
+
+This is a proposal for how I think libxpt (the typelib file read/write code) ought
+to manage Interface Directory Entries. These entries are the critical link
+points between type information of one interface and that of another. These
+entries also delineate the appropriate level of granularity for runtime
+management and incremental loading/unloading of type information. It is
+important that we implement an interface which allows us to work with the
+entries in a flexible manner. 
+
+<p>
+
+<h3>Goals</h3>
+
+<ul>
+
+<li>Support build time linking of partially resolved type libraries.
+
+<li>Support run time linking of partially resolved type libraries.
+
+<li>Support runtime incremental loading/unloading of type information
+
+</ul>
+
+<p>
+
+<h3>Proposal</h3>
+
+<p>
+
+I propose that our runtime representation of the Interface Directory Entry
+structure be somewhat different from the file format representation. It should
+distinguish between the file offset of the Interface Descriptor and the in-memory pointer to the struct representing that descriptor. It should also allow
+for storing the pointer to a different Interface Directory Entry which is fully
+resolved.
+
+<p>
+
+<pre>
+
+typedef enum XPTResolveMode {
+    XPT_UNRESOLVED_NAME_ONLY,
+    XPT_UNRESOLVED_HAVE_IID,
+    XPT_RESOLVED_OFFSET,
+    XPT_RESOLVED_DESC_PTR,
+    XPT_RESOLVED_FORWARD_PTR
+} XPTResolveMode;
+
+struct XPTInterfaceDirectoryEntry {
+    uint128                iid;
+    char                   *name;
+    char                   *namespace;
+    int32                  interface_descriptor_offset;
+    XPTResolveMode         resolve_mode;
+    union {
+        XPTInterfaceDescriptor     *interface_descriptor;
+        XPTInterfaceDirectoryEntry *interface_entry_forward;
+    }
+};
+
+</pre>
+
+For XPConnect I plan to have an object (call it the InterfaceInfoOwner) which
+manages multiple typelib files (or streams). The InterfaceInfoOwner will open
+each file, read in the file header, the array of Interface Directory Entries,
+and whatever annotations the files might have. It will not initially need to
+read in any Interface Descriptor. <i>Note: we may choose to partition the set of
+typelib files such that commonly used interfaces (e.g. DOM interfaces) are
+grouped into specific files and eagerly loaded.</i> Whenever the
+InterfaceInfoOwner needs to resolve a class (i.e. get its Interface Descriptor)
+it traverses the arrays of Entries looking for a match and loading the graph of
+descriptor information from file if necessary.
+
+<p>
+
+Interface Directory Entries are also 'found' when they are referenced by other
+entry; either as the parent_interface of an interface, or as a param type. These
+referenced entries may be unresolved (in that the interface descriptor really
+'lives' in some other typelib file). In this case we want to find that resolved
+entry, load up the descriptor information (if not already loaded), update the reference to point this
+resolved entry, and also set the <code>interface_entry_forward</code> field of the unresolved
+entry to point to the resolved entry so that future lookups can be sped up.
+
+<p>
+
+XPTInterfaceDirectoryEntry are low level structs. The InterfaceInfoOwner will
+produce nsInterfaceInfo XPCOM objects which will wrap these structs (by pointer
+and delegation, not inheritance). When released InterfaceInfo objects could
+cleanup the graph of the interface_descriptor for the wrapped Entry. All the
+descriptor objects could be free'd and the Entry set back to the state it was
+before loading them (i.e. a valid offset into the file where the descriptor
+lives, but no other in memory information). This will give us safe incremental
+loading and unloading.
+
+<p>
+
+The linker will do much the same work. It will load up all the arrays of entries
+from multiple files, iteratively setup all the 'forwards' from unresolved to
+resolved entities, deal with multiply defined interfaces - checking that they
+are identical and merging references, load all the descriptors (doing fixups to
+forwarded references), merge all the duplicated strings, and write the whole
+mess out as one file (or partitioned in some interesting way?).
+
+<p>
+
+<b>I suggest one change to the typelib spec:</b> I think that the
+InterfaceDirectoryEntry* references used for param types and for
+parent_interfaces (and any others?) ought to be indexes into the
+InterfaceDirectoryEntry table rather than data_pool offsets. This will make it
+easier to do incremental loads after the InterfaceDirectoryEntry table has been
+loaded into memory. Instead of using the file offset to get to the Entry in the
+file and then having to figure out the mapping from that to the Entry in memory,
+we can just use the index to go directly to the entry in the table whether it be
+in the file or in memory.
+
+<p>
+
+I think that this is all easier (and more sensible) than I manage to describe it
+above. I'd be happy to speak at length with the implementers (shaver/coop) about
+the hows and whys.
+
+<hr>
+<b>document history...</b>
+<font size="-1">
+<ul>
+<li><code>16 Jan 1999 - jband - </code>initial creation of document
+</ul>
+</font>
+
+<body>
+<html>

@@ -1,0 +1,98 @@
+diff -ur gcc-3.3.1-base/gcc/calls.c gcc-3.3.1/gcc/calls.c
+--- gcc-3.3.1-base/gcc/calls.c	2003-07-17 19:58:25.000000000 -0700
++++ gcc-3.3.1/gcc/calls.c	2003-10-29 23:30:52.000000000 -0800
+@@ -3120,7 +3120,6 @@
+ 	    }
+ 	  else
+ 	    {
+-	      rtx note = 0;
+ 	      rtx temp = gen_reg_rtx (GET_MODE (valreg));
+ 
+ 	      /* Mark the return value as a pointer if needed.  */
+@@ -3128,24 +3127,10 @@
+ 		mark_reg_pointer (temp,
+ 				  TYPE_ALIGN (TREE_TYPE (TREE_TYPE (exp))));
+ 
+-	      /* Construct an "equal form" for the value which mentions all the
+-		 arguments in order as well as the function name.  */
+-	      for (i = 0; i < num_actuals; i++)
+-		note = gen_rtx_EXPR_LIST (VOIDmode,
+-					  args[i].initial_value, note);
+-	      note = gen_rtx_EXPR_LIST (VOIDmode, funexp, note);
+-
+ 	      insns = get_insns ();
+ 	      end_sequence ();
+ 
+-	      if (flags & ECF_PURE)
+-		note = gen_rtx_EXPR_LIST (VOIDmode,
+-			gen_rtx_USE (VOIDmode,
+-				     gen_rtx_MEM (BLKmode,
+-						  gen_rtx_SCRATCH (VOIDmode))),
+-			note);
+-
+-	      emit_libcall_block (insns, temp, valreg, note);
++	      emit_libcall_block (insns, temp, valreg, NULL_RTX);
+ 
+ 	      valreg = temp;
+ 	    }
+@@ -4160,9 +4145,7 @@
+ 	}
+       else
+ 	{
+-	  rtx note = 0;
+ 	  rtx temp;
+-	  int i;
+ 
+ 	  if (GET_CODE (valreg) == PARALLEL)
+ 	    {
+@@ -4173,23 +4156,10 @@
+ 
+ 	  temp = gen_reg_rtx (GET_MODE (valreg));
+ 
+-	  /* Construct an "equal form" for the value which mentions all the
+-	     arguments in order as well as the function name.  */
+-	  for (i = 0; i < nargs; i++)
+-	    note = gen_rtx_EXPR_LIST (VOIDmode, argvec[i].value, note);
+-	  note = gen_rtx_EXPR_LIST (VOIDmode, fun, note);
+-
+ 	  insns = get_insns ();
+ 	  end_sequence ();
+ 
+-	  if (flags & ECF_PURE)
+-	    note = gen_rtx_EXPR_LIST (VOIDmode,
+-			gen_rtx_USE (VOIDmode,
+-				     gen_rtx_MEM (BLKmode,
+-						  gen_rtx_SCRATCH (VOIDmode))),
+-			note);
+-
+-	  emit_libcall_block (insns, temp, valreg, note);
++	  emit_libcall_block (insns, temp, valreg, NULL_RTX);
+ 
+ 	  valreg = temp;
+ 	}
+diff -ur gcc-3.3.1-base/gcc/optabs.c gcc-3.3.1/gcc/optabs.c
+--- gcc-3.3.1-base/gcc/optabs.c	2003-07-18 17:25:25.000000000 -0700
++++ gcc-3.3.1/gcc/optabs.c	2003-10-29 23:30:52.000000000 -0800
+@@ -3229,7 +3229,10 @@
+   last = emit_move_insn (target, result);
+   if (mov_optab->handlers[(int) GET_MODE (target)].insn_code
+       != CODE_FOR_nothing)
+-    set_unique_reg_note (last, REG_EQUAL, copy_rtx (equiv));
++    {
++      if (equiv != NULL_RTX)
++	set_unique_reg_note (last, REG_EQUAL, copy_rtx (equiv));
++    }
+   else
+     {
+       /* Remove any existing REG_EQUAL note from "last", or else it will
+diff -ur gcc-3.3.1-base/gcc/reload1.c gcc-3.3.1/gcc/reload1.c
+--- gcc-3.3.1-base/gcc/reload1.c	2003-06-06 22:30:09.000000000 -0700
++++ gcc-3.3.1/gcc/reload1.c	2003-10-29 23:30:35.000000000 -0800
+@@ -8692,6 +8692,7 @@
+ 	  && GET_CODE (SET_SRC (set)) == PLUS
+ 	  && GET_CODE (XEXP (SET_SRC (set), 1)) == REG
+ 	  && rtx_equal_p (XEXP (SET_SRC (set), 0), SET_DEST (set))
++	  && !rtx_equal_p (XEXP (SET_SRC (set), 1), SET_DEST (set))
+ 	  && last_label_ruid < reg_state[REGNO (SET_DEST (set))].use_ruid)
+ 	{
+ 	  rtx reg = SET_DEST (set);

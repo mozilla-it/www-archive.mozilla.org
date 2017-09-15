@@ -1,0 +1,983 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+  <title>Block & Line Cheat Sheet</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+  <style type="text/css">
+   dt.class, dt.member, dt.value { margin-top: 1em; font-family: courier; }
+   .question { font-style: italic; color: red; }
+  </style>
+ <script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel nomenu">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mBody" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+
+
+ 
+
+ 
+
+  <h1>block & line cheat sheet</h1>
+
+  <div>
+   Contact: Chris Waterson
+   (<a href="mailto:waterson@netscape.com">waterson@netscape.com</a>)
+  </div>
+
+  <h2>Overview</h2>
+
+  <p>
+   The details of block and line layout are tricky; this document
+   serves as a ``cheat sheet'' that describes how the vagary
+   of different state flags control what's going on. It's a
+   work-in-progress, with <span class="question">questions in red
+   italics</span>. If you know the answer, please pass it along to me
+   so I can update the document.
+  </p>
+
+  <h2>Objects</h2>
+
+  <p>
+   This section presents some of the classes involved in block and line
+   reflow, along with important members of each object that control
+   reflow processing.
+  </p>
+
+  <dl>
+
+   <dt class="class">nsFrame</dt>
+
+   <dd>
+
+    <p>
+     The base class for all frames.
+    </p>
+
+    <dl>
+
+     <dt class="member">mFlags</dt>
+
+     <dd>
+
+      <p>
+       Flags set on the frame to indicate its state. These flags can be
+       grouped into two categories: flags which affect all frames
+       (``public'' flags), and flags that are reserved for an
+       individual frame's private use (``private'' flags).
+      </p>
+
+      <dl>
+
+       <dt class="value">NS_FRAME_IN_REFLOW</dt>
+
+       <dd>
+
+        <p>
+         This bit is set when the frame is being actively being reflowed.
+         By default it is set in <code>WillReflow()</code>, and unset in
+         <code>DidReflow()</code>. Many frames' <code>Reflow()</code>
+         method verifies that the bit is set with an assertion.
+        </p>
+
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#120">
+       NS_FRAME_FIRST_REFLOW</a></dt>
+
+       <dd>
+        <p>
+         This flag is set on a newly created frame, and later cleared by
+         the frame's <code>Reflow()</code> method when the frame has had
+         its inital reflow.
+        </p>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#125">
+       NS_FRAME_SYNC_FRAME_AND_VIEW</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#136">
+       NS_FRAME_OUTSIDE_CHILDREN</a></dt>
+
+       <dd>
+        <p>
+         This flag is set if the combined area of a frame's children
+         extend past the frame's bounding box.
+
+         <span class="question">(What is a frame's ``bounding
+         box''?)</span>
+
+         If this flag is set, then
+
+         <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#272">
+         <code>mOverflowArea</code></a>
+
+         will contain the total area of the frame, including the overflow.
+        </p>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#141">
+       NS_FRAME_EXTERNAL_REFERENCE</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#145">
+       NS_FRAME_REPLACED_ELEMENT</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#148">
+       NS_FRAME_GENERATED_CONTENT</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#153">
+       NS_FRAME_HAS_LOADED_IMAGES</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#157">
+       NS_FRAME_OUT_OF_FLOW</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#160">
+       NS_FRAME_SELECTED_CONTENT</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#164">
+       NS_FRAME_IS_DIRTY</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#167">
+       NS_FRAME_IS_UNFLOWABLE</a></dt>
+
+       <dd>
+        <p>
+         An unflowable frame is an error condition; for example, due
+         to system limitations. Currently, the only way to get an
+         unflowable frame is to have a frame tree that is ``too
+         deep''. (See
+
+         <a href="http://lxr.mozilla.org/seamonkey/ident?i=IsFrameTreeTooDeep"><code>
+         nsFrame::IsFrameTreeTooDeep()</code></a>.)
+        </p>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#170">
+       NS_FRAME_HAS_DIRTY_CHILDREN</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#173">
+       NS_FRAME_HAS_VIEW</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#176">
+       NS_FRAME_INDEPENDENT_SELECTION</a></dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#181">
+       NS_FRAME_IS_SPECIAL</a></dt>
+
+       <dd>
+       </dd>
+
+      </dl>
+
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt class="class">nsBlockFrame</dt>
+
+   <dd>
+
+    <dl>
+
+     <dt class="member">mFlags</dt>
+
+     <dd>
+
+      <p>
+       These flags are the private flags that are meaningful to block
+       frames.
+      </p>
+
+      <dl>
+
+       <dt class="value">
+       <a href="http://lxr.mozilla.org/seamonkey/ident?i=NS_BLOCK_SHRINK_WRAP">
+       NS_BLOCK_SHRINK_WRAP</a></dt>
+
+       <dd>
+
+        <p>
+         Causes the block to ``shrink-wrap'' around its
+         content. This means the block will determine its children's
+         width and make its content area that wide. Finally, it will
+         add padding and border to determine the final width.
+        </p>
+
+        <p class="question">
+         Is this where the ``tending towards zero width'' stuff
+         comes in?
+        </p>
+
+       </dd>
+
+       <dt class="value">NS_BLOCK_NO_AUTO_MARGINS</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">NS_BLOCK_MARGIN_ROOT</dt>
+
+       <dd>
+
+        <p>
+         Indicates that this is a frame from which child margins can
+         be calculated. The absence of this flag implies that child
+         margin calculations should ignore the frame and look further
+         up the parent chain. Used in
+
+         <a href="http://lxr.mozilla.org/seamonkey/ident?i=ComputeCollapsedTopMargin"><code>
+         nsBlockReflowContext::ComputeCollapsedTopMargin()</code></a>.
+        </p>
+
+        <p>
+         This flag causes the nsBlockReflowState's constructor to set
+         the <code>BRS_ISTOPMARGINROOT</code> and
+         <code>BRS_ISBOTTOMMARGINROOT</code> flags.
+        </p>
+
+        <p>
+         This is set by default for document, table cell inner, and
+         absolutely positioned wrapper frames.
+        </p>
+
+       </dd>
+
+       <dt class="value">NS_BLOCK_SPACE_MGR</dt>
+
+       <dd>
+
+        <p>
+         This indicates that a block frame should create its own space
+         manager. This is required by each block frame that can
+         contain floaters: the space manager is used to reserve space
+         for the floated frames.
+        </p>
+
+        <p>
+         This is set by default for document frames, area frames,
+         table cell inner frames, absolutely positioned wrapper
+         frames, and floated frames when the frame is created.
+        </p>
+
+       </dd>
+
+      </dl>
+
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt class="class">nsLineBox</dt>
+
+   <dd>
+    <p>
+     A block consists of lines and other blocks, stacked vertically. A
+     block frame has one <code>nsLineBox</code> for each line, and one
+     <code>nsLineBox</code> for each block child. These are stored as
+     a doubly-linked list in the <code>mLines</code> member of
+     <code>nsBlockFrame</code>.
+    </p>
+   </dd>
+
+   <dt class="class">nsInlineFrame</dt>
+
+   <dd>
+
+    <dl>
+
+     <dt class="member">mFlags</dt>
+
+     <dd>
+
+      <dl>
+
+       <dt class="value">NS_INLINE_FRAME_CONTAINS_PERCENT_AWARE_CHILD</dt>
+
+       <dd>
+         This flag is set if the inline frame has any children that
+         have a percentage value set (via the style context) for the
+         width or height of the content area, padding, border, or
+         margin.
+       </dd>
+
+      </dl>
+
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt class="class">
+   <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsHTMLReflowState.h">
+   nsHTMLReflowState</a></dt>
+   
+   <dd>
+
+    <p>
+     The current state of reflow, built up as reflow recursively
+     descends the frame tree. This is ``passed in'' to a
+     child frame from its parent, and provides the constraints in which
+     the child frame must size itself; e.g. the width and height
+     available to the child frame.
+    </p>
+
+    <dl>
+     <dt class="member">mComputedWidth</dt>
+     <dt class="member">mComputedHeight</dt>
+     <dt class="member">mComputedMargin</dt>
+     <dt class="member">mComputedBorderPadding</dt>
+     <dt class="member">mComputedPadding</dt>
+     <dt class="member">mComputedOffsets</dt>
+     <dt class="member">mComputedMinWidth</dt>
+     <dt class="member">mComputedMaxWidth</dt>
+     <dt class="member">mComputedMinHeight</dt>
+     <dt class="member">mComputedMaxHeight</dt>
+   
+     <dd>
+      <p>
+       Given the current container frame and the style applied to the
+       child, these values are the <em>resolved</em> values for the
+       child frame's box.
+      </p>
+     </dd>
+    </dl>
+
+   </dd>
+
+   <dt class="class">
+   <a href="http://lxr.mozilla.org/mozilla/source/layout/base/public/nsIFrame.h#239">
+   nsHTMLReflowMetrics</a></dt>
+   
+   <dd>
+
+    <p>
+     The structure that is ``filled in'' by a frame during
+     reflow, and is used to communicate the frame's desired size
+     information back to its container.
+    </p>
+
+    <dl>
+
+     <a name="mMaximumWidth"></a><dt class="member">mMaximumWidth</dt>
+
+     <dd>
+
+      <p>
+       The maximum width that the frame would consume if it were
+       reflowed with an unconstrained available width. It might be
+       better named ``preferred width''.
+      </p>
+
+      <p>
+       This is computed when the <code>nsBlockReflowState</code> flag
+       <code>BRS_COMPUTEMAXWIDTH</code> is set.
+      </p>
+
+     </dd>
+
+      <a name="maxElementWidth"></a><dt class="member">maxElementWidth</dt>
+
+     <dd>
+
+      <p>
+       The maximum width for elements within the frame that
+       cannot be broken down further; e.g., the longest word in a
+       paragraph. Note that an out-of-flow frame (e.g., a floater) may
+       affect this value.
+      </p>
+
+      <p>
+       This field is a pointer to an <code>nsSize</code> object. When
+       null, the frame need not compute it.
+      </p>
+
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt class="class">nsBlockReflowState</dt>
+
+   <dd>
+
+    <p>
+     Additional reflow state information that the block frame uses along
+     with <code>nsHTMLReflowState</code>. Like
+     <code>nsHTMLReflowState</code>, this is read-only data that is
+     passed down from a parent frame to its children.
+    </p>
+
+    <dl>
+
+     <dt class="member">mFlags</dt>
+
+     <dd>
+
+      <dl>
+
+       <dt class="value">BRS_UNCONSTRAINEDWIDTH</dt>
+
+       <dd>
+
+        <p>
+         This flag is set in the <code>nsBlockReflowState</code>
+         constructor when:
+        </p>
+
+        <ol>
+
+         <li>
+          There is no computed width for the frame in the
+          <code>nsHTMLReflowState</code>, and
+         </li>
+
+         <li>
+          the frame being reflowed has been given
+          <code>NS_UNCONSTRAINEDSIZE</code> as its available width in
+          the <code>nsHTMLReflowState</code>.
+         </li>
+
+        </ol>
+
+       </dd>
+
+       <dt class="value">BRS_UNCONSTRAINEDHEIGHT</dt>
+
+       <dd>
+
+        <p>
+         This flag is set in the <code>nsBlockReflowState</code>
+         constructor when the frame being reflowed has been given
+         <code>NS_UNCONSTRAINEDSIZE</code> as its available height in
+         the <code>nsHTMLReflowState</code>.
+        </p>
+
+        <p>
+         If set, <code>NS_UNCONSTRAINEDSIZE</code> is passed to
+         <code>nsLineLayout</code> as the available height.
+        </p>
+
+       </dd>
+
+       <dt class="value">BRS_SHRINKWRAPWIDTH</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">BRS_NEEDRESIZEREFLOW</dt>
+
+       <dd>
+        <p>
+         Related to <code>BRS_SHRINKWRAPWIDTH</code>. Set if we need
+         to force a resize reflow when computing the final size.
+
+         <span class="question">e.g., because...why?</span>
+        </p>
+       </dd>
+
+       <dt class="value">BRS_ISINLINEINCRREFLOW</dt>
+
+       <dd>
+        <p>
+         This flag is set in <code>nsBlockFrame::Reflow()</code> if we
+         detect that we're incrementally reflowing a linebox that
+         contains inline frames. In this case, we can avoid some of
+         the work that occurs during reflow.
+        </p>
+       </dd>
+
+       <dt class="value">BRS_NOWRAP</dt>
+
+       <dd>
+        <p>
+         This flag is set in the <code>nsBlockReflowState</code>
+         constructor when the ``white-space'' style of the
+         block frame is <code>pre</code> or <code>nowrap</code>. It is
+         cleared, otherwise.
+        </p>
+       </dd>
+
+       <dt class="value">BRS_ISTOPMARGINROOT</dt>
+
+       <dd>
+
+        <p>
+         This flag is set in the <code>nsBlockReflowState</code>
+         constructor when reflowing a ``block margin root''
+         frame (i.e., a frame with the <code>NS_BLOCK_MARGIN_ROOT</code>
+         flag set, for which margins apply by default).
+        </p>
+
+        <p>
+         The flag is also set when reflowing a frame whose computed top
+         border padding is zero.
+
+         <span class="question">(why?)</span>
+        </p>
+
+       </dd>
+
+       <dt class="value">BRS_ISBOTTOMMARGINROOT</dt>
+
+       <dd>
+        <p>
+         This flag is set in the <code>nsBlockReflowState</code>
+         constructor when reflowing a ``block margin root''
+         frame (i.e., a frame with the
+         <code>NS_BLOCK_MARGIN_ROOT</code> flag set, for which margins
+         apply by default).
+        </p>
+
+        <p>
+         The flag is also set when reflowing a frame whose computed
+         bottom border padding is zero.
+
+         <span class="question">(why?)</span>
+        </p>
+
+       </dd>
+
+       <dt class="value">BRS_APPLYTOPMARGIN</dt>
+
+       <dd>
+
+        <p>
+         This flag is set if the top margin should be considered when
+         placing a linebox that contains a block frame. It may be set
+         as a side-effect of calling
+         <code>nsBlockFrame::ShouldApplyTopMargin()</code>; once set,
+         <code>ShouldApplyTopMargin()</code> uses it as a fast-path way
+         to return whether the top margin should apply.
+        </p>
+
+        <p>
+         If the flag hasn't been set in the block reflow state, then
+         <code>ShouldApplyTopMargin()</code> will crawl the line list
+         to see if a block frame precedes the specified frame. If so,
+         the top margin should be applied, and the flag set to cache
+         the result. (If not, the top margin will be applied as a
+         result of the <em>generational margin collapsing logic</em> in
+         <code>nsBlockReflowContext::ComputeCollapsedTopMargin()</code>. In
+         this case, the flag <em>won't</em> be set, so subsequent calls
+         to <code>ShouldApplyTopMargin()</code> will continue crawl the
+         line list.)
+        </p>
+
+        <p>
+         This flag is also set in the <code>nsBlockReflowState</code>
+         constructor if <code>BRS_ISTOPMARGINROOT</code> is set; that
+         is, if the frame being reflowed is a margin root by default.
+        </p>
+
+       </dd>
+
+       <dt class="value">BRS_COMPUTEMAXELEMENTSIZE</dt>
+
+       <dd>
+
+        <p>
+         This flag is set if reflow should recompute an element's
+         maximum size.
+        </p>
+
+        <p>
+         It is set in the <code>nsBlockReflowState</code> constructor
+         if the ``maxElementSize'' member of the
+         <code>nsHTMLReflowMetrics</code> object has been provided by
+         <span class="question">(the parent frame?)</span>.
+        </p>
+
+       </dd>
+
+       <dt class="value">BRS_COMPUTEMAXWIDTH</dt>
+
+       <dd>
+
+        <p>
+         This flag is set if reflow should recompute a frame's maximum
+         width; for example, during first-pass table reflow. When this
+         is set, <code>nsBlockFrame::ReflowLine</code> will flow the
+         first line and each unwrapped line in the block
+         <em>twice</em>.
+        </p>
+
+       </dd>
+
+      </dl>
+
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt class="class">nsBlockReflowContext</dt>
+
+   <dd>
+
+    <p>
+     Encapsulates the transient reflow state for a
+     <code>nsLineBox</code> that contains a block frame.
+    </p>
+
+    <dl>
+
+     <dt class="member">mNextRCFrame</dt>
+
+     <dd>
+      <p>
+       During an incremental reflow, this member holds current frame
+       in the reflow chain.
+      </p>
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt class="class">nsLineLayout</dt>
+
+   <dd>
+
+    <p>
+     Encapsulates the transient reflow state for a
+     <code>nsLineBox</code> that contains inline frames. A new
+     <code>nsLineLayout</code> object is created for each inline
+     linebox that is flowed.
+    </p>
+
+    <dl>
+
+     <dt class="member">mFlags</dt>
+
+     <dd>
+
+      <dl>
+
+       <dt class="value">LL_ENDSINWHITESPACE</dt>
+
+       <dd>
+        Set to <code>true</code> by default when starting line layout.
+       </dd>
+
+       <dt class="value">LL_UNDERSTANDSNWHITESPACE</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_TEXTSTARTSWITHNBSP</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_FIRSTLETTERSTYLEOK</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_ISTOPOFPAGE</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_UPDATEDBAND</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_IMPACTEDBYFLOATERS</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_LASTFLOATERWASLETTERFRAME</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_CANPLACEFLOATER</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_KNOWSTRICTMODE</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_INSTRICTMODE</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">LL_LINEENDSINBR</dt>
+
+       <dd>
+       </dd>
+
+      </dl>
+
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt class="class">PerFrameData</dt>
+
+   <dd>
+
+    <p class="question">
+     (Why isn't this just stored in the frame?)
+    </p>
+
+    <dl>
+
+     <dt class="member">mFlags</dt>
+
+     <dd>
+
+      <dl>
+
+       <dt class="value">PFD_RELATIVEPOS</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">PFD_ISTEXTFRAME</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">PFD_ISNONEMPTYTEXTFRAME</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">PFD_ISNONWHITESPACETEXTFRAME</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">PFD_ISLETTERFRAME</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">PFD_ISSTICKY</dt>
+
+       <dd>
+       </dd>
+
+       <dt class="value">PFD_ISBULLET</dt>
+
+       <dd>
+       </dd>
+
+      </dl>
+
+     </dd>
+
+    </dl>
+
+   </dd>
+
+   <dt class="class">PerSpanData</dt>
+
+   <dd>
+
+    <p>
+     In <code>nsLineLayout</code>, a ``span'' is a container inline
+     frame, and a ``frame'' is one of its children. <span
+     class="question">Perhaps <code>PerParentData</code> and
+     <code>PerChildData</code> would be better names?</span>
+    </p>
+
+    <p>
+     <code>nsLineLayout::BeginLineReflow</code> creates the initial
+     <code>PerSpanData</code> which is called the ``root span''.
+
+     <code>nsInlineFrame::ReflowFrames</code> creates a new
+     <code>PerSpanData</code> when it calls
+     <code>nsLineLayout::BeginSpan</code>: at this time, the
+     <code>nsLineLayout</code> object's <code>mCurrentSpan</code> is
+     switched to the new span. The new span records the old
+     <code>mCurrentSpan</code> as its parent.
+
+     After reflowing the child inline frames,
+     <code>nsInlineFrame::ReflowFrames</code> calls
+     <code>nsLineLayout::EndSpan</code>, which pops the
+     <code>PerSpanData</code> and re-sets <code>mCurrentSpan</code>.
+    </p>
+
+    <dl>
+
+     <dt class="member">mFirstFrame</dt>
+
+     <dd>
+      <p>
+       The first <code>PerFrameData</code> structure in the span.
+      </p>
+     </dd>
+
+     <dt class="member">mLastFrame</dt>
+
+     <dd>
+
+      <p>
+       The last <code>PerFrameData</code> structure frame in the
+       span. <code>PerFrameData</code> structures are added to the
+       span as they are reflowed.
+      </p>
+
+      <p>
+       <code>mLastFrame</code> may also be directly manipulated if a
+       line is split, or if frames are pushed from one line to the
+       next.
+      </p>
+
+     </dd>
+
+     <dt class="member">mFrame</dt>
+
+     <dd>
+      <p>
+       The <code>PerFrameData</code> of the inline frame that ``owns''
+       the span, or <code>null</code> if this is the root span.
+      </p>
+
+      <p>
+       <code>mFrame</code> is initialized to the containing inline
+       frame's <code>PerFrameData</code> when a new
+       <code>PerSpanData</code> is pushed in
+       <code>nsLineLayout::BeginSpan</code>.
+      </p>
+     </dd>
+
+    </dl>
+
+   </dd>
+
+  </dl>
+
+  <p>
+   <a href="http://validator.w3.org/check/referer">
+    <img src="http://www.w3.org/Icons/valid-html401"
+         alt="Valid HTML 4.01!" height="31" width="88" border="0">
+   </a>
+  </p>
+
+ 
+
+
+
+<hr class="hide">
+<hr class="hide">
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December  4,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/newlayout/doc/block-and-line.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

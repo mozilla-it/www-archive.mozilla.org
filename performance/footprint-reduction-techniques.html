@@ -1,0 +1,511 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta name="DC.author" content="Alec Flett">
+<meta name="DC.subject" content="Code Footprint Reduction Techniques">
+<meta name="DC.title" content="Code Footprint Reduction Techniques">
+<meta name="DC.description" content="Explained techniques for code footprint reduction">
+<meta name="DC.date.created" content="2002-09-25T09:27:03+11:00" scheme="W3CDTF">
+<meta name="DC.date.modified" content="2005-03-27T09:54:03+11:00" scheme="W3CDTF">
+
+    <title>Code Footprint Reduction Techniques</title>
+    <link rel="StyleSheet" href="../projects/xpcom/Standard.css" type="text/css">
+  <script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+  
+
+  
+    <h1>Code Footprint Reduction Techniques</h1>
+    <address class="author" style="text-align: center;">by Alec Flett &lt;<a href="mailto:alecf@flett.org">alecf@flett.org</a>&gt;</address>
+
+    <p>This document will attempt to describe some patterns I've seen in
+    the mozilla codebase that contributes to unnecessarily large
+    code. It describes different patterns that one can use to reduce
+    code footprint, while trying to maintain performance and minimal
+    heap usage.</p>
+
+    <p><i>Note:</i> take everything here with a grain of salt. There
+      are times when the "bad" patterns shown here are very
+      appropriate and are faster or smaller than the "good"
+      pattern. Choosing the correct pattern requires proper
+      understanding of how the code is used, including how often code is
+      called, the quantity of objects used at any given time, the
+      current object size, and so forth.
+    </p>
+
+    <p>Topics covered here:</p>
+    <ul>
+      <li><a href="#virtual_abuse">Overuse of virtual methods to indicate class attributes</a></li>
+      <li><a href="#class_specialization">Too much class specialization</a></li>
+      <li><a href="#huge_switch">Huge switch statements</a></li>
+      <li><a href="#heap_tables">Heap-based readonly tables</a></li>
+      <li><a href="#member_pointers">Using pointers to member classes</a></li>
+    </ul>
+    <h2><a name="virtual_abuse">Overuse of virtual methods to indicate class attributes</a></h2>
+
+    <p>A common pattern is to use virtual methods to indicate if a
+      specific class (as opposed to a <i>class instance</i>) has a
+      given attribute. Implementations will override this virtual
+      method to override some default value. This often results in
+      multiple implementations of some method when a simple member
+      variable in a base class would have worked fine. (in some sense
+      what you really want is a <i>static virtual</i> method. Sadly,
+      this is not possible in C++)
+    </p>
+    <p>For example in the class below, GetOpaque is a virtual method
+      used simply to decide if a given class should be filled. The
+      value of GetOpaque is an attribute of a particular class, and
+      does not need to be defined on a per-instance basis:</p>
+      <pre class="source-code">
+// interface that all shapes must implement
+class nsIDrawable : nsISupports {
+    NS_IMETHOD GetOpaque(PRBool* aResult) = 0;
+    NS_IMETHOD Fill() = 0;
+}
+
+// base class, does not override GetOpaque()
+class baseShape : public nsIDrawable
+{
+public:
+    baseImplementation() {}
+
+    NS_IMETHODIMP Draw() {
+        PRBool opaque;
+        <span style="color: red;">GetOpaque(&amp;opaque);</span>
+        if (opaque)
+            Fill();
+    }
+
+    // more implementation below
+    NS_IMETHODIMP Fill()
+    {
+        // ... implementation ...
+    }
+};
+
+class filledCircle : public baseShape {
+public:
+    filledCircle() { }
+
+    // a filled circle is always opaque
+    <span style="color: red;">NS_IMETHODIMP GetOpaque(PRBool* aResult)</span> {
+        *aResult = PR_TRUE;
+        return NS_OK;
+    }
+};
+
+class emptySquare : public baseShape {
+public:
+    emptySquare() {}
+
+    // emptySquare is never opaque
+    <span style="color: red;">NS_IMETHODIMP GetOpaque(PRBool* aResult)</span> {
+        *aResult = PR_FALSE;
+        return NS_OK;
+    }
+};
+      </pre>
+
+    <p>What's wrong with this example? From a code bloat perspective
+      there is a lot of code just to store a flag that is shared
+      across all implementations. In addition, there is the overhead
+      of calling a virtual method just to get a boolean value.
+    </p>
+
+    <p>Here's a better implementation that generates less compiled
+      code, and is potentially faster:</p>
+      <pre class="source-code">
+// base class, does not override GetOpaque();
+class baseShape : public nsIDrawable
+{
+public:
+    baseImplementation(PRBool aOpaque) : <span style="color: red;">mOpaque(aOpaque)</span> {}
+
+    NS_IMETHODIMP Draw() {
+        if (<span style="color: red;">mOpaque</span>)
+            Fill();
+    }
+
+    NS_IMETHODIMP GetOpaque(PRBool *aResult) {
+        *aResult = mOpaque;
+    }
+
+    // more implementation below
+    NS_IMETHODIMP Fill()
+    {
+        // ... implementation ...
+    }
+protected:
+    <span style="color: red;">PRPackedBool mOpaque;</span>
+};
+
+class filledCircle : public baseShape {
+public:
+    // a filled circle is always opaque
+    filledCircle() : baseShape(<span style="color: red;">PR_TRUE</span>) {}
+
+};
+
+class emptySquare : public baseShape {
+public:
+    // emptySquare is never opaque
+    emptySquare() : baseShape(<span style="color: red;">PR_FALSE</span>) {}
+
+};
+      </pre>
+    <p>
+      Notice that there is no per-class method to determine the
+      opaqueness of an object. The new subclasses are much simpler, and
+      they declare their attributes during construction, rather than
+      every time some virtual method is called.
+    </p>
+    <p>
+      But there are tradeoffs! The base class now has a new member
+      variable, mOpaque. You've just increased the size of this object
+      by at least 1 byte, and perhaps you've increased it even more
+      depending on the layout of the base class. For this example, the
+      tradeoff is questionable, and the value of this tradeoff depends
+      heavily on the use of these classes.
+    </p>
+    <p>
+      For example, say there are only 5 subclasses of baseShape. The
+      compiled implementations of the old virtual GetOpaque() might
+      amount to 150 bytes of code. If there are typically 10,000
+      shapes created, then you've just increased the heap footprint by
+      10,000 bytes. This is clearly a loss (10,000 vs. 150 bytes) On
+      the other hand, if GetOpaque() is called 3 times for each
+      object, then you've just saved yourself 30,000 virtual method
+      calls, which can certainly be expensive.
+    </p>
+    <p>
+      In an example that used to exist in the tree, we had 150
+      subclasses, each of which overrode a virtual method to return an
+      integer. But typically only 2-4 were instantiated at a given
+      time. The win of over 4500 bytes of compiled code clearly
+      outweighed the extra heap impact of 4-16 bytes.
+    </p>
+
+    <p>
+      Finally, imagine there are a many more attributes beyond the simple opaqueness of an object. A simple static structure can store per-class attributes, and the base class needs merely to store a pointer to that structure.
+    </p>
+      <pre class="source-code">
+
+// common per-class attributes
+struct shapeAttributes {
+  PRPackedBool mOpaque;
+  PRPackedBool mHasCorners;
+  PRPackedBool mSupports3D;
+  PRPackedBool mSupportsPatternFill;
+  PRInt32 mNumberOfSides;
+  PRInt32 mMaximumColors;
+  PRInt32 mAlphaMask;
+};
+
+// base class knows how to use shapeAttributes
+class baseShape : public nsIDrawable
+{
+public:
+    baseImplementation(const shapeAttributes* aAttributes) : <span style="color: red;">mAttributes(aAttributes)</span> {}
+
+    NS_IMETHODIMP Draw() {
+        if (<span style="color: red;">mAttributes.mOpaque</span>)
+            Fill();
+    }
+
+    NS_IMETHODIMP GetOpaque(PRBool *aResult) {
+        *aResult = mAttributes.mOpaque;
+    }
+
+    // more implementation below
+    // ...
+protected:
+    const shapeAttributes* mAttributes;
+};
+
+// shared among all filledCircle instances
+static const shapeAttributes filledCircleAttributes {
+  PR_TRUE,  // opaque
+  PR_FALSE, // corners
+  PR_TRUE,  // 3d
+  PR_TRUE,  // pattern fill
+  0,        // no sides
+  64,       // max colors
+  RGB(0,1,2), // alpha mask
+};
+
+class filledCircle : public baseShape {
+public:
+    // a filled circle is always opaque
+    filledCircle() : baseShape(<span style="color: red;">&amp;circleAttributes</span>) {}
+
+};
+
+// shared among all emptySquare instances
+static const shapeAttributes squareAttributes {
+// ...
+};
+
+class emptySquare : public baseShape {
+public:
+    // emptySquare is never opaque
+    emptySquare() : baseShape(<span style="color: red;">&amp;squareAttributes</span>) {}
+
+};
+</pre>
+
+    <p>In this more complex example, the base class only maintains a
+    single 4 byte pointer to a class structure that defines unchanging
+    attributes that are shared among all instances of a given base
+    class. The base class can access all the attributes without
+    resorting to a virtual method call into the subclass.
+    </p>
+    <h2><a name="class_specialization">Too much class specialization</a></h2>
+
+    <h2><a name="huge_switch">Huge switch statements</a></h2>
+
+    <p>It is common to write a large switch statement to account for a
+    number of common actions. However, a large switch statement can
+    also result in slow, bloaty code as the compiler generates a
+    series of test-and-jumps. This is equivalent to a large loop, and
+    can result in blowing out the instruction cache.
+    </p>
+    <p>For instance, this switch statement, taken from
+      <a
+         href="http://lxr.mozilla.org/seamonkey/source/content/html/document/src/nsHTMLContentSink.cpp#1185">nsHTMLContentSink</a> is really just a massive
+      loop, trying to to find a tag name among 75 candidates:
+    </p>
+
+      <pre class="source-code">
+switch (aNodeType) {
+case eHTMLTag_a:
+    rv = NS_NewHTMLAnchorElement(..);
+    break;
+case eHTMLTag_applet:
+    rv = NS_NewHTMLAppletElement(..);
+    break;
+// etc for 73 more tags!
+}
+      </pre>
+
+    <p>The problem here is that each "case" statement will result in a
+      seperate set of compare, jump and call statements. This means lots of
+      code bloat, in addition to saturating the instruction cache with
+      code that won't be executed until the next time through this
+      loop.
+    </p>
+    <p>The solution here is to declare a datastructure that maps tags
+      to callbacks.
+    </p>
+      <pre class="source-code">
+// callback which will create the content node
+typedef nsresult (*contentCreatorCallback)(nsIHTMLContent**, nsINodeInfo*);
+
+struct tagToCreator {
+    nsHTMLTag mTag;
+    contentCreatorCallback mCreateObject;
+};
+
+// this table is small! 8 bytes per entry, only 600 bytes
+tagToCreator tagConstructors[] = {
+    { eHTMLTag_a,         NS_NewHTMLAnchorElement },
+    { eHTMLTag_applet,    NS_NewHTMLAppletElement },
+    {...},
+};
+
+#define tagCreators (sizeof(tagToCreator)/sizeof(tagToCreator[0]))
+
+// look how tight this loop is!
+for (nsHTMLTag tag = 0; tag&lt;tagCreators; tag++) {
+    if (aNodeType == tagConstructors[tag].mTag) {
+         rv = tagConstructors[tag].mCreateObject(...);
+         break;
+    }
+}
+      </pre>
+    
+      
+    <h2><a name="heap_tables">Heap-based readonly tables</a></h2>
+
+    <p>In trying to create a lookup table, it is common to make a static
+    list of name/value pairs and insert them into a hashtable. The
+    hashtable ends up taking up space on the heap and may contain
+    duplicated values from the original static list.
+    </p>
+
+    <p>
+    For instance, this code taken from
+    <a href="http://lxr.mozilla.org/seamonkey/source/htmlparser/public/nsHTMLTags.h#51">nsHTMLTags.h</a> 
+    declares a static HTML tag table. Then, a hashtable is created in
+    <a href="http://lxr.mozilla.org/seamonkey/source/htmlparser/src/nsHTMLTags.cpp#313">nsHTMLTags.cpp</a>
+    resulting in the hashtable containing pointers to each entry in
+    the table, as well as seperate smaller objects for each entry.
+    </p>
+    <p>This means there simply unnecessary initialization of a
+      hashtable that will look exactly the same during each execution.
+    </p>
+    <p>
+      A better mechanism would be to generate the hashtable at
+      compile time such that it is entirely declared as static
+      data. This is a work in progress.
+    </p>
+    
+    <h2><a name="member_pointers">Using pointers to member classes</a></h2>
+
+    <p>When a class contains other classes as member variables, it
+      is often unnecessary to include those members as pointers to the
+      member classes. Instead, include the member variable
+      directly. This will save 4 bytes (one pointer) in the total size
+      of your class.
+    </p>
+    <p>For example, it is common to see nsHashtable* members in a
+      class, when in fact the class could just include the hashtable
+      directly as a member variable.
+    </p>
+      <pre class="source-code">
+class nsFoo  {
+
+public:
+    // look at all this extra work we have to do!
+    nsFoo() {
+      mTags = new nsHashtable(32);
+    }
+    ~nsFoo() {
+      delete mTags;
+    }
+
+private:
+    nsHashtable* mTags;
+
+};
+      </pre>
+
+    <p>
+      Now, sizeof(nsFoo) may tell you that it is 4 bytes, but that doesn't
+      include the size of the hashtable so the total size is<br>
+      sizeof(nsFoo) + sizeof(nsHashtable) == 16 bytes.
+    </p>
+    <p>
+      If instead you make mTags be a non-pointer member, you'll see
+      that the code is simpler, and the object size is smaller:
+    </p>
+      <pre class="source-code">
+class nsFoo  {
+
+public:
+    // very little work, and no need to remember call delete!
+    nsFoo() : mTags(32) {
+    }
+    ~nsFoo() {
+    }
+
+private:
+    nsHashtable mTags;
+
+};
+      </pre>
+    <p>Here, sizeof(nsFoo) includes the size of the hashtable, and so<br>
+      size(nsFoo) == 12 bytes.</p>
+    <p>
+      Also note that the constructors for the objects all happen as
+      one atomic event, giving the compiler more flexibility when
+      optimizing this initialization.
+    </p>
+  
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March 27,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/performance/footprint-reduction-techniques.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

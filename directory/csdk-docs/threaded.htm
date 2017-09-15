@@ -1,0 +1,922 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+ <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+ <title>Mozilla LDAP C SDK: Chapter 16 - Writing Multithreaded Clients</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<ul class="snav">
+ <li><a href="extendop.htm">Previous</a>
+ <li><a href="./">Contents</a>
+ <li><a href="ix.htm">Index</a>
+ <li><a href="ref_part.htm">Next</a>
+</ul>
+ 
+<h1>Mozilla LDAP C SDK Programmer's Guide</h1>
+<h2>Chapter 16 - Writing Multithreaded Clients</h2>
+
+<p>This chapter explains how to write multi-threaded LDAP clients.</p>
+
+<p>The chapter consists of the following sections:</p>
+
+<ul>
+ <li><a href="threaded.htm#spec_thread_function">Specifying Thread Functions</a></li>
+ <li>
+  <a href="threaded.htm#example_pthread_app">Example of a Pthreads Client Application</a> 
+ </li>
+</ul>
+
+<h3 id="spec_thread_function">Specifying Thread Functions</h3>
+
+<p>If you are writing a multi-threaded client where different 
+threads access the same <a href="datatype.htm#LDAP">LDAP</a> 
+structure, you need to set up the session so that the threads 
+do not interfere with each other.</p>
+
+<p>For example, in a single-threaded LDAP client, the 
+<code><a href="datatype.htm#LDAP">LDAP</a></code> structure 
+contains the error code of the last LDAP operation. In a 
+multi-threaded client, you need to set up the session so that 
+each thread can have its own error code.</p>
+
+<p>The <code>LDAP_OPT_THREAD_FN_PTRS</code> session option lets you 
+set up an <code><a href="datatype.htm#ldap_thread_fns">ldap_thread_fns</a></code> 
+structure identifying the functions that are called in 
+multi-threaded environments (for example, functions to lock and 
+unlock critical sections of code and to get and set errors).</p>
+
+<p>Because this structure lets you specify these functions, you 
+can use the LDAP API library in different types of threading 
+environments.</p>
+
+<h3 id="set_thread_structure">Setting Up the ldap_thread_fns Structure</h3>
+
+<p>If you are writing a multi-threaded client in which different 
+threads use the same LDAP connection, you need to set up the 
+<code><a href="datatype.htm#ldap_thread_fns">ldap_thread_fns</a></code> 
+structure and identify the functions that you want to use.</p>
+
+<p>The <code><a href="datatype.htm#ldap_thread_fns">ldap_thread_fns</a></code> 
+structure has the following fields:</p>
+
+<code>
+ struct ldap_thread_fns {<br>
+ &nbsp;&nbsp;<a href="datatype.htm#LDAP_TF_MUTEX_ALLOC_CALLBACK">LDAP_TF_MUTEX_ALLOC_CALLBACK</a>&nbsp;&nbsp;&nbsp;*ltf_mutex_alloc;<br>
+ &nbsp;&nbsp;<a href="datatype.htm#LDAP_TF_MUTEX_FREE_CALLBACK">LDAP_TF_MUTEX_FREE_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;*ltf_mutex_free;<br>
+ &nbsp;&nbsp;<a href="datatype.htm#LDAP_TF_MUTEX_LOCK_CALLBACK">LDAP_TF_MUTEX_LOCK_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;*ltf_mutex_lock;<br>
+ &nbsp;&nbsp;<a href="datatype.htm#LDAP_TF_MUTEX_UNLOCK_CALLBACK">LDAP_TF_MUTEX_UNLOCK_CALLBACK</a>&nbsp;&nbsp;*ltf_mutex_unlock;<br>
+ &nbsp;&nbsp;<a href="datatype.htm#LDAP_TF_GET_ERRNO_CALLBACK">LDAP_TF_GET_ERRNO_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*ltf_get_errno;<br>
+ &nbsp;&nbsp;<a href="datatype.htm#LDAP_TF_SET_ERRNO_CALLBACK">LDAP_TF_SET_ERRNO_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*ltf_set_errno;<br>
+ &nbsp;&nbsp;<a href="datatype.htm#LDAP_TF_GET_LDERRNO_CALLBACK">LDAP_TF_GET_LDERRNO_CALLBACK</a>&nbsp;&nbsp;&nbsp;*ltf_get_lderrno;<br>
+ &nbsp;&nbsp;<a href="datatype.htm#LDAP_TF_SET_LDERRNO_CALLBACK">LDAP_TF_SET_LDERRNO_CALLBACK</a>&nbsp;&nbsp;&nbsp;*ltf_set_lderrno;<br>
+ &nbsp;&nbsp;void&nbsp;&nbsp;&nbsp;&nbsp;*ltf_lderrno_arg;<br>
+ };
+</code>
+
+<p>These fields are described in more detail below:</p>
+
+<strong>Table 16-1 - ldap_thread_fns field descriptions</strong></p>
+
+<table class="data">
+ <tr>
+  <th>Field</th>
+  <th>Description</th>
+ </tr>
+ <tr>
+  <td><code>*ltf_mutex_alloc</code></td>
+  <td>
+   Function pointer for allocating a mutex. 
+   This function is called by the client when needed if the 
+   function pointer is not <code>NULL</code>.
+  </td>
+ </tr>
+ <tr>
+  <td><code>*ltf_mutex_free</code></td>
+  <td>
+   Function pointer for freeing a mutex. 
+   This function is called by the client when needed if the 
+   function pointer is not <code>NULL</code>.
+  </td>
+ </tr>
+ <tr>
+  <td><code>*ltf_mutex_lock</code></td>
+  <td>
+   Function pointer for locking critical sections of code. 
+   This function is called by the client when needed if the 
+   function pointer is not <code>NULL</code>.
+  </td>
+ </tr>
+ <tr>
+  <td><code>*ltf_mutex_unlock</code></td>
+  <td>
+   Function pointer for unlocking critical 
+   sections of code. This function is called by the client 
+   when needed if the function pointer is not <code>NULL</code>.
+  </td>
+ </tr>
+ <tr>
+  <td><code>*ltf_get_errno</code></td>
+  <td>
+   Function pointer for getting the value of the <code>errno</code> 
+   variable. This function is called by the client when needed 
+   if the function pointer is not <code>NULL</code>.
+   <p></p>
+   In a threaded environment, 
+   <code>errno</code> is typically redefined so that it has a 
+   value for each thread, rather than a global value for the 
+   entire process. This redefinition is done at compile time. 
+   Because the <code>libldap</code> library does not know what 
+   method your code and threading environment will use to get the 
+   value of <code>errno</code> for each thread, it calls this 
+   function to return the value of <code>errno</code>.
+  </td>
+ </tr>
+ <tr>
+  <td><code>*ltf_set_errno</code></td>
+  <td>
+   Function pointer for setting the value of the <code>errno</code> 
+   variable. This function is called by the client when needed 
+   if the function pointer is not <code>NULL</code>.
+   <p></p>
+   In a threaded environment, 
+   <code>errno</code> is typically redefined so that it has a 
+   value for each thread, rather than a global value for the 
+   entire process. This redefinition is done at compile time. 
+   Because the <code>libldap</code> library does not know what 
+   method your code and threading environment will use to get the 
+   value of <code>errno</code> for each thread, it calls this 
+   function to set the value of <code>errno</code>.
+  </td>
+ </tr>
+ <tr>
+  <td><code>*ltf_get_lderrno</code></td>
+  <td>
+   Function pointer for getting error values 
+   from calls to functions in the <code>libldap</code> library. 
+   This function is called by the client when needed if the 
+   function pointer is not <code>NULL</code>. 
+   <p></p>
+   If this function pointer is not set, the 
+   <code>libldap</code> library records these errors in fields 
+   in the <code>LDAP</code> structure. 
+  </td>
+ </tr>
+ <tr>
+  <td><code>*ltf_set_lderrno</code></td>
+  <td>
+   Function pointer for setting error values 
+   from calls to functions in the <code>libldap</code> library. 
+   This function is called by the client when needed if the 
+   function pointer is not <code>NULL</code>.
+   <p></p>
+   If this function pointer is not set, the 
+   <code>libldap</code> library records these errors in fields 
+   in the <code>LDAP</code> structure.
+  </td>
+ </tr>
+ <tr>
+  <td><code>*ltf_lderrno_arg</code></td>
+  <td>
+   Additional parameter passed to the functions for getting and 
+   setting error values from calls to functions in the 
+   <code>libldap</code> library. <code>*ltf_get_lderrno</code> 
+   and <code>*ltf_set_lderrno</code> identify these functions.
+  </td>
+ </tr>
+</table>
+
+<h3 id="set_extra_structure">Setting Up the ldap_extra_thread_fns Structure</h3>
+
+<p>The LDAP C SDK provides a structure, 
+<code><a href="datatype.htm#ldap_extra_thread_fns">ldap_extra_thread_fns</a></code>, 
+which specifies additional thread functions for locking and 
+for semaphores. The 
+<code><a href="datatype.htm#ldap_extra_thread_fns">ldap_extra_thread_fns</a></code> 
+structure is declared as follows:</p>
+
+<code>
+ struct ldap_extra_thread_fns {<br>
+ &nbsp;<a href="datatype.htm#LDAP_TF_MUTEX_TRYLOCK_CALLBACK">LDAP_TF_MUTEX_TRYLOCK_CALLBACK</a>&nbsp;*ltf_mutex_trylock;<br>
+ &nbsp;<a href="datatype.htm#LDAP_TF_SEMA_ALLOC_CALLBACK">LDAP_TF_SEMA_ALLOC_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;*ltf_sema_alloc;<br>
+ &nbsp;<a href="datatype.htm#LDAP_TF_SEMA_FREE_CALLBACK">LDAP_TF_SEMA_FREE_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*ltf_sema_free;<br>
+ &nbsp;<a href="datatype.htm#LDAP_TF_SEMA_WAIT_CALLBACK">LDAP_TF_SEMA_WAIT_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*ltf_sema_wait;<br>
+ &nbsp;<a href="datatype.htm#LDAP_TF_SEMA_POST_CALLBACK">LDAP_TF_SEMA_POST_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*ltf_sema_post;<br>
+ &nbsp;<a href="datatype.htm#LDAP_TF_THREADID_CALLBACK">LDAP_TF_THREADID_CALLBACK</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*ltf_threadid_fn;<br>
+ };
+</code>
+
+<p>The LDAP C SDK, version 4.0 and greater, supports only the 
+<code>LDAP_TF_TREADID_CALLBACK *ltf_threadid_fn</code>function. 
+(If any of the other extra thread callback functions are set, they 
+will be ignored.) The thread id callback function must return an 
+identifier that is unique to the calling thread, like 
+<code>pthread_self()</code> does. You can use this function callback 
+in a multi-threaded application to improve the performance of 
+thread locking.</p>
+
+<p>Providing a thread ID callback function will allow the LDAP C 
+SDK to use finer grained locks and potentially improve performance.</p>
+
+<h3 id="set_session_option">Setting the Session Options</h3>
+
+<p>After you set up the 
+<code><a href="datatype.htm#ldap_thread_fns">ldap_thread_fns</a></code> 
+structure, you need to associate the structure with the current session. 
+Call the <code><a href="function.htm#set-option">ldap_set_option()</a></code> 
+function and pass <code>LDAP_OPT_THREAD_FN_PTRS</code> as the 
+value of the option parameter. Pass a pointer to the 
+<code>ldap_thread_fns</code> structure as the value of the 
+<code>optdata</code> parameter.</p>
+
+<p>If you also set up the 
+<code><a href="datatype.htm#ldap_extra_thread_fns">ldap_extra_thread_fns</a></code> 
+structure, you can associate it with the current session by calling 
+<code><a href="function.htm#set-option">ldap_set_option()</a></code> 
+function and passing <code>LDAP_OPT_EXTRA_THREAD_FN_PTRS</code> 
+as the value of the option parameter. You must also pass a 
+pointer to the <code>ldap_extra_thread_fns</code> structure as 
+the value of the <code>optdata</code> parameter.</p> 
+
+<h3 id="example_spec_thread_function">Example of Specifying Thread Functions</h3>
+
+<p><For example, the following section of code sets up an 
+<code><a href="datatype.htm#ldap_thread_fns">ldap_thread_fns</a></code>structure 
+for an LDAP session.</p>
+
+<p>
+ <strong>Code Example 16-1 - Setting up an 
+ ldap_thread_fns structure</strong>
+</p>
+
+<pre>
+#include <stdio.h>
+#include <malloc.h>
+#include <errno.h>
+#include <pthread.h>
+#include <ldap.h>
+
+struct ldap_thread_fns tfns;
+...
+  /* Set up the ldap_thread_fns structure with pointers 
+    to the functions that you want called */
+  memset( &tfns, '\0', sizeof(struct ldap_thread_fns) );
+
+  /* Specify the functions that you want called */
+  /* Call the my_mutex_alloc() function whenever mutexes 
+    need to be allocated */
+  tfns.ltf_mutex_alloc = (void *(*)(void)) my_mutex_alloc;
+
+  /* Call the my_mutex_free() function whenever mutexes 
+    need to be destroyed */
+  tfns.ltf_mutex_free = (void (*)(void *)) my_mutex_free;
+
+  /* Call the pthread_mutex_lock() function whenever a 
+    thread needs to lock a mutex. */
+  tfns.ltf_mutex_lock = (int (*)(void *)) pthread_mutex_lock;
+
+  /* Call the pthread_mutex_unlock() function whenever a 
+    thread needs to unlock a mutex. */
+  tfns.ltf_mutex_unlock = (int (*)(void *)) pthread_mutex_unlock;
+
+  /* Call the get_errno() function to get the value of errno */
+  tfns.ltf_get_errno = get_errno;
+
+  /* Call the set_errno() function to set the value of errno */
+  tfns.ltf_set_errno = set_errno;
+
+  /* Call the get_ld_error() function to get error values from 
+    calls to functions in the libldap library */
+  tfns.ltf_get_lderrno = get_ld_error;
+
+  /* Call the set_ld_error() function to set error values for 
+    calls to functions in the libldap library */
+  tfns.ltf_set_lderrno = set_ld_error;
+
+  /* Don't pass any extra parameter to the functions for 
+    getting and setting libldap function call errors */
+  tfns.ltf_lderrno_arg = NULL;
+...
+/* Set the session option that specifies the functions to call for 
+    multi-threaded clients */
+if (ldap_set_option( ld, LDAP_OPT_THREAD_FN_PTRS, (void *) &tfns)!= 0) {
+  ldap_perror( ld, "ldap_set_option: thread pointers" );
+}
+...
+</pre>
+
+<h3 id="example_pthread_app">Example of a Pthreads Client Application</h3>
+
+<p>The following example, which uses pthreads (POSIX threads) under 
+Solaris, is the source code for a multi-threaded client. The client 
+connects to a specified LDAP server and creates several threads to 
+perform multiple search and update operations simultaneously on the 
+directory.</p>
+
+<p>
+ <strong>Code Example 16-2 - Using POSIX threading under Solaris</strong>
+</p>
+
+<pre>#include &lt;stdio.h&gt;
+#include &lt;malloc.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;ldap.h&gt;
+#include &lt;synch.h&gt;
+
+/* Authentication and search information. */
+#define NAME         "cn=Directory Manager"
+#define PASSWORD     "rtfm11111"
+#define BASE         "dc=example,dc=com"
+#define SCOPE        LDAP_SCOPE_SUBTREE
+
+/* Function declarations */
+static void *search_thread();
+static void *modify_thread(); 
+static void *add_thread();
+static void *delete_thread();
+static void set_ld_error();
+static intget_ld_error();
+static void set_errno();
+static intget_errno();
+static void tsd_setup();
+
+/* Linked list of LDAPMessage structs for search results. */
+typedef struct ldapmsgwrapper {
+LDAPMessage      *lmw_messagep;
+struct ldapmsgwrapper  *lmw_next;
+} ldapmsgwrapper;
+
+LDAP    *ld;
+pthread_key_t  key;
+
+main( int argc, char **argv )
+{
+  pthread_attr_t  attr;
+  pthread_t  search_tid, search_tid2, search_tid3, search_tid4;
+  pthread_t  modify_tid, add_tid, delete_tid;
+  void    *status;
+  struct ldap_thread_fns  tfns;
+  struct ldap_extra_thread_fns extrafns;
+  int rc;
+
+  /* Check command-line syntax. */
+  if ( argc != 3 ) {
+    fprintf( stderr, "usage: %s <host> <port>\n", argv[0] );
+    exit( 1 );
+  }
+
+  /* Create a key. */
+  if ( pthread_key_create( &key, free ) != 0 ) {
+    perror( "pthread_key_create" );
+  }
+  tsd_setup();
+
+  /* Initialize the LDAP session. */
+  if ( (ld = ldap_init( argv[1], atoi( argv[2] ) )) == NULL ) {
+    perror( "ldap_init" );
+    exit( 1 );
+  }
+
+  /* Set the function pointers for dealing with mutexes
+   and error information. */
+  memset( &tfns, '\0', sizeof(struct ldap_thread_fns) );
+  tfns.ltf_mutex_alloc = (void *(*)(void)) my_mutex_alloc;
+  tfns.ltf_mutex_free = (void (*)(void *)) my_mutex_free;
+  tfns.ltf_mutex_lock = (int (*)(void *)) pthread_mutex_lock;
+  tfns.ltf_mutex_unlock = (int (*)(void *)) pthread_mutex_unlock;
+  tfns.ltf_get_errno = get_errno;
+  tfns.ltf_set_errno = set_errno;
+  tfns.ltf_get_lderrno = get_ld_error;
+  tfns.ltf_set_lderrno = set_ld_error;
+  tfns.ltf_lderrno_arg = NULL;
+
+  /* Set up this session to use those function pointers. */
+  rc = ldap_set_option( ld, LDAP_OPT_THREAD_FN_PTRS, (void *) &tfns );
+  if ( rc < 0 ) {
+    fprintf( stderr, "ldap_set_option (LDAP_OPT_THREAD_FN_PTRS): %s\n", ldap_err2string( rc ) );
+    exit( 1 );
+  }
+
+  /* Set the function pointers for working with semaphores. */
+  memset( &extrafns, '\0', sizeof(struct ldap_extra_thread_fns) );
+  extrafns.ltf_mutex_trylock = (int (*)(void *)) = null;
+  extrafns.ltf_sema_alloc = (void *(*)(void)) = null;
+  extrafns.ltf_sema_free = (void (*)(void *)) = null;
+  extrafns.ltf_sema_wait = (int (*)(void *)) = null;
+  extrafns.ltf_sema_post = (int (*)(void *)) = null;
+  extrafns.ltf_threadid_fn = (void * (*)(void) )pthread_self;
+  /* Set up this session to use those function pointers. */
+  rc = ldap_set_option( ld, LDAP_OPT_EXTRA_THREAD_FN_PTRS, (void *) &extrafns );
+  if ( rc < 0 ) {
+    fprintf( stderr, "ldap_set_option (LDAP_OPT_EXTRA_THREAD_FN_PTRS): %s\n", ldap_err2string( rc ) );
+    exit( 1 );
+  }
+
+  /* Attempt to bind to the server. */
+  rc = ldap_simple_bind_s( ld, NAME, PASSWORD );
+  if ( rc != LDAP_SUCCESS ) {
+    fprintf( stderr, "ldap_simple_bind_s: %s\n", ldap_err2string( rc ) );
+    exit( 1 );
+  }
+
+  /* Initialize the attribute. */
+  if ( pthread_attr_init( &attr ) != 0 ) {
+    perror( "pthread_attr_init" );
+    exit( 1 );
+  }
+
+  /* Specify that the threads are joinable. */
+  pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_JOINABLE );
+
+  /* Create seven threads: one for adding, one for modifying, 
+   one for deleting, and four for searching. */
+  if ( pthread_create( &search_tid, &attr, search_thread, "1" ) != 0 ) {
+    perror( "pthread_create search_thread" );
+    exit( 1 );
+  }
+  if ( pthread_create( &modify_tid, &attr, modify_thread, "2" ) != 0 ) {
+    perror( "pthread_create modify_thread" );
+    exit( 1 );
+  }
+  if ( pthread_create( &search_tid2, &attr, search_thread, "3" ) != 0 ) {
+    perror( "pthread_create search_thread2" );
+    exit( 1 );
+  }
+  if ( pthread_create( &add_tid, &attr, add_thread, "4" ) != 0 ) {
+    perror( "pthread_create add_thread" );
+    exit( 1 );
+  }
+  if ( pthread_create( &search_tid3, &attr, search_thread, "5" ) != 0 ) {
+    perror( "phread_create search_thread3" );
+    exit( 1 );
+  }
+  if ( pthread_create( &delete_tid, &attr, delete_thread, "6" ) != 0 ) {
+    perror( "pthread_create delete_thread" );
+    exit( 1 );
+  }
+  if ( pthread_create( &search_tid4, &attr, search_thread, "7" ) != 0 ) {
+    perror( "pthread_create search_thread4" );
+    exit( 1 );
+  }
+
+  /* Wait until these threads exit. */
+  pthread_join( modify_tid, &status );
+  pthread_join( add_tid, &status );
+  pthread_join( delete_tid, &status );
+  pthread_join( search_tid, &status );
+  pthread_join( search_tid2, &status );
+  pthread_join( search_tid3, &status );
+  pthread_join( search_tid4, &status );
+}
+
+/* Thread for searching the directory.
+The results are not printed out. */
+static void *
+search_thread( char *id )
+{
+  LDAPMessage  *res;
+  LDAPMessage  *e;
+  char    *a;
+  char    **v;
+  char    *dn;
+  BerElement  *ber;
+  int    i, rc, parse_rc, msgid, finished;
+  int    num_entries, num_refs;
+  void    *tsd;
+  struct timeval  zerotime;
+  zerotime.tv_sec = zerotime.tv_usec = 0L;
+
+  printf( "Starting search_thread %s.\n", id );
+  tsd_setup();
+  /* Continually search the directory. */
+  for ( ;; ) {
+    printf( "Thread %s: Searching...\n", id );
+    finished = 0;
+    num_entries = 0;
+    num_refs = 0;
+    rc = ldap_search_ext( ld, BASE, SCOPE, "(objectclass=*)", 
+      NULL, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msgid );
+    if ( rc != LDAP_SUCCESS ) {
+      fprintf( stderr, "Thread %s error: ldap_search: %s\n", 
+        id, ldap_err2string( rc ) );
+      continue;
+    }
+
+    /* Iterate through the results.In this example, 
+     we don't print out all the results.(It's easier
+     to see the output from the other threads this way.) */
+    while ( !finished ) {
+      rc = ldap_result( ld, msgid, LDAP_MSG_ONE, &zerotime, &res );
+      switch ( rc ) {
+      case -1:
+        rc = ldap_get_lderrno( ld, NULL, NULL );
+        fprintf( stderr, "ldap_result: %s\n", ldap_err2string( rc ) );
+        finished = 1;
+        break;
+      case 0:
+        break;
+      /* Keep track of the number of entries found. */
+      case LDAP_RES_SEARCH_ENTRY:
+        num_entries++;
+        break;
+      /* Keep track of the number of search references. */
+      case LDAP_RES_SEARCH_REFERENCE:
+        num_refs++;
+        break;
+      case LDAP_RES_SEARCH_RESULT:
+        finished = 1;
+        parse_rc = ldap_parse_result( ld, res, &rc, NULL, NULL, NULL, NULL, 1 );
+        if ( parse_rc != LDAP_SUCCESS ) {
+          fprintf( stderr, "Thread %s error: can't parse result code.\n", id );
+          break;
+        } else {
+          if ( rc != LDAP_SUCCESS ) {
+            fprintf( stderr, "Thread %s error: ldap_search: %s\n", id, ldap_err2string( rc ) );
+          } else {
+            printf( "Thread %s: Got %d results and %d references.\n", id, num_entries, num_refs );
+          }
+        }
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
+/* Thread for modifying directory entries.
+This thread searches for entries and randomly selects entries from
+the search results for modification. */
+static void *
+modify_thread( char *id )
+{
+  LDAPMessage      *res;
+  LDAPMessage      *e;
+  int              i, modentry, num_entries, msgid, rc, parse_rc, finished;
+  LDAPMod          mod;
+  LDAPMod          *mods[2];
+  char             *vals[2];
+  char            *dn;
+  ldapmsgwrapper  *list, *lmwp, *lastlmwp;
+  struct timeval  zerotime;
+  zerotime.tv_sec = zerotime.tv_usec = 0L;
+
+  printf( "Starting modify_thread %s.\n", id );
+  tsd_setup();
+  rc = ldap_search_ext( ld, BASE, SCOPE, "(objectclass=*)",
+    NULL, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msgid );
+  if ( rc != LDAP_SUCCESS ) {
+    fprintf( stderr, "Thread %s error: Modify thread: "
+    "ldap_search_ext: %s\n", id, ldap_err2string( rc ) );
+    exit( 1 );
+  }
+  list = lastlmwp = NULL;
+  finished = 0;
+  num_entries = 0;
+  while ( !finished ) {
+    rc = ldap_result( ld, msgid, LDAP_MSG_ONE, &zerotime, &res );
+    switch ( rc ) {
+    case -1:
+      rc = ldap_get_lderrno( ld, NULL, NULL );
+      fprintf( stderr, "ldap_result: %s\n", ldap_err2string( rc ) );
+      exit( 1 );
+      break;
+    case 0:
+      break;
+
+    /* Keep track of the number of entries found. */
+    case LDAP_RES_SEARCH_ENTRY:
+      num_entries++;
+      if (( lmwp = (ldapmsgwrapper *)
+        malloc( sizeof( ldapmsgwrapper ))) == NULL ) {
+        fprintf( stderr, "Thread %s: Modify thread: Cannot malloc\n", id );
+        exit( 1 );
+      }
+      lmwp->lmw_messagep = res;
+      lmwp->lmw_next = NULL;
+      if ( lastlmwp == NULL ) {
+        list = lastlmwp = lmwp;
+      } else {
+        lastlmwp->lmw_next = lmwp;
+      }
+      lastlmwp = lmwp;
+      break;
+    case LDAP_RES_SEARCH_REFERENCE:
+      break;
+    case LDAP_RES_SEARCH_RESULT:
+      finished = 1;
+      parse_rc = ldap_parse_result( ld, res, &rc, NULL, NULL, NULL, NULL, 1 );
+      if ( parse_rc != LDAP_SUCCESS ) {
+        fprintf( stderr, "Thread %s error: can't parse result code.\n", id );
+        exit( 1 );
+      } else {
+        if ( rc != LDAP_SUCCESS ) {
+          fprintf( stderr, "Thread %s error: ldap_search: %s\n", id, ldap_err2string( rc ) );
+        } else {
+          printf( "Thread %s: Got %d results.\n", id, num_entries );
+        }
+      }
+      break;
+    default:
+      break;
+    }
+  }
+
+  /* Set up the modifications to be made. */
+  mods[0] = &mod;
+  mods[1] = NULL;
+  vals[0] = "bar";
+  vals[1] = NULL;
+
+  /* Modify randomly selected entries. */
+  for ( ;; ) {
+
+    /* Randomly select the entries. */
+    modentry = rand() % num_entries;
+    for ( i = 0, lmwp = list; lmwp != NULL && i < modentry;
+    i++, lmwp = lmwp->lmw_next ) {
+      /* Keep iterating. */
+    }
+    if ( lmwp == NULL ) {
+      fprintf( stderr,
+      "Thread %s: Modify thread could not find entry %d of %d\n",
+      id, modentry, num_entries );
+      continue;
+    }
+    e = lmwp->lmw_messagep;
+    printf( "Thread %s: Modify thread picked entry %d of %d\n", id, i, num_entries );
+
+    /* Perform the modification. */
+    dn = ldap_get_dn( ld, e );
+    mod.mod_op = LDAP_MOD_REPLACE;
+    mod.mod_type = "description";
+    mod.mod_values = vals;
+    printf( "Thread %s: Modifying (%s)\n", id, dn );
+    rc = ldap_modify_ext_s( ld, dn, mods, NULL, NULL );
+if ( rc != LDAP_SUCCESS ) {
+      rc = ldap_get_lderrno( ld, NULL, NULL );
+      fprintf( stderr, "ldap_modify_ext_s: %s\n", ldap_err2string( rc ) );
+    }
+    free( dn );
+  }
+}
+
+/* Thread for adding directory entries.
+This thread randomly generates DNs for entries and attempts to add them to the directory. */
+static void *
+add_thread( char *id )
+{
+  LDAPMod  mod[5];
+  LDAPMod  *mods[6];
+  char  dn[BUFSIZ], name[40];
+  char  *cnvals[2], *snvals[2], *ocvals[3];
+  int  i, rc;
+
+  printf( "Starting add_thread %s.\n", id );
+  tsd_setup();
+
+  /* Set up the entry to be added. */
+  for ( i = 0; i < 5; i++ ) {
+    mods[i] = &mod[i];
+  }
+  mods[5] = NULL;
+  mod[0].mod_op = 0;
+  mod[0].mod_type = "cn";
+  mod[0].mod_values = cnvals;
+  cnvals[1] = NULL;
+  mod[1].mod_op = 0;
+  mod[1].mod_type = "sn";
+  mod[1].mod_values = snvals;
+  snvals[1] = NULL;
+  mod[2].mod_op = 0;
+  mod[2].mod_type = "objectclass";
+  mod[2].mod_values = ocvals;
+  ocvals[0] = "top";
+  ocvals[1] = "person";
+  ocvals[2] = NULL;
+  mods[3] = NULL;
+
+  /* Randomly generate DNs and add entries. */
+  for ( ;; ) {
+    sprintf( name, "%d", rand() );
+    sprintf( dn, "cn=%s, " BASE, name );
+    cnvals[0] = name;
+    snvals[0] = name;
+    printf( "Thread %s: Adding entry (%s)\n", id, dn );
+    rc = ldap_add_ext_s( ld, dn, mods, NULL, NULL ); 
+if ( rc != LDAP_SUCCESS ) {
+      rc = ldap_get_lderrno( ld, NULL, NULL );
+      fprintf( stderr, "ldap_add_ext_s: %s\n", ldap_err2string( rc ) );
+    }
+  }
+}
+
+/* Thread for deleting directory entries.
+This thread randomly selects entries for deletion. */
+static void *
+delete_thread( char *id )
+{
+  LDAPMessage  *res;
+  char    dn[BUFSIZ], name[40];
+
+  printf( "Starting delete_thread %s.\n", id );
+  tsd_setup();
+
+  /* Randomly select entries for deletion. */
+  for ( ;; ) {
+    sprintf( name, "%d", rand() );
+    sprintf( dn, "cn=%s, " BASE, name );
+    printf( "Thread %s: Deleting entry (%s)\n", id, dn );
+    if ( ldap_delete_ext_s( ld, dn, NULL, NULL ) != LDAP_SUCCESS ) {
+      ldap_perror( ld, "ldap_delete_ext_s" );
+    }
+  }
+}
+
+/* Function for allocating a mutex. */
+static void *
+my_mutex_alloc( void )
+{
+  pthread_mutex_t  *mutexp;
+  if ( (mutexp = malloc( sizeof(pthread_mutex_t) )) != NULL ) {
+    pthread_mutex_init( mutexp, NULL );
+  }
+  return( mutexp );
+}
+
+/* Function for freeing a mutex. */
+static void
+my_mutex_free( void *mutexp )
+{
+  pthread_mutex_destroy( (pthread_mutex_t *) mutexp );
+  free( mutexp );
+}
+
+
+/* Error structure. */
+struct ldap_error {
+  int  le_errno;
+  char  *le_matched;
+  char  *le_errmsg;
+};
+
+/* Function to set up thread-specific data. */
+static void
+tsd_setup()
+{
+  void  *tsd;
+  tsd = pthread_getspecific( key );
+  if ( tsd != NULL ) {
+    fprintf( stderr, "tsd non-null!\n" );
+    pthread_exit( NULL );
+  }
+  tsd = (void *) calloc( 1, sizeof(struct ldap_error) );
+  pthread_setspecific( key, tsd );
+}
+
+/* Function for setting an LDAP error. */
+static void
+set_ld_error( int err, char *matched, char *errmsg, void *dummy )
+{
+  struct ldap_error *le;
+  le = pthread_getspecific( key );
+  le->le_errno = err;
+  if ( le->le_matched != NULL ) {
+    ldap_memfree( le->le_matched );
+  }
+  le->le_matched = matched;
+  if ( le->le_errmsg != NULL ) {
+    ldap_memfree( le->le_errmsg );
+  }
+  le->le_errmsg = errmsg;
+}
+
+/* Function for getting an LDAP error. */
+static int
+get_ld_error( char **matched, char **errmsg, void *dummy )
+{
+  struct ldap_error *le;
+  le = pthread_getspecific( key );
+  if ( matched != NULL ) {
+    *matched = le->le_matched;
+  }
+  if ( errmsg != NULL ) {
+    *errmsg = le->le_errmsg;
+  }
+  return( le->le_errno );
+}
+
+/* Function for setting errno. */
+static void
+set_errno( int err )
+{
+  errno = err;
+}
+
+/* Function for getting errno. */
+static int
+get_errno( void )
+{
+  return( errno );
+}</pre>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified March 16,  2005</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/directory/csdk-docs/threaded.htm&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

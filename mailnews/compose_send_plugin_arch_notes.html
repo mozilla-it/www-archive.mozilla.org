@@ -1,0 +1,160 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../images/mozilla-16.png" type="image/png">
+
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+   <meta name="author" content="seth spitzer">
+   <meta name="GENERATOR" content="Mozilla/4.76 [en]C-AOLNSCP  (WinNT; U) [Netscape]">
+   <title>PGP &amp; S/MIME arch</title>
+<script src="../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+<center>rough architecture notes for PGP &amp; S/MIME integration with
+mozilla mail &amp; news
+<br><a href="mailto:sspitzer@mozilla.org,mscott@netscape.com,ducarroz@netscape.com">sspitzer@mozilla.org,
+mscott@netscape.com, ducarroz@netscape.com</a></center>
+
+<p>goal: how to extend mozilla mail &amp; news (specifically the UI, mime
+and compose) to allow for PGP, S/MIME, etc.
+<br><br>see <b><a href="http://bugzilla.mozilla.org/show_bug.cgi?id=22687">bug #22687</a></b> for some
+context.<b></b>
+<p><b>Sending</b>
+<p>core: UI hooks for "apply transformation to this message". examples:
+"sign this message", "encrypt this message"
+<br>core: pipeling of <b>converters</b>. why? a message can be signed and
+encrypted
+<br>core: expressing and retrieving converters. X-MOZILLA-CONVERTERS header.
+comma seperated list of converter prog-ids
+<p>converters. just like html->text converters, we need to support rfc/822
+-> "type" converters.
+<p>the implementor of the converter will do the work
+<br>example: the "sign message" converter will take rfc/822 message and
+convert it to a S/MIME message with a new part, the signed part.
+<br>they could also append headers and footers to the body, if they wanted.
+(PGP needs this?)
+<p>open issues:
+<p>1)&nbsp; apply transformartions on send. drafts and unsent messages
+are stored "in the clear". on actual send, we look at the X-MOZILLA-CONVERTERS
+header and do the transformation. Is this what 4.x did?
+<p>Eran Tromer &lt;eran@tromer.org> writes: "The transformation may require
+user interaction, e.g., password entry for signing. When messages are queued
+for later sending ("Unsent Messages"), this interaction should occur when
+queuing. Delaying this interaction to actual sending is inconvenient and
+also poses security risks (unsent messages may be modified and then signed
+without re-inspection)."
+<p>I need to see what existing clients (like 4.x) do in this case.
+<p>2) what if the converter needs to do a blocking task, like get a cert
+from a server?&nbsp; does the converter run on the UI thread?&nbsp; (ask
+mscott)
+<p><b>Receiving</b>
+<p>core: UI hooks for "state" of the message. "signed". "encrypted". access
+to the lock icon?
+<br>top level: <b>stream converters</b>. S/MIME -> rfc/822
+<br>for parts, need mime content handler for types. see vcard handler
+<p>open issues:
+<p>1) forwarding an encrypted message?
+<br>2) standards for content type S/MIME. PGP. GPG. OpenPGP.
+<br>3) Eudora and Outlook, etc. what do we need to do to support reading
+encrypted message from other clients?
+<p>[signed [encrypted [ rfc/822]]
+<br>&nbsp;
+<br>&nbsp;
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../sitemap.html">Site Map</a></li>
+<li><a href="../security/">Security Updates</a></li>
+<li><a href="../contact/">Contact Us</a></li>
+<li><a href="../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified September  6,  2003</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/mailnews/compose_send_plugin_arch_notes.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

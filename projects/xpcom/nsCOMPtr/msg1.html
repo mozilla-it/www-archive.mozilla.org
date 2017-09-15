@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+            "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<HTML>
+	<HEAD>
+    <TITLE>getter_doesnt_AddRef is gone</TITLE>
+    <LINK REL=StyleSheet HREF="http://www.mozilla.org/projects/xpcom/Standard.css" TYPE="text/css">
+	</HEAD>
+	<BODY>
+		<H1><code>getter_doesnt_AddRef</code> is gone (Re: <code>nsCOMPtr</code> questions)</H1>
+
+<DIV class=author-note>
+	<P>by <A HREF="http://www.meer.net/ScottCollins/">Scott Collins</A><!-- /P -->
+	<P>last modified 25 October 1999</P>
+</DIV>
+
+<div class="document-label">
+	<p>
+		<strong>Document Status</strong>: <span class="warning"><strong>Retired</strong></span>.
+		This document is now obsolete.
+		Coincidentally, as of 25 October 1999, the information in it is still accurate.
+		However, please use the
+			<a href="http://www.mozilla.org/projects/xpcom/nsCOMPtr.html"><code>nsCOMPtr</code> User's Manual</a>
+			as your reference.
+	</p>
+</div>
+
+<DIV class="document-label">
+	<STRONG>Abstract:</STRONG>
+	An email message that describes <code>getter_AddRefs</code>,
+		the now illegal <code>getter_doesnt_AddRef</code>,
+		and some esoterica about services.
+	There is <A href="msg2.html">a followup message</A>.
+</DIV>
+
+<H2>The Message</H2>
+
+<PRE>
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+|getter_doesnt_AddRef| no longer exists.  It no longer exists because
+it is a rule of COM (and hence XPCOM) that all `getter' functions
+_must_ AddRef the interface pointer they produce before returning it. 
+A getter is any function that yields a COM interface pointer (either
+as it's actual result or through a parameter).  The prototypical case
+is:
+
+  class Foo
+    {
+      public:
+        nsresult GetX( X** );    // a `getter' (in the standard form)
+        // nsresult SetX( X* );  // a `setter'
+
+        X* GetX();  // a non-standard getter
+
+      private:
+        X* mX;
+    };
+
+Note also that by this definition factory functions are also getters. 
+|nsComponentManager::CreateInstance| is a (factory function style)
+`getter'.
+
+Normally, when you assign a COM interface pointer into an |nsCOMPtr|
+variable, the |nsCOMPtr| is responsible for |AddRef|ing the interface.
+ However, like all good `getter's,
+|nsComponentManager::CreateInstance| |AddRef|s its result (the created
+component), therefore, when giving it an |nsCOMPtr| argument to store
+that result in, you must tell the |nsCOMPtr| that the getter function
+(CreateInstance, here) will do the |AddRef|, not the |nsCOMPtr|
+itself.
+
+Here are some examples:
+
+  X* aRawX;
+  nsresult CreateAnX( X** result );
+  X* CreateAnX();     // Note, like all `getters' |CreateAnX()|
+                      //  |AddRef|s its result (in both forms)
+
+  nsCOMPtr&lt;X&gt; x1 = aRawX;
+                      // An |nsCOMPtr| automatically |AddRef|s
+                      // when you assign into it.
+                      // That's good, here.
+
+  nsCOMPtr&lt;X&gt; x2 = CreateAnX();
+                      // Oops!  the |nsCOMPtr| automatically
+                      // |AddRef|s, _and_ |CreateAnX()| |AddRef|s
+                      // Leak!!
+
+  nsCOMPtr&lt;X&gt; x3 = getter_AddRefs( CreateAnX() );
+                      // Tell the |nsCOMPtr| _not_ to |AddRef|,
+                      // Now only |CreateAnX()| |AddRef|s
+                      // No more Leak
+
+  nsCOMPtr&lt;X&gt; x4;
+  nsresult status = CreateAnX( getter_AddRefs(x4) );
+                      // |CreateAnX()| will assign into |x4|,
+                      // so tell |x4| _not_ to |AddRef|
+                      // since |CreateAnX()| already calls |AddRef|
+
+This makes the answer easy for your _component_ statement:
+
+  nsCOMPtr&lt;nsIDataFlavor&gt; flavor;
+  nsresult rv = nsComponentManager::CreateInstance(kCDataFlavorCID,
+                                                   0,
+                                                   kIDataFlavorIID,
+                                              getter_AddRefs(flavor));
+
+I use a template function (that I have not checked in yet) to make
+this scenario simpler.  This is the function:
+
+  template &lt;class T&gt;
+  inline
+  nsresult
+  CreateComponent( const nsCID&amp; cid,
+                   nsCOMPtr&lt;T&gt;* created_component,
+                   nsISupports* delegate = 0 )
+    {
+      assert(created_component);
+      return nsComponentManager::CreateInstance(cid,
+                                                delegate,
+                                                T::GetIID(),
+                                  getter_AddRefs(*created_component));
+    }
+
+This reduces the code you would write to:
+
+  nsCOMPtr&lt;nsIDataFlavor&gt; flavor;
+  nsresult rv = CreateComponent(kCDataFlavorCID, &amp;flavor);
+
+The problem with services, however, is that you don't |AddRef| and
+|Release| them.  For that reason, you wouldn't, at least currently,
+want to use an |nsCOMPtr| to manage |AddRef|s and |Release|s on them. 
+You acquire an interest in a service with |GetService|, and release
+that interest with |ReleaseService|.  |AddRef| and |Release| don't
+come into it.  Unless this changes, don't use |nsCOMPtr|s to hold
+references to services.
+
+Hope this helps,
+______________________________________________________________________
+Scott Collins              &lt;<A href="http://www.meer.net/ScottCollins?Netscape">http://www.meer.net/ScottCollins?Netscape</A>&gt;
+
+
+
+
+
+-----BEGIN PGP SIGNATURE-----
+Version: PGP Personal Privacy 6.0.2
+Comment: get my key at &lt;<A href="http://www.meer.net/ScottCollins/#key">http://www.meer.net/ScottCollins/#key</A>&gt;
+
+iQA/AwUBNx9mEvGmojMuVn+fEQJSagCgqDlafzoK5kSE29iNJ5ubED1/qHQAoL/T
+ZVq0h8RqfWo3Zmcys37uT6PQ
+=w15I
+-----END PGP SIGNATURE-----
+</PRE>
+
+<DIV class="author-note">
+  <HR>
+    <A HREF="http://validator.w3.org/check?uri=http://www.mozilla.org/projects/xpcom/nsCOMPtr/msg1.html">
+      <IMG BORDER=0 align=left SRC="http://validator.w3.org/images/vh40.gif" ALT="Valid HTML 4.0!" HEIGHT=31 WIDTH=88>
+    </A>
+    <A HREF="http://www.w3.org/Style/CSS/Buttons">
+      <IMG BORDER=0 align=left SRC="http://www.w3.org/Style/CSS/Buttons/cssos" ALT="CSS" HEIGHT=31 WIDTH=88>
+    </A>
+    Copyright&copy; 1999 by Netscape; use is subject to the <A HREF="http://www.mozilla.org/NPL/">NPL</A>.
+</DIV>
+	</BODY>
+</HTML>

@@ -1,0 +1,677 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+	<title>class WidgetStateManager</title>
+  <link rel="stylesheet" type="text/css" href="wsm.css">
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+<h1 id="header">WidgetStateManager</h1>
+<div id="headerul"></div>
+<div align="right" id="contact">
+ Contact: <a href="mailto:rgoodger@ihug.co.nz?subject=WidgetStateManager">Ben Goodger</a>
+</div>
+
+<h2>Table of Contents</h2>
+<table width="100%">
+ <tr><td><li>Introduction</td><td>1</td></tr>
+ <tr><td><li>Instantiation</td><td>1</td></tr>
+ <tr><td><li>Saving Page Data</td><td>1</td></tr>
+ <tr><td><li>Retrieving Page Data</td><td>2</td></tr>
+ <tr><td><li>Convenience/Utility/Internal Functions</td><td>3</td></tr>
+ <tr><td><li>Data Storage Internals</td><td>6</td></tr>
+</table>
+
+<h2>Introduction</h2>
+<p>WidgetStateManager is a highly extensible class for saving widget state for 
+multi-page dialogs. To use WidgetStateManager, the dialog must contain panels in 
+an IFRAME, and follow the instantiation and usage methods outlined below. WSM 
+provides an easy way to manage pane data in situations like prefs dialogs. For 
+Wizards, a wrapper to WSM called <a href="WizardManager.html">WizardManager</a> 
+is provided, which includes a number of convenience functions. If you are designing 
+a wizard, it is recommended you read the <a href="WizardManager.html">WizardManager 
+documentation</a> as well, and use WizardManager as your utility class, as it 
+instantiates WidgetStateManager internally. Discussion of WidgetStateManager in 
+the Mozilla Preferences dialog is outlined in the <a href="PrefWindow.html">Preferences 
+Window Architecture document</a>.
+
+<h2>Instantiation</h2>
+<p>Before you can use the WidgetStateManager you must create an instance of the 
+class. You must include the JS file: chrome://global/content/widgetStateManager.js
+<p>
+ <u>Construction:</u><br>
+ <blockquote>
+  <code class="prototype">
+   <b>var</b> widgetStateManager = <b>new</b> WidgetStateManager ( frame_id, panelPrefix, panelSuffix ) ;
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>frame_id</code></td>
+      <td>string representing name and ID (both must be the same of the IFRAME from 
+          which data will be saved.</td>
+     </tr>
+     <tr>
+      <td valign="top"><code>panelPrefix</code></td>
+      <td>the location of the panels, e.g "chrome://pref/content/". This parameter 
+          is optional - supplying it allows you to let the WSM automatically 
+          determine page tags.</td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>panelSuffix</code></td>
+      <td>the extension of the panels, e.g. ".xul". Optional, see comment for 
+          panelPrefix.</td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code><b>var</b> wsm = <b>new</b> WidgetStateManager ( "content", "chrome://pref/content/", ".xul" ) ;</code>
+ </blockquote>
+
+
+<h2>Saving Page Data</h2>
+<p>Data in the current document loaded into the IFRAME is saved by calling the 
+"SavePageData" member function. This can be invoked with zero or more arguments:
+
+<p>
+ <u>Invokation:</u><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.SavePageData ( currentPageTag, optAttributes, exclElements, inclElements );
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>currentPageTag</code></td>
+      <td>a string representing the tag used internally by the widgetStateManager 
+          to store data. This parameter is optional provided the widgetStateManager 
+          was initialised with panel prefix and suffix, if it is not provided the 
+          WSM will attempt to determine the tag automatically from the panel 
+          location. </td>
+     </tr>
+     <tr>
+      <td valign="top"><code>optAttributes</code></td>
+      <td>a string array of extra attributes to be saved.</td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>exclElements</code></td>
+      <td>a string array of the nodeNames of elements to be ignored in data saving. 
+          Note that if this is not provided, the WSM automatically ignores 
+          "label", "fieldset" etc. (Ability to override this is not yet available)</td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>inclElements</code></td>
+      <td>a string array of nodeNames to include. This is not yet functional.</td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   wsm.SavePageData( "appearance", ["pref","preftype","prefstring"], <b>null</b>, <b>null</b> ) ;<br>
+   wsm.SavePageData();
+  </code>
+ </blockquote>
+ <p>
+   <u>Implementation Notes:</u><br>
+   The SavePageData function saves data in one of two ways:
+   <ol type="a">
+    <li>If a GetFields function is provided by the panel's JS context, this is 
+        executed. (See below for tips on writing a GetFields function). This 
+        function provides an associative array for all the elements and attributes 
+        that need to be saved in the current page.
+    <li>If a GetFields function is not provided, then the function attempts to 
+        autosave data by retrieving material from form elements. If there are no 
+        valid elements on the page, the "nodata" attribute is set on that page to 
+        signify it being empty. Otherwise, entries for each element and attribute 
+        to be saved is set. 
+   </ol>
+ <p>
+   <u>Writing a GetFields function</u><br>
+   The GetFields function returns an associative array representing current Page 
+   object, containing entries for each page and each of its attributes. This is 
+   best demonstrated with an example.
+ <blockquote>
+  <code>
+    <b>function</b> GetFields()<br>
+    {<br>
+    &nbsp;&nbsp;<b>var</b> foo = document.getElementById( "fooTextField" ).value;<br>
+    &nbsp;&nbsp;<b>var</b> bar = document.getElementById( "barCheckBox" ).checked;<br>
+    &nbsp;&nbsp;<b>var</b> rv = {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;fooTextField {  id: fooTextField, value: foo },<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;barCheckBox  {  id: barCheckBox,  value: bar }<br>
+    &nbsp;&nbsp;}<br>
+    &nbsp;&nbsp;<b>return</b> rv;<br>
+    }<br>
+   </code>
+  </blockquote>
+ 
+ <p>note that I have set the "id" and "value" fields. I recommend you do this, and 
+    keep the property name and the ID equal, to make life easy. You must create 
+    sub-objects for each element. Basically, use the "rv" section above as a 
+    cookie cutter for simplest results.
+ <p>Note that by using GetFields however, you can effectively create a DataManager 
+    of <i>n</i> dimensions, you have infinite customisability.
+
+ 
+ 
+<h2>Retrieving Page Data</h2>
+<p>To populate a page loaded in the IFRAME with data, you use the SetPageData 
+   function.
+
+<p>
+ <u>Invokation:</u><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.SetPageData ( currentPageTag, hasExtraAttributes );
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>currentPageTag</code></td>
+      <td>a string representing the tag used internally by the widgetStateManager 
+          to store data. This parameter is optional provided the widgetStateManager 
+          was initialised with panel prefix and suffix, if it is not provided the 
+          WSM will attempt to determine the tag automatically from the panel location. </td>
+     </tr>
+     <tr>
+      <td valign="top"><code>hasExtraElements</code></td>
+      <td>boolean signifying if attributes other than the default name/value pairs 
+          have been saved.</td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   wsm.SetPageData( "appearance", true ) ;
+   wsm.SetPageData();
+  </code>
+ </blockquote>
+ <p>
+   <u>Implementation Notes:</u><br>
+   If data for the panel exists (WSM will try to figure out the tag indexing the 
+   panel if this information is not passed), for each element in the panel WSM 
+   will either:
+   <ol type="a">
+    <li>invoke the SetFields function provided by the panel, passing the id and 
+        value. 
+    <li>invoke the SetFields function provided by the panel, passing the id and 
+        value, and a reference to the element stored in the PageData store. This 
+        occurs when the "hasExtraAttributes" parameter of SetPageData is true. 
+        The SetFields function provided by the panel then has access to all data 
+        stored for that particular element, and can retrieve whatever elements 
+        it wants so it can set them. 
+    <li>If no SetFields is provided, attempt to automatically set properties, 
+        assuming some kind of form field. If hasExtraAttributes is set to true, 
+        these attributes are also set on the object.
+   </ol>
+
+ <p>
+   <u>Writing a SetFields function</u><br>
+   As described, if a function called "SetFields" is present in the JS context of 
+   the panel, WSM runs this function for each element it has data stored for instead 
+   of attempting to fill the element automatically. It is the responsibility of 
+   this function to populate the element(s) in the appropriate way. You should 
+   ensure that you do not have any functions called "SetFields" as this will cause 
+   problems. In a future update I will allow you to optionally specify your own 
+   function name, and provide functions for different nodeNames that you specify.
+ <p>SetFields is passed either two or three parameters, depending on whether or 
+    not the element has extra attributes set for it. If it does not, SetFields is 
+    simply passed the id and value of the element. Your SetFields can use the ID 
+    to get a handle on the element, and use the value to set it appropriately. 
+    For example, if your panel contains text fields, radio buttons and checkboxes, 
+    you might write a SetFields function like this:
+    <blockquote>
+     <code>
+      <b>function</b> SetFields ( id, value )<br>
+      {<br>
+      &nbsp;&nbsp;<b>var</b> formElement = document.getElementById( id );<br>
+      &nbsp;&nbsp;<b>if</b> ( !formElement ) <br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<b>return</b>; 
+	    &nbsp;&nbsp;<b>if</b> ( formElement.type == "text") <br>
+      &nbsp;&nbsp;&nbsp;&nbsp;formElement.value = value;<br>
+      &nbsp;&nbsp;<b>else if</b> ( formElement.type == "radio" || formElement.type == "checkbox" )<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;formElement.checked = value;<br>
+      }<br>
+     </code>
+    </blockquote>
+ <p>If extra attributes are set, SetFields will be passed an extra parameter 
+    which is a reference to the WSM data store object for that element. You might 
+    write a SetFields function like so for such a case:
+    <blockquote>
+     <code>
+      <b>function</b> SetFields ( id, value, element )<br>
+      {<br>
+      &nbsp;&nbsp;<b>var</b> formElement = document.getElementById( id );<br>
+      &nbsp;&nbsp;<b>if</b> ( !formElement ) <br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<b>return</b>;<br>
+      &nbsp;&nbsp;<b>if</b> ( formElement.type == "text" )<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;formElement.value = value;<br>
+      &nbsp;&nbsp;<b>else if</b> ( formElement.type == "radio" || formElement.type == "checkbox" )<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;formElement.checked = value;<br>
+      &nbsp;&nbsp;formElement.foo = element.foo;		// access extra data as properties of <br>
+      &nbsp;&nbsp;formElement.bar = element.bar;		// third parameter<br>
+      }<br>
+     </code>
+    </blockquote>
+ <p>In this latter case, "id" and "value" are provided as parameters for 
+    convenience. The id and value of the data store object may equally be 
+    retrieved through:
+    <blockquote>
+     <code>
+      var value = element.value;<br>
+      var id = element.id;<br>
+     </code>
+    </blockquote>
+
+<h2>Convenience/Utility/Internal Functions</h2>
+<p>The following are some other functions provided by WidgetStateManager that 
+may be of use:
+
+<p>
+ <b><u>GetTagFromURL:</u></b><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.GetTagFromURL( url, prefix, suffix, mode );
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>url</code></td>
+      <td>a string representing the complete location of a document.</td>
+     </tr>
+     <tr>
+      <td valign="top"><code>prefix</code></td>
+      <td>if mode is "true", a string representing the part of the URL prior to 
+          the tag (e.g. "chrome://pref/content/"), if mode is "false", it is the 
+          last character before the tag (e.g. the final "/" in a URL)</td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>suffix</code></td>
+      <td>a string representing the extension, or characters to be removed from 
+          the end of the tag. </td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>mode</code></td>
+      <td>a boolean value which determines the type of prefix, see prefix comment.</td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   wsm.GetTagFromURL( "chrome://pref/content/foo.xul", "chrome://pref/content/", ".xul", <b>true</b> ) ;<br>
+   wsm.GetTagFromURL( "chrome://pref/content/foo.xul", "/", ".xul", <b>false</b> );
+  </code><br>
+	both return "foo"
+ </blockquote>
+    
+<p>
+ <b><u>GetURLFromTag:</u></b><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.GetURLFromTag( tag, prefix, suffix );
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>url</code></td>
+      <td>a string representing tag that the URL will be built around.</td>
+     </tr>
+     <tr>
+      <td valign="top"><code>prefix</code></td>
+      <td>a string representing the part of the URL prior to the tag (e.g. 
+          "chrome://pref/content/")</td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>suffix</code></td>
+      <td>a string representing the extension, or characters to be added to the 
+          end of the tag. </td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   wsm.GetURLFromTag( "foo", "chrome://pref/content/", ".xul" ) ;
+  </code><br>
+	returns "chrome://pref/content/foo.xul"
+ </blockquote>
+
+<p>
+ <b><u>toString:</u></b><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.toString();
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    None.
+  </blockquote>
+  <p>This function returns a string that is a representation of the contents of 
+     the WidgetStateManager's DataManager. The string output is in the form:
+	   <blocquote>
+      <code>
+       WSM.PageData[ tag ][ elementID ][ elementAttribute ] = valueStored
+      </code>
+     </blockquote>
+  </p>
+  <p>See the "Data Storage Internals" topic for more information on how data is 
+     stored, and how you can access it directly. 
+
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   alert ( wsm.toString() );
+  </code><br>
+  this will invoke a common alert dialog with the contents of the DataManager in the string form described above.
+ </blockquote>
+ 
+<p>
+ <b><u>AddAttributes:</u></b><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.AddAttributes( formElement, elementEntry, valueAttribute, optAttributes );
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>formElement</code></td>
+      <td>a DOMElement representing the element to retrieve data from.</td>
+     </tr>
+     <tr>
+      <td valign="top"><code>elementEntry</code></td>
+      <td>A reference to the object in WSM's DataManager that refers to this element.</td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>valueAttribute</code></td>
+      <td>A string referring to the property of formElement that describes its 
+          value. This is typically "value" for text fields, and "checked" for 
+          radio buttons and checkboxes.</td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>optAttributes</code></td>
+      <td>a string array of optional attributes to retrieve values for.</td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   wsm.AddAttributes( formElement, elementEntry, "checked", ["preftype","pref"] ) ;
+  </code><br>
+  this will add value data for formElement to the DataManager, where the value 
+  to be stored is the state of the "checked" attribute on the element. The function 
+  will also store the values of the "preftype" and "pref" attributes.
+ </blockquote> 
+ 
+<p>
+ <b><u>ElementIsIgnored:</u></b><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.ElementIsIgnored( element, exclElements );
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>element</code></td>
+      <td>a DOMElement representing the element to test.</td>
+     </tr>
+     <tr>
+      <td valign="top"><code>exclElements</code></td>
+      <td>A string array of the nodeNames of elements to be ignored. </td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   wsm.ElementIsIgnored( currElement, ["label", "fieldset"] ) ;
+  </code><br>
+  this will return true if currElement.nodeName.toLowerCase() is either "label" 
+  or "fieldset", true otherwise. 
+ </blockquote> 
+
+<p>
+ <b><u>HasValidElements:</u></b><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.HasValidElements( datastore );
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>datastore</code></td>
+      <td>a reference to the DataManager object for the current page.</td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   wsm.HasValidElements ( wsm.PageData["foo"] ) ;
+  </code><br>
+  this will return true if the page entry for "foo" has any elements with data 
+  stored in them. 
+ </blockquote> 
+
+<p>
+ <b><u>LookupElement:</u></b><br>
+ <blockquote>
+  <code class="prototype">
+   widgetStateManager.LookupElement( attValue, lookBy, attributes );
+  </code>
+ </blockquote>
+ <blockquote>
+	<i>Parameters:</i>
+  <blockquote>
+    <table class="paramtable">
+     <tr>
+      <td valign="top"><code>attValue</code></td>
+      <td>the value of the attribute specified by lookBy to search for. Typically this 
+          is the id of the element you are looking for</td>
+     </tr>
+     <tr>
+      <td valign="top"><code>lookBy</code></td>
+      <td>The attribute you want to search for the element based on. Typically this 
+          is "id", and you can pass null for this parameter to just use "id" as default.</td>
+     </tr>
+     <tr> 
+      <td valign="top"><code>attributes</code></td>
+      <td>this is a string array representing the attributes to receive values for. </td>
+     </tr>
+    </table>
+  </blockquote>
+ </blockquote>
+ <br>
+ <u>Example:</u><br>
+ <blockquote>
+  <code>
+   wsm.LookupElement( "fooButton", "name", ["preftype","prefstring"] ) ;
+  </code><br>
+  returns an array containing the values of the attributes specified, e.g. <br>
+  ["bool", "nglayout.widget.mode"];
+  <p>
+  <b>NOTE: This function has not yet been tested and probably will not work. </b><br>
+  Expect a working implementation in a future update.
+ </blockquote> 
+
+<h2>Data Storage Internals</h2> 
+<p>Data is stored in the WidgetStateManager in a three-dimensional associative 
+array referred to here as the DataManager. You can access the DataManager like so:
+<blockquote>
+ <code>wsm.PageData</code>
+</blockquote>
+<p>The three dimensions are arranged thus:
+<blockquote>
+ <code>wsm.PageData [ pageTag ] [ elementID ] [ attributeName ] = value;</code>
+</blockquote>
+<p>pageTag refers to the indexing tag, grouping element data from different pages 
+   into different 2D tables in the matrix. This ensures protection against conflicting 
+   IDs and data overwriting.
+<p>elementID is the ID of the element, and groups data relating to a specific 
+   element into 1D rows in the matrix. 
+<p>attributeName is the name of an attribute, as the DataManager allows you to save 
+   more than one attribute per element. Several are set by default - value, id, 
+   nodeName, and you must not overwrite these. (unless you are writing your own 
+   GetFields function, in which case you have control over this) 
+<p>You can access the value of a particular attribute on a particular page like so:
+<blockquote>
+ <code><b>var</b> attValue = wsm.PageData.fooPage.fooElement.fooAttribute;</code>
+</blockquote>
+<p>or, if you do not know the tag/id/name of the page/element/attribute (which is more likely):
+<blockquote>
+ <code><b>var</b> attValue = wsm.PageData[pageTag][elementID][attributeName];</code>
+</blockquote>
+<p>If you are using automatic data saving/population, you should also not set an 
+   attribute on your element called "excluded", as this is used for internal purposes 
+   to determine whether an element is a valid element to retrieve data from.
+<p> 
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified December 12,  1999</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/xpapps/components/widgetstatemanager.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<HTML>
+<HEAD>
+   <TITLE>netlib Cookies</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H1>
+netlib Cookies</H1>
+Cookies evolved so state could be maintained in the otherwise stateless
+http protocol. They were introduced in version 1.0 of Netscape Navigator
+and are implemented by extending http headers which are a part of the http
+protocol 1.0 and higher. As of the first free source release, netlib supports
+the <A href="http://wp.netscape.com/newsref/std/cookie_spec.html">original
+cookie specification</A>. None of Netscape's (or Mozilla's as of the first
+free source release) browsers are RFC 2109 compliant.
+<BR>
+<H3>
+Contents:</H3>
+
+<LI>
+<A HREF="#response">Setting cookies from an http server response</A></LI>
+
+<LI>
+<A HREF="#request">Sending cookies in an http request</A></LI>
+
+<LI>
+<A HREF="#foreign">Foreign cookies</A></LI>
+
+<LI>
+<A HREF="#persistance">Cookie persistance</A></LI>
+
+<LI>
+<A HREF="#filters">Javascript cookie filters</A></LI>
+
+<BR>
+<H4>
+<A NAME="response"></A>Server Response</H4>
+When an http response is parsed by netlib via a call to net_parse_http_mime_headers(),
+if a "Set-Cookie:" header is found, NET_SetCookieStringFromHttp() is called.
+NET_SetCookieStringFromHttp() calls the private net_IntSetCookieString()
+function after making the cookie expiration time relative to the GMT as
+reported by the server date. This is done to compensate for client systems
+that don't have any concept of timezone (i.e. dos systems that don't have
+the TZ environment variable set). net_IntSetCookieString() parses the cookie
+attributes out of the Set-Cookie header and copies them into a net_CookieStruct
+(defined in ns/lib/libnet/mkaccess.c), which is added to the netlib cookie
+list in memory.
+
+<P>As of the first free source release, when javascript cookie is set,
+NET_SetCookieString() is called which simply wraps a net_IntSetCookieString()
+call. Javascript cookie setting code should be modified to call NET_SetCookieStringFromHttp()
+so it can have the same expiration time protection.
+<H4>
+<A NAME="request"></A>Client Request</H4>
+When the http headers are being constructed for an http url request (GET,
+POST, or otherwise) via a call to net_build_http_request(), the NET_GetCookie()
+function is called to determine whether or not a cookie, or cookies, should
+be sent along with the http request. NET_GetCookie() has the current url
+string passed into it. NET_GetCookie() searches the netlib cookie list
+for any cookies that should be sent along in the http request. If it finds
+a cookie, or cookies, based on the criteria outlined in the <A href="http://wp.netscape.com/newsref/std/cookie_spec.html">original
+cookie specification</A> it allocates a string as a char* and returns it
+to the calling net_build_http_request() for inclusion in the http headers.
+
+<P><I>Every</I> http request prompts a call to NET_GetCookie(). If cookies
+are disabled, NET_GetCookie() will never return anything.
+<H4>
+<A NAME="foreign"></A>Foreign Cookies</H4>
+The <A href="http://wp.netscape.com/newsref/std/cookie_spec.html">original
+cookie specification</A> allows cookies from servers other than the one
+your main document resides on to be set. These cookies are refered to as
+foreign cookies. Netscape client's 4.x and higher allow users to configure
+they're clients to not accept foreign cookies. If the client has been configured
+not to accept foreign cookies, net_IntSetCookieString() compares the host
+of the document currently being viewed (the url most recently accessed
+in the session history database) with the one in the url that is setting
+the cookie; if they don't match, the cookie is not set.
+<H4>
+<A NAME="persistance"></A>Cookie Persistance</H4>
+Each profile has a cookies text file that resides in the root profile directory.
+This file contains formatted ascii text and contains all the cookies that
+haven't expired. The file is written out everytime a cookie changes (is
+added or modified) in the netlib cookie list (the file is only written
+out at the end of the session in Navigator 3.x and lower). Cookies are
+read from the file and parsed into net_CookieStructs then added to the
+netlib cookie list during netlib initialization which occurs only once,
+at the beginning of a session.
+
+<P>As of the first free source release cookies are only removed from the
+netlib cookie list (expired) when a call to NET_DisplayCookieInfoAsHTML()
+(about:cookies), or NET_RemoveAllCookies() is made. However, cookies that
+have expired are never sent and are not written to disk.
+<H4>
+<A NAME="filters"></A>Javascript Cookie Filters</H4>
+As of the first free source release cookies can be filtered via javascript
+functions. There is no ui for this feature. In order to filter cookies
+via javascript, two things need to be done: the line, <TT>user_pref("network.cookie.filterName",
+"cookieFilterFunctionName");</TT>, must appear in the user's pref file,
+and a javascript file defining the cookieFilterFunction (the function can
+have any name, it must match the name in the pref file) must be created
+in the same directory as the cookies text file. The javascript cookie determine
+whether a cookie should be accepted, rejected, or confirmed by the user,
+based on any of the information provided in the javascript cookie object
+(<A HREF="#cookieObj">see netlib javascript cookie object description below</A>).
+
+<P>If the user's configuration is set to:
+<UL>
+<LI>
+"Accept all cookies" - the javascript cookie filter function is executed
+if it exists (i.e. the two criteria above are met).</LI>
+
+<LI>
+"Only accept cookies that get sent back to the originating server" - (i.e.
+don't accept foreign cookies) the javascript cookie filter function is
+ignored only if a foreign cookie is encountered, otherwise it is executed
+if it exists.</LI>
+
+<LI>
+"Disable Cookies" - the javascript cookie filter function is ignored.</LI>
+
+<LI>
+"Warn me before accepting a cookie" - the javascript cookie filter function
+is executed if it exists and overrides the warning preference.</LI>
+</UL>
+Here's a sample <A HREF="cookies.js.txt">cookies.js</A> file. This file
+can be used to filter cookies if you place it in the same directory as
+your cookies text file and add the user_pref line described above. You
+can then edit the values in the arrays to determine how you want your cookies
+accepted, rejected, or confirmed.
+<BR>
+<H4>
+<A NAME="cookieObj"></A>netlib Javascript Cookie Object</H4>
+The netlib javascript cookie object has the following properties.
+
+<P><FONT COLOR="#CC0000"><FONT SIZE=-1>Red - read only</FONT></FONT>
+<BR><FONT COLOR="#3333FF"><FONT SIZE=-1>Blue - read/write</FONT></FONT>
+<BR>
+<TABLE WIDTH="100%" >
+<TR>
+<TD><U>Name</U></TD>
+
+<TD><U>Type</U></TD>
+
+<TD><U>Description</U></TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#3333FF">path</FONT></TD>
+
+<TD>string</TD>
+
+<TD>path the cookie applies to</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#3333FF">domain</FONT></TD>
+
+<TD>string </TD>
+
+<TD>domain the cookie applies to</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#3333FF">name</FONT></TD>
+
+<TD>string</TD>
+
+<TD>name of the cookie</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#3333FF">value</FONT></TD>
+
+<TD>string</TD>
+
+<TD>value of the cookie</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#3333FF">expires</FONT></TD>
+
+<TD>string</TD>
+
+<TD>date the cookie expires</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#990000">url</FONT></TD>
+
+<TD>string</TD>
+
+<TD>url setting the cookie</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#3333FF">isSecure</FONT></TD>
+
+<TD>boolean</TD>
+
+<TD>the cookie is sent over secure connections only</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#3333FF">isDomain</FONT></TD>
+
+<TD>boolean</TD>
+
+<TD>the cookie has a domain attribute</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#990000">prompt</FONT></TD>
+
+<TD>boolean</TD>
+
+<TD>user has configured prefs to throw cookie confirm dialog</TD>
+</TR>
+
+<TR>
+<TD><FONT COLOR="#990000">preference</FONT></TD>
+
+<TD>int</TD>
+
+<TD>the user's cookie acceptance value</TD>
+</TR>
+
+<TR>
+<TD>accept()</TD>
+
+<TD>method</TD>
+
+<TD>allows the cookie to be set</TD>
+</TR>
+
+<TR>
+<TD>reject()</TD>
+
+<TD>method</TD>
+
+<TD>causes the cookie not to be set</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>ask()</TD>
+
+<TD VALIGN=TOP>method</TD>
+
+<TD>prompt a netlib confirmation dialog
+<BR>(happens during netlib set cookie execution)</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP>confirm()</TD>
+
+<TD VALIGN=TOP>method</TD>
+
+<TD>prompt a javascript confirmation dialog
+<BR>(happens during javascript function execution)</TD>
+</TR>
+</TABLE>
+
+
+<P><I><FONT SIZE=-1><A HREF="mailto:valeski@netscape.com">Judson Valeski</A>,
+1998</FONT></I>
+</BODY>
+</HTML>

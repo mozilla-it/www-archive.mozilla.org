@@ -1,0 +1,502 @@
+<HTML>
+<!--THIS FILE CREATED 11/30/98 8:48 AM BY CLARIS HOME PAGE VERSION 3.0 30 DAY TRIAL-->
+<!--This file created 2/11/99 7:27 PM by Claris Home Page version 3.0 30 Day Trial-->
+<HEAD>
+   <TITLE>Untitled Document</TITLE>
+   <META NAME=GENERATOR CONTENT="Claris Home Page 3.0 30 Day Trial">
+   <X-CLARIS-WINDOW TOP=42 BOTTOM=757 LEFT=4 RIGHT=534>
+   <X-CLARIS-TAGVIEW MODE=minimal>
+<STYLE TYPE="text/css"><!--
+.unassigned {  color: #FF0000}
+.deftable {  background-color: EEEEEE}
+.change {  color: #6600FF}
+--></STYLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" LINK="#0000EE" VLINK="#551A8B">
+<H1><CENTER>XUL Window Language</CENTER></H1>
+
+<P ALIGN=right><B>First Draft</B><BR>
+30 Nov 98</P>
+
+<P>This document will (eventually) detail the XML DTD used for
+describing the layout of XPFE windows. See the <A HREF="languageSpec.html">XUL
+Language Spec</A> for an overview of language directions. An XPFE
+window is a top-level application window containing XPFE widgets (by
+"top-level," we mean an OS window on the desktop, rather than
+controls and various pieces of top-level windows).</P>
+
+<H2>Scope</H2>
+
+<P>The "resource description" by which XPFE windows are built will be
+an XML file as outlined in the aforementioned language spec. It will
+describe the elements (including controls and layout specifications)
+that make up a window; their attributes and interrelationships. This
+resource description can be handed to Mozilla for parsing into a W3
+compliant DOM, which will subsequently be used as a template to build
+the window itself. Windows thus constructed will be addressable and
+scriptable through that underlying DOM. Settings for dialog controls,
+specifically, can be initialized and queried directly through the DOM
+both before and after the window is shown.</P>
+
+<P>A window is a conglomeration of individual widgets. A dialog
+window can be built from button and text edit widgets. A browser
+window can be built from toolbar and HTML display widgets. Widgets'
+behaviour is a function of their internal programming, and therefore
+outside the scope of this document. This document instead covers
+their placement on windows and interactions via JavaScript.</P>
+
+<P>The window building code will accept standard XML as described by
+the W3, minus unimplemented features. UI designers are free, subject
+to the "unimplemented" restriction, to design UIs from any
+combination of features of the language. For example, the authors
+encourage a separate description of content (in the XML) and form
+(applied through XSL and CSS stylesheets) to ease the task of writing
+for multiple platforms, which may have their own standards regarding
+placement of controls. Suggestions for accomplishing this will be
+sprinkled throughout the document. But in the end, the toolkit cares
+only that you provide it with valid XML.</P>
+
+<H2>Design Notes</H2>
+
+<P>This spec details an expected direction, and describes design
+elements the authors believe will be useful for describing a window
+and its contents. It is necessarily incomplete; it will be filled out
+as real windows and dialogs are constructed, and shortcomings in the
+spec are highlighted through actual use. Two glaring shortcomings in
+the current spec are the missing mechanisms for tying JavaScript and
+COM objects to dialog elements.</P>
+
+<P>The XML presented to the internal DOM builder will necessarily
+have platform dependencies. Individual platforms have unique
+guidelines about, for instance, the placement of OK and Cancel
+buttons. Windows may also contain grouping elements and other details
+unique to certain platforms. This is a problem ideally solved by
+writing one, cross-platform XUI spec defining the window, and a
+series of platform-specific stylesheets to transform the window into
+its actual displayable version. Realistically, it will probably often
+involve maintaining separate XUI specs.</P>
+
+<H2>Window Description Language</H2>
+
+<P>Windows are not designed to be laid out in terms of absolute
+positions. They are instead specified by struts and springy elements;
+a design borrowed from the Java world which lends itself well to
+layouts which work without change in multiple platform
+environments.</P>
+
+<P>A window specification is nothing more than a list of widgets and
+rules for their placement and interactions. Placement and
+interactions are both under development at time of writing. Placement
+details will depend on details of the NGLayout window layout manager,
+as yet unwritten. Interactions will depend on the scripting model,
+under development. At this time, there is little to say about windows
+but a list of expected widgets.</P>
+
+<P>Windows are delineated by a &lt;window&gt; element. The window
+will contain widgets, layout rules, and scripts. Attributes suitable
+for individual widgets is really a subject for separate papers
+describing the widgets themselves. But lacking those, several simple
+widgets are described here.</P>
+
+<P>The elements of a window, and their legal attributes and possible
+children are currently</P>
+
+<P><TABLE BORDER=1 WIDTH="100%" class=deftable>
+   <TR>
+      <TH VALIGN=top>
+         <P>XML Element</P>
+      </TH>
+      <TH VALIGN=top>
+         <P>Allowed Children</P>
+      </TH>
+      <TH>
+         <P>Attributes</P>
+      </TH>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>window</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>(all but option)</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>Root element for defining a dialog</P>
+      </TD>
+   </TR>
+   <TR>
+      <TH VALIGN=top COLSPAN=3>
+         <P>layout elements</P>
+      </TH>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>box</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>(all but dialog, option)</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>Children of this item are displayed as a group
+         <TABLE BORDER=0 WIDTH="100%">
+            <TR>
+               <TD VALIGN=top>
+                  <P>border</P>
+               </TD>
+               <TD>
+                  <P>integer defining width of delineating box (can
+                  be 0)</P>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN=top>
+                  <P>format</P>
+               </TD>
+               <TD>
+                  <P>"horizontal" or"vertical". controls on which
+                  axis child elements are laid out.</P>
+               </TD>
+            </TR>
+         </TABLE>
+         </P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>strut</P>
+      </TD>
+      <TD VALIGN=top>
+         <P></P>
+      </TD>
+      <TD VALIGN=top>
+         <P>Layout hints which control interelement spacing. The
+         dimension in which the strut acts is controlled by its
+         bounding "box" element (and without a bounding box, it is
+         useless). Thus, the "height" and "width" attributes are
+         equivalent.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>tab</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>box</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>A tab widget responsible for managing a multi-paned
+         dialog. Tab titles are drawn from the child boxes' titles.
+         <TABLE BORDER=0 WIDTH="100%">
+            <TR>
+               <TD VALIGN=top>
+                  <P>format</P>
+               </TD>
+               <TD VALIGN=top>
+                  <P>"horizontal" or "vertical" controls on which
+                  axis the tab is built</P>
+               </TD>
+            </TR>
+         </TABLE>
+         </P>
+      </TD>
+   </TR>
+   <TR>
+      <TH VALIGN=top COLSPAN=3>
+         <P>decoration widgets</P>
+      </TH>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>label</P>
+      </TD>
+      <TD VALIGN=top>
+         <P></P>
+      </TD>
+      <TD VALIGN=top>
+         <P>Static text</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>image</P>
+      </TD>
+      <TD VALIGN=top>
+         <P></P>
+      </TD>
+      <TD VALIGN=top>
+         <P>Icons and pictures <TABLE BORDER=0 WIDTH="100%">
+            <TR>
+               <TD VALIGN=top>
+                  <P>normal</P>
+               </TD>
+               <TD>
+                  <P>URL to the graphic to be displayed under normal
+                  conditions</P>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN=top>
+                  <P>disabled</P>
+               </TD>
+               <TD>
+                  <P>URL for the disabled graphic</P>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN=top>
+                  <P>depressed</P>
+               </TD>
+               <TD>
+                  <P>URL for the depressed graphic</P>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN=top>
+                  <P>disabled</P>
+               </TD>
+               <TD>
+                  <P>URL for the disabled graphic</P>
+               </TD>
+            </TR>
+         </TABLE>
+         </P>
+      </TD>
+   </TR>
+   <TR>
+      <TH VALIGN=top COLSPAN=3>
+         <P>input control widgets</P>
+      </TH>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>button</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>image</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>A command-issuing input control</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>radio</P>
+      </TD>
+      <TD VALIGN=top>
+         <P></P>
+      </TD>
+      <TD VALIGN=top>
+         <P>A radio button input control. Note that other radio
+         buttons in the button group are simply the other radio
+         button siblings in the parent element (which could be a box
+         with border 0).</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>checkbox</P>
+      </TD>
+      <TD VALIGN=top>
+         <P></P>
+      </TD>
+      <TD VALIGN=top>
+         <P>A checkbox button input control</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>select</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>option</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>A list of choices <TABLE BORDER=0 WIDTH="100%">
+            <TR>
+               <TD VALIGN=top>
+                  <P>lines</P>
+               </TD>
+               <TD>
+                  <P>A special height attribute; it specifies the
+                  number of lines of options displayed in the dialog.
+                  "1" implies a popup menu. Larger values imply a
+                  scrolling list.</P>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN=top>
+                  <P>type</P>
+               </TD>
+               <TD>
+                  <P>"single" or "multiple". Controls the number of
+                  items which can be simultaneously selected.</P>
+               </TD>
+            </TR>
+         </TABLE>
+         </P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>option</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>image</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>An item in a select control.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>text</P>
+      </TD>
+      <TD VALIGN=top>
+         <P></P>
+      </TD>
+      <TD VALIGN=top>
+         <P>An editable text box <TABLE BORDER=0 WIDTH="100%">
+            <TR>
+               <TD VALIGN=top>
+                  <P>lines</P>
+               </TD>
+               <TD>
+                  <P>A special height attribute; it specifies the
+                  number of lines of text in the control.</P>
+               </TD>
+            </TR>
+         </TABLE>
+         </P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>toolbar</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>button</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>A collection of command buttons</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>web</P>
+      </TD>
+      <TD VALIGN=top>
+         <P></P>
+      </TD>
+      <TD VALIGN=top>
+         <P>A "web widget," or HTML display area.</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<P>Some attributes may be applied to (nearly) any object. These are
+layout attributes expected by the window manager. Other attributes
+listed above are more a concern of the widgets themselves.</P>
+
+<P><TABLE BORDER=1 WIDTH="100%" class=deftable>
+   <TR>
+      <TH VALIGN=top>
+         <P>Attribute</P>
+      </TH>
+      <TH VALIGN=top WIDTH="0%">
+         <P>Applies to</P>
+      </TH>
+      <TH VALIGN=top>
+         <P>Meaning</P>
+      </TH>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>id</P>
+      </TD>
+      <TD VALIGN=top WIDTH="0%">
+         <P>(all)</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>Optional identifier unique within the dialog for
+         addressing specific elements. This is a convenience for
+         locating the specific item within the document model
+         describing the dialog or dialog set. The ID will also likely
+         be the mechanism by which COM objects are tied to a control
+         for programmability.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>aspect</P>
+      </TD>
+      <TD VALIGN=top WIDTH="0%">
+         <P>dialog, box, label, select, text</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>The aspect ratio to which the layout manager should try
+         its best to size the element. It describes the element's
+         width as a multiple its height. Thus, the "golden ratio"
+         would be represented as "1.62".</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>height</P>
+      </TD>
+      <TD VALIGN=top WIDTH="0%">
+         <P>(all)</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>Optional desired height (in twips?) for the element.
+         height and width are taken as minima; elements are resized
+         by their springiness</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>width</P>
+      </TD>
+      <TD VALIGN=top WIDTH="0%">
+         <P>(all)</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>the desired width</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>springiness</P>
+      </TD>
+      <TD VALIGN=top WIDTH="0%">
+         <P>box, button, image, strut</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>the amount by which the element will expand or compress
+         as its environment is resized, relative to its sibling
+         elements with spring attributes.</P>
+      </TD>
+   </TR>
+   <TR>
+      <TD VALIGN=top>
+         <P>title</P>
+      </TD>
+      <TD VALIGN=top WIDTH="0%">
+         <P>dialog, box, label, button, checkbox, option, radio</P>
+      </TD>
+      <TD VALIGN=top>
+         <P>the text displayed on the dialog for this element.</P>
+      </TD>
+   </TR>
+</TABLE>
+</P>
+
+<H2>Weaknesses</H2>
+
+<H3>Spec is incomplete</H3>
+
+<P>Glaring omissions at this point are: the process of creating a
+window from an XML document, scripting, and loading arbitrary
+widgets.</P>
+</BODY>
+</HTML>

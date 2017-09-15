@@ -1,0 +1,427 @@
+<html>
+<head>
+<title>Dialog Cookbook</title>
+<style type="text/css">
+<!--
+.deftable { background-color: EEEEEE }
+.change { color: #6600FF }
+.history { text-indent: -3em; margin-left: 3em}
+-->
+</style></head>
+
+<body bgcolor="#FFFFFF">
+<h1 align="center">Window and Dialog Cookbook</h1>
+<p align="right"><b>The Beginnings</b><br>
+  15 June 99<br>
+<a href="mailto:danm@netscape.com">contact</a></p>
+<p>Dialogs are alive and somewhat well in Mozilla, and this document attempts 
+  to explain their current status.</p>
+<p><b>Change history</b></p>
+<p class="history">1 Dec 99 - This document is dead. Long live the <a href="xptoolkit/windows.html">windows</a> document.</p>
+<p class="history">15 June 99 - Documented the C++ version of window.openDialog.</p>
+<p class="history">17 May 99 - Documented alternative JavaScript methods for opening 
+  dialogs, using window.open and window.openDialog, rather than Toolkitcore. Updated 
+  API descriptions.</p>
+<p class="history">1 Apr 99 - Updated the examples to mention window titles and 
+  sizing, and resisted documenting the new AI features that I didn't check in.</p>
+<p class="history"></p>
+<p class="history">15 Mar 99 - Changed name of <code>onconstruction</code> tag 
+  to <code>onload</code>.</p>
+<p class="history"></p>
+<p class="history">2 Mar 99 - Updated use of namespaces in the examples..</p>
+<p class="history">25 Feb 99 - More careful about case sensitivity in the examples. 
+  Updated example of creating a dialog from C++.</p>
+<p class="history">24 Feb 99 - More careful about namespaces in the examples. 
+  Added a note about XUL Document method getElementByID</p>
+<p class="history">23 Feb 99 - AppCoresManager name changed to XPAppCoresManager</p>
+<p class="history">18 Feb 99 - Updated to new command architecture and initialization 
+  code. </p>
+<p class="history">17 Feb 99 - Revised JavaScript for debriefing dialog elements 
+  at dismissal time. Added note about DOM interfaces available to XUL widgets 
+  (also in the Examples section).</p>
+<p class="history">16 Feb 99 - Revised JavaScript for initializing dialog elements 
+  at window load time</p>
+<h2>Scope</h2>
+<p>This document is not intended to be a comprehensive syntax or reference manual. 
+  With care and time, it should grow into a useful starting place for making windows 
+  and writing dialogs. The <a href="mailto:danm@netscape.com">author</a> thinks 
+  that feedback on what's missing from the document would help build a better 
+  document, so the quality of this thing is in the reader's hands. Keep that in 
+  mind while you're cursing me.</p>
+<p>In the meantime, this document also serves as a roadmap of XPFE's dialog story. 
+  Interested parties would please review it to determine whether the package we 
+  plan to deliver will meet their needs.</p>
+<h2>Direction</h2>
+<p>Current XPFE design goals state that dialogs get no special treatment; they're 
+  just windows like any other. Windows can have parent windows, and be displayed 
+  modally, and have control callbacks, and so behave like dialogs. But our goal 
+  is that the same application code that instantiates a browser window will serve 
+  equally to instantiate a dialog window. The difference lies in the window content, 
+  and a couple of parameters controlling modality and that sort of thing.</p>
+<h2>JavaScript vs C++</h2>
+<p>Currently, all window control mechanisms flow through JavaScript. That is, 
+  any capabilities a window may have besides taking up space on the desktop are 
+  specified in the XUL describing the window, and the binding between the window 
+  content and the application is done through JavaScript in the XUL. That binding 
+  can be very short: it can fall through to application C code very quickly, but 
+  JavaScript will be part of the process. (Note that we have not yet run into 
+  any threading problems with this model, but we kind of expect to.)</p>
+<p>JavaScript is easily added to a window: just include it in the XUL window description 
+  and follow a short but peculiar dance to hook it up. Hooking up C code involves 
+  writing a C++/JavaScript interface, and calling it from JavaScript. That interface 
+  is an AppCore, and there's a separate and much more impressive <a href="appCore/appcores.html">document</a> 
+  describing them and explaining how to build them.</p>
+<h2>Make a Window</h2>
+<p>So, there are two ways to make a window or dialog: directly through C++ and 
+  from JavaScript. The resulting window is an instance of <code>nsWebShellWindow</code>. 
+  This means it currently contains a hulking bunch of hackery for hooking up browser-window 
+  specific contents. This causes no harm, and will be cleaned up in the future.</p>
+<p>Note that modal dialogs or alerts are currently working only on Windows and 
+  the Macintosh, and even then, only for modal dialogs created on the UI thread. 
+  That is to say, they're only halfway there. Also note that windows are not sized 
+  to content. These are merely somewhat glorified browser windows, to which automatically 
+  sizing themselves to match their content is something of an eyebrow-furrowing 
+  concept. Specifying the size of a dialog is another future enhancement.</p>
+<h3>JavaScript</h3>
+<p><code>window.open</code> will open a XUL window if given a XUL URL to load. 
+  It will open the given URL as the contents of a browser window, unless the <code>chrome</code> 
+  feature is specified in <code>window.open</code>'s third (&quot;features&quot;) 
+  parameter. Mozilla supports an extended form of <code>window.open</code> which 
+  can be used to pass parameters back and forth to the dialog window. It's named 
+  <code>window.openDialog</code>, reasonably enough, for now. Both <code>window.openDialog</code> 
+  and <code>chrome</code> are described in <a href="languageSpec.html#jsextensions">JavaScript 
+  Extensions</a>.</p>
+<p>Another JavaScript interface is a Mozilla AppCore named <code>ToolkitCore</code>. 
+  It contains a handful of windowing utility functions which were more useful 
+  before <code>window.open</code> was working properly. <code>ToolkitCore</code> 
+  will probably be deprecated soon.</p>
+<pre><code>
+ function MakeDialog() {
+   var newWindow = window.open(&quot;resource://res/samples/madedialog.xul&quot;,
+                     &quot;itsname&quot;, &quot;chrome&quot;);
+ }</code></pre>
+or, alternatively for now,
+<pre><code>
+ function MakeDialog() {
+    var toolkitCore = XPAppCoresManager.Find("ToolkitCore");
+    if (!toolkitCore) {
+      toolkitCore = new ToolkitCore();
+      if (toolkitCore)
+        toolkitCore.Init("ToolkitCore");
+    }
+    if (toolkitCore)
+      toolkitCore.ShowWindow("resource://res/samples/madedialog.xul",
+          window);
+  }</code></pre>
+<p>An <code>XPAppCoresManager</code> is pre-constructed; you can access it without 
+  any more preparation than shown above. <code>ToolkitCore</code> is not; it requires 
+  that small bit of preparation.</p>
+<h3>C++</h3>
+There are two interfaces for opening new windows from C code. They are equivalent 
+in the sense that either will make a new window, and both share their innermost 
+important bits. The reason for having both is part historical, and part momentum. 
+In the future, we'd like to meld the two into one. 
+<h4>nsIAppShellService::CreateTopLevelWindow</h4>
+<p>The primary C++ interface is <code>nsIAppShellService::CreateTopLevelWindow()</code>. 
+  It's currently very clunky and will change (you'll see that statement many times 
+  in this document). But at time of writing, you create a new window like this:</p>
+<pre><code>
+  nsresult              rv;
+  nsIAppShellService    *appShell;
+  nsIURL                *url;
+  nsIWebShellWindow     *parent, *window;
+  nsIStreamObserver     *observer;
+  nsIXULWindowCallbacks *callbacks;
+  PRInt32               width, height;
+
+  window = nsnull;
+  rv = nsServiceManager::GetService(kAppShellServiceCID,
+         kIAppShellServiceIID,
+         (nsISupports**) &appShell);
+  if (NS_SUCCEEDED(rv)) {
+    appShell->CreateTopLevelWindow(parent, url, PR_TRUE,
+                window, observer, callbacks, width, height);
+    nsServiceManager::ReleaseService(kAppShellServiceCID,
+                appShell);
+  }</code></pre>
+<p>At time of writing, only <code>url</code>, <code>showWindow</code>, <code>window</code>, 
+  <code>aInitialWidth</code> and <code>aInitialHeight</code> are actually used. 
+  <code>url</code> is an URL describing the contents of the window. <code>window</code> 
+  is returned from the function, set to the created window. See the code for descriptions 
+  of the other parameters. This interface is a little rife with silly parameters, 
+  and is slowly being cleaned up.</p>
+<p>There is another very similar method <code>nsIAppShellService::CreateDialogWindow()</code>. 
+  It takes the same parameters and currently functions exactly the same. These 
+  two methods are planned to differ only in the kind of border used on the window 
+  created. At time of writing, this decision is made at the time the window is 
+  created, before any instructions in the file behind the URL could be read and 
+  used to help make the decision.</p>
+<p>At this time, window descriptions must be loaded from an URL. There will additionally 
+  be methods for loading windows from a stream. In fact, XPFE want to say the 
+  stream will be the preferred method, though the URL method will probably remain. 
+  Streams will disengage the toolkit further from the source of the window description, 
+  and will be our method for creating windows whose XUL is calculated at runtime, 
+  rather than being distributed as a file.</p>
+<h4>nsIDOMWindow::OpenDialog</h4>
+<p>The other C++ interface is <code>nsIDOMWindow::OpenDialog</code>. It has the 
+  advantage that it behaves exactly like the JavaScript <code>window.openDialog</code> 
+  function, being the same code used by that function, after all.</p>
+<p>The close association between this function and JavaScript places constraints 
+  on its usage. Any parameters sent to this function must be ready for use in 
+  JavaScript handlers built into the new window, and so must be fitted into JavaScript 
+  wrappers. There must also be a &quot;parent&quot; window available to do the 
+  window opening and provide a JavaScript context.</p>
+<p>The function to wrap a series of arguments is called <code>JS_PushArguments</code>, 
+  and is defined in <code>jsapi.h</code>. Its mysterious third argument is explained 
+  in that same header file. The sample code below will call <code>OpenDialog</code>, 
+  given an <code>nsIDOMWindow</code> to work with. The arguments to <code>OpenDialog</code> 
+  are exactly those from its JavaScript definition, explained in <a href="languageSpec.html#jsextensions">JavaScript 
+  Extensions</a>. The first three are standard <code>Open</code> arguments. The 
+  remainder are parameters for the new window. That new window will have a property 
+  named <code>arguments</code>. It's an array, and <code>arguments[0]</code> is 
+  the string &quot;I was born a C string&quot;, while <code>arguments[1]</code> 
+  is the number 298. </p>
+<pre><code>DoOpenDialog(nsIDOMWindow* aParent) {
+
+  if (!aParent)
+    return NS_ERROR_NULL_POINTER;
+
+  nsresult rv = NS_ERROR_FAILURE;
+  JSContext *jscx = 0;
+  nsIDOMWindow *newWindow;
+
+  // get the parent window's JS Context (this is not really a blessed thing
+  // to do, but I believe it's all we have. it wants to be a real interface
+  // someday.)
+  nsCOMPtr&lt;nsIScriptGlobalObject&gt; scriptGlobalObj = do_QueryInterface(aParent);
+  if (scriptGlobalObj) {
+    nsCOMPtr&lt;nsIScriptContext&gt; scriptcx;
+    scriptGlobalObj-&gt;GetContext(getter_AddRefs(scriptcx));
+    if (scriptcx)
+      jscx = (JSContext *) scriptcx-&gt;GetNativeContext();
+  }
+
+  // if everything went as planned...
+  if (jscx) {
+
+    // build a JavaScript &quot;arguments&quot; array for the OpenDialog function
+    void *mark;
+    jsval *argv;
+
+    argv = JS_PushArguments(jscx, &amp;mark, &quot;ssssu&quot;,
+      &quot;resource://res/samples/paramdialog.xul&quot;,
+      &quot;windowName&quot;,
+      &quot;chrome&quot;,
+      &quot;I was born a C string&quot;,
+      (uint32) 298);
+
+    // if that worked, call the function.
+    if (argv) {
+      aParent-&gt;OpenDialog(jscx, argv, 5, &amp;newWindow);
+      JS_PopArguments(jscx, mark);
+      rv = NS_OK;
+    }
+  }
+
+  return rv;
+}</code></pre>
+<h2>Load a Window</h2>
+<p>Between making and showing the window, there is a callback. The resulting <code>nsWebShellWindow</code> 
+  comes with an associated DOM content model. Any initial control settings or 
+  content changes which must be made before the window is actually shown can be 
+  done at the time of this callback.</p>
+<p>This callback is any JavaScript specified as the value of the <code>onload</code> 
+  attribute of the <code>&lt;window&gt;</code> element. In the example below, 
+  the window start tag is declared</p>
+<code>&lt;window ... onload=&quot;Startup()&quot;&gt;</code> 
+<p>During the <code>onload</code> callback, dialog authors are free to 
+  alter control settings from JavaScript:</p>
+<pre><code>
+  function Startup() {
+    // yellowize and check the "ow" button
+    document.bgColor = "yellow";
+    var checkbox = document.getElementByID("ow");
+    if (checkbox)
+      checkbox.checked = true;
+  }</code></pre>
+<p>Except that not all properties are hooked up yet. The change to background 
+  color in the example won't do anything. But the important example does work!</p>
+<p>Dialog preprocessing can also be done in C by defining an AppCore, loading 
+  and calling it from the <code>Startup()</code> method, as the <code>ToolkitCore</code> 
+  AppCore was called to create the window.</p>
+<h2>Debrief a Window</h2>
+<p>After the dialog has run -- a dismissal button has been clicked, say -- dialog 
+  users will need a callback in which to query the current control settings. As 
+  always, this will be done by walking the DOM content model, and accessed through 
+  a JavaScript hook.</p>
+<p>We are uncertain whether a specific callback need be added: the event handler 
+  for the dismissal buttons may be entirely sufficient. But as the reader has 
+  no doubt guessed, there is no specific debriefing hook implemented at this time.</p>
+<p>Data can be passed back to the calling window in more than one way. The dialog 
+  window and opener can agree to share information as properties added to the 
+  JavaScript dialog window object. Alternatively, the two windows could agree 
+  that the dialog window will call some function of its opener. A third way could 
+  be for the opener to use <code>window.openDialog</code> to pass parameters by 
+  reference to the dialog window. Any changes made by the dialog to these parameters 
+  would be visible in the opener window. See <a href="languageSpec.html#jsextensions">JavaScript 
+  Extensions</a> or the <a href="#examples">examples</a> for details. Two files 
+  in the source code at <code>mozilla/xpfe/browser/samples/dexparam*.xul</code> 
+  are a kind of test suite for parameter passing, and consequently spell out more 
+  details than will this document.</p>
+<p>Note at time of writing, a dialog window, once closed, cannot be successfully 
+  accessed from JavaScript through the variable which was returned by <code>window.open</code>. 
+  This is a known bug, and wants fixing.</p>
+<h2><a name="examples"></a>Examples</h2>
+<p>The following XUL describes a browser window with a simple toolbar containing 
+  a single button which will open another window: a nonmodal dialog, with a bit 
+  of imagination. It uses the extended <code>window.open</code> syntax to pass 
+  parameters to the dialog window. The dialog window uses these parameters to 
+  initialize its settings. It then passes the state of its checkbox back to the 
+  caller, in that same parameter.</p>
+<pre><code>
+&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;?xml-stylesheet href=&quot;xul.css&quot; type=&quot;text/css&quot;?&gt;
+&lt;!DOCTYPE window&gt;
+&lt;!-- Simple sample interface for bringing up a nonmodal dialog --&gt;
+&lt;xul:window
+  xmlns:html=&quot;http://www.w3.org/1999/xhtml&quot;
+  xmlns:xul =&quot;http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul&quot;
+  title = &quot;Dialog creation sample&quot;&gt;
+<p>&lt;html:script&gt;
+  &lt;![CDATA[
+  var dialogWindow = null;
+  var ioSettings = new Boolean();
+
+  // create a newdialog window, passing a couple of named parameters
+  function MakeParamDialog() {
+    var newWin = window.openDialog(&quot;resource://res/samples/madedialog.xul&quot;,
+      &quot;New&quot;, &quot;chrome&quot;,
+      {remind:true, prompt:&quot;Give me your money and convertible bonds&quot;});
+    return newWin;
+  }<br>
+  // cheesy demonstration that values are being returned
+  function DumpObject(what) {
+    dump(&quot;dumping object: &quot; + what + &quot;\n&quot;);
+    for (prop in what)
+      dump(&quot; property '&quot; + prop + &quot;' = '&quot; + what[prop] + &quot;'\n&quot;);
+    dump(&quot;dumped.\n&quot;);
+  }
+  ]]&gt;
+&lt;/html:script&gt;<p>&lt;xul:toolbox&gt; 
+  &lt;xul:toolbar&gt;
+    &lt;xul:titledbutton
+      value=&quot;Make Dialog&quot; onclick=&quot;dialogWindow=MakeParamDialog()&quot;
+      style=&quot;background-color:rgb(192,192,192);&quot;/&gt;
+    &lt;xul:titledbutton
+      value=&quot;Dump Window&quot;
+      onclick=&quot;DumpObject(dialogWindow.arguments[0])&quot;
+      style=&quot;background-color:rgb(192,192,192);&quot;/&gt;
+  &lt;/xul:toolbar&gt;
+&lt;/xul:toolbox&gt;
+&lt;/xul:window&gt;</code></pre>
+<p>Note that only html widgets will have the expected html-specific DOM attributes 
+  like &quot;checked&quot; for checkboxes. XUL buttons will respond to their own 
+  APIs (to be documented in separate, dedicated papers), as well as to the core 
+  DOM interfaces. Generally, as in <code>titledbutton</code> above, attribute 
+  names match their HTML counterparts. But see specific widget documentation to 
+  be certain.</p>
+<p>The above code will produce a live window with a functional button if placed 
+  in a file named, perhaps, <code>makedialog.xul</code> in the <code>res/samples</code> 
+  subdirectory within the directory containing <code>apprunner</code>. (Placing 
+  it in that directory allows it to find the stylesheet <code>xul.css</code> mentioned 
+  in the stylesheet processing instruction.) Launch <code>apprunner</code> pointing 
+  at that URL to load it into the main window.</p>
+<p><code>apprunner -url resource:/res/samples/makedialog.xul</code></p>
+<p>A suitable dialog description XUL file (named <code>madedialog.xul</code> in 
+  the above code) will be loaded when the <code>Make Dialog</code> button is pressed. 
+  The following example contains initialization code as mentioned in this document.</p>
+<p>The authors have turned a jaundiced eye toward any sense of aesthetics in the 
+  design of this dialog. It's ugly. It will show up directly on top of the main 
+  &quot;browser&quot; window. I plan to rely on the estimable work of a colleague 
+  to provide some documentation for what sorts of visual effects can be accomplished 
+  with dialog controls and provide a link to a separate document with prettier 
+  samples.</p>
+<pre><code>
+&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;?xml-stylesheet href=&quot;xul.css&quot; type=&quot;text/css&quot;?&gt;
+&lt;!DOCTYPE window&gt;
+&lt;!-- dialog containing a control requiring initial setup --&gt;
+&lt;xul:window
+    xmlns:html=&quot;http://www.w3.org/1999/xhtml&quot;
+    xmlns:xul =&quot;http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul&quot;
+    onload = &quot;SetFromParams()&quot;
+    title = &quot;Things to do&quot;
+    height = &quot;200&quot; width = &quot;300&quot;&gt;
+
+  &lt;html:script&gt;
+    &lt;![CDATA[
+    // Initialize controls from parameters sent through openDialog
+  function SetFromParams() {
+    // look in arguments[0] for interesting properties and values
+    // set checkbox from that, if present
+    if (window.arguments &amp;&amp; window.arguments[0]) {
+      var setting;
+      var control;
+      // set checkbox from the value of argment[0]'s &quot;value&quot; property
+      if (window.arguments[0].remind) {
+        setting = window.arguments[0].remind;
+        control = document.getElementById(&quot;remind&quot;);
+        if (control)
+          if (typeof setting == &quot;boolean&quot;)
+            control.checked = setting;
+          else if (typeof setting == &quot;object&quot;)
+            control.checked = setting.valueOf();
+      }
+      // set prompt from the value of argment[0]'s &quot;prompt&quot; property
+      if (window.arguments[0].prompt) {
+        setting = window.arguments[0].prompt;
+        if (typeof setting == &quot;string&quot;) {
+          control = document.getElementById(&quot;prompt&quot;);
+          if (control) {
+            control = control.firstChild;
+            if (control &amp;&amp; control.nodeType == 3) // TEXT_NODE
+              control.data = setting;
+          }
+        }
+      }
+    }
+  }
+
+  // OK button handler
+  // return the setting of the &quot;remind&quot; checkbox in the arguments
+  // and then close the window (disabled for now, since that crashes)
+  function DoOK() {
+    var checkbox = document.getElementById(&quot;remind&quot;);
+    if (checkbox) {
+      // if we were given an openDialog parameter, set its value
+      if (window.arguments &amp;&amp; window.arguments[0])
+        window.arguments[0].remind = checkbox.checked;
+    }
+    // window.close(); (crashes, at time of writing)
+  }
+  ]]&gt;
+  &lt;/html:script&gt;
+
+  &lt;html:table&gt;
+    &lt;html:tr&gt;
+      &lt;html:td html:id=&quot;prompt&quot;&gt;Give me your money&lt;/html:td&gt;
+    &lt;/html:tr&gt;
+    &lt;html:tr&gt;
+      &lt;html:td&gt;
+        &lt;!-- note the html namespace on the id attribute, which
+             seems at this time to be required by getAttribute() --&gt;
+        &lt;html:input type=&quot;checkbox&quot; html:id=&quot;remind&quot;/&gt;Remind me
+      &lt;/html:td&gt;
+    &lt;/html:tr&gt;
+    &lt;html:tr&gt;
+      &lt;html:td&gt;
+        &lt;html:button onclick=&quot;DoOK()&quot;&gt;OK&lt;/html:button&gt;
+      &lt;/html:td&gt;
+    &lt;/html:tr&gt;
+  &lt;/html:table&gt;
+&lt;/xul:window&gt;</code></pre>
+<p>Note the window will not be dismissed when the OK button is pressed. The current 
+  state of the code will require that you hit &quot;OK&quot; and then the window 
+  close box.</p>
+</body>
+</html>

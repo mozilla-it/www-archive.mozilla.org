@@ -1,0 +1,1823 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en" xml:lang="en"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<head>
+	<title>Mozilla's Layout Engine</title>
+	<link rel="stylesheet" type="text/css" href="slides.css" />
+</head>
+<body class="slidelist">
+
+<div class="slide">
+<h1>Mozilla's Layout Engine</h1>
+<div style="text-align:center">
+<h2><a href="http://dbaron.org/">L. David Baron</a></h2>
+<h2><a href="http://www.mozilla.com/">Mozilla Corporation</a></h2>
+<h2><a href="mailto:dbaron@dbaron.org">dbaron@dbaron.org</a></h2>
+<h3><a href="http://www.mozilla.com/">Mozilla Corporation</a>, Mountain View, California, USA</h3>
+<h3>Thursday, December 14, 2006, 13:30 PST</h3>
+<p>Based on my <a href="http://www.mozilla.org/newlayout/doc/layout-2006-07-12/">presentation in July</a>, which in turn had pieces taken from 2002 tech talks on <a href="http://www.mozilla.org/newlayout/doc/gecko-overview.htm">gecko</a> (waterson) and <a href="http://www.mozilla.org/newlayout/doc/style-techtalk.html">style system</a> (dbaron)</p>
+</div>
+</div>
+
+<div class="slide">
+<h1>Layout</h1>
+<ul>
+  <li>where things go on the screen / paper</li>
+  <li>between content and view+gfx</li>
+  <li>also interacts with images, plugins, etc.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Layout (and neighbors)</h1>
+<ul>
+  <li>single threaded</li>
+  <li>most operations run to completion off main event loop
+    <ul>
+      <li>some things triggered synchronously by scripts even though typically asynchronous</li>
+    </ul>
+  </li>
+</ul>
+</div>
+
+<div class="slide imageslide">
+<h1>Layout (and neighbors): Basic Data Flow</h1>
+
+<!-- exported from Waterson's powerpoint slides via OpenOffice; cleaned up a bit by hand, including shrinking the viewBox to fit, removing embedded fonts, adding px units to font-size, removing unneeded font-weight:400, adding a default stroke-width, and adding width and height on svg element, changed preserveAspectRatio -->
+<!-- XXX Why can't I make the SVG size according to its intrinsic dimensions? -->
+
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="400 5260 24180 11060" preserveAspectRatio="xMidYMin" fill-rule="evenodd" style="stroke-width:30px" width="100%" height="60%">
+  <g visibility="visible" id="Default">
+    <desc>Master slide</desc>
+    <g style="stroke:none;fill:rgb(255,255,255)">
+      <path d="M 400,5260 L 24580,5260 24580,16320 400,16320 400,5260 Z"/>
+    </g>
+  </g>
+  <g visibility="visible" id="page9">
+    <desc>Slide</desc>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,255,153)">
+          <path d="M 422,7832 L 2540,7832 2540,9600 2392,9602 2263,9611 2149,9627 2048,9650 1957,9677 1875,9708 1726,9779 1580,9855 1419,9928 1327,9960 1223,9989 1106,10014 973,10033 798,9996 664,9961 422,9882 422,7832 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 422,7832 L 2540,7832 2540,9600 2392,9602 2263,9611 2149,9627 2048,9650 1957,9677 1875,9708 1726,9779 1580,9855 1419,9928 1327,9960 1223,9989 1106,10014 973,10033 798,9996 664,9961 422,9882 422,7832"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="690 1092 1435 1930 " y="8952">HTML</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 3175,7832 L 5503,7832 5503,10033 3175,10033 3175,7832 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 3175,7832 L 5503,7832 5503,10033 3175,10033 3175,7832"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="3630 3939 4189 4384 4604 4853 " y="9149">Parser</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 6350,7832 L 9103,7832 9103,10033 6350,10033 6350,7832 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 6350,7832 L 9103,7832 9103,10033 6350,10033 6350,7832"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="6831 7208 7491 7775 7932 8181 8465 8622 " y="8821">Content </tspan>
+              </text>
+              <text>
+                <tspan x="7208 7521 7678 7962 " y="9497">Sink</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 3175,8931 L 2965,9036 2965,8826 3175,8931 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 2540,8931 L 3007,8931"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 6350,8931 L 6140,9036 6140,8826 6350,8931 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 5501,8931 L 6182,8931"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(204,255,204)">
+          <path d="M 10229,7832 L 13123,7832 12419,10033 9525,10033 10229,7832 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 10229,7832 L 13123,7832 12419,10033 9525,10033 10229,7832"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="10431 10808 11091 11375 11532 11781 12065 12222 " y="8821">Content </tspan>
+              </text>
+              <text>
+                <tspan x="10581 11076 11360 11644 11893 " y="9497">Model</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 9883,8931 L 9673,9036 9673,8826 9883,8931 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 9102,8931 L 9715,8931"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 6773,13757 L 9314,13757 9314,15959 6773,15959 6773,13757 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 6773,13757 L 9314,13757 9314,15959 6773,15959 6773,13757"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="7542 7919 8232 8545 " y="14746">CSS </tspan>
+              </text>
+              <text>
+                <tspan x="7334 7643 7893 8088 8308 8557 " y="15422">Parser</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(204,255,204)">
+          <path d="M 10441,13757 L 13335,13757 12631,15959 9737,15959 10441,13757 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 10441,13757 L 13335,13757 12631,15959 9737,15959 10441,13757"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="10947 11260 11417 11701 11857 12107 " y="14746">Style </tspan>
+              </text>
+              <text>
+                <tspan x="10886 11259 11542 11699 11949 " y="15422">Rules</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,255,153)">
+          <path d="M 2751,13827 L 2962,13827 2962,13580 3174,13580 3174,13334 5798,13334 5798,15311 5587,15311 5587,15558 5375,15558 5375,15805 5201,15807 5047,15817 4910,15835 4787,15860 4676,15891 4574,15926 4385,16005 4199,16089 3992,16170 3875,16207 3744,16239 3597,16267 3432,16288 3215,16247 3050,16207 2751,16119 2751,13827 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 2751,13827 L 2962,13827 2962,13580 3174,13580 3174,13334 5798,13334 5798,15311 5587,15311 5587,15558 5375,15558 5375,15805 5201,15807 5047,15817 4910,15835 4787,15860 4676,15891 4574,15926 4385,16005 4199,16089 3992,16170 3875,16207 3744,16239 3597,16267 3432,16288 3215,16247 3050,16207 2751,16119 2751,13827"/>
+          <path style="fill:none" d="M 2962,13827 L 5375,13827 5375,15558"/>
+          <path style="fill:none" d="M 3174,13580 L 5587,13580 5587,15311"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="3483 3796 3953 4237 4393 4643 " y="14695">Style </tspan>
+              </text>
+              <text>
+                <tspan x="3327 3640 3924 4174 4423 4580 " y="15371">Sheets</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 6773,14858 L 6559,14954 6568,14744 6773,14858 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 5797,14815 L 6605,14851"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 10095,14858 L 9885,14963 9885,14753 10095,14858 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 9313,14858 L 9927,14858"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 4274,13335 L 4169,13125 4379,13125 4274,13335 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 7725,10032 L 7725,10059"/>
+          <path style="fill:none" d="M 7725,10086 L 7725,10113"/>
+          <path style="fill:none" d="M 7725,10140 L 7725,10167"/>
+          <path style="fill:none" d="M 7725,10194 L 7725,10221"/>
+          <path style="fill:none" d="M 7725,10248 L 7725,10275"/>
+          <path style="fill:none" d="M 7725,10302 L 7725,10328"/>
+          <path style="fill:none" d="M 7725,10355 L 7725,10382"/>
+          <path style="fill:none" d="M 7725,10409 L 7725,10436"/>
+          <path style="fill:none" d="M 7725,10463 L 7725,10490"/>
+          <path style="fill:none" d="M 7725,10517 L 7725,10544"/>
+          <path style="fill:none" d="M 7725,10571 L 7725,10598"/>
+          <path style="fill:none" d="M 7725,10625 L 7725,10652"/>
+          <path style="fill:none" d="M 7725,10679 L 7725,10706"/>
+          <path style="fill:none" d="M 7725,10733 L 7725,10760"/>
+          <path style="fill:none" d="M 7725,10787 L 7725,10814"/>
+          <path style="fill:none" d="M 7725,10841 L 7725,10867"/>
+          <path style="fill:none" d="M 7725,10894 L 7725,10921"/>
+          <path style="fill:none" d="M 7725,10948 L 7725,10975"/>
+          <path style="fill:none" d="M 7725,11002 L 7725,11029"/>
+          <path style="fill:none" d="M 7725,11056 L 7725,11083"/>
+          <path style="fill:none" d="M 7725,11110 L 7725,11137"/>
+          <path style="fill:none" d="M 7725,11164 L 7725,11191"/>
+          <path style="fill:none" d="M 7725,11218 L 7725,11245"/>
+          <path style="fill:none" d="M 7725,11272 L 7725,11299"/>
+          <path style="fill:none" d="M 7725,11326 L 7725,11353"/>
+          <path style="fill:none" d="M 7725,11380 L 7725,11406"/>
+          <path style="fill:none" d="M 7725,11433 L 7725,11460"/>
+          <path style="fill:none" d="M 7725,11487 L 7725,11514"/>
+          <path style="fill:none" d="M 7725,11541 L 7725,11568"/>
+          <path style="fill:none" d="M 7725,11595 L 7725,11622"/>
+          <path style="fill:none" d="M 7725,11649 L 7725,11676"/>
+          <path style="fill:none" d="M 7706,11684 L 7679,11684"/>
+          <path style="fill:none" d="M 7652,11684 L 7625,11684"/>
+          <path style="fill:none" d="M 7598,11684 L 7571,11684"/>
+          <path style="fill:none" d="M 7544,11684 L 7517,11684"/>
+          <path style="fill:none" d="M 7490,11684 L 7464,11684"/>
+          <path style="fill:none" d="M 7437,11684 L 7410,11684"/>
+          <path style="fill:none" d="M 7383,11684 L 7356,11684"/>
+          <path style="fill:none" d="M 7329,11684 L 7302,11684"/>
+          <path style="fill:none" d="M 7275,11684 L 7248,11684"/>
+          <path style="fill:none" d="M 7221,11684 L 7194,11684"/>
+          <path style="fill:none" d="M 7167,11684 L 7140,11684"/>
+          <path style="fill:none" d="M 7113,11684 L 7086,11684"/>
+          <path style="fill:none" d="M 7059,11684 L 7032,11684"/>
+          <path style="fill:none" d="M 7005,11684 L 6978,11684"/>
+          <path style="fill:none" d="M 6951,11684 L 6925,11684"/>
+          <path style="fill:none" d="M 6898,11684 L 6871,11684"/>
+          <path style="fill:none" d="M 6844,11684 L 6817,11684"/>
+          <path style="fill:none" d="M 6790,11684 L 6763,11684"/>
+          <path style="fill:none" d="M 6736,11684 L 6709,11684"/>
+          <path style="fill:none" d="M 6682,11684 L 6655,11684"/>
+          <path style="fill:none" d="M 6628,11684 L 6601,11684"/>
+          <path style="fill:none" d="M 6574,11684 L 6547,11684"/>
+          <path style="fill:none" d="M 6520,11684 L 6493,11684"/>
+          <path style="fill:none" d="M 6466,11684 L 6439,11684"/>
+          <path style="fill:none" d="M 6412,11684 L 6386,11684"/>
+          <path style="fill:none" d="M 6359,11684 L 6332,11684"/>
+          <path style="fill:none" d="M 6305,11684 L 6278,11684"/>
+          <path style="fill:none" d="M 6251,11684 L 6224,11684"/>
+          <path style="fill:none" d="M 6197,11684 L 6170,11684"/>
+          <path style="fill:none" d="M 6143,11684 L 6116,11684"/>
+          <path style="fill:none" d="M 6089,11684 L 6062,11684"/>
+          <path style="fill:none" d="M 6035,11684 L 6008,11684"/>
+          <path style="fill:none" d="M 5981,11684 L 5954,11684"/>
+          <path style="fill:none" d="M 5927,11684 L 5900,11684"/>
+          <path style="fill:none" d="M 5873,11684 L 5847,11684"/>
+          <path style="fill:none" d="M 5820,11684 L 5793,11684"/>
+          <path style="fill:none" d="M 5766,11684 L 5739,11684"/>
+          <path style="fill:none" d="M 5712,11684 L 5685,11684"/>
+          <path style="fill:none" d="M 5658,11684 L 5631,11684"/>
+          <path style="fill:none" d="M 5604,11684 L 5577,11684"/>
+          <path style="fill:none" d="M 5550,11684 L 5523,11684"/>
+          <path style="fill:none" d="M 5496,11684 L 5469,11684"/>
+          <path style="fill:none" d="M 5442,11684 L 5415,11684"/>
+          <path style="fill:none" d="M 5388,11684 L 5361,11684"/>
+          <path style="fill:none" d="M 5334,11684 L 5308,11684"/>
+          <path style="fill:none" d="M 5281,11684 L 5254,11684"/>
+          <path style="fill:none" d="M 5227,11684 L 5200,11684"/>
+          <path style="fill:none" d="M 5173,11684 L 5146,11684"/>
+          <path style="fill:none" d="M 5119,11684 L 5092,11684"/>
+          <path style="fill:none" d="M 5065,11684 L 5038,11684"/>
+          <path style="fill:none" d="M 5011,11684 L 4984,11684"/>
+          <path style="fill:none" d="M 4957,11684 L 4930,11684"/>
+          <path style="fill:none" d="M 4903,11684 L 4876,11684"/>
+          <path style="fill:none" d="M 4849,11684 L 4822,11684"/>
+          <path style="fill:none" d="M 4796,11684 L 4769,11684"/>
+          <path style="fill:none" d="M 4742,11684 L 4715,11684"/>
+          <path style="fill:none" d="M 4688,11684 L 4661,11684"/>
+          <path style="fill:none" d="M 4634,11684 L 4607,11684"/>
+          <path style="fill:none" d="M 4580,11684 L 4553,11684"/>
+          <path style="fill:none" d="M 4526,11684 L 4499,11684"/>
+          <path style="fill:none" d="M 4472,11684 L 4445,11684"/>
+          <path style="fill:none" d="M 4418,11684 L 4391,11684"/>
+          <path style="fill:none" d="M 4364,11684 L 4337,11684"/>
+          <path style="fill:none" d="M 4310,11684 L 4283,11684"/>
+          <path style="fill:none" d="M 4274,11701 L 4274,11728"/>
+          <path style="fill:none" d="M 4274,11755 L 4274,11782"/>
+          <path style="fill:none" d="M 4274,11809 L 4274,11836"/>
+          <path style="fill:none" d="M 4274,11863 L 4274,11890"/>
+          <path style="fill:none" d="M 4274,11917 L 4274,11944"/>
+          <path style="fill:none" d="M 4274,11971 L 4274,11998"/>
+          <path style="fill:none" d="M 4274,12025 L 4274,12052"/>
+          <path style="fill:none" d="M 4274,12079 L 4274,12106"/>
+          <path style="fill:none" d="M 4274,12133 L 4274,12160"/>
+          <path style="fill:none" d="M 4274,12187 L 4274,12214"/>
+          <path style="fill:none" d="M 4274,12240 L 4274,12267"/>
+          <path style="fill:none" d="M 4274,12294 L 4274,12321"/>
+          <path style="fill:none" d="M 4274,12348 L 4274,12375"/>
+          <path style="fill:none" d="M 4274,12402 L 4274,12429"/>
+          <path style="fill:none" d="M 4274,12456 L 4274,12483"/>
+          <path style="fill:none" d="M 4274,12510 L 4274,12537"/>
+          <path style="fill:none" d="M 4274,12564 L 4274,12591"/>
+          <path style="fill:none" d="M 4274,12618 L 4274,12645"/>
+          <path style="fill:none" d="M 4274,12672 L 4274,12699"/>
+          <path style="fill:none" d="M 4274,12726 L 4274,12753"/>
+          <path style="fill:none" d="M 4274,12779 L 4274,12806"/>
+          <path style="fill:none" d="M 4274,12833 L 4274,12860"/>
+          <path style="fill:none" d="M 4274,12887 L 4274,12914"/>
+          <path style="fill:none" d="M 4274,12941 L 4274,12968"/>
+          <path style="fill:none" d="M 4274,12995 L 4274,13022"/>
+          <path style="fill:none" d="M 4274,13049 L 4274,13076"/>
+          <path style="fill:none" d="M 4274,13103 L 4274,13130"/>
+          <path style="fill:none" d="M 4274,13157 L 4274,13167"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 12064,10794 L 15452,10794 15452,12912 12064,12912 12064,10794 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 12064,10794 L 15452,10794 15452,12912 12064,12912 12064,10794"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="13036 13349 13544 13794 14230 14480 " y="11739">Frame </tspan>
+              </text>
+              <text>
+                <tspan x="12416 12793 13076 13360 13580 13737 13932 14215 14465 14622 14905 " y="12415">Constructor</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(204,255,204)">
+          <path d="M 16283,10794 L 18838,10794 18216,12912 15662,12912 16283,10794 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 16283,10794 L 18838,10794 18216,12912 15662,12912 16283,10794"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="16586 16899 17094 17444 17880 " y="11739">Frame</tspan>
+              </text>
+              <text>
+                <tspan x="16735 17078 17273 17523 " y="12415">Tree</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 13758,10795 L 13653,10585 13863,10585 13758,10795 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 12756,8931 L 13758,8931 13758,10627"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 13758,12912 L 13863,13122 13653,13122 13758,12912 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 12968,14858 L 13758,14858 13758,13080"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 15979,11853 L 15769,11958 15769,11748 15979,11853 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 15452,11853 L 15811,11853"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 15875,7832 L 18628,7832 18628,9948 15875,9948 15875,7832 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 15875,7832 L 18628,7832 18628,9948 15875,9948 15875,7832"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="16424 16797 17046 17233 17389 17673 " y="9106">Reflow</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 17250,9946 L 17355,10156 17145,10156 17250,9946 Z"/>
+          <path d="M 17250,10795 L 17145,10585 17355,10585 17250,10795 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 17250,10114 L 17250,10627"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 19262,10794 L 21590,10794 21590,12912 19262,12912 19262,10794 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 19262,10794 L 21590,10794 21590,12912 19262,12912 19262,10794"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="19490 19799 20049 20205 20489 20646 20802 21086 " y="12089">Painting</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,255,153)">
+          <path d="M 22613,10794 L 24144,10794 24163,10796 24182,10800 24201,10808 24220,10818 24239,10831 24257,10846 24294,10885 24329,10933 24363,10989 24395,11054 24425,11125 24453,11202 24477,11285 24518,11464 24544,11655 24553,11853 24544,12050 24518,12242 24477,12421 24453,12503 24425,12581 24395,12652 24363,12716 24329,12773 24294,12821 24257,12860 24239,12875 24220,12888 24201,12898 24182,12906 24163,12910 24144,12912 22613,12912 22225,11853 22613,10794 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 22613,10794 L 24144,10794 24163,10796 24182,10800 24201,10808 24220,10818 24239,10831 24257,10846 24294,10885 24329,10933 24363,10989 24395,11054 24425,11125 24453,11202 24477,11285 24518,11464 24544,11655 24553,11853 24544,12050 24518,12242 24477,12421 24453,12503 24425,12581 24395,12652 24363,12716 24329,12773 24294,12821 24257,12860 24239,12875 24220,12888 24201,12898 24182,12906 24163,12910 24144,12912 22613,12912 22225,11853 22613,10794"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="22496 22902 23059 23279 23563 23719 23969 " y="12089">Display</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 19262,11853 L 19052,11958 19052,11748 19262,11853 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 18513,11853 L 19094,11853"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 22225,11853 L 22015,11958 22015,11748 22225,11853 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 21588,11853 L 22057,11853"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(204,153,255)">
+          <path d="M 10160,5291 L 12488,5291 11324,7197 10160,5291 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 10160,5291 L 12488,5291 11324,7197 10160,5291"/>
+        </g>
+        <g>
+          <g style="font-family:Times;font-size:564px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="10663 11069 11476 " y="5995">DOM</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 11323,7197 L 11323,7832"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+  </g>
+</svg>
+</div>
+
+<div class="slide imageslide">
+<h1>Layout (and neighbors): Key Data Structures</h1>
+<!-- exported from Waterson's powerpoint slides via OpenOffice; cleaned up a bit by hand, including shrinking the viewBox to fit, removing embedded fonts, adding px units to font-size, removing unneeded font-weight:400, adding a default stroke-width, and adding width and height on svg element, changed preserveAspectRatio -->
+
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="500 4500 24400 14000" preserveAspectRatio="xMidYMin" fill-rule="evenodd" style="stroke-width:30px" width="100%" height="70%">
+  <g visibility="visible" id="Default">
+    <desc>Master slide</desc>
+    <g style="stroke:none;fill:rgb(255,255,255)">
+      <path d="M 0,0 L 25400,0 25400,19050 0,19050 0,0 Z"/>
+    </g>
+  </g>
+  <g visibility="visible" id="page15">
+    <desc>Slide</desc>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 2011,9737 L 2066,9740 2120,9747 2171,9760 2220,9777 2267,9799 2310,9825 2351,9855 2388,9889 2422,9926 2452,9967 2478,10010 2500,10057 2517,10106 2530,10157 2537,10211 2540,10266 2537,10321 2530,10375 2517,10426 2500,10475 2478,10522 2452,10565 2422,10606 2388,10643 2351,10677 2310,10707 2267,10733 2220,10755 2171,10772 2120,10785 2066,10792 2011,10795 1956,10792 1902,10785 1851,10772 1802,10755 1755,10733 1712,10707 1671,10677 1634,10643 1600,10606 1570,10565 1544,10522 1522,10475 1505,10426 1492,10375 1485,10321 1482,10266 1485,10211 1492,10157 1505,10106 1522,10057 1544,10010 1570,9967 1600,9926 1634,9889 1671,9855 1712,9825 1755,9799 1802,9777 1851,9760 1902,9747 1956,9740 2011,9737 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 2011,9737 L 2066,9740 2120,9747 2171,9760 2220,9777 2267,9799 2310,9825 2351,9855 2388,9889 2422,9926 2452,9967 2478,10010 2500,10057 2517,10106 2530,10157 2537,10211 2540,10266 2537,10321 2530,10375 2517,10426 2500,10475 2478,10522 2452,10565 2422,10606 2388,10643 2351,10677 2310,10707 2267,10733 2220,10755 2171,10772 2120,10785 2066,10792 2011,10795 1956,10792 1902,10785 1851,10772 1802,10755 1755,10733 1712,10707 1671,10677 1634,10643 1600,10606 1570,10565 1544,10522 1522,10475 1505,10426 1492,10375 1485,10321 1482,10266 1485,10211 1492,10157 1505,10106 1522,10057 1544,10010 1570,9967 1600,9926 1634,9889 1671,9855 1712,9825 1755,9799 1802,9777 1851,9760 1902,9747 1956,9740 2011,9737"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 3704,9737 L 3759,9740 3813,9747 3864,9760 3913,9777 3960,9799 4003,9825 4044,9855 4081,9889 4115,9926 4145,9967 4171,10010 4193,10057 4210,10106 4223,10157 4230,10211 4233,10266 4230,10321 4223,10375 4210,10426 4193,10475 4171,10522 4145,10565 4115,10606 4081,10643 4044,10677 4003,10707 3960,10733 3913,10755 3864,10772 3813,10785 3759,10792 3704,10795 3649,10792 3595,10785 3544,10772 3495,10755 3448,10733 3405,10707 3364,10677 3327,10643 3293,10606 3263,10565 3237,10522 3215,10475 3198,10426 3185,10375 3178,10321 3175,10266 3178,10211 3185,10157 3198,10106 3215,10057 3237,10010 3263,9967 3293,9926 3327,9889 3364,9855 3405,9825 3448,9799 3495,9777 3544,9760 3595,9747 3649,9740 3704,9737 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 3704,9737 L 3759,9740 3813,9747 3864,9760 3913,9777 3960,9799 4003,9825 4044,9855 4081,9889 4115,9926 4145,9967 4171,10010 4193,10057 4210,10106 4223,10157 4230,10211 4233,10266 4230,10321 4223,10375 4210,10426 4193,10475 4171,10522 4145,10565 4115,10606 4081,10643 4044,10677 4003,10707 3960,10733 3913,10755 3864,10772 3813,10785 3759,10792 3704,10795 3649,10792 3595,10785 3544,10772 3495,10755 3448,10733 3405,10707 3364,10677 3327,10643 3293,10606 3263,10565 3237,10522 3215,10475 3198,10426 3185,10375 3178,10321 3175,10266 3178,10211 3185,10157 3198,10106 3215,10057 3237,10010 3263,9967 3293,9926 3327,9889 3364,9855 3405,9825 3448,9799 3495,9777 3544,9760 3595,9747 3649,9740 3704,9737"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 2856,8042 L 2911,8045 2965,8052 3016,8065 3065,8082 3112,8104 3156,8130 3196,8160 3234,8194 3267,8231 3297,8272 3324,8315 3345,8362 3363,8411 3376,8462 3383,8516 3386,8571 3383,8626 3376,8680 3363,8731 3345,8780 3324,8827 3297,8871 3267,8911 3234,8949 3196,8982 3156,9012 3112,9039 3065,9060 3016,9078 2965,9091 2911,9098 2856,9101 2801,9098 2747,9091 2696,9078 2647,9060 2600,9039 2557,9012 2516,8982 2479,8949 2445,8911 2415,8871 2389,8827 2367,8780 2350,8731 2337,8680 2330,8626 2327,8571 2330,8516 2337,8462 2350,8411 2367,8362 2389,8315 2415,8272 2445,8231 2479,8194 2516,8160 2557,8130 2600,8104 2647,8082 2696,8065 2747,8052 2801,8045 2856,8042 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 2856,8042 L 2911,8045 2965,8052 3016,8065 3065,8082 3112,8104 3156,8130 3196,8160 3234,8194 3267,8231 3297,8272 3324,8315 3345,8362 3363,8411 3376,8462 3383,8516 3386,8571 3383,8626 3376,8680 3363,8731 3345,8780 3324,8827 3297,8871 3267,8911 3234,8949 3196,8982 3156,9012 3112,9039 3065,9060 3016,9078 2965,9091 2911,9098 2856,9101 2801,9098 2747,9091 2696,9078 2647,9060 2600,9039 2557,9012 2516,8982 2479,8949 2445,8911 2415,8871 2389,8827 2367,8780 2350,8731 2337,8680 2330,8626 2327,8571 2330,8516 2337,8462 2350,8411 2367,8362 2389,8315 2415,8272 2445,8231 2479,8194 2516,8160 2557,8130 2600,8104 2647,8082 2696,8065 2747,8052 2801,8045 2856,8042"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 2856,11430 L 2911,11433 2965,11440 3016,11453 3065,11470 3112,11492 3156,11518 3196,11548 3234,11582 3267,11619 3297,11660 3324,11703 3345,11750 3363,11799 3376,11850 3383,11904 3386,11959 3383,12014 3376,12068 3363,12119 3345,12168 3324,12215 3297,12258 3267,12299 3234,12336 3196,12370 3156,12400 3112,12426 3065,12448 3016,12465 2965,12478 2911,12485 2856,12488 2801,12485 2747,12478 2696,12465 2647,12448 2600,12426 2557,12400 2516,12370 2479,12336 2445,12299 2415,12258 2389,12215 2367,12168 2350,12119 2337,12068 2330,12014 2327,11959 2330,11904 2337,11850 2350,11799 2367,11750 2389,11703 2415,11660 2445,11619 2479,11582 2516,11548 2557,11518 2600,11492 2647,11470 2696,11453 2747,11440 2801,11433 2856,11430 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 2856,11430 L 2911,11433 2965,11440 3016,11453 3065,11470 3112,11492 3156,11518 3196,11548 3234,11582 3267,11619 3297,11660 3324,11703 3345,11750 3363,11799 3376,11850 3383,11904 3386,11959 3383,12014 3376,12068 3363,12119 3345,12168 3324,12215 3297,12258 3267,12299 3234,12336 3196,12370 3156,12400 3112,12426 3065,12448 3016,12465 2965,12478 2911,12485 2856,12488 2801,12485 2747,12478 2696,12465 2647,12448 2600,12426 2557,12400 2516,12370 2479,12336 2445,12299 2415,12258 2389,12215 2367,12168 2350,12119 2337,12068 2330,12014 2327,11959 2330,11904 2337,11850 2350,11799 2367,11750 2389,11703 2415,11660 2445,11619 2479,11582 2516,11548 2557,11518 2600,11492 2647,11470 2696,11453 2747,11440 2801,11433 2856,11430"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 4551,11430 L 4606,11433 4660,11440 4711,11453 4760,11470 4807,11492 4850,11518 4891,11548 4928,11582 4962,11619 4992,11660 5018,11703 5040,11750 5057,11799 5070,11850 5077,11904 5080,11959 5077,12014 5070,12068 5057,12119 5040,12168 5018,12215 4992,12258 4962,12299 4928,12336 4891,12370 4850,12400 4807,12426 4760,12448 4711,12465 4660,12478 4606,12485 4551,12488 4496,12485 4442,12478 4391,12465 4342,12448 4295,12426 4252,12400 4211,12370 4174,12336 4140,12299 4110,12258 4084,12215 4062,12168 4045,12119 4032,12068 4025,12014 4022,11959 4025,11904 4032,11850 4045,11799 4062,11750 4084,11703 4110,11660 4140,11619 4174,11582 4211,11548 4252,11518 4295,11492 4342,11470 4391,11453 4442,11440 4496,11433 4551,11430 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 4551,11430 L 4606,11433 4660,11440 4711,11453 4760,11470 4807,11492 4850,11518 4891,11548 4928,11582 4962,11619 4992,11660 5018,11703 5040,11750 5057,11799 5070,11850 5077,11904 5080,11959 5077,12014 5070,12068 5057,12119 5040,12168 5018,12215 4992,12258 4962,12299 4928,12336 4891,12370 4850,12400 4807,12426 4760,12448 4711,12465 4660,12478 4606,12485 4551,12488 4496,12485 4442,12478 4391,12465 4342,12448 4295,12426 4252,12400 4211,12370 4174,12336 4140,12299 4110,12258 4084,12215 4062,12168 4045,12119 4032,12068 4025,12014 4022,11959 4025,11904 4032,11850 4045,11799 4062,11750 4084,11703 4110,11660 4140,11619 4174,11582 4211,11548 4252,11518 4295,11492 4342,11470 4391,11453 4442,11440 4496,11433 4551,11430"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(187,224,227)">
+          <path d="M 1164,11430 L 1219,11433 1273,11440 1324,11453 1373,11470 1420,11492 1463,11518 1504,11548 1541,11582 1575,11619 1605,11660 1631,11703 1653,11750 1670,11799 1683,11850 1690,11904 1693,11959 1690,12014 1683,12068 1670,12119 1653,12168 1631,12215 1605,12258 1575,12299 1541,12336 1504,12370 1463,12400 1420,12426 1373,12448 1324,12465 1273,12478 1219,12485 1164,12488 1109,12485 1055,12478 1004,12465 955,12448 908,12426 865,12400 824,12370 787,12336 753,12299 723,12258 697,12215 675,12168 658,12119 645,12068 638,12014 635,11959 638,11904 645,11850 658,11799 675,11750 697,11703 723,11660 753,11619 787,11582 824,11548 865,11518 908,11492 955,11470 1004,11453 1055,11440 1109,11433 1164,11430 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 1164,11430 L 1219,11433 1273,11440 1324,11453 1373,11470 1420,11492 1463,11518 1504,11548 1541,11582 1575,11619 1605,11660 1631,11703 1653,11750 1670,11799 1683,11850 1690,11904 1693,11959 1690,12014 1683,12068 1670,12119 1653,12168 1631,12215 1605,12258 1575,12299 1541,12336 1504,12370 1463,12400 1420,12426 1373,12448 1324,12465 1273,12478 1219,12485 1164,12488 1109,12485 1055,12478 1004,12465 955,12448 908,12426 865,12400 824,12370 787,12336 753,12299 723,12258 697,12215 675,12168 658,12119 645,12068 638,12014 635,11959 638,11904 645,11850 658,11799 675,11750 697,11703 723,11660 753,11619 787,11582 824,11548 865,11518 908,11492 955,11470 1004,11453 1055,11440 1109,11433 1164,11430"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 1163,11430 L 1635,10640"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 3328,10640 L 2857,11430"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 4078,10640 L 4550,11430"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 2482,8946 L 2010,9737"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 3231,8946 L 3703,9737"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,255,153)">
+          <path d="M 5926,6138 L 11430,6138 11430,12488 5926,12488 5926,6138 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 5926,6138 L 11430,6138 11430,12488 5926,12488 5926,6138"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,255,153)">
+          <path d="M 6349,6772 L 11006,6772 11006,9101 6349,9101 6349,6772 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 6349,6772 L 11006,6772 11006,9101 6349,9101 6349,6772"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,255,153)">
+          <path d="M 6349,9525 L 11006,9525 11006,12066 6349,12066 6349,9525 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 6349,9525 L 11006,9525 11006,12066 6349,12066 6349,9525"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,255,153)">
+          <path d="M 6773,9948 L 8043,9948 8043,11642 6773,11642 6773,9948 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 6773,9948 L 8043,9948 8043,11642 6773,11642 6773,9948"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,255,153)">
+          <path d="M 8467,9948 L 10583,9948 10583,11430 8467,11430 8467,9948 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 8467,9948 L 10583,9948 10583,11430 8467,11430 8467,9948"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(204,255,204)">
+          <path d="M 12488,6138 L 17992,6138 17992,12488 12488,12488 12488,6138 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 12488,6138 L 17992,6138 17992,12488 12488,12488 12488,6138"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(204,153,255)">
+          <path d="M 19049,6138 L 24553,6138 24553,12488 19049,12488 19049,6138 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 19049,6138 L 24553,6138 24553,12488 19049,12488 19049,6138"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(204,255,204)">
+          <path d="M 12912,6772 L 17568,6772 17568,9101 12912,9101 12912,6772 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 12912,6772 L 17568,6772 17568,9101 12912,9101 12912,6772"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 3231,8197 L 3302,7973 3453,8119 3231,8197 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 5927,9312 L 5595,9305 5311,9284 5071,9250 4872,9206 4708,9153 4577,9091 4473,9022 4430,8986 4394,8948 4362,8910 4334,8870 4291,8790 4259,8708 4236,8626 4196,8468 4173,8395 4141,8328 4121,8297 4098,8268 4045,8214 3984,8168 3916,8128 3843,8096 3766,8070 3689,8052 3612,8040 3538,8035 3467,8038 3402,8047 3345,8063 3327,8071"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 1482,10265 L 1385,10051 1595,10059 1482,10265 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 8677,6773 L 8677,6773 8676,6773 8674,6772 8667,6771 8636,6770 8519,6768 8086,6775 7442,6805 6650,6866 5773,6970 4875,7126 4019,7343 3627,7479 3269,7633 2952,7807 2674,7998 2433,8202 2226,8415 2052,8633 1906,8852 1787,9069 1692,9279 1619,9478 1564,9664 1525,9832 1500,9977 1485,10097 1485,10098"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 4078,9890 L 4139,9663 4296,9803 4078,9890 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 8677,9525 L 8677,9525 8677,9525 8676,9525 8674,9524 8664,9523 8625,9520 8479,9512 7958,9494 6378,9488 5533,9520 4797,9591 4502,9644 4276,9711 4192,9750 4174,9762"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 4925,12333 L 5127,12214 5142,12424 4925,12333 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 6773,10794 L 6660,10798 6560,10811 6470,10832 6391,10860 6321,10895 6260,10936 6207,10983 6160,11034 6120,11091 6085,11151 6027,11281 5937,11564 5891,11707 5836,11846 5764,11976 5720,12036 5669,12093 5611,12144 5545,12191 5469,12232 5384,12267 5288,12295 5179,12316 5093,12322"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 2857,12488 L 3069,12387 3065,12597 2857,12488 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 8467,10688 L 7236,10728 6756,10775 6357,10837 6029,10912 5764,10999 5556,11095 5395,11198 5329,11252 5273,11307 5182,11419 5115,11532 5062,11645 4971,11861 4915,11960 4881,12006 4842,12050 4797,12091 4746,12130 4628,12200 4492,12261 4342,12313 4182,12357 4016,12393 3681,12446 3366,12477 3104,12491 3024,12492"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g>
+          <g style="font-family:Times;font-size:847px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="1726 2289 2712 3136 3373 3750 4173 " y="5423">Content</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g>
+          <g style="font-family:Times;font-size:847px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="7436 7906 8198 8575 9235 9612 " y="5423">Frames</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g>
+          <g style="font-family:Times;font-size:847px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="14217 14827 15064 15440 16050 " y="5423">Views</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g>
+          <g style="font-family:Times;font-size:847px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="20139 20939 21176 21600 22023 22400 22637 " y="5423">Widgets</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 12912,7936 L 12702,8041 12702,7831 12912,7936 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 11005,7936 L 12744,7936"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 12488,9312 L 12278,9417 12278,9207 12488,9312 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 11430,9312 L 12320,9312"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 19050,9312 L 18840,9417 18840,9207 19050,9312 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 17990,9312 L 18882,9312"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,204,153)">
+          <path d="M 7936,13757 L 7991,13760 8045,13767 8096,13780 8145,13797 8192,13819 8236,13845 8276,13875 8314,13909 8347,13946 8377,13987 8404,14030 8425,14077 8443,14126 8456,14177 8463,14231 8466,14286 8463,14341 8456,14395 8443,14446 8425,14495 8404,14542 8377,14586 8347,14626 8314,14664 8276,14697 8236,14727 8192,14754 8145,14775 8096,14793 8045,14806 7991,14813 7936,14816 7881,14813 7827,14806 7776,14793 7727,14775 7680,14754 7637,14727 7596,14697 7559,14664 7525,14626 7495,14586 7469,14542 7447,14495 7430,14446 7417,14395 7410,14341 7407,14286 7410,14231 7417,14177 7430,14126 7447,14077 7469,14030 7495,13987 7525,13946 7559,13909 7596,13875 7637,13845 7680,13819 7727,13797 7776,13780 7827,13767 7881,13760 7936,13757 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 7936,13757 L 7991,13760 8045,13767 8096,13780 8145,13797 8192,13819 8236,13845 8276,13875 8314,13909 8347,13946 8377,13987 8404,14030 8425,14077 8443,14126 8456,14177 8463,14231 8466,14286 8463,14341 8456,14395 8443,14446 8425,14495 8404,14542 8377,14586 8347,14626 8314,14664 8276,14697 8236,14727 8192,14754 8145,14775 8096,14793 8045,14806 7991,14813 7936,14816 7881,14813 7827,14806 7776,14793 7727,14775 7680,14754 7637,14727 7596,14697 7559,14664 7525,14626 7495,14586 7469,14542 7447,14495 7430,14446 7417,14395 7410,14341 7407,14286 7410,14231 7417,14177 7430,14126 7447,14077 7469,14030 7495,13987 7525,13946 7559,13909 7596,13875 7637,13845 7680,13819 7727,13797 7776,13780 7827,13767 7881,13760 7936,13757"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,204,153)">
+          <path d="M 7091,15240 L 7146,15243 7200,15250 7251,15263 7300,15280 7347,15302 7390,15328 7431,15358 7468,15392 7502,15429 7532,15470 7558,15513 7580,15560 7597,15609 7610,15660 7617,15714 7620,15769 7617,15824 7610,15878 7597,15929 7580,15978 7558,16025 7532,16068 7502,16109 7468,16146 7431,16180 7390,16210 7347,16236 7300,16258 7251,16275 7200,16288 7146,16295 7091,16298 7036,16295 6982,16288 6931,16275 6882,16258 6835,16236 6792,16210 6751,16180 6714,16146 6680,16109 6650,16068 6624,16025 6602,15978 6585,15929 6572,15878 6565,15824 6562,15769 6565,15714 6572,15660 6585,15609 6602,15560 6624,15513 6650,15470 6680,15429 6714,15392 6751,15358 6792,15328 6835,15302 6882,15280 6931,15263 6982,15250 7036,15243 7091,15240 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 7091,15240 L 7146,15243 7200,15250 7251,15263 7300,15280 7347,15302 7390,15328 7431,15358 7468,15392 7502,15429 7532,15470 7558,15513 7580,15560 7597,15609 7610,15660 7617,15714 7620,15769 7617,15824 7610,15878 7597,15929 7580,15978 7558,16025 7532,16068 7502,16109 7468,16146 7431,16180 7390,16210 7347,16236 7300,16258 7251,16275 7200,16288 7146,16295 7091,16298 7036,16295 6982,16288 6931,16275 6882,16258 6835,16236 6792,16210 6751,16180 6714,16146 6680,16109 6650,16068 6624,16025 6602,15978 6585,15929 6572,15878 6565,15824 6562,15769 6565,15714 6572,15660 6585,15609 6602,15560 6624,15513 6650,15470 6680,15429 6714,15392 6751,15358 6792,15328 6835,15302 6882,15280 6931,15263 6982,15250 7036,15243 7091,15240"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,204,153)">
+          <path d="M 8784,15240 L 8839,15243 8893,15250 8944,15263 8993,15280 9040,15302 9083,15328 9124,15358 9161,15392 9195,15429 9225,15470 9251,15513 9273,15560 9290,15609 9303,15660 9310,15714 9313,15769 9310,15824 9303,15878 9290,15929 9273,15978 9251,16025 9225,16068 9195,16109 9161,16146 9124,16180 9083,16210 9040,16236 8993,16258 8944,16275 8893,16288 8839,16295 8784,16298 8729,16295 8675,16288 8624,16275 8575,16258 8528,16236 8485,16210 8444,16180 8407,16146 8373,16109 8343,16068 8317,16025 8295,15978 8278,15929 8265,15878 8258,15824 8255,15769 8258,15714 8265,15660 8278,15609 8295,15560 8317,15513 8343,15470 8373,15429 8407,15392 8444,15358 8485,15328 8528,15302 8575,15280 8624,15263 8675,15250 8729,15243 8784,15240 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 8784,15240 L 8839,15243 8893,15250 8944,15263 8993,15280 9040,15302 9083,15328 9124,15358 9161,15392 9195,15429 9225,15470 9251,15513 9273,15560 9290,15609 9303,15660 9310,15714 9313,15769 9310,15824 9303,15878 9290,15929 9273,15978 9251,16025 9225,16068 9195,16109 9161,16146 9124,16180 9083,16210 9040,16236 8993,16258 8944,16275 8893,16288 8839,16295 8784,16298 8729,16295 8675,16288 8624,16275 8575,16258 8528,16236 8485,16210 8444,16180 8407,16146 8373,16109 8343,16068 8317,16025 8295,15978 8278,15929 8265,15878 8258,15824 8255,15769 8258,15714 8265,15660 8278,15609 8295,15560 8317,15513 8343,15470 8373,15429 8407,15392 8444,15358 8485,15328 8528,15302 8575,15280 8624,15263 8675,15250 8729,15243 8784,15240"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(255,204,153)">
+          <path d="M 9631,16722 L 9686,16725 9740,16732 9791,16745 9840,16762 9887,16784 9930,16810 9971,16840 10008,16874 10042,16911 10072,16952 10098,16995 10120,17042 10137,17091 10150,17142 10157,17196 10160,17251 10157,17306 10150,17360 10137,17411 10120,17460 10098,17507 10072,17550 10042,17591 10008,17628 9971,17662 9930,17692 9887,17718 9840,17740 9791,17757 9740,17770 9686,17777 9631,17780 9576,17777 9522,17770 9471,17757 9422,17740 9375,17718 9332,17692 9291,17662 9254,17628 9220,17591 9190,17550 9164,17507 9142,17460 9125,17411 9112,17360 9105,17306 9102,17251 9105,17196 9112,17142 9125,17091 9142,17042 9164,16995 9190,16952 9220,16911 9254,16874 9291,16840 9332,16810 9375,16784 9422,16762 9471,16745 9522,16732 9576,16725 9631,16722 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 9631,16722 L 9686,16725 9740,16732 9791,16745 9840,16762 9887,16784 9930,16810 9971,16840 10008,16874 10042,16911 10072,16952 10098,16995 10120,17042 10137,17091 10150,17142 10157,17196 10160,17251 10157,17306 10150,17360 10137,17411 10120,17460 10098,17507 10072,17550 10042,17591 10008,17628 9971,17662 9930,17692 9887,17718 9840,17740 9791,17757 9740,17770 9686,17777 9631,17780 9576,17777 9522,17770 9471,17757 9422,17740 9375,17718 9332,17692 9291,17662 9254,17628 9220,17591 9190,17550 9164,17507 9142,17460 9125,17411 9112,17360 9105,17306 9102,17251 9105,17196 9112,17142 9125,17091 9142,17042 9164,16995 9190,16952 9220,16911 9254,16874 9291,16840 9332,16810 9375,16784 9422,16762 9471,16745 9522,16732 9576,16725 9631,16722"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 8311,14661 L 8783,15240"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 7562,14661 L 7090,15240"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 9158,16143 L 9630,16722"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 7937,13758 L 7850,13540 8059,13557 7937,13758 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 8678,12486 L 8673,12591"/>
+          <path style="fill:none" d="M 8666,12669 L 8647,12773"/>
+          <path style="fill:none" d="M 8622,12848 L 8610,12876 8587,12918 8572,12940"/>
+          <path style="fill:none" d="M 8520,12999 L 8506,13012 8476,13036 8444,13057 8436,13061"/>
+          <path style="fill:none" d="M 8366,13097 L 8308,13123 8270,13140"/>
+          <path style="fill:none" d="M 8199,13175 L 8171,13189 8139,13210 8111,13232"/>
+          <path style="fill:none" d="M 8056,13288 L 8053,13292 8028,13328 8005,13369 8002,13378"/>
+          <path style="fill:none" d="M 7974,13452 L 7969,13469 7953,13554"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 6562,15768 L 6381,15619 6573,15533 6562,15768 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 6350,7936 L 6350,7936 6350,7936 6349,7937 6349,7942 6348,7958 6345,8024 6345,8041"/>
+          <path style="fill:none" d="M 6343,8120 L 6340,8225"/>
+          <path style="fill:none" d="M 6339,8304 L 6337,8409"/>
+          <path style="fill:none" d="M 6336,8488 L 6335,8593"/>
+          <path style="fill:none" d="M 6334,8672 L 6332,8777"/>
+          <path style="fill:none" d="M 6331,8856 L 6329,8961"/>
+          <path style="fill:none" d="M 6328,9040 L 6327,9145"/>
+          <path style="fill:none" d="M 6326,9224 L 6326,9329"/>
+          <path style="fill:none" d="M 6326,9408 L 6326,9513"/>
+          <path style="fill:none" d="M 6326,9592 L 6325,9697"/>
+          <path style="fill:none" d="M 6325,9776 L 6325,9881"/>
+          <path style="fill:none" d="M 6325,9960 L 6325,10065"/>
+          <path style="fill:none" d="M 6325,10144 L 6324,10249"/>
+          <path style="fill:none" d="M 6324,10328 L 6324,10433"/>
+          <path style="fill:none" d="M 6324,10512 L 6324,10617"/>
+          <path style="fill:none" d="M 6323,10696 L 6323,10801"/>
+          <path style="fill:none" d="M 6323,10880 L 6323,10985"/>
+          <path style="fill:none" d="M 6323,11064 L 6322,11169"/>
+          <path style="fill:none" d="M 6322,11248 L 6322,11353"/>
+          <path style="fill:none" d="M 6322,11432 L 6322,11537"/>
+          <path style="fill:none" d="M 6321,11616 L 6321,11721"/>
+          <path style="fill:none" d="M 6321,11800 L 6321,11852 6322,11905"/>
+          <path style="fill:none" d="M 6324,11984 L 6326,12089"/>
+          <path style="fill:none" d="M 6328,12168 L 6331,12272"/>
+          <path style="fill:none" d="M 6332,12351 L 6335,12456"/>
+          <path style="fill:none" d="M 6337,12535 L 6339,12640"/>
+          <path style="fill:none" d="M 6341,12719 L 6343,12824"/>
+          <path style="fill:none" d="M 6345,12903 L 6348,13008"/>
+          <path style="fill:none" d="M 6349,13087 L 6352,13192"/>
+          <path style="fill:none" d="M 6354,13271 L 6356,13376"/>
+          <path style="fill:none" d="M 6358,13455 L 6360,13560"/>
+          <path style="fill:none" d="M 6362,13639 L 6365,13744"/>
+          <path style="fill:none" d="M 6366,13823 L 6369,13928"/>
+          <path style="fill:none" d="M 6371,14007 L 6373,14112"/>
+          <path style="fill:none" d="M 6375,14191 L 6377,14296"/>
+          <path style="fill:none" d="M 6379,14375 L 6381,14480"/>
+          <path style="fill:none" d="M 6384,14559 L 6393,14663"/>
+          <path style="fill:none" d="M 6399,14742 L 6407,14847"/>
+          <path style="fill:none" d="M 6414,14926 L 6422,15030"/>
+          <path style="fill:none" d="M 6429,15109 L 6437,15214"/>
+          <path style="fill:none" d="M 6443,15292 L 6452,15397"/>
+          <path style="fill:none" d="M 6462,15475 L 6478,15574 6479,15579"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 9313,15768 L 9516,15650 9529,15860 9313,15768 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 11005,10794 L 11005,10794 11006,10795 11007,10798 11009,10808 11018,10850 11025,10897"/>
+          <path style="fill:none" d="M 11038,10975 L 11043,11008 11052,11079"/>
+          <path style="fill:none" d="M 11061,11157 L 11073,11262"/>
+          <path style="fill:none" d="M 11082,11340 L 11094,11444"/>
+          <path style="fill:none" d="M 11104,11523 L 11109,11571 11112,11627"/>
+          <path style="fill:none" d="M 11117,11706 L 11123,11811"/>
+          <path style="fill:none" d="M 11127,11890 L 11133,11995"/>
+          <path style="fill:none" d="M 11137,12074 L 11143,12179"/>
+          <path style="fill:none" d="M 11147,12257 L 11153,12362"/>
+          <path style="fill:none" d="M 11153,12441 L 11153,12546"/>
+          <path style="fill:none" d="M 11153,12625 L 11152,12730"/>
+          <path style="fill:none" d="M 11152,12809 L 11152,12817 11147,12914"/>
+          <path style="fill:none" d="M 11142,12993 L 11137,13098"/>
+          <path style="fill:none" d="M 11132,13177 L 11127,13281 11126,13282"/>
+          <path style="fill:none" d="M 11117,13360 L 11104,13464"/>
+          <path style="fill:none" d="M 11095,13543 L 11082,13647"/>
+          <path style="fill:none" d="M 11073,13725 L 11071,13745 11054,13829"/>
+          <path style="fill:none" d="M 11038,13906 L 11017,14009"/>
+          <path style="fill:none" d="M 11001,14086 L 10980,14189"/>
+          <path style="fill:none" d="M 10956,14264 L 10924,14364"/>
+          <path style="fill:none" d="M 10900,14440 L 10868,14540"/>
+          <path style="fill:none" d="M 10843,14615 L 10801,14711"/>
+          <path style="fill:none" d="M 10770,14783 L 10758,14809 10722,14877"/>
+          <path style="fill:none" d="M 10684,14946 L 10660,14991 10630,15036"/>
+          <path style="fill:none" d="M 10586,15101 L 10548,15158 10524,15186"/>
+          <path style="fill:none" d="M 10473,15247 L 10421,15309 10404,15325"/>
+          <path style="fill:none" d="M 10346,15379 L 10279,15442 10268,15450"/>
+          <path style="fill:none" d="M 10204,15495 L 10121,15554 10118,15556"/>
+          <path style="fill:none" d="M 10048,15592 L 9955,15641"/>
+          <path style="fill:none" d="M 9881,15668 L 9782,15702"/>
+          <path style="fill:none" d="M 9705,15722 L 9602,15742"/>
+          <path style="fill:none" d="M 9524,15755 L 9481,15758"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 10005,16875 L 9891,16670 10101,16661 10005,16875 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 7407,11640 L 7412,11745"/>
+          <path style="fill:none" d="M 7415,11824 L 7420,11929"/>
+          <path style="fill:none" d="M 7424,12008 L 7428,12113"/>
+          <path style="fill:none" d="M 7432,12191 L 7436,12283 7438,12296"/>
+          <path style="fill:none" d="M 7451,12374 L 7468,12478"/>
+          <path style="fill:none" d="M 7480,12556 L 7497,12659"/>
+          <path style="fill:none" d="M 7510,12737 L 7519,12794 7531,12840"/>
+          <path style="fill:none" d="M 7552,12916 L 7577,13006 7581,13017"/>
+          <path style="fill:none" d="M 7609,13091 L 7645,13190"/>
+          <path style="fill:none" d="M 7680,13261 L 7725,13355"/>
+          <path style="fill:none" d="M 7766,13423 L 7813,13499 7823,13511"/>
+          <path style="fill:none" d="M 7871,13574 L 7908,13622 7938,13654"/>
+          <path style="fill:none" d="M 7992,13712 L 8010,13730 8070,13783"/>
+          <path style="fill:none" d="M 8130,13834 L 8214,13896"/>
+          <path style="fill:none" d="M 8281,13938 L 8371,13992"/>
+          <path style="fill:none" d="M 8439,14033 L 8464,14048 8531,14083"/>
+          <path style="fill:none" d="M 8601,14119 L 8695,14167"/>
+          <path style="fill:none" d="M 8765,14204 L 8858,14252"/>
+          <path style="fill:none" d="M 8928,14289 L 8948,14300 9017,14344"/>
+          <path style="fill:none" d="M 9084,14386 L 9173,14442"/>
+          <path style="fill:none" d="M 9235,14490 L 9295,14538 9316,14557"/>
+          <path style="fill:none" d="M 9373,14612 L 9402,14639 9445,14688"/>
+          <path style="fill:none" d="M 9497,14748 L 9504,14755 9559,14833"/>
+          <path style="fill:none" d="M 9604,14898 L 9656,14989"/>
+          <path style="fill:none" d="M 9693,15058 L 9736,15154"/>
+          <path style="fill:none" d="M 9768,15226 L 9798,15327"/>
+          <path style="fill:none" d="M 9820,15403 L 9850,15503"/>
+          <path style="fill:none" d="M 9873,15579 L 9893,15647 9898,15681"/>
+          <path style="fill:none" d="M 9910,15759 L 9926,15863"/>
+          <path style="fill:none" d="M 9938,15941 L 9953,16045"/>
+          <path style="fill:none" d="M 9965,16123 L 9976,16192 9977,16227"/>
+          <path style="fill:none" d="M 9981,16306 L 9985,16411"/>
+          <path style="fill:none" d="M 9989,16490 L 9993,16595"/>
+          <path style="fill:none" d="M 9996,16673 L 9998,16707"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g style="stroke:none;fill:rgb(0,0,0)">
+          <path d="M 10160,17250 L 10063,17036 10272,17044 10160,17250 Z"/>
+        </g>
+        <g style="stroke:rgb(0,0,0);fill:none">
+          <path style="fill:none" d="M 9524,11428 L 9525,11533"/>
+          <path style="fill:none" d="M 9526,11612 L 9527,11717"/>
+          <path style="fill:none" d="M 9528,11796 L 9529,11901"/>
+          <path style="fill:none" d="M 9530,11980 L 9531,12085"/>
+          <path style="fill:none" d="M 9532,12164 L 9533,12269"/>
+          <path style="fill:none" d="M 9534,12348 L 9535,12453"/>
+          <path style="fill:none" d="M 9536,12532 L 9537,12637"/>
+          <path style="fill:none" d="M 9538,12716 L 9543,12821"/>
+          <path style="fill:none" d="M 9546,12900 L 9551,13005"/>
+          <path style="fill:none" d="M 9554,13084 L 9559,13188"/>
+          <path style="fill:none" d="M 9562,13267 L 9566,13372"/>
+          <path style="fill:none" d="M 9570,13451 L 9574,13556"/>
+          <path style="fill:none" d="M 9578,13635 L 9588,13740"/>
+          <path style="fill:none" d="M 9595,13818 L 9605,13923"/>
+          <path style="fill:none" d="M 9613,14001 L 9622,14106"/>
+          <path style="fill:none" d="M 9630,14185 L 9635,14245 9642,14289"/>
+          <path style="fill:none" d="M 9655,14367 L 9670,14462 9672,14470"/>
+          <path style="fill:none" d="M 9689,14548 L 9707,14630 9713,14650"/>
+          <path style="fill:none" d="M 9736,14725 L 9746,14757 9774,14823"/>
+          <path style="fill:none" d="M 9811,14893 L 9827,14920 9867,14974 9871,14979"/>
+          <path style="fill:none" d="M 9921,15040 L 9945,15068 9980,15125 9981,15126"/>
+          <path style="fill:none" d="M 10012,15198 L 10013,15200 10042,15299"/>
+          <path style="fill:none" d="M 10058,15376 L 10067,15421 10075,15480"/>
+          <path style="fill:none" d="M 10086,15558 L 10100,15662"/>
+          <path style="fill:none" d="M 10110,15741 L 10118,15845"/>
+          <path style="fill:none" d="M 10125,15924 L 10134,16029"/>
+          <path style="fill:none" d="M 10139,16107 L 10145,16212"/>
+          <path style="fill:none" d="M 10149,16291 L 10155,16396"/>
+          <path style="fill:none" d="M 10156,16475 L 10159,16580"/>
+          <path style="fill:none" d="M 10161,16659 L 10163,16764"/>
+          <path style="fill:none" d="M 10165,16843 L 10167,16948"/>
+          <path style="fill:none" d="M 10168,17027 L 10167,17083"/>
+        </g>
+        <g/>
+      </g>
+    </g>
+    <g>
+      <desc>Drawing</desc>
+      <g>
+        <g>
+          <g style="font-family:Times;font-size:847px">
+            <g style="stroke:none;fill:rgb(0,0,0)">
+              <text>
+                <tspan x="4051 4521 4758 5181 5418 5795 6007 6570 6993 7417 7654 8030 8454 8691 " y="18123">Style Contexts</tspan>
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
+</div>
+
+<div class="slide">
+<h1>Layout (and neighbors): Key Data Structures</h1>
+<dl>
+<dt>Content</dt>
+<dd>parse tree of markup</dd>
+<dt>Frames</dt>
+<dd>Rectangular formatting primitive</dd>
+<dt>Style contexts</dt>
+<dd>Computed style data</dd>
+<dt>Views</dt>
+<dd>Going away (z-order, compositing)</dd>
+<dt>Widgets</dt>
+<dd>Native windows (we want only one)</dd>
+</dl>
+</div>
+
+<div class="slide">
+<h1>Input (concepts)</h1>
+<ul>
+<li>content tree</li>
+<li>images, plugins, etc.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Input: Content tree</h1>
+<pre>&lt;doc&gt;
+  &lt;title&gt;A few quotes&lt;/title&gt;
+  &lt;para class="emph"&gt;
+    Franklin said that &lt;quote&gt;"A penny
+    saved is a penny earned."&lt;/quote&gt;
+  &lt;/para&gt;
+  &lt;para&gt;
+    FDR said &lt;quote&gt;"We have nothing to
+    fear but &lt;span class="emph"&gt;fear
+    itself.&lt;/span&gt;"&lt;/quote&gt;
+  &lt;/para&gt;
+&lt;/doc&gt;</pre>
+</div>
+
+<div class="slide">
+<h1>Input: Content tree</h1>
+  <table class="tree">
+  <tr><td colspan="2" /><td>doc</td><td colspan="2" /></tr>
+  <tr class="arrows"><td /><td>&#x2199;</td><td>&darr;</td><td>&#x2198;</td><td /></tr>
+  <tr><td>title</td><td /><td>para<br /><small>class="emph"</small></td><td /><td>para</td></tr>
+  <tr class="arrows"><td colspan="2" /><td>&darr;</td><td /><td>&darr;</td></tr>
+  <tr><td colspan="2" /><td>quote</td><td /><td>quote</td></tr>
+  <tr class="arrows"><td colspan="4" /><td>&darr;</td></tr>
+  <tr><td colspan="4" /><td>span<br /><small>class="emph"</small></td></tr>
+  </table>
+</div>
+
+<div class="slide">
+<h1>Input: Content Tree APIs</h1>
+<ul>
+<li>nsIContent, nsINode, etc. (internal; preferred)</li>
+<li>nsIDOM* (frozen)</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Output (concepts)</h1>
+<ul>
+<li>Calls to 2-D graphics API
+  <ul>
+    <li>translate, save, restore, fill rect, draw text, draw image, etc.</li>
+    <li>See vlad's talk</li>
+  </ul>
+</li>
+<li>Mapping from coordinates back to content nodes (e.g., for event handling)</li>
+<li>APIs for computed style and element positions</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Parts of Layout</h1>
+<ul>
+  <li>Style data computation</li>
+  <li>Frame construction</li>
+  <li>Reflow</li>
+  <li>Painting (and event handling)</li>
+  <li>Glue to hold things together</li>
+  <li>Other things on frame classes: selection, accessibility, etc.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Sources of style data</h1>
+<ul>
+  <li>nsIStyleSheet; nsIStyleRuleProcessor</li>
+  <li>nsIStyleRule</li>
+  <li>examples of implementations (CSS, mapped attributes)</li>
+  <li>selector matching done up-front</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Style context</h1>
+<ul>
+<li>The internal API for computed style data</li>
+<li>style structs</li>
+<li>lazily computed data</li>
+<li>immutable</li>
+<li>shared among siblings</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Rule tree</h1>
+
+  <table style="margin: auto;font-size:0.7em;" border="border">
+  <tr><td colspan="2">Rules:
+<pre>/* rule 1 */ doc { display: block; text-indent: 1em; }
+/* rule 2 */ title { display: block; font-size: 3em; }
+/* rule 3 */ para { display: block; }
+/* rule 4 */ [class="emph"] { font-style: italic; }</pre>
+  </td></tr>
+  <tr><td>Rule tree:<table class="tree">
+    <tr><td colspan="2" /><td colspan="3">A: null</td><td colspan="2" /></tr>
+    <tr class="arrows"><td /><td>&#x2199;</td><td>&darr;</td><td /><td>&darr;</td><td>&#x2198;</td><td /></tr>
+    <tr><td>B: 1</td><td /><td>C: 2</td><td style="width: 1em;" /><td>D: 3</td><td /><td>E: 4</td></tr>
+    <tr class="arrows"><td colspan="4" /><td>&darr;</td><td colspan="2" /></tr>
+    <tr><td colspan="4" /><td>F: 4</td><td colspan="2" /></tr>
+  </table></td>
+  <td>Style context tree:<table class="tree">
+    <tr><td colspan="2" /><td>doc: B</td><td colspan="2" /></tr>
+    <tr class="arrows"><td /><td>&#x2199;</td><td>&darr;</td><td>&#x2198;</td><td /></tr>
+    <tr><td>title: C</td><td /><td>para: F<br /><small>class="emph"</small></td><td /><td>para: D</td></tr>
+    <tr class="arrows"><td colspan="2"></td><td>&darr;</td><td /><td>&darr;</td></tr>
+    <tr><td colspan="2" /><td>quote: A</td><td /><td>quote: A</td></tr>
+    <tr class="arrows"><td colspan="4" /><td>&darr;</td></tr>
+    <tr><td colspan="4" /><td>span: E<br /><small>class="emph"</small></td></tr>
+  </table></td>
+  </tr>
+  </table>
+
+
+</div>
+
+<div class="slide">
+<h1>Frames</h1>
+<ul>
+<li>Bad name: CSS "box", "rendering object"</li>
+<li>nsIFrame interface</li>
+<li>internal</li>
+<li>XUL: nsIBox, nsIBoxLayout</li>
+<li>tree structure, using linked lists of children</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Examples of frame classes</h1>
+<ul>
+<li>nsBlockFrame</li>
+<li>nsInlineFrame</li>
+<li>nsTableRowFrame</li>
+<li>nsViewportFrame</li>
+<li>nsGfxScrollFrame</li>
+<li>nsBoxFrame, nsLeafBoxFrame</li>
+<li>nsSVGOuterSVGFrame</li>
+<li><em>many</em> more</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Frame construction</h1>
+<ul>
+<li>nsCSSFrameConstructor.cpp
+  <ul>
+    <li>Also has some frame initialization code that could be refactored</li>
+  </ul>
+</li>
+<li>Based on element name or style data</li>
+<li>Recursive, but need not start at top</li>
+<li>Most often done in response to nsIDocumentObserver notifications</li>
+<li>frame→content pointers, content→frame hashtable</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Continuations</h1>
+<ul>
+<li>line breaking</li>
+<li>page breaking</li>
+<li>bidirectional text</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Continuations</h1>
+<table border="border">
+<tr><td><pre>&lt;p&gt;text &lt;span&gt;with
+line&lt;/span&gt; breaks&lt;/p&gt;</pre></td></tr>
+<tr><td style="line-height:1.5">text <span style="background:#CC0;color:black">with<br />
+line</span> breaks</td></tr>
+<tr><td><pre>&lt;Block&gt;text &lt;Inline(1)&gt;with&lt;/Inline(1)&gt;
+&lt;Inline(2)&gt;line&lt;/Inline(2)&gt; breaks&lt;/Block&gt;</pre></td></tr>
+</table>
+</div>
+
+<div class="slide">
+<h1>Continuations</h1>
+<p>(diagram from <a href="http://wiki.mozilla.org/Gecko:Continuation_Model">continuation model</a>)</p>
+<pre>    Root                      Root
+     |                       / |  \ 
+     A                     A1  A2  A3
+    / \                   / |  |    |
+   B   C                 B  C1 C2   C3
+   |  /|\                |  |  | \   |
+   D E F G               D  E  F G1  G2</pre>
+</div>
+
+<div class="slide">
+<h1>Generated content</h1>
+<p>(Differences between frame and content trees, #1.)</p>
+<table border="border">
+<tr><td colspan="2"><pre>&lt;p&gt;World&lt;/p&gt;</pre></td></tr>
+<tr><td colspan="2"><pre style="white-space: -moz-pre-wrap; white-space: pre-wrap">p:before { display: inline; content: url(icon.png) "Hello"; }</pre></td></tr>
+<tr>
+<td>
+  <table class="tree">
+  <tr><td>p</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>"World"</td></tr>
+  </table>
+</td>
+<td>
+  <table class="tree">
+  <tr><td colspan="2" /><td>Block(p)</td><td colspan="2" /></tr>
+  <tr class="arrows"><td colspan="2" /><td>&darr;</td><td>&#x2198;</td><td /></tr>
+  <tr><td colspan="2" /><td>Inline(p:before)</td><td /><td>Text<br /><small>"World"</small></td></tr>
+  <tr class="arrows"><td /><td>&#x2199;</td><td>&darr;</td><td colspan="2" /></tr>
+  <tr><td>Image</td><td /><td>Text<br /><small>"Hello"</small></td><td colspan="2" /></tr>
+  </table>
+</td>
+</tr></table>
+</div>
+
+<div class="slide">
+<h1>XBL</h1>
+<p>(Differences between frame and content trees, #2.)</p>
+<ul>
+  <li>XBL interleaves "anonymous" content with content tree</li>
+  <li>Frame tree matches the "flattened" (interleaved) content tree</li>
+  <li>XTF similar</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Floats and absolute positioning</h1>
+<p>(Differences between frame and content trees, #3.)</p>
+<ul>
+  <li>floats and absolutely positioned elements (and some others) are "out of flow"</li>
+  <li>placed at a different place in the frame tree than they are in the content tree</li>
+  <li>a <dfn>placeholder frame</dfn> is placed where they would have been with a pointer</li>
+  <li>The frame manager has a hashtable for the reverse (out of flow -> placeholder) mapping</li>
+  <li>multiple child lists</li>
+  <li>float ends up in additional child list of its containing block</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Floats and absolute positioning</h1>
+<p>(Differences between frame and content trees, #3.)</p>
+<table border="border">
+<tr><td><pre>&lt;p&gt;This is a document with &lt;span&gt;some
+markup and a floating &lt;img align="left"
+src="icon.png"&gt; image&lt;/span&gt; in it.&lt;/p&gt;</pre></td></tr>
+<tr><td>
+<p>This is a document with <span style="background:yellow;color:black">some<br/>
+markup and a floating <img align="left"
+src="http://lxr.mozilla.org/mozilla/source/browser/branding/unofficial/mozicon128.png?raw=1" /> image</span> in<br /> it.  Blah blah blah <br/>blah blah blah<br/>blah blah blah<br/>blah blah blah<br/>blah blah blah blah blah.</p>
+</td></tr>
+</table>
+</div>
+
+<div class="slide">
+<h1>Extra frames</h1>
+<p>(Differences between frame and content trees, #4.)</p>
+<ul>
+  <li>table</li>
+  <li>table cell</li>
+  <li>scroll frame</li>
+  <li>viewport</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Extra frames</h1>
+<p>(Differences between frame and content trees, #4.)</p>
+<table border="border" cellpadding="20">
+<tr>
+<td>
+  <table class="tree">
+  <tr><td>table</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>tbody</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>tr</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>td</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>"Cell"</td></tr>
+  </table>
+</td>
+<td>
+  <table class="tree">
+  <tr><td>TableOuter(table)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>Table(table)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>TableRowGroup(tbody)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>TableRow(tr)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>TableCell(td)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>Block(td)</td></tr>
+  <tr class="arrows"><td>&darr;</td></tr>
+  <tr><td>"Cell"</td></tr>
+  </table>
+
+</td>
+</tr></table>
+</div>
+
+<div class="slide">
+<h1>Reflow</h1>
+<ul>
+<li>Computing coordinates (top, left, width, height) for frames</li>
+<li>top and left relative to parent</li>
+<li>Recursive, starting from top of tree or reflow roots</li>
+<li>frames that are also boxes use Layout instead
+  <ul>
+    <li>box→block glue in in nsFrame::DoLayout, GetPrefSize, etc.</li>
+    <li>block→box glue in nsBoxFrame::Reflow, nsLeafBoxFrame::Reflow</li>
+  </ul>
+</li>
+<li>usually off the main event loop</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Intrinsic sizes</h1>
+<table style="background:yellow;color:black;font-size:2em;border:1px solid;margin:0.5em;" cellpadding="0" cellspacing="0">
+<tr><td>preferred width</td></tr>
+</table>
+</div>
+
+<div class="slide">
+<h1>Intrinsic sizes</h1>
+<table style="background:yellow;color:black;font-size:2em;border:1px solid;margin:0.5em;" cellpadding="0" cellspacing="0" width="1">
+<tr><td>minimum width</td></tr>
+</table>
+</div>
+
+<div class="slide">
+<h1>Intrinsic sizes</h1>
+<ul>
+<li>non-boxes have GetMinWidth, GetPrefWidth
+<ul>
+<li>Separate methods for inline layout</li>
+</ul>
+</li>
+<li>boxes have GetMinSize, GetPrefSize, GetMaxSize</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Reflow</h1>
+<ul>
+<li>nsHTMLReflowState is input</li>
+<li>nsHTMLReflowMetrics is output</li>
+<li>caller of Reflow responsible for setting the rect to the size in the reflow metrics</li>
+<li>Designed for traditional-style layout (widths input, heights output)</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Breaking</h1>
+<ul>
+<li>lines, columns, pages</li>
+<li>Breaking done by propagating break-before or break-after status out of reflow</li>
+<li>Caller responsible for creating next-in-flow and propagating status</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Incremental layout</h1>
+<ul>
+<li>bits: is dirty, has dirty children</li>
+<li>intrinsic widths can be marked as dirty too (and are, up &amp; down)</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Box Layout</h1>
+<ul>
+<li>Parent sizes box first (based on intrinsic sizes, flex, etc.), then calls Layout</li>
+<li>much of the work done by an nsIBoxLayout object (sprocket, stack/deck)</li>
+<li>grid, tree more complicated</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Painting</h1>
+<ul>
+<li>Painting initiated from paint event in widget code</li>
+<li>View manager tells pres shell to paint root frame for each of the layers requiring compositing or other special handling</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Painting (in Layout)</h1>
+<ul>
+<li>BuildDisplayList method builds a display list for the frames in a
+clip rect or at a point</li>
+<li>we then paint the needed items in the list from bottom-most to
+top</li>
+<li>views mostly vestigial</li>
+<li>usually off the main event loop</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Painting: BuildDisplayList</h1>
+<ul>
+<li>Recursive, starting from root
+  <ul>
+    <li>will soon cross parent/child presentations, if it doesn't already</li>
+  </ul>
+</li>
+<li>Only adds items that are in the clip rect / at the event's point</li>
+<li>Single recursive call to build lists for a multi-pass algorithm</li>
+<li>Various display items added to display list, for painting things like
+  <ul>
+    <li>background</li>
+    <li>border</li>
+    <li>text</li>
+  </ul>
+</li>
+<li>Read CSS2.1 Appendix E for requirements</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Invalidation</h1>
+<ul>
+  <li>Reflow invalidates regions that need to be repainted</li>
+  <li>We don't have a good sense of what the rules are, and they'll hopefully change soon</li>
+  <li>maximum containing rectangle or each rectangle separately?</li>
+</ul>
+</div>
+
+<!--
+<div class="slide">
+<h1>Paint order</h1>
+<div style="background: aqua;height:4em;"><div style="background: yellow; float: left; width: 5em; height: 1.6em;margin:0.3em;">float</div>
+  <div style="text-indent: -1em"><span style="background:lime">Block</span> with text<br/>that wraps<br/>around the float.</div>
+</div>
+</div>
+-->
+
+<div class="slide">
+<h1>Painting</h1>
+<ul>
+  <li>Display list optimized to avoid painting things underneath fully opaque things, etc.</li>
+  <li>Paint bottom-to-top, using 2-D graphics API</li>
+  <li>Usually from system paint events</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Mouse event handling</h1>
+<ul>
+<li>point &larr; frame mapping must use paint order</li>
+<li>so we use the same display list</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Reasons to optimize dynamic changes</h1>
+<ul>
+<li>Incremental page loading</li>
+<li>Small changes should take smaller amounts of time (DOM manipulation,
+editing)</li>
+<li>resizing</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Dynamic changes: content changes</h1>
+<ul>
+<li>document observer notifications trigger frame destruction/construction</li>
+<li>incremental reflow</li>
+<li>repaint invalidated region</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Dynamic changes: attribute and event state changes</h1>
+<ul>
+<li><code>document .getElementById("ok-button") .removeAttribute("disabled");</code></li>
+<li>Changes to :hover, :checked, :link (vs. :visited)</li>
+<li>Style system makes a somewhat (not very) conservative approximation for whether something might have changed</li>
+<li>Worth doing as much work as selector matching since it's not the whole subtree</li>
+<li>If a change, processed as a style change</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Dynamic changes: style changes</h1>
+<ul>
+<li><code>document .getElementById("foo") .style .color = "green";</code></li>
+<li>style changes caused by attribute or event state changes</li>
+</ul>
+<ul>
+<li>rerun rule matching on <em>subtree</em></li>
+<li>recursively compare data in old and new style contexts</li>
+<li>hints (applying to subtree): frame reconstruction, reflow, repaint, etc.</li>
+</ul>
+</div>
+
+</body>
+</html>

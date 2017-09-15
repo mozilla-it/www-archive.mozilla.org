@@ -1,0 +1,393 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+	<title>Gecko Plugin Technote: CFM plugins are not scriptable under
+Mach-O built browsers</title>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+
+
+
+<h1>Gecko Plugin Technote</h1>
+
+<h2>Summary</h2>
+<p>Plugins built as CFM libraries are not scriptable under Mach-O built browsers</p>
+
+<p>Created on: 11/1/02</p>
+
+<p>Last changed: 3/26/03</p>
+
+<p>Author: Peter Lubczynski</p>
+
+<h3>Platform</h3>
+<p>Mac OSX</p>
+
+<h3>Browsers not affected</h3>
+Mozilla 1.2 and earlier
+Netscape 7.x, 6.x
+
+<h3>Browsers affected:</h3>
+Mozilla 1.3, Camino, and other applications which use Gecko based
+versions of Mozilla 1.3 and later.
+
+<h2>Background</h2>
+<p>
+Mozilla on Mac OS X can be built in two different
+<a href="http://developer.apple.com/techpubs/macosx/Essentials/SystemOverview/InverEnvironissues/chapter_14_section_18.html">executable formats</a>.
+Versions prior to 1.3, and applications based on them such
+as Netscape 7, used the legacy CFM format, built with Metrowerks CodeWarrior.
+With Mozilla 1.3, we moved to a Mach-O build, built with gcc 3.1, for the
+benefits of improved runtime performance, true pre-emptive threads, and a more easily
+maintained build system.
+</p>
+<p>
+The executable format of the browser is of relevance to the plugin,
+since NPAPI plugins can be made scriptable in Mozilla with
+<a href="http://www.mozilla.org/scriptable/index.html">XPConnect</a>
+through <a href="http://www.mozilla.org/projects/plugins/scripting-plugins.html"><code>nsIClassInfo/NPP_GetValue</code></a>.
+This technique exposes C++ interfaces implemented in the plugin to the browser,
+and, possibly, vice versa.
+</p>
+
+<h2>Problems</h2>
+<p>
+The Mach-O and CFM formats use different calling conventions when calling though
+function pointers. CFM uses TVectors while Mach-O uses function pointers. See
+<a href="http://developer.apple.com/techpubs/macosx/Essentials/SystemOverview/InverEnvironissues/chapter_14_section_18.html">this page</a> for more information.
+</p>
+
+<p>In addition, the C++ ABI (application binary interface) is different between
+CFM and Mach-O, and also changed between gcc2 and gcc3. Both the layout of vtables,
+and name mangling changed. This implies that scriptable plugins must be compiled
+with a compiler whose C++ ABI matches that of the browser, since the browser calls
+into C++ code of the plugin directly, and the plugin can obtain and call C++ interfaces
+of the browser.
+</p>
+
+<h2>Work around</h2>
+<p>
+No changes need to be made for simple NPAPI plugins that don't require
+scriptability. Mach-O browsers can load CFM code fragments, either as
+standalone shared libraries, or, preferably, packaged into a bundle
+(using the CFBundle API). Also, since the NPAPI uses simple C functions passed through a table, a
+Mach-O built browser is able to translate NPP plugin CFM TVectors into
+regular function pointers and NPN browser functions pointers into
+TVectors. This allows for CFM plugins that only use the NPAPI to work
+under Mach-O built browsers without being recompiled.
+</p>
+<p>
+Scriptable plugins will need to be recompiled in full, or in part, to work with
+Mach-O browsers. See below for more details.
+</p>
+
+<h2>Mach-O plugins and the NPAPI</h2>
+<p>
+For compatibility, the NPAPI still uses TVectors in the function table.
+When recompiling your plugin for Mach-O, be sure to expect the NPAPI
+function table in the right format. You can use the macros <code>PLUGIN_TO_HOST_GLUE</code> and <code>HOST_TO_PLUGIN_GLUE</code> to assist in
+converting the functions passed in the tables in your <code>main</code> function.
+Here is some glue code from the <a href="http://lxr.mozilla.org/seamonkey/source/modules/plugin/samples/default/mac/npmac.cpp">Default Plugin</a>:
+</p>
+<pre>
+#if TARGET_RT_MAC_MACHO
+
+// glue for mapping outgoing Macho function pointers to TVectors
+struct TFPtoTVGlue{
+    void* glue[2];
+};
+
+struct {
+    TFPtoTVGlue     newp;
+    TFPtoTVGlue     destroy;
+    TFPtoTVGlue     setwindow;
+    TFPtoTVGlue     newstream;
+    TFPtoTVGlue     destroystream;
+    TFPtoTVGlue     asfile;
+    TFPtoTVGlue     writeready;
+    TFPtoTVGlue     write;
+    TFPtoTVGlue     print;
+    TFPtoTVGlue     event;
+    TFPtoTVGlue     urlnotify;
+    TFPtoTVGlue     getvalue;
+    TFPtoTVGlue     setvalue;
+
+    TFPtoTVGlue     shutdown;
+} gPluginFuncsGlueTable;
+
+static inline void* SetupFPtoTVGlue(TFPtoTVGlue* functionGlue, void* fp)
+{
+    functionGlue->glue[0] = fp;
+    functionGlue->glue[1] = 0;
+    return functionGlue;
+}
+
+#define PLUGIN_TO_HOST_GLUE(name, fp) (SetupFPtoTVGlue(&gPluginFuncsGlueTable.name, (void*)fp))
+
+// glue for mapping netscape TVectors to Macho function pointers
+struct TTVtoFPGlue {
+    uint32 glue[6];
+};
+
+struct {
+    TTVtoFPGlue             geturl;
+    TTVtoFPGlue             posturl;
+    TTVtoFPGlue             requestread;
+    TTVtoFPGlue             newstream;
+    TTVtoFPGlue             write;
+    TTVtoFPGlue             destroystream;
+    TTVtoFPGlue             status;
+    TTVtoFPGlue             uagent;
+    TTVtoFPGlue             memalloc;
+    TTVtoFPGlue             memfree;
+    TTVtoFPGlue             memflush;
+    TTVtoFPGlue             reloadplugins;
+    TTVtoFPGlue             getJavaEnv;
+    TTVtoFPGlue             getJavaPeer;
+    TTVtoFPGlue             geturlnotify;
+    TTVtoFPGlue             posturlnotify;
+    TTVtoFPGlue             getvalue;
+    TTVtoFPGlue             setvalue;
+    TTVtoFPGlue             invalidaterect;
+    TTVtoFPGlue             invalidateregion;
+    TTVtoFPGlue             forceredraw;
+} gNetscapeFuncsGlueTable;
+
+static void* SetupTVtoFPGlue(TTVtoFPGlue* functionGlue, void* tvp)
+{
+    static const TTVtoFPGlue glueTemplate = { 0x3D800000, 0x618C0000, 0x800C0000, 0x804C0004, 0x7C0903A6, 0x4E800420 };
+
+    memcpy(functionGlue, &glueTemplate, sizeof(TTVtoFPGlue));
+    functionGlue->glue[0] |= ((UInt32)tvp >> 16);
+    functionGlue->glue[1] |= ((UInt32)tvp & 0xFFFF);
+    ::MakeDataExecutable(functionGlue, sizeof(TTVtoFPGlue));
+    return functionGlue;
+}
+
+#define HOST_TO_PLUGIN_GLUE(name, fp) (SetupTVtoFPGlue(&gNetscapeFuncsGlueTable.name, (void*)fp))
+
+#else
+
+#define PLUGIN_TO_HOST_GLUE(name, fp) (fp)
+#define HOST_TO_PLUGIN_GLUE(name, fp) (fp)
+
+#endif /* TARGET_RT_MAC_MACHO */
+
+#ifdef __GNUC__
+// gcc requires that main have an 'int' return type
+int main(NPNetscapeFuncs* nsTable, NPPluginFuncs* pluginFuncs, NPP_ShutdownUPP* unloadUpp);
+#else
+NPError main(NPNetscapeFuncs* nsTable, NPPluginFuncs* pluginFuncs, NPP_ShutdownUPP* unloadUpp);
+#endif
+
+#ifdef __GNUC__
+DEFINE_API_C(int) main(NPNetscapeFuncs* nsTable, NPPluginFuncs* pluginFuncs, NPP_ShutdownUPP* unloadUpp)
+#else
+DEFINE_API_C(NPError) main(NPNetscapeFuncs* nsTable, NPPluginFuncs* pluginFuncs, NPP_ShutdownUPP* unloadUpp)
+#endif
+{
+  ...
+  gNetscapeFuncs.version      = nsTable->version;
+  gNetscapeFuncs.size         = nsTable->size;
+  gNetscapeFuncs.posturl      = (NPN_PostURLUPP)HOST_TO_PLUGIN_GLUE(posturl, nsTable->posturl);
+  gNetscapeFuncs.geturl       = (NPN_GetURLUPP)HOST_TO_PLUGIN_GLUE(geturl, nsTable->geturl);
+  ...
+  pluginFuncs->version        = (NP_VERSION_MAJOR << 8) + NP_VERSION_MINOR;
+  pluginFuncs->size           = sizeof(NPPluginFuncs);
+  pluginFuncs->newp           = NewNPP_NewProc(PLUGIN_TO_HOST_GLUE(newp, Private_New));
+  pluginFuncs->destroy        = NewNPP_DestroyProc(PLUGIN_TO_HOST_GLUE(destroy, Private_Destroy));
+  ...
+
+  *unloadUpp = NewNPP_ShutdownProc(PLUGIN_TO_HOST_GLUE(shutdown, Private_Shutdown));
+}
+</pre>
+
+<h2>Scripting Solution</h2>
+
+<p>
+If your plugin wishes to support XPConnect
+scripting, we are not able to fix up C++ objects of different ABIs.
+New values for <code>NPPVpluginScriptableInstance</code> are generated in Mach-O builds so that older CFM plugins do not hand
+back incompatible objects 
+</p>
+
+<p>
+A possible workaround to the problem of supporting both types of Mac OS X
+browsers in a single plugin is that a plugin can choose to have a second
+library located in their bundle just implementing their scripting
+interface and compiled for the opposite format. When a Mach-O browser
+makes a request for the pointer to the scripting interface class through
+<code>NPP_GetValue</code>, the plugin can dynamically load the second library and
+proxy that request with the glue code above.
+</p>
+<p>
+The first step in making a backwards compatible scripting plugin is
+creating a separate library to be compiled by the alternate compiler.
+You'll need to re-implement your <code>nsIClassInfo</code> scripting class and then
+export a C function for calling its constructor such as:
+</p>
+
+<pre>
+class nsScriptingPeer : public nsIClassInfo,
+                        public acmeIScriptingInterface
+
+extern "C" void * PLUGIN_GetScriptablePeer()
+{
+  nsScriptablePeer *raw = new nsScriptablePeer();
+  if (raw)
+    raw->AddRef();
+  return raw;
+}
+</pre>
+<p>
+Since you are separating libraries, you may also want to pass in the
+browser's memory allocator and other NPN functions for use by script
+callbacks. Recall these have been wrapped with TVector glue code and are
+only valid while your plugin is loaded. If you have any callbacks into
+your plugin, you'll need to take note of the ABI and factor as needed.
+</p>
+<p>
+You'll want to package this library in a <a href="http://developer.apple.com/techpubs/macosx/Essentials/SystemOverview/Bundles/index.html">bundle</a> so that you plugin
+appears as a single item in the Finder. Recall that on Mac OS X, a bundle is
+really a set of directories.
+Quicktime and the MRJPlugin are bundles. Place your second scripting
+library in a folder in the bundle.
+</p>
+<p>
+Next, your plugin's <code>NPP_GetValue</code>
+will need to detect browsers of the alternate ABI. A different numerical
+value will be used for <code>NPPVpluginScriptableInstance</code>.
+You can determine what ABI is needed by xor or and'ing with <code>NP_ABI_GCC3_MASK</code> and <code>NP_ABI_MACHO_MASK</code>. Be sure you
+have the updated npapi.h.
+For example, a Mach-O plugin can detect a CFM browser with:
+</p>
+<pre>
+(NPPVpluginScriptableInstance ^ (NP_ABI_GCC3_MASK | NP_ABI_MACHO_MASK))
+</pre>
+<p>
+You can then use GetDiskFragment to dynamically load the library:
+</p>
+<pre>
+myErr = GetDiskFragment(&myFSSpec, 0, kCFragGoesToEOF, lib, 
+               kReferenceCFrag, &myConnID, (Ptr*)&myMainAddr, 
+               myErrName);
+</pre>
+<p>
+You'll then need to locate your exported C function in the second library:
+</p>
+<pre>
+typedef void *(*PLUG_GetScriptablePeer_func)();
+PLUGIN_GetScriptablePeer_func getPeer;
+
+myErr = FindSymbol(myConnID, "\pPLUGIN_GetScriptablePeer", &getPeer, &symClass);
+</pre>
+<p>
+Then this C function needs to be wrapped in one of the glue code <code>HOST_TO_PLUGIN</code>
+or <code>PLUGIN_TO_HOST</code> macros used for
+the NPP or NPN functions above so that it can be called by code compiled
+with the other compiler. Anytime you go between CFM or Mach-O boundries
+like this, you'll need to use glue code. Finally, call this function to
+instantiate your class and pass back the resulting pointer to the
+browser. Since this is a reference counted object, it will be destroyed
+automatically.
+</p>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified May 27,  2003</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/plugins/plugin_scripting_ABI_technote.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,613 @@
+<HTML>
+<head>
+<title>DOM1, DOM2, CSS - DynaTable-Light demonstration</title>
+<script>
+	////////////////////////////////////////////////////////////////////////////
+	// DynaTable version 1.0
+	//
+	// Produced by Marcio Galli for Netscape Communications.
+	//
+	// Basic DOM/JS-based demonstration to dynamically create and remove table cells,
+	// edit content, and set table properties. This demonstration uses DOM Core
+	// Level 1 to create, remove and edit HTML elements dynamically. Also uses
+	// DOM Level 2 Event Model to support mouse events like cell selection and
+	// table positioning (drag).
+	//
+	// References:
+	// 
+	// http://www.mozilla.org/docs/dom/technote/tn-dom-table/index.html
+	// http://dmoz.org/Computers/Programming/Languages/JavaScript/W3C_DOM/
+	// http://developer.iplanet.com/viewsource/goodman_w3c/goodman_w3c.html
+	// http://www.geckonnection.com
+	//
+
+	global_selectedNode=null;		// GLOBAL VARIABLE to store the selected
+						// node. 
+
+	////////////////////////////////////////////////////////////////////////////
+	// dd_dynatable - constructor
+	//
+	// This method creates the table as a child of the body element. The table 
+	// is initialized with one cell. It uses DOM1.
+	//
+	function dd_dynatable() {
+
+		// The following structure is created:
+		//
+		//  editcanvas*
+		//    |
+		//    +---table
+		//          |
+		//          +---tbody
+		//                |
+		//                +---tr
+		//                     |
+		//                     +---td
+		//                          |
+		//                          +---#text
+		//     
+
+		// * - Editcanvas already exists in the document. 
+		// See HTML in the end of this file. 
+	
+		// Creates separated nodes.
+		//
+		mytable=document.createElement("TABLE");
+		mytableBody=document.createElement("TBODY");
+		mycurrentRow=document.createElement("TR");
+		mycurrentCell=document.createElement("TD");
+		mycurrentText=document.createTextNode("a generic text");
+
+		// Appends each node following the structure.
+		//		
+		mycurrentCell.appendChild(mycurrentText);
+		mycurrentRow.appendChild(mycurrentCell);
+		mytableBody.appendChild(mycurrentRow);
+		mytable.appendChild(mytableBody);
+
+		// mybody receives editcanvas object. 
+		// 
+		mybody=document.getElementById("editcanvas");
+
+		// Adds beginDrag as event listener for mousedown events
+		// over mybody (editcanvas div).
+		//
+		mybody.addEventListener("mousedown",beginDrag, false);
+
+		// Appends mytable object tree as a child of mybody.
+		//
+		mybody.appendChild(mytable);
+
+		// Sets table border to 2.
+		//
+		mytable.setAttribute("border","2");
+
+		// Assigns global_selectedNode with mycurrentText. 
+		// This way, the default selected text is the first 
+		// cell's text. 
+
+		global_selectedNode=mycurrentText;
+
+		//-------------------------------------------
+		// DOM 2 - Usage of addEventListener method
+		//-------------------------------------------
+		// Add refreshContent function as event handler to 
+		// receive mousedown events. This way, each time the user clicks
+		// the mouse over mycurrentCell node, refreshContent will be
+		// called and event context information (Event object) will be
+		// passed as arguments. 
+		//
+		mycurrentCell.addEventListener("mousedown",refreshContent, false);
+		
+		mycurrentCell.setAttribute("bgcolor","cyan");
+
+		//-------------------------------------------
+		// Internal dd_dynatable attributes
+		// 
+		this.cursorx=0;			// X position for selected cell.
+		this.cursory=0;			// Y position for selected cell.
+		this.mytablebody=mytableBody; 	// Stores mytablebody for later use.
+		this.cols=1;			// Number of cols.
+		this.rows=1;			// Number of rows.
+
+		this.createrow       = dd_dynatable_createrow;    // Method assignment.
+		this.createcol       = dd_dynatable_createcol;    // Method assignment.
+		this.removerow       = dd_dynatable_removerow;    // Method assignment.
+		this.removecol       = dd_dynatable_removecol;    // Method assignment.
+		this.putcontent      = dd_dynatable_putcontent;   // Method assignment.
+		this.updateSelected  = dd_findSelectedCell;       // Method assignment.
+
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+	// DD API - dd dynatable method
+	// do not modify
+	// This method creates a row after the current row, based on the current selected cell. 
+	//
+	// Note: this method uses this.cursorx and this.cursory attributes. 
+	//
+	function dd_dynatable_createrow() {
+
+		// Creates a new row element with #this.cols cells inside.
+		//	
+		mycurrent_row=document.createElement("TR");
+
+		// For the number of columns of the table...
+		for(i=0;i<this.cols;i++) {
+
+			// Creates a TD element. 
+			mycurrent_cell=document.createElement("TD");
+
+			// Creates a text node object using the form's textfield as text value. 
+			//
+			currenttext=document.createTextNode(document.forms[0].tarea.value);
+
+			// Add refreshContent function as event handler to 
+			// receive mousedown events. 
+			//
+			mycurrent_cell.addEventListener("mousedown",refreshContent, false);
+
+			// Makes assignments: currenttext as a child of cell and cell as 
+			// a child of row. 
+			mycurrent_cell.appendChild(currenttext);
+			mycurrent_row.appendChild(mycurrent_cell);
+
+		}
+
+		// Call to dd_findSelectedCell to find the position of the 
+		// current selected cell. 
+		this.updateSelected();		// updateSelected write the row and 	
+						// column position of the selected 
+						// cell in the this.cursorx and 
+						// this.cursory attributes. 
+
+
+		// Now appending the created row (mycurrent_row) in the table. 
+
+		if(this.cursorx<(this.rows-1)) {
+			// Appends this row before the next row based on the current selected 
+			// node position.
+			//
+			myTRs=this.mytablebody.getElementsByTagName("TR");
+			lastTR=myTRs.item(this.cursorx+1);
+			this.mytablebody.insertBefore(mycurrent_row,lastTR);
+			
+		} else {
+			// If the current selected node is inside the last 
+			// row, it uses appendChild to append it to the end of the child 
+			// list. 
+			this.mytablebody.appendChild(mycurrent_row);
+		}
+		this.rows++;		// Updates the row number attribute.
+	}	
+
+	////////////////////////////////////////////////////////////////////////////
+	// DD API - dd dynatable method
+	// do not modify
+	// This method creates a column right after the next cell based on the 
+	// current selected cell. 
+	//
+	function dd_dynatable_createcol() {
+		
+		// Call to dd_findSelectedCell to find the position of the 
+		// current selected cell. 
+		this.updateSelected();		// updateSelected writes the row and 	
+						// column position of the selected 
+						// cell in the this.cursorx and 
+						// this.cursory attributes. 
+
+		for(i=0;i<this.rows;i++) {
+
+			// Creates a TD element 
+			mycurrent_cell=document.createElement("TD");
+
+			// Creates a text node object using the form's textfield
+			// as text value. 
+			//
+			currenttext=document.createTextNode(document.forms[0].tarea.value);
+
+			// Assigns currenttext as a child of mycurrent_cell
+			mycurrent_cell.appendChild(currenttext);
+
+			// Add refreshContent function as event handler to 
+			// receive mousedown events. 
+			//
+			mycurrent_cell.addEventListener("mousedown",refreshContent, false);			
+
+			// Now appending the created cell (mycurrent_cell) in 
+			// next right to the selected column.
+			//
+			if(this.cursory<(this.cols-1)) {
+				// Inserts each cell before the next cell based on the 
+				// current selected cell. 
+				//
+				myTRs=this.mytablebody.getElementsByTagName("TR");
+				currentTR=myTRs.item(i);
+				myTDs=currentTR.getElementsByTagName("TD");
+				nextTD=myTDs.item(this.cursory+1);
+				currentTR.insertBefore(mycurrent_cell,nextTD);
+			} else {
+				// If the current selected cell is in the last 
+				// column, then append the child to the 
+				// end. 
+				//
+				myTRs=this.mytablebody.getElementsByTagName("TR");
+				currentTR=myTRs.item(i);
+				currentTR.appendChild(mycurrent_cell);
+			}
+		}
+		this.cols++;		// Updates the col number attribute.
+	}	
+
+
+	////////////////////////////////////////////////////////////////////////////
+	// DD API - dd dynatable method
+	// do not modify
+	// This method removes a row which contains the current selected cell. 
+	//
+	function dd_dynatable_removerow() {
+
+		// Call to dd_findSelectedCell to find the position of the 
+		// current selected cell. 
+		this.updateSelected();		// updateSelected writes the row and 	
+						// column position of the selected 
+						// cell in the this.cursorx and 
+						// this.cursory attributes. 
+
+		myTRs=this.mytablebody.getElementsByTagName("TR");
+
+		// Finds the item (selected X)
+
+		currentTR=myTRs.item(this.cursorx);
+
+		// Removes the element 
+		this.mytablebody.removeChild(currentTR);
+
+		// Updates the row attribute. 
+		this.rows--;
+	}	
+
+	////////////////////////////////////////////////////////////////////////////
+	// DD API - dd dynatable method
+	// do not modify
+	// This method removes a column which contains the current selected cell. 
+	//
+	function dd_dynatable_removecol() {
+
+		// Call to dd_findSelectedCell to find the position of the 
+		// current selected cell. 
+
+		this.updateSelected();		// updateSelected writes the row and 	
+						// column position of the selected 
+						// cell in the this.cursorx and 
+						// this.cursory attributes. 
+		
+		// For each row, remove a TD.
+		for(i=0;i<this.rows;i++) {
+
+			// Stores in currentTR the current TR object for each row. 
+			//
+			myTRs=this.mytablebody.getElementsByTagName("TR");
+			currentTR=myTRs.item(i);
+
+			myTDs=currentTR.getElementsByTagName("TD");
+
+			// oldTD assigns the TD in the same column of the selected cell. 
+			//
+
+			oldTD=myTDs.item(this.cursory);
+
+			// Removes the oldTD from the currentTD.
+
+			currentTR.removeChild(oldTD);
+		}
+
+		// Updates the columns number attribute.
+		this.cols--;
+	}	
+
+	////////////////////////////////////////////////////////////////////////////
+	// DD API - dd dynatable method
+	// do not modify
+	//
+	function dd_findSelectedCell() {
+		// This method is a Tree Walker: 
+		// 
+		// It walks the table tree to find the position of the selected 
+		// cell (global_selectedNode.parentNode) and stores the result
+		// in the this.cursorx and this.cursory attributes.
+		//
+
+		// Marks the selected cell with an attribute and a value.
+
+		selectedTD=global_selectedNode.parentNode;
+		selectedTD.setAttribute("mark","mark");
+
+		// walks the table tree looking for the mark.
+
+		myTRs=this.mytablebody.getElementsByTagName("TR");
+		foundx=0;
+		foundy=0;
+		for(i=0;i<myTRs.length;i++) {
+			currentTR=myTRs.item(i);
+			myTDs=currentTR.getElementsByTagName("TD");
+			for(j=0;j<myTDs.length;j++) {
+				currentTD=myTDs.item(j);
+				temp=currentTD.getAttributeNode("mark");
+
+				// If found a TD with attribute named mark...
+				if(temp) {
+					
+					// and a value also named mark...
+					if(temp.value=="mark") {
+
+						// then stores the values!
+						foundx=i;
+						foundy=j;
+					}
+				}
+			}
+		}
+
+		// Cleaning house! - removing the mark attribute. 
+		selectedTD.removeAttribute("mark");
+
+		// Stores the found values so external methods can use them!!
+
+		this.cursory=foundy; 		// Stores the x and y position
+		this.cursorx=foundx;		// for external use. 
+	}
+
+
+	////////////////////////////////////////////////////////////////////////////
+	// DD API - dd dynatable method
+	// do not modify
+	// This event handler function is called when the user clicks over 
+	//
+	function refreshContent(e) {
+		if(e.target.parentNode.nodeName=="TD") {
+
+			// Paints the parent's node of the 
+			// selected node. This is the 
+			// UI feedback to unselect the cell. 
+			//
+			currentTD=global_selectedNode.parentNode;
+
+			currentTD.setAttribute("bgcolor","white");
+
+			// Designates event's target node as the
+			// selected node.
+			//
+			global_selectedNode=e.target;
+
+			// UI feedback - selects the cell
+			// Sets attribute to cyan. 
+			//
+			currentTD=e.target.parentNode;
+			currentTD.setAttribute("bgcolor","cyan");
+
+			list=currentTD.childNodes;
+
+			// Assigns form's textfield with 
+			// data value of the text node. 
+			//
+			objq=list.item(0);
+			document.forms[0].tarea.value=objq.data;
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+	// DD API - dd dynatable method
+	// do not modify
+	//
+	function dd_dynatable_putcontent() {
+		
+		// currentTD is assigned with the selectedNode's parent object. 
+		// Note that selectedNode is the event target. It's not the
+		// TD but the text whose the user clicked over. 
+		//
+		currentTD=global_selectedNode.parentNode;
+		
+		// Makes bgcolor attribute value equals to red. It's a visual 
+		// feedback to the user. 
+		//
+		currentTD.setAttribute("bgcolor","red");
+
+		// Removes the child elements of currentTD
+		//
+		for(i=0;i<currentTD.childNodes.length;i++) {
+			mycelnode=currentTD.childNodes.item(i);
+			currentTD.removeChild(mycelnode);
+		}
+
+		// Creates a new text node with textfield value as a content. 
+
+		currenttext=document.createTextNode(document.forms[0].tarea.value);
+
+		// Updates the selected node.
+
+		global_selectedNode=currenttext;
+
+		// Appends currenttext as a child of currentTD.
+
+		currentTD.appendChild(currenttext);
+	}	
+
+
+	// ***************************************************************************
+	// When page is loaded this is called.
+	// See onload event in the body tag.
+	//
+	function start() {
+
+		mytableobject=new dd_dynatable();	// Call the dd_dynatable 
+							// object constructor to 
+							// create the table and 
+							// dynatable attributes. 
+
+		animate_start();	// Spawn simple animation for the editcanvas
+					// div. Note: editcanvas includes the table
+					// that was generated in dd_dynatable function.
+
+
+	}
+	
+	// ***************************************************************************
+	// Just a call to mytableobject method. Originated from link onclick.
+	//
+	function create_row() {
+		mytableobject.createrow();
+	}
+
+	// ***************************************************************************
+	// Just a call to mytableobject method. Originated from link onclick.
+	//
+	function create_col() {
+		mytableobject.createcol();
+	}
+
+	// ***************************************************************************
+	// Just a call to mytableobject method. Originated from link onclick.
+	//
+	function remove_col() {
+		mytableobject.removecol();
+	}
+
+	// ***************************************************************************
+	// Just a call to mytableobject method. Originated from link onclick.
+	//
+	function remove_row() {
+		mytableobject.removerow();
+	}
+
+	// ***************************************************************************
+	// Just a call to mytableobject method. Originated from link onclick.
+	//
+	function put_content() {
+		mytableobject.putcontent();
+	}
+
+	//***************************************************************
+	// Starts the animation process for the edit element.
+	//
+	aa=26;			// global attributes 
+	posleft=0;
+	postop=0;
+	function animate_start() {
+		// aa counter decreases...
+		aa--;
+
+		// posleft and posttop receive the editcanvas left and top position. 
+
+		posleft=parseInt(document.getElementById("editcanvas").style.left);
+		postop=parseInt(document.getElementById("editcanvas").style.top);
+
+		// posleft and postop is increased by aa value. Note that it's a 
+		// "soft" animation. In the beginning the animation is speedy, 
+		// but in the end it's slow because aa (speed) is decreasing. 
+		//
+		posleft+=aa;
+		postop+=aa;
+
+		// Style attributes of editcanvas are updated with posleft and 
+		// postop values. 
+
+		document.getElementById("editcanvas").style.left=posleft+"px";
+		document.getElementById("editcanvas").style.top=postop+"px";
+
+		// The animation ends when aa equals to zero. 
+		if(aa>0) {
+			setTimeout("animate_start()",30);
+		}
+	}
+
+	//-------------------------------------------------------------------------------------
+	// DOM2/Event Model - Drag Support the Dynamic Table
+	// These three methods are event handlers:
+	// doDrag(e), beginDrag(e) and endDrag(e)
+	//
+	// beginDrag was registered in the table constructor function (dd_dynatable).
+	// doDrag and endDrag are registered in beginDrag function. 
+
+	//-------------------------------------------------------------------------------------
+	// doDrag event - called when dragging
+	//
+	function doDrag(e) {
+
+		// Calculates the difference from the last stored position to 
+		// the current position. 
+		//
+	        var difX=e.clientX-window.lastX;
+	        var difY=e.clientY-window.lastY;
+
+		// Retrieves the X and Y position of editcanvas.
+		//
+	        var newX = parseInt(document.getElementById("editcanvas").style.left)+difX;
+	        var newY = parseInt(document.getElementById("editcanvas").style.top)+difY;
+
+		// Sets the new position for the editcanvas div element. 
+		// Note: the table was created inside editcanvas div element; 
+		// this way, all editcanvas's child elements are affected by 
+		// positioning.
+		//
+	        document.getElementById("editcanvas").style.left=newX+"px";
+	        document.getElementById("editcanvas").style.top=newY+"px";
+	
+		// Stores the current mouse position as last position. 
+		//
+	        window.lastX=e.clientX;
+	        window.lastY=e.clientY;
+	}
+
+	//----------------------------------------------------------------------------
+	// When drag begins, this function is called. 
+	// This event handler was registered in the table constructor function (dd_dynatable).
+	//
+	function beginDrag(e) {
+
+		// Stores the current mouse position
+	        window.lastX=e.clientX;
+	        window.lastY=e.clientY;
+		
+		// Registering doDrag event handler to receive onmousemove events. 
+	        window.onmousemove=doDrag;
+
+		// Registering endDrag event handler to receive onmouseup events. 
+	        window.onmouseup=endDrag;
+	}
+	
+	//----------------------------------------------------------------------------
+	// Called when the mouse button is released.
+	// This event handler was registered in beginDrag function. 
+	//
+	function endDrag(e) {
+
+		// Release doDrag event handler assignment. 
+	        window.onmousemove=null;
+
+	}
+</script>
+</head>
+<body onload="start()">
+<div id="editcanvas" style="position:absolute;top:0px;left:0px">
+</div>
+
+<div id="tedit" style="position:absolute;top:0px;left:0px">
+<table border=1>
+<tr>
+<td>
+<li><a href="javascript:void(0)" onclick="create_row();">create row</a><br>
+<li><a href="javascript:void(0)" onclick="create_col();">create col</a><br>
+<li><a href="javascript:void(0)" onclick="remove_row();">remove row</a><br>
+<li><a href="javascript:void(0)" onclick="remove_col();">remove col</a><br>
+<li><a href="javascript:void(0)" onclick="put_content();">put content</a><br>
+<form name="content" onsubmit="javascript:put_content();return false;">
+<input type=text name="tarea" value="text" style="background-color:#88AA88;width:290px;height:25px;">
+</form>
+note: you can drag the table
+</td>
+</tr>
+</table>
+</div>
+</body>
+</HTML>

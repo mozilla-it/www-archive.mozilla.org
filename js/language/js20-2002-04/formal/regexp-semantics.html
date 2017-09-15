@@ -1,0 +1,1170 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Regular Expression Semantics</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="regexp-grammar.html">
+<LINK rel=Next href="parser-grammar.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>April 2002 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Formal Description</DIV>
+    <DIV class=title1>Regular Expression Semantics</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="regexp-grammar.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="parser-grammar.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Thursday, February 7, 2002</P>
+
+<P>The regular expression semantics describe the actions the regular expression engine takes in order to transform a regular expression pattern into a function for
+matching against input strings.
+For convenience, the <A href="regexp-grammar.html">regular expression grammar</A> is repeated here. See also the description of the <A href="notation.html">semantic notation</A>.</P>
+
+<P>This document is also available as a <A href="regexp-semantics.rtf">Word 98 rtf file</A>.</P>
+
+<P class=issue>The regular expression semantics below are working (except for case-insensitive matches) and
+have been tried on sample cases, but they could be formatted better.</P>
+
+<!--SEMANTICS-->
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm-stmt><A name="T-syntaxError"></A><SPAN class=semantic-keyword>tag</SPAN>&nbsp;<SPAN class=tag-name>syntaxError</SPAN>;</DIV>
+<DIV class=algorithm-stmt><A name="D-SemanticException"></A><SPAN class=domain-name>SemanticException</SPAN>&nbsp;=&nbsp;{<A href="#T-syntaxError" class=tag-name>syntaxError</A>};</DIV>
+
+<H2>Unicode Character Classes</H2>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-UnicodeCharacter"></A><SPAN class=nonterminal>UnicodeCharacter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;Any
+    Unicode character</DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-UnicodeAlphanumeric"></A><SPAN class=nonterminal>UnicodeAlphanumeric</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;Any
+    Unicode alphabetic or decimal digit character (includes ASCII <CODE>0</CODE>-<CODE>9</CODE>,
+    <CODE>A</CODE>-<CODE>Z</CODE>, and <CODE>a</CODE>-<CODE>z</CODE>)</DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-LineTerminator"></A><SPAN class=nonterminal>LineTerminator</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE><SPAN class=control>&#171;LF&#187;</SPAN></CODE>&nbsp;|&nbsp;<CODE><SPAN class=control>&#171;CR&#187;</SPAN></CODE>&nbsp;|&nbsp;<CODE><SPAN class=control>&#171;u2028&#187;</SPAN></CODE>&nbsp;|&nbsp;<CODE><SPAN class=control>&#171;u2029&#187;</SPAN></CODE></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm-stmt><A name="V-lineTerminators"></A><SPAN class=global-variable>lineTerminators</SPAN>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{}&nbsp;=&nbsp;{&#8216;<CODE><SPAN class=control>&#171;LF&#187;</SPAN></CODE>&#8217;,&nbsp;&#8216;<CODE><SPAN class=control>&#171;CR&#187;</SPAN></CODE>&#8217;,&nbsp;&#8216;<CODE><SPAN class=control>&#171;u2028&#187;</SPAN></CODE>&#8217;,&nbsp;&#8216;<CODE><SPAN class=control>&#171;u2029&#187;</SPAN></CODE>&#8217;};</DIV>
+<DIV class=algorithm-stmt><A name="V-reWhitespaces"></A><SPAN class=global-variable>reWhitespaces</SPAN>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{}&nbsp;=&nbsp;{&#8216;<CODE><SPAN class=control>&#171;FF&#187;</SPAN></CODE>&#8217;,&nbsp;&#8216;<CODE><SPAN class=control>&#171;LF&#187;</SPAN></CODE>&#8217;,&nbsp;&#8216;<CODE><SPAN class=control>&#171;CR&#187;</SPAN></CODE>&#8217;,&nbsp;&#8216;<CODE><SPAN class=control>&#171;TAB&#187;</SPAN></CODE>&#8217;,&nbsp;&#8216;<CODE><SPAN class=control>&#171;VT&#187;</SPAN></CODE>&#8217;,&nbsp;&#8216;<CODE>&nbsp;</CODE>&#8217;};</DIV>
+<DIV class=algorithm-stmt><A name="V-reDigits"></A><SPAN class=global-variable>reDigits</SPAN>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{}&nbsp;=&nbsp;{&#8216;<CODE>0</CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE>9</CODE>&#8217;};</DIV>
+<DIV class=algorithm-stmt><A name="V-reWordCharacters"></A><SPAN class=global-variable>reWordCharacters</SPAN>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{}&nbsp;=&nbsp;{&#8216;<CODE>0</CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE>9</CODE>&#8217;,&nbsp;&#8216;<CODE>A</CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE>Z</CODE>&#8217;,&nbsp;&#8216;<CODE>a</CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE>z</CODE>&#8217;,&nbsp;&#8216;<CODE>_</CODE>&#8217;};</DIV>
+
+<H2>Regular Expression Definitions</H2>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><A name="D-REInput"></A><SPAN class=semantic-keyword>tuple</SPAN>&nbsp;<SPAN class=domain-name>REInput</SPAN></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=field-name>str</SPAN>:&nbsp;<A href="notation.html#D-String" class=domain-name>String</A>,</DIV>
+    <DIV class=stmt><SPAN class=field-name>ignoreCase</SPAN>:&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A>,</DIV>
+    <DIV class=stmt><SPAN class=field-name>multiline</SPAN>:&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A>,</DIV>
+    <DIV class=stmt><SPAN class=field-name>span</SPAN>:&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>tuple</SPAN>;</DIV>
+</DIV>
+
+<P>Field <A href="#D-REInput" class=field-name>str</A> is the input string.
+<A href="#D-REInput" class=field-name>ignoreCase</A>, <A href="#D-REInput" class=field-name>multiline</A>, and
+<A href="#D-REInput" class=field-name>span</A> are the corresponding regular expression flags.</P>
+
+<DIV class=algorithm-stmt><A name="T-undefined"></A><SPAN class=semantic-keyword>tag</SPAN>&nbsp;<SPAN class=tag-name>undefined</SPAN>;</DIV>
+<DIV class=algorithm-stmt><A name="D-Capture"></A><SPAN class=domain-name>Capture</SPAN>&nbsp;=&nbsp;<A href="notation.html#D-String" class=domain-name>String</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_cup)</SCRIPT>&nbsp;{<A href="#T-undefined" class=tag-name>undefined</A>};</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="D-REMatch"></A><SPAN class=semantic-keyword>tuple</SPAN>&nbsp;<SPAN class=domain-name>REMatch</SPAN></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=field-name>endIndex</SPAN>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>,</DIV>
+    <DIV class=stmt><SPAN class=field-name>captures</SPAN>:&nbsp;<A href="#D-Capture" class=domain-name>Capture</A>[]</DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>tuple</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm-stmt><A name="T-failure"></A><SPAN class=semantic-keyword>tag</SPAN>&nbsp;<SPAN class=tag-name>failure</SPAN>;</DIV>
+<DIV class=algorithm-stmt><A name="D-REResult"></A><SPAN class=domain-name>REResult</SPAN>&nbsp;=&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_cup)</SCRIPT>&nbsp;{<A href="#T-failure" class=tag-name>failure</A>};</DIV>
+
+<P>A <A href="#D-REMatch" class=domain-name>REMatch</A> holds an intermediate state during the pattern-matching process.
+<A href="#D-REMatch" class=field-name>endIndex</A> is the index of the next input character to be matched by the next
+component in a regular expression pattern. If we are at the end of the pattern,
+<A href="#D-REMatch" class=field-name>endIndex</A> is one plus the index of the last matched input character.
+<A href="#D-REMatch" class=field-name>captures</A> is a zero-based array of the strings captured so far by capturing
+parentheses.</P>
+
+<DIV class=algorithm-stmt><A name="D-Continuation"></A><SPAN class=domain-name>Continuation</SPAN>&nbsp;=&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<A href="#D-REResult" class=domain-name>REResult</A>;</DIV>
+
+<P>A <A href="#D-Continuation" class=domain-name>Continuation</A> is a function that attempts to match the remaining
+portion of the pattern against the input string, starting at the intermediate state given by its
+<A href="#D-REMatch" class=domain-name>REMatch</A> argument. If a match is possible, it returns a
+<A href="#D-REMatch" class=domain-name>REMatch</A> result that contains the final state; if no match is possible, it
+returns a <A href="#T-failure" class=tag-name>failure</A> result.</P>
+
+<DIV class=algorithm-stmt><A name="D-Matcher"></A><SPAN class=domain-name>Matcher</SPAN>&nbsp;=&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<A href="#D-REResult" class=domain-name>REResult</A>;</DIV>
+
+<P>A <A href="#D-Matcher" class=domain-name>Matcher</A> is a function that attempts to match a middle portion of the
+pattern against the input string, starting at the intermediate state given by its
+<A href="#D-REMatch" class=domain-name>REMatch</A> argument. Since the remainder of the pattern heavily influences
+whether (and how) a middle portion will match, we must pass in a
+<A href="#D-Continuation" class=domain-name>Continuation</A> function that checks whether the rest of the pattern
+matched. If the continuation returns <A href="#T-failure" class=tag-name>failure</A>, the matcher function may call it
+repeatedly, trying various alternatives at pattern choice points.</P>
+
+<P>The <A href="#D-REInput" class=domain-name>REInput</A> parameter contains the input string and is merely passed down
+to subroutines.</P>
+
+<P>A <A href="notation.html#D-Integer" class=domain-name>Integer</A>
+<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT> <A href="#D-Matcher" class=domain-name>Matcher</A> is a
+function executed at the time the regular expression is compiled that returns a
+<A href="#D-Matcher" class=domain-name>Matcher</A> for a part of the pattern. The
+<A href="notation.html#D-Integer" class=domain-name>Integer</A> parameter contains the number of capturing left
+parentheses seen so far in the pattern and is used to assign static, consecutive numbers to capturing parentheses.</P>
+
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-characterSetMatcher"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>characterSetMatcher</SPAN>(<VAR>acceptanceSet</VAR>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{},&nbsp;<VAR>invert</VAR>:&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A>):&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>i</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>;</DIV>
+      <DIV class=stmt><VAR>s</VAR>:&nbsp;<A href="notation.html#D-String" class=domain-name>String</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>t</VAR>.<A href="#D-REInput" class=field-name>str</A>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>i</VAR>&nbsp;=&nbsp;|<VAR>s</VAR>|&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#T-failure" class=tag-name>failure</A></DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>elsif</SPAN>&nbsp;<VAR>s</VAR>[<VAR>i</VAR>]&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<VAR>acceptanceSet</VAR>&nbsp;<SPAN class=semantic-keyword>xor</SPAN>&nbsp;<VAR>invert</VAR>&nbsp;<SPAN class=semantic-keyword>then</SPAN></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<A href="#D-REMatch" class=domain-name>REMatch</A><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>endIndex</SPAN>:&nbsp;<VAR>i</VAR>&nbsp;+&nbsp;1,&nbsp;<SPAN class=field-name>captures</SPAN>:&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>captures</A><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#T-failure" class=tag-name>failure</A></DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN></DIV>
+    </DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m</VAR></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+
+<P><A href="#V-characterSetMatcher" class=global-variable>characterSetMatcher</A> returns a
+<A href="#D-Matcher" class=domain-name>Matcher</A> that matches a single input string character. If <VAR>invert</VAR> is
+<SPAN class=tag-name>false</SPAN>, the match succeeds if the character is a member of the <VAR>acceptanceSet</VAR> set
+of characters (possibly ignoring case). If <VAR>invert</VAR> is <SPAN class=tag-name>true</SPAN>, the match succeeds if
+the character is not a member of the <VAR>acceptanceSet</VAR> set of characters (possibly ignoring case).</P>
+
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-characterMatcher"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>characterMatcher</SPAN>(<VAR>ch</VAR>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>):&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-characterSetMatcher" class=global-variable>characterSetMatcher</A>({<VAR>ch</VAR>},&nbsp;<SPAN class=tag-name>false</SPAN>)</DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+
+<P><A href="#V-characterMatcher" class=global-variable>characterMatcher</A> returns a
+<A href="#D-Matcher" class=domain-name>Matcher</A> that matches a single input string character. The match succeeds if
+the character is the same as <VAR>ch</VAR> (possibly ignoring case).</P>
+
+<H2>Regular Expression Patterns</H2>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-RegularExpressionPattern"></A><SPAN class=nonterminal>RegularExpressionPattern</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>Execute</SPAN>[<A href="#N-RegularExpressionPattern" class=nonterminal>RegularExpressionPattern</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>]:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT>&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rarr)</SCRIPT>&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>begin</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>m1</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>](0);</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>e</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>index</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>
+          <A href="#D-REMatch" class=domain-name>REMatch</A><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>endIndex</SPAN>:&nbsp;<VAR>index</VAR>,&nbsp;<SPAN class=field-name>captures</SPAN>:&nbsp;<A href="#V-fillCapture" class=global-variable>fillCapture</A>(<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>])<B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>;</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m1</VAR>(<VAR>t</VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<A href="#V-successContinuation" class=global-variable>successContinuation</A>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>e</VAR></DIV>
+    </DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>;</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-successContinuation"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>successContinuation</SPAN>(<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>x</VAR></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-fillCapture"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>fillCapture</SPAN>(<VAR>i</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-Capture" class=domain-name>Capture</A>[]</DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>i</VAR>&nbsp;=&nbsp;0&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<B>[]</B>&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-fillCapture" class=global-variable>fillCapture</A>(<VAR>i</VAR>&nbsp;&#8211;&nbsp;1)&nbsp;<SCRIPT type="text/javascript">document.write(U_oplus)</SCRIPT>&nbsp;<B>[</B><A href="#T-undefined" class=tag-name>undefined</A><B>]</B>&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+
+<H3>Disjunctions</H3>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Disjunction"></A><SPAN class=nonterminal>Disjunction</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A>&nbsp;<CODE>|</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>]&nbsp;(<VAR>parenIndex</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A>](<VAR>parenIndex</VAR>);</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A><SUB class=nonterminal-sub>0</SUB>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A>&nbsp;<CODE>|</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A><SUB class=nonterminal-sub>1</SUB>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>m1</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A>](<VAR>parenIndex</VAR>);</DIV>
+      <DIV class=stmt><VAR>m2</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A><SUB class=nonterminal-sub>1</SUB>](<VAR>parenIndex</VAR>&nbsp;+&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A>]);</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m3</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><VAR>y</VAR>:&nbsp;<A href="#D-REResult" class=domain-name>REResult</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>m1</VAR>(<VAR>t</VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<VAR>c</VAR>);</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>case</SPAN>&nbsp;<VAR>y</VAR>&nbsp;<SPAN class=semantic-keyword>of</SPAN></DIV>
+        <DIV class=lvl>
+          <DIV class=stmt><A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>y</VAR>;</DIV>
+          <DIV class=stmt>{<A href="#T-failure" class=tag-name>failure</A>}&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m2</VAR>(<VAR>t</VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<VAR>c</VAR>)</DIV>
+        </DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>case</SPAN></DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m3</VAR></DIV>
+    </DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A>]&nbsp;=&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A><SUB class=nonterminal-sub>0</SUB>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A>&nbsp;<CODE>|</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A><SUB class=nonterminal-sub>1</SUB>]
+      =&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A>]&nbsp;+&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A><SUB class=nonterminal-sub>1</SUB>];</DIV>
+  </DIV>
+</DIV>
+
+<H3>Alternatives</H3>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Alternative"></A><SPAN class=nonterminal>Alternative</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A>&nbsp;<A href="#N-Term" class=nonterminal>Term</A></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A>]&nbsp;(<VAR>parenIndex</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Alternative" class=nonterminal>Alternative</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;&#171;empty&#187;]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<VAR>x</VAR>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m</VAR>;</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt>[<A href="#N-Alternative" class=nonterminal>Alternative</A><SUB class=nonterminal-sub>0</SUB>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A><SUB class=nonterminal-sub>1</SUB>&nbsp;<A href="#N-Term" class=nonterminal>Term</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>m1</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A><SUB class=nonterminal-sub>1</SUB>](<VAR>parenIndex</VAR>);</DIV>
+      <DIV class=stmt><VAR>m2</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Term" class=nonterminal>Term</A>](<VAR>parenIndex</VAR>&nbsp;+&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A><SUB class=nonterminal-sub>1</SUB>]);</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m3</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>d</VAR>(<VAR>y</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+        <DIV class=lvl>
+          <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m2</VAR>(<VAR>t</VAR>,&nbsp;<VAR>y</VAR>,&nbsp;<VAR>c</VAR>)</DIV>
+        </DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m1</VAR>(<VAR>t</VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<VAR>d</VAR>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m3</VAR></DIV>
+    </DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;&#171;empty&#187;]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A><SUB class=nonterminal-sub>0</SUB>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Alternative" class=nonterminal>Alternative</A><SUB class=nonterminal-sub>1</SUB>&nbsp;<A href="#N-Term" class=nonterminal>Term</A>]
+      =&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Alternative" class=nonterminal>Alternative</A><SUB class=nonterminal-sub>1</SUB>]&nbsp;+&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Term" class=nonterminal>Term</A>];</DIV>
+  </DIV>
+</DIV>
+
+<H3>Terms</H3>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Term"></A><SPAN class=nonterminal>Term</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Assertion" class=nonterminal>Assertion</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Atom" class=nonterminal>Atom</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<A href="#N-Quantifier" class=nonterminal>Quantifier</A></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Term" class=nonterminal>Term</A>]&nbsp;(<VAR>parenIndex</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Term" class=nonterminal>Term</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Assertion" class=nonterminal>Assertion</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<SPAN class=action-name>TestAssertion</SPAN>[<A href="#N-Assertion" class=nonterminal>Assertion</A>](<VAR>t</VAR>,&nbsp;<VAR>x</VAR>)&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<VAR>x</VAR>)&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#T-failure" class=tag-name>failure</A>&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN></DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m</VAR>;</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Term" class=nonterminal>Term</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Atom" class=nonterminal>Atom</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>](<VAR>parenIndex</VAR>);</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt>[<A href="#N-Term" class=nonterminal>Term</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<A href="#N-Quantifier" class=nonterminal>Quantifier</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>m</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>](<VAR>parenIndex</VAR>);</DIV>
+      <DIV class=stmt><VAR>min</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>Minimum</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>];</DIV>
+      <DIV class=stmt><VAR>max</VAR>:&nbsp;<A href="#D-Limit" class=domain-name>Limit</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>Maximum</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>];</DIV>
+      <DIV class=stmt><VAR>greedy</VAR>:&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>Greedy</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>];</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>max</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT>&nbsp;<SPAN class=tag-name>+<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT></SPAN>&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>max</VAR>&nbsp;&lt;&nbsp;<VAR>min</VAR>&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>throw</SPAN>&nbsp;<A href="#T-syntaxError" class=tag-name>syntaxError</A>&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-repeatMatcher" class=global-variable>repeatMatcher</A>(<VAR>m</VAR>,&nbsp;<VAR>min</VAR>,&nbsp;<VAR>max</VAR>,&nbsp;<VAR>greedy</VAR>,&nbsp;<VAR>parenIndex</VAR>,&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>])</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Term" class=nonterminal>Term</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Term" class=nonterminal>Term</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Assertion" class=nonterminal>Assertion</A>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Term" class=nonterminal>Term</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Atom" class=nonterminal>Atom</A>]&nbsp;=&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Term" class=nonterminal>Term</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<A href="#N-Quantifier" class=nonterminal>Quantifier</A>]&nbsp;=&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>];</DIV>
+  </DIV>
+</DIV>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Quantifier"></A><SPAN class=nonterminal>Quantifier</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<CODE>?</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-QuantifierPrefix"></A><SPAN class=nonterminal>QuantifierPrefix</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE>*</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>+</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>?</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<CODE>}</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<CODE>,</CODE>&nbsp;<CODE>}</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<CODE>,</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<CODE>}</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-DecimalDigits"></A><SPAN class=nonterminal>DecimalDigits</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-DecimalDigit"></A><SPAN class=nonterminal>DecimalDigit</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>0</CODE>&nbsp;|&nbsp;<CODE>1</CODE>&nbsp;|&nbsp;<CODE>2</CODE>&nbsp;|&nbsp;<CODE>3</CODE>&nbsp;|&nbsp;<CODE>4</CODE>&nbsp;|&nbsp;<CODE>5</CODE>&nbsp;|&nbsp;<CODE>6</CODE>&nbsp;|&nbsp;<CODE>7</CODE>&nbsp;|&nbsp;<CODE>8</CODE>&nbsp;|&nbsp;<CODE>9</CODE></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm-stmt><A name="D-Limit"></A><SPAN class=domain-name>Limit</SPAN>&nbsp;=&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_cup)</SCRIPT>&nbsp;{<SPAN class=tag-name>+<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT></SPAN>};</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-resetParens"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>resetParens</SPAN>(<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>p</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>,&nbsp;<VAR>nParens</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><VAR>captures</VAR>:&nbsp;<A href="#D-Capture" class=domain-name>Capture</A>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>captures</A>;</DIV>
+    <DIV class=stmt><VAR>i</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>p</VAR>;</DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>while</SPAN>&nbsp;<VAR>i</VAR>&nbsp;&lt;&nbsp;<VAR>p</VAR>&nbsp;+&nbsp;<VAR>nParens</VAR>&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<VAR>captures</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>captures</VAR>[<VAR>i</VAR>&nbsp;\&nbsp;<A href="#T-undefined" class=tag-name>undefined</A>];&nbsp;<VAR>i</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>i</VAR>&nbsp;+&nbsp;1&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>while</SPAN>;</DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>endIndex</SPAN>:&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>,&nbsp;<SPAN class=field-name>captures</SPAN>:&nbsp;<VAR>captures</VAR><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-repeatMatcher"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>repeatMatcher</SPAN>(<VAR>body</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>,
+    <VAR>min</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>,
+    <VAR>max</VAR>:&nbsp;<A href="#D-Limit" class=domain-name>Limit</A>,
+    <VAR>greedy</VAR>:&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A>,
+    <VAR>parenIndex</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>,
+    <VAR>nBodyParens</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):
+    <A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>max</VAR>&nbsp;=&nbsp;0&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<VAR>x</VAR>)&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>d</VAR>(<VAR>y</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>min</VAR>&nbsp;=&nbsp;0&nbsp;<SPAN class=semantic-keyword>and</SPAN>&nbsp;<VAR>y</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>&nbsp;=&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#T-failure" class=tag-name>failure</A>&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>;</DIV>
+        <DIV class=stmt><VAR>newMin</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>min</VAR>;</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>min</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT>&nbsp;0&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<VAR>newMin</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>min</VAR>&nbsp;&#8211;&nbsp;1&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>;</DIV>
+        <DIV class=stmt><VAR>newMax</VAR>:&nbsp;<A href="#D-Limit" class=domain-name>Limit</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>max</VAR>;</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>max</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT>&nbsp;<SPAN class=tag-name>+<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT></SPAN>&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<VAR>newMax</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>max</VAR>&nbsp;&#8211;&nbsp;1&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>;</DIV>
+        <DIV class=stmt><VAR>m2</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>
+          <A href="#V-repeatMatcher" class=global-variable>repeatMatcher</A>(<VAR>body</VAR>,&nbsp;<VAR>newMin</VAR>,&nbsp;<VAR>newMax</VAR>,&nbsp;<VAR>greedy</VAR>,&nbsp;<VAR>parenIndex</VAR>,&nbsp;<VAR>nBodyParens</VAR>);</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m2</VAR>(<VAR>t</VAR>,&nbsp;<VAR>y</VAR>,&nbsp;<VAR>c</VAR>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><VAR>xr</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<A href="#V-resetParens" class=global-variable>resetParens</A>(<VAR>x</VAR>,&nbsp;<VAR>parenIndex</VAR>,&nbsp;<VAR>nBodyParens</VAR>);</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>min</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT>&nbsp;0&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>body</VAR>(<VAR>t</VAR>,&nbsp;<VAR>xr</VAR>,&nbsp;<VAR>d</VAR>)</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>elsif</SPAN>&nbsp;<VAR>greedy</VAR>&nbsp;<SPAN class=semantic-keyword>then</SPAN></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><VAR>z</VAR>:&nbsp;<A href="#D-REResult" class=domain-name>REResult</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>body</VAR>(<VAR>t</VAR>,&nbsp;<VAR>xr</VAR>,&nbsp;<VAR>d</VAR>);</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>case</SPAN>&nbsp;<VAR>z</VAR>&nbsp;<SPAN class=semantic-keyword>of</SPAN></DIV>
+        <DIV class=lvl>
+          <DIV class=stmt><A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>z</VAR>;</DIV>
+          <DIV class=stmt>{<A href="#T-failure" class=tag-name>failure</A>}&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<VAR>x</VAR>)</DIV>
+        </DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>case</SPAN></DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>else</SPAN></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><VAR>z</VAR>:&nbsp;<A href="#D-REResult" class=domain-name>REResult</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>c</VAR>(<VAR>x</VAR>);</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>case</SPAN>&nbsp;<VAR>z</VAR>&nbsp;<SPAN class=semantic-keyword>of</SPAN></DIV>
+        <DIV class=lvl>
+          <DIV class=stmt><A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>z</VAR>;</DIV>
+          <DIV class=stmt>{<A href="#T-failure" class=tag-name>failure</A>}&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>body</VAR>(<VAR>t</VAR>,&nbsp;<VAR>xr</VAR>,&nbsp;<VAR>d</VAR>)</DIV>
+        </DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>case</SPAN></DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN></DIV>
+    </DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m</VAR></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>]&nbsp;=&nbsp;<SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<CODE>?</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>]:&nbsp;<A href="#D-Limit" class=domain-name>Limit</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>]&nbsp;=&nbsp;<SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<CODE>?</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>Greedy</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>]:&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Greedy</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>]&nbsp;=&nbsp;<SPAN class=tag-name>true</SPAN>;</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>Greedy</SPAN>[<A href="#N-Quantifier" class=nonterminal>Quantifier</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<CODE>?</CODE>]&nbsp;=&nbsp;<SPAN class=tag-name>false</SPAN>;</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>*</CODE>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>+</CODE>]&nbsp;=&nbsp;1;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>?</CODE>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<CODE>}</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>];</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<CODE>,</CODE>&nbsp;<CODE>}</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>Minimum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>1</SUB>&nbsp;<CODE>,</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>2</SUB>&nbsp;<CODE>}</CODE>]
+      =&nbsp;<SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>1</SUB>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>]:&nbsp;<A href="#D-Limit" class=domain-name>Limit</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>*</CODE>]&nbsp;=&nbsp;<SPAN class=tag-name>+<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT></SPAN>;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>+</CODE>]&nbsp;=&nbsp;<SPAN class=tag-name>+<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT></SPAN>;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>?</CODE>]&nbsp;=&nbsp;1;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<CODE>}</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>];</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<CODE>,</CODE>&nbsp;<CODE>}</CODE>]&nbsp;=&nbsp;<SPAN class=tag-name>+<SCRIPT type="text/javascript">document.write(U_infin)</SCRIPT></SPAN>;</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>Maximum</SPAN>[<A href="#N-QuantifierPrefix" class=nonterminal>QuantifierPrefix</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>{</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>1</SUB>&nbsp;<CODE>,</CODE>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>2</SUB>&nbsp;<CODE>}</CODE>]
+      =&nbsp;<SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>2</SUB>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>]&nbsp;=&nbsp;<SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>0</SUB>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>1</SUB>&nbsp;<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>]
+      =&nbsp;10<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalDigits" class=nonterminal>DecimalDigits</A><SUB class=nonterminal-sub>1</SUB>]&nbsp;+&nbsp;<SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm-stmt><SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;=&nbsp;<A href="notation.html#V-digitValue" class=global-variable>digitValue</A>(<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>);</DIV>
+
+<H3>Assertions</H3>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Assertion"></A><SPAN class=nonterminal>Assertion</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE>^</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>$</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>\</CODE>&nbsp;<CODE>b</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>\</CODE>&nbsp;<CODE>B</CODE></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=action-name>TestAssertion</SPAN>[<A href="#N-Assertion" class=nonterminal>Assertion</A>]&nbsp;(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>):&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A></DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Assertion" class=nonterminal>Assertion</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>^</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>&nbsp;=&nbsp;0&nbsp;<SPAN class=semantic-keyword>or</SPAN>
+        (<VAR>t</VAR>.<A href="#D-REInput" class=field-name>multiline</A>&nbsp;<SPAN class=semantic-keyword>and</SPAN>&nbsp;<VAR>t</VAR>.<A href="#D-REInput" class=field-name>str</A>[<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>&nbsp;&#8211;&nbsp;1]&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<A href="#V-lineTerminators" class=global-variable>lineTerminators</A>);</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Assertion" class=nonterminal>Assertion</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>$</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>&nbsp;=&nbsp;|<VAR>t</VAR>.<A href="#D-REInput" class=field-name>str</A>|&nbsp;<SPAN class=semantic-keyword>or</SPAN>
+        (<VAR>t</VAR>.<A href="#D-REInput" class=field-name>multiline</A>&nbsp;<SPAN class=semantic-keyword>and</SPAN>&nbsp;<VAR>t</VAR>.<A href="#D-REInput" class=field-name>str</A>[<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>]&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<A href="#V-lineTerminators" class=global-variable>lineTerminators</A>);</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Assertion" class=nonterminal>Assertion</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>\</CODE>&nbsp;<CODE>b</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-atWordBoundary" class=global-variable>atWordBoundary</A>(<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>,&nbsp;<VAR>t</VAR>.<A href="#D-REInput" class=field-name>str</A>);</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt>[<A href="#N-Assertion" class=nonterminal>Assertion</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>\</CODE>&nbsp;<CODE>B</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<SPAN class=semantic-keyword>not</SPAN>&nbsp;<A href="#V-atWordBoundary" class=global-variable>atWordBoundary</A>(<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>,&nbsp;<VAR>t</VAR>.<A href="#D-REInput" class=field-name>str</A>)</DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-atWordBoundary"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>atWordBoundary</SPAN>(<VAR>i</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>,&nbsp;<VAR>s</VAR>:&nbsp;<A href="notation.html#D-String" class=domain-name>String</A>):&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-inWord" class=global-variable>inWord</A>(<VAR>i</VAR>&nbsp;&#8211;&nbsp;1,&nbsp;<VAR>s</VAR>)&nbsp;<SPAN class=semantic-keyword>xor</SPAN>&nbsp;<A href="#V-inWord" class=global-variable>inWord</A>(<VAR>i</VAR>,&nbsp;<VAR>s</VAR>)</DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-inWord"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>inWord</SPAN>(<VAR>i</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>,&nbsp;<VAR>s</VAR>:&nbsp;<A href="notation.html#D-String" class=domain-name>String</A>):&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>i</VAR>&nbsp;=&nbsp;&#8211;1&nbsp;<SPAN class=semantic-keyword>or</SPAN>&nbsp;<VAR>i</VAR>&nbsp;=&nbsp;|<VAR>s</VAR>|&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<SPAN class=tag-name>false</SPAN>&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>s</VAR>[<VAR>i</VAR>]&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;<A href="#V-reWordCharacters" class=global-variable>reWordCharacters</A>&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+
+<H2>Atoms</H2>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Atom"></A><SPAN class=nonterminal>Atom</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-PatternCharacter" class=nonterminal>PatternCharacter</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>.</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NullEscape" class=nonterminal>NullEscape</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>\</CODE>&nbsp;<A href="#N-AtomEscape" class=nonterminal>AtomEscape</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>(</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>:</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>=</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>!</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PatternCharacter"></A><SPAN class=nonterminal>PatternCharacter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-UnicodeCharacter" class=nonterminal>UnicodeCharacter</A>&nbsp;<B>except</B>&nbsp;<CODE>^</CODE>&nbsp;|&nbsp;<CODE>$</CODE>&nbsp;|&nbsp;<CODE>\</CODE>&nbsp;|&nbsp;<CODE>.</CODE>&nbsp;|&nbsp;<CODE>*</CODE>&nbsp;|&nbsp;<CODE>+</CODE>&nbsp;|&nbsp;<CODE>?</CODE>&nbsp;|&nbsp;<CODE>(</CODE>&nbsp;|&nbsp;<CODE>)</CODE>&nbsp;|&nbsp;<CODE>[</CODE>&nbsp;|&nbsp;<CODE>]</CODE>&nbsp;|&nbsp;<CODE>{</CODE>&nbsp;|&nbsp;<CODE>}</CODE>&nbsp;|&nbsp;<CODE>|</CODE></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>]&nbsp;(<VAR>parenIndex</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-PatternCharacter" class=nonterminal>PatternCharacter</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-characterMatcher" class=global-variable>characterMatcher</A>(<A href="#N-PatternCharacter" class=nonterminal>PatternCharacter</A>);</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>.</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m1</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><VAR>a</VAR>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{}&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>t</VAR>.<A href="#D-REInput" class=field-name>span</A>&nbsp;?&nbsp;{}&nbsp;:&nbsp;<A href="#V-lineTerminators" class=global-variable>lineTerminators</A>;</DIV>
+        <DIV class=stmt><VAR>m2</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<A href="#V-characterSetMatcher" class=global-variable>characterSetMatcher</A>(<VAR>a</VAR>,&nbsp;<SPAN class=tag-name>true</SPAN>);</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m2</VAR>(<VAR>t</VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<VAR>c</VAR>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m1</VAR>;</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-NullEscape" class=nonterminal>NullEscape</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<VAR>x</VAR>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m</VAR>;</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>\</CODE>&nbsp;<A href="#N-AtomEscape" class=nonterminal>AtomEscape</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-AtomEscape" class=nonterminal>AtomEscape</A>](<VAR>parenIndex</VAR>);</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>a</VAR>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{}&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>];</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-characterSetMatcher" class=global-variable>characterSetMatcher</A>(<VAR>a</VAR>,&nbsp;<SPAN class=action-name>Invert</SPAN>[<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>]);</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>(</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>m1</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>](<VAR>parenIndex</VAR>&nbsp;+&nbsp;1);</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m2</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>d</VAR>(<VAR>y</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+        <DIV class=lvl>
+          <DIV class=stmt><VAR>ref</VAR>:&nbsp;<A href="#D-Capture" class=domain-name>Capture</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>t</VAR>.<A href="#D-REInput" class=field-name>str</A>[<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>&nbsp;...&nbsp;<VAR>y</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>&nbsp;&#8211;&nbsp;1];</DIV>
+          <DIV class=stmt><VAR>updatedCaptures</VAR>:&nbsp;<A href="#D-Capture" class=domain-name>Capture</A>[]&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>y</VAR>.<A href="#D-REMatch" class=field-name>captures</A>[<VAR>parenIndex</VAR>&nbsp;\&nbsp;<VAR>ref</VAR>];</DIV>
+          <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<A href="#D-REMatch" class=domain-name>REMatch</A><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>endIndex</SPAN>:&nbsp;<VAR>y</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>,&nbsp;<SPAN class=field-name>captures</SPAN>:&nbsp;<VAR>updatedCaptures</VAR><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>)</DIV>
+        </DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m1</VAR>(<VAR>t</VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<VAR>d</VAR>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m2</VAR>;</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>:</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>](<VAR>parenIndex</VAR>);</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>=</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>m1</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>](<VAR>parenIndex</VAR>);</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m2</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><VAR>y</VAR>:&nbsp;<A href="#D-REResult" class=domain-name>REResult</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>m1</VAR>(<VAR>t</VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<A href="#V-successContinuation" class=global-variable>successContinuation</A>);</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>case</SPAN>&nbsp;<VAR>y</VAR>&nbsp;<SPAN class=semantic-keyword>of</SPAN></DIV>
+        <DIV class=lvl>
+          <DIV class=stmt><A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<A href="#D-REMatch" class=domain-name>REMatch</A><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>endIndex</SPAN>:&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>,&nbsp;<SPAN class=field-name>captures</SPAN>:&nbsp;<VAR>y</VAR>.<A href="#D-REMatch" class=field-name>captures</A><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>);</DIV>
+          <DIV class=stmt>{<A href="#T-failure" class=tag-name>failure</A>}&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#T-failure" class=tag-name>failure</A></DIV>
+        </DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>case</SPAN></DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m2</VAR>;</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>!</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>m1</VAR>:&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>](<VAR>parenIndex</VAR>);</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m2</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>case</SPAN>&nbsp;<VAR>m1</VAR>(<VAR>t</VAR>,&nbsp;<VAR>x</VAR>,&nbsp;<A href="#V-successContinuation" class=global-variable>successContinuation</A>)&nbsp;<SPAN class=semantic-keyword>of</SPAN></DIV>
+        <DIV class=lvl>
+          <DIV class=stmt><A href="#D-REMatch" class=domain-name>REMatch</A>&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#T-failure" class=tag-name>failure</A>;</DIV>
+          <DIV class=stmt>{<A href="#T-failure" class=tag-name>failure</A>}&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<VAR>x</VAR>)</DIV>
+        </DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>case</SPAN></DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m2</VAR></DIV>
+    </DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-PatternCharacter" class=nonterminal>PatternCharacter</A>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>.</CODE>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-NullEscape" class=nonterminal>NullEscape</A>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>\</CODE>&nbsp;<A href="#N-AtomEscape" class=nonterminal>AtomEscape</A>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>(</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>]&nbsp;+&nbsp;1;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>:</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>];</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>=</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>CountParens</SPAN>[<A href="#N-Atom" class=nonterminal>Atom</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>(</CODE>&nbsp;<CODE>?</CODE>&nbsp;<CODE>!</CODE>&nbsp;<A href="#N-Disjunction" class=nonterminal>Disjunction</A>&nbsp;<CODE>)</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>CountParens</SPAN>[<A href="#N-Disjunction" class=nonterminal>Disjunction</A>];</DIV>
+  </DIV>
+</DIV>
+
+<H2>Escapes</H2>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NullEscape"></A><SPAN class=nonterminal>NullEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>\</CODE>&nbsp;<CODE>_</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-AtomEscape"></A><SPAN class=nonterminal>AtomEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-DecimalEscape" class=nonterminal>DecimalEscape</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=action-name>GenMatcher</SPAN>[<A href="#N-AtomEscape" class=nonterminal>AtomEscape</A>]&nbsp;(<VAR>parenIndex</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-AtomEscape" class=nonterminal>AtomEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-DecimalEscape" class=nonterminal>DecimalEscape</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>n</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=action-name>EscapeValue</SPAN>[<A href="#N-DecimalEscape" class=nonterminal>DecimalEscape</A>];</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>n</VAR>&nbsp;=&nbsp;0&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-characterMatcher" class=global-variable>characterMatcher</A>(&#8216;<CODE><SPAN class=control>&#171;NUL&#187;</SPAN></CODE>&#8217;)</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>elsif</SPAN>&nbsp;<VAR>n</VAR>&nbsp;&gt;&nbsp;<VAR>parenIndex</VAR>&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>throw</SPAN>&nbsp;<A href="#T-syntaxError" class=tag-name>syntaxError</A></DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-backreferenceMatcher" class=global-variable>backreferenceMatcher</A>(<VAR>n</VAR>)</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>;</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt>[<A href="#N-AtomEscape" class=nonterminal>AtomEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-characterMatcher" class=global-variable>characterMatcher</A>(<SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>]);</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt>[<A href="#N-AtomEscape" class=nonterminal>AtomEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>]&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#V-characterSetMatcher" class=global-variable>characterSetMatcher</A>(<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>],&nbsp;<SPAN class=tag-name>false</SPAN>)</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-backreferenceMatcher"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>backreferenceMatcher</SPAN>(<VAR>n</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-Matcher" class=domain-name>Matcher</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<VAR>m</VAR>(<VAR>t</VAR>:&nbsp;<A href="#D-REInput" class=domain-name>REInput</A>,&nbsp;<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>c</VAR>:&nbsp;<A href="#D-Continuation" class=domain-name>Continuation</A>):&nbsp;<A href="#D-REResult" class=domain-name>REResult</A></DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><VAR>ref</VAR>:&nbsp;<A href="#D-Capture" class=domain-name>Capture</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<A href="#V-nthBackreference" class=global-variable>nthBackreference</A>(<VAR>x</VAR>,&nbsp;<VAR>n</VAR>);</DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>case</SPAN>&nbsp;<VAR>ref</VAR>&nbsp;<SPAN class=semantic-keyword>of</SPAN></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><A href="notation.html#D-String" class=domain-name>String</A>&nbsp;<SPAN class=semantic-keyword>do</SPAN></DIV>
+        <DIV class=lvl>
+          <DIV class=stmt><VAR>i</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>endIndex</A>;</DIV>
+          <DIV class=stmt><VAR>s</VAR>:&nbsp;<A href="notation.html#D-String" class=domain-name>String</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>t</VAR>.<A href="#D-REInput" class=field-name>str</A>;</DIV>
+          <DIV class=stmt><VAR>j</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<VAR>i</VAR>&nbsp;+&nbsp;|<VAR>ref</VAR>|;</DIV>
+          <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>j</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;|<VAR>s</VAR>|&nbsp;<SPAN class=semantic-keyword>and</SPAN>&nbsp;<VAR>s</VAR>[<VAR>i</VAR>&nbsp;...&nbsp;<VAR>j</VAR>&nbsp;&#8211;&nbsp;1]&nbsp;=&nbsp;<VAR>ref</VAR>&nbsp;<SPAN class=semantic-keyword>then</SPAN></DIV>
+          <DIV class=lvl>
+            <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<A href="#D-REMatch" class=domain-name>REMatch</A><B><SCRIPT type="text/javascript">document.write(U_lang)</SCRIPT></B><SPAN class=field-name>endIndex</SPAN>:&nbsp;<VAR>j</VAR>,&nbsp;<SPAN class=field-name>captures</SPAN>:&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>captures</A><B><SCRIPT type="text/javascript">document.write(U_rang)</SCRIPT></B>)</DIV>
+          </DIV>
+          <DIV class=stmt><SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<A href="#T-failure" class=tag-name>failure</A></DIV>
+          <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>;</DIV>
+        </DIV>
+        <DIV class=stmt>{<A href="#T-undefined" class=tag-name>undefined</A>}&nbsp;<SPAN class=semantic-keyword>do</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>c</VAR>(<VAR>x</VAR>)</DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>case</SPAN></DIV>
+    </DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>m</VAR></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-nthBackreference"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>nthBackreference</SPAN>(<VAR>x</VAR>:&nbsp;<A href="#D-REMatch" class=domain-name>REMatch</A>,&nbsp;<VAR>n</VAR>:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>):&nbsp;<A href="#D-Capture" class=domain-name>Capture</A></DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>return</SPAN>&nbsp;<VAR>x</VAR>.<A href="#D-REMatch" class=field-name>captures</A>[<VAR>n</VAR>&nbsp;&#8211;&nbsp;1]</DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-CharacterEscape"></A><SPAN class=nonterminal>CharacterEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>c</CODE>&nbsp;<A href="#N-ControlLetter" class=nonterminal>ControlLetter</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-HexEscape" class=nonterminal>HexEscape</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-IdentityEscape" class=nonterminal>IdentityEscape</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ControlLetter"></A><SPAN class=nonterminal>ControlLetter</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE>A</CODE>&nbsp;|&nbsp;<CODE>B</CODE>&nbsp;|&nbsp;<CODE>C</CODE>&nbsp;|&nbsp;<CODE>D</CODE>&nbsp;|&nbsp;<CODE>E</CODE>&nbsp;|&nbsp;<CODE>F</CODE>&nbsp;|&nbsp;<CODE>G</CODE>&nbsp;|&nbsp;<CODE>H</CODE>&nbsp;|&nbsp;<CODE>I</CODE>&nbsp;|&nbsp;<CODE>J</CODE>&nbsp;|&nbsp;<CODE>K</CODE>&nbsp;|&nbsp;<CODE>L</CODE>&nbsp;|&nbsp;<CODE>M</CODE>&nbsp;|&nbsp;<CODE>N</CODE>&nbsp;|&nbsp;<CODE>O</CODE>&nbsp;|&nbsp;<CODE>P</CODE>&nbsp;|&nbsp;<CODE>Q</CODE>&nbsp;|&nbsp;<CODE>R</CODE>&nbsp;|&nbsp;<CODE>S</CODE>&nbsp;|&nbsp;<CODE>T</CODE>&nbsp;|&nbsp;<CODE>U</CODE>&nbsp;|&nbsp;<CODE>V</CODE>&nbsp;|&nbsp;<CODE>W</CODE>&nbsp;|&nbsp;<CODE>X</CODE>&nbsp;|&nbsp;<CODE>Y</CODE>&nbsp;|&nbsp;<CODE>Z</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>a</CODE>&nbsp;|&nbsp;<CODE>b</CODE>&nbsp;|&nbsp;<CODE>c</CODE>&nbsp;|&nbsp;<CODE>d</CODE>&nbsp;|&nbsp;<CODE>e</CODE>&nbsp;|&nbsp;<CODE>f</CODE>&nbsp;|&nbsp;<CODE>g</CODE>&nbsp;|&nbsp;<CODE>h</CODE>&nbsp;|&nbsp;<CODE>i</CODE>&nbsp;|&nbsp;<CODE>j</CODE>&nbsp;|&nbsp;<CODE>k</CODE>&nbsp;|&nbsp;<CODE>l</CODE>&nbsp;|&nbsp;<CODE>m</CODE>&nbsp;|&nbsp;<CODE>n</CODE>&nbsp;|&nbsp;<CODE>o</CODE>&nbsp;|&nbsp;<CODE>p</CODE>&nbsp;|&nbsp;<CODE>q</CODE>&nbsp;|&nbsp;<CODE>r</CODE>&nbsp;|&nbsp;<CODE>s</CODE>&nbsp;|&nbsp;<CODE>t</CODE>&nbsp;|&nbsp;<CODE>u</CODE>&nbsp;|&nbsp;<CODE>v</CODE>&nbsp;|&nbsp;<CODE>w</CODE>&nbsp;|&nbsp;<CODE>x</CODE>&nbsp;|&nbsp;<CODE>y</CODE>&nbsp;|&nbsp;<CODE>z</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-IdentityEscape"></A><SPAN class=nonterminal>IdentityEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-UnicodeCharacter" class=nonterminal>UnicodeCharacter</A>&nbsp;<B>except</B>&nbsp;<CODE>_</CODE>&nbsp;|&nbsp;<A href="#N-UnicodeAlphanumeric" class=nonterminal>UnicodeAlphanumeric</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ControlEscape"></A><SPAN class=nonterminal>ControlEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE>f</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>n</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>r</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>t</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>v</CODE></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A>]&nbsp;=&nbsp;<SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A>];</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>c</CODE>&nbsp;<A href="#N-ControlLetter" class=nonterminal>ControlLetter</A>]
+      =&nbsp;<A href="notation.html#V-codeToCharacter" class=global-variable>codeToCharacter</A>(<A href="notation.html#V-bitwiseAnd" class=global-variable>bitwiseAnd</A>(<A href="notation.html#V-characterToCode" class=global-variable>characterToCode</A>(<A href="#N-ControlLetter" class=nonterminal>ControlLetter</A>),&nbsp;31));</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-HexEscape" class=nonterminal>HexEscape</A>]&nbsp;=&nbsp;<SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-HexEscape" class=nonterminal>HexEscape</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-IdentityEscape" class=nonterminal>IdentityEscape</A>]&nbsp;=&nbsp;<A href="#N-IdentityEscape" class=nonterminal>IdentityEscape</A>;</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>f</CODE>]&nbsp;=&nbsp;&#8216;<CODE><SPAN class=control>&#171;FF&#187;</SPAN></CODE>&#8217;;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>n</CODE>]&nbsp;=&nbsp;&#8216;<CODE><SPAN class=control>&#171;LF&#187;</SPAN></CODE>&#8217;;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>r</CODE>]&nbsp;=&nbsp;&#8216;<CODE><SPAN class=control>&#171;CR&#187;</SPAN></CODE>&#8217;;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>t</CODE>]&nbsp;=&nbsp;&#8216;<CODE><SPAN class=control>&#171;TAB&#187;</SPAN></CODE>&#8217;;</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-ControlEscape" class=nonterminal>ControlEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>v</CODE>]&nbsp;=&nbsp;&#8216;<CODE><SPAN class=control>&#171;VT&#187;</SPAN></CODE>&#8217;;</DIV>
+  </DIV>
+</DIV>
+
+<H3>Decimal Escapes</H3>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-DecimalEscape"></A><SPAN class=nonterminal>DecimalEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-DecimalIntegerLiteral" class=nonterminal>DecimalIntegerLiteral</A>&nbsp;[lookahead<SCRIPT type="text/javascript">document.write(U_notin)</SCRIPT>{<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>}]</DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-DecimalIntegerLiteral"></A><SPAN class=nonterminal>DecimalIntegerLiteral</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE>0</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NonZeroDecimalDigits"></A><SPAN class=nonterminal>NonZeroDecimalDigits</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-NonZeroDigit" class=nonterminal>NonZeroDigit</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A>&nbsp;<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NonZeroDigit"></A><SPAN class=nonterminal>NonZeroDigit</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>1</CODE>&nbsp;|&nbsp;<CODE>2</CODE>&nbsp;|&nbsp;<CODE>3</CODE>&nbsp;|&nbsp;<CODE>4</CODE>&nbsp;|&nbsp;<CODE>5</CODE>&nbsp;|&nbsp;<CODE>6</CODE>&nbsp;|&nbsp;<CODE>7</CODE>&nbsp;|&nbsp;<CODE>8</CODE>&nbsp;|&nbsp;<CODE>9</CODE></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>EscapeValue</SPAN>[<A href="#N-DecimalEscape" class=nonterminal>DecimalEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-DecimalIntegerLiteral" class=nonterminal>DecimalIntegerLiteral</A>&nbsp;[lookahead<SCRIPT type="text/javascript">document.write(U_notin)</SCRIPT>{<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>}]]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>
+    =&nbsp;<SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalIntegerLiteral" class=nonterminal>DecimalIntegerLiteral</A>];</DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalIntegerLiteral" class=nonterminal>DecimalIntegerLiteral</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalIntegerLiteral" class=nonterminal>DecimalIntegerLiteral</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>0</CODE>]&nbsp;=&nbsp;0;</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-DecimalIntegerLiteral" class=nonterminal>DecimalIntegerLiteral</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A>]
+      =&nbsp;<SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-NonZeroDigit" class=nonterminal>NonZeroDigit</A>]&nbsp;=&nbsp;<SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-NonZeroDigit" class=nonterminal>NonZeroDigit</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A><SUB class=nonterminal-sub>0</SUB>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A><SUB class=nonterminal-sub>1</SUB>&nbsp;<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>]
+      =&nbsp;10<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT><SPAN class=action-name>IntegerValue</SPAN>[<A href="#N-NonZeroDecimalDigits" class=nonterminal>NonZeroDecimalDigits</A><SUB class=nonterminal-sub>1</SUB>]&nbsp;+&nbsp;<SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-DecimalDigit" class=nonterminal>DecimalDigit</A>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm-stmt><SPAN class=action-name>DecimalValue</SPAN>[<A href="#N-NonZeroDigit" class=nonterminal>NonZeroDigit</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;=&nbsp;<A href="notation.html#V-digitValue" class=global-variable>digitValue</A>(<A href="#N-NonZeroDigit" class=nonterminal>NonZeroDigit</A>);</DIV>
+
+<H3>Hexadecimal Escapes</H3>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-HexEscape"></A><SPAN class=nonterminal>HexEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE>x</CODE>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>u</CODE>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-HexDigit"></A><SPAN class=nonterminal>HexDigit</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>0</CODE>&nbsp;|&nbsp;<CODE>1</CODE>&nbsp;|&nbsp;<CODE>2</CODE>&nbsp;|&nbsp;<CODE>3</CODE>&nbsp;|&nbsp;<CODE>4</CODE>&nbsp;|&nbsp;<CODE>5</CODE>&nbsp;|&nbsp;<CODE>6</CODE>&nbsp;|&nbsp;<CODE>7</CODE>&nbsp;|&nbsp;<CODE>8</CODE>&nbsp;|&nbsp;<CODE>9</CODE>&nbsp;|&nbsp;<CODE>A</CODE>&nbsp;|&nbsp;<CODE>B</CODE>&nbsp;|&nbsp;<CODE>C</CODE>&nbsp;|&nbsp;<CODE>D</CODE>&nbsp;|&nbsp;<CODE>E</CODE>&nbsp;|&nbsp;<CODE>F</CODE>&nbsp;|&nbsp;<CODE>a</CODE>&nbsp;|&nbsp;<CODE>b</CODE>&nbsp;|&nbsp;<CODE>c</CODE>&nbsp;|&nbsp;<CODE>d</CODE>&nbsp;|&nbsp;<CODE>e</CODE>&nbsp;|&nbsp;<CODE>f</CODE></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-HexEscape" class=nonterminal>HexEscape</A>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-HexEscape" class=nonterminal>HexEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>x</CODE>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>1</SUB>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>2</SUB>]
+      =&nbsp;<A href="notation.html#V-codeToCharacter" class=global-variable>codeToCharacter</A>(16<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT><SPAN class=action-name>HexValue</SPAN>[<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>1</SUB>]&nbsp;+&nbsp;<SPAN class=action-name>HexValue</SPAN>[<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>2</SUB>]);</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-HexEscape" class=nonterminal>HexEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>u</CODE>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>1</SUB>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>2</SUB>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>3</SUB>&nbsp;<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>4</SUB>]
+      =&nbsp;<A href="notation.html#V-codeToCharacter" class=global-variable>codeToCharacter</A>(4096<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT><SPAN class=action-name>HexValue</SPAN>[<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>1</SUB>]&nbsp;+&nbsp;256<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT><SPAN class=action-name>HexValue</SPAN>[<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>2</SUB>]&nbsp;+
+      16<SCRIPT type="text/javascript">document.write(U_times)</SCRIPT><SPAN class=action-name>HexValue</SPAN>[<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>3</SUB>]&nbsp;+
+      <SPAN class=action-name>HexValue</SPAN>[<A href="#N-HexDigit" class=nonterminal>HexDigit</A><SUB class=nonterminal-sub>4</SUB>]);</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm-stmt><SPAN class=action-name>HexValue</SPAN>[<A href="#N-HexDigit" class=nonterminal>HexDigit</A>]:&nbsp;<A href="notation.html#D-Integer" class=domain-name>Integer</A>&nbsp;=&nbsp;<A href="notation.html#V-digitValue" class=global-variable>digitValue</A>(<A href="#N-HexDigit" class=nonterminal>HexDigit</A>);</DIV>
+
+<H3>Character Class Escapes</H3>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-CharacterClassEscape"></A><SPAN class=nonterminal>CharacterClassEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE>s</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>S</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>d</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>D</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>w</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>W</CODE></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{};</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>s</CODE>]&nbsp;=&nbsp;<A href="#V-reWhitespaces" class=global-variable>reWhitespaces</A>;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>S</CODE>]&nbsp;=&nbsp;{&#8216;<CODE><SPAN class=control>&#171;NUL&#187;</SPAN></CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE><SPAN class=control>&#171;uFFFF&#187;</SPAN></CODE>&#8217;}&nbsp;&#8211;&nbsp;<A href="#V-reWhitespaces" class=global-variable>reWhitespaces</A>;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>d</CODE>]&nbsp;=&nbsp;<A href="#V-reDigits" class=global-variable>reDigits</A>;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>D</CODE>]&nbsp;=&nbsp;{&#8216;<CODE><SPAN class=control>&#171;NUL&#187;</SPAN></CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE><SPAN class=control>&#171;uFFFF&#187;</SPAN></CODE>&#8217;}&nbsp;&#8211;&nbsp;<A href="#V-reDigits" class=global-variable>reDigits</A>;</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>w</CODE>]&nbsp;=&nbsp;<A href="#V-reWordCharacters" class=global-variable>reWordCharacters</A>;</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>W</CODE>]&nbsp;=&nbsp;{&#8216;<CODE><SPAN class=control>&#171;NUL&#187;</SPAN></CODE>&#8217;&nbsp;...&nbsp;&#8216;<CODE><SPAN class=control>&#171;uFFFF&#187;</SPAN></CODE>&#8217;}&nbsp;&#8211;&nbsp;<A href="#V-reWordCharacters" class=global-variable>reWordCharacters</A>;</DIV>
+  </DIV>
+</DIV>
+
+<H2>User-Specified Character Classes</H2>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-CharacterClass"></A><SPAN class=nonterminal>CharacterClass</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE>[</CODE>&nbsp;[lookahead<SCRIPT type="text/javascript">document.write(U_notin)</SCRIPT>{<CODE>^</CODE>}]&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>&nbsp;<CODE>]</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>[</CODE>&nbsp;<CODE>^</CODE>&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>&nbsp;<CODE>]</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ClassRanges"></A><SPAN class=nonterminal>ClassRanges</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-attribute>dash</SUP></DIV>
+</DIV>
+<DIV class=grammar-argument><SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;{<SPAN class=nonterminal-attribute>dash</SPAN>,&nbsp;<SPAN class=nonterminal-attribute>noDash</SPAN>}</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NonemptyClassRanges"></A><SPAN class=nonterminal>NonemptyClassRanges</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-attribute>dash</SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-attribute>noDash</SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<CODE>-</CODE>&nbsp;<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-attribute>dash</SUP>&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NullEscape" class=nonterminal>NullEscape</A>&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{};</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>[</CODE>&nbsp;[lookahead<SCRIPT type="text/javascript">document.write(U_notin)</SCRIPT>{<CODE>^</CODE>}]&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>&nbsp;<CODE>]</CODE>]
+      =&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>[</CODE>&nbsp;<CODE>^</CODE>&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>&nbsp;<CODE>]</CODE>]&nbsp;=&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>Invert</SPAN>[<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>]:&nbsp;<A href="notation.html#D-Boolean" class=domain-name>Boolean</A>;</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>Invert</SPAN>[<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>[</CODE>&nbsp;[lookahead<SCRIPT type="text/javascript">document.write(U_notin)</SCRIPT>{<CODE>^</CODE>}]&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>&nbsp;<CODE>]</CODE>]&nbsp;=&nbsp;<SPAN class=tag-name>false</SPAN>;</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>Invert</SPAN>[<A href="#N-CharacterClass" class=nonterminal>CharacterClass</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>[</CODE>&nbsp;<CODE>^</CODE>&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>&nbsp;<CODE>]</CODE>]&nbsp;=&nbsp;<SPAN class=tag-name>true</SPAN>;</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{};</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;&#171;empty&#187;]&nbsp;=&nbsp;{};</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-attribute>dash</SUP>]
+      =&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-attribute>dash</SUP>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{};</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-attribute>dash</SUP>]&nbsp;=&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-attribute>dash</SUP>];</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP><SUB class=nonterminal-sub>0</SUB>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-attribute>noDash</SUP><SUB class=nonterminal-sub>1</SUB>]
+      =&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>]&nbsp;<SCRIPT type="text/javascript">document.write(U_cup)</SCRIPT>&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-attribute>noDash</SUP><SUB class=nonterminal-sub>1</SUB>];</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP><SUB class=nonterminal-sub>1</SUB>&nbsp;<CODE>-</CODE>&nbsp;<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-attribute>dash</SUP><SUB class=nonterminal-sub>2</SUB>&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>]
+      =&nbsp;<A href="#V-characterRange" class=global-variable>characterRange</A>(<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP><SUB class=nonterminal-sub>1</SUB>],&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-attribute>dash</SUP><SUB class=nonterminal-sub>2</SUB>])&nbsp;<SCRIPT type="text/javascript">document.write(U_cup)</SCRIPT>
+      <SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>];</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-NonemptyClassRanges" class=nonterminal>NonemptyClassRanges</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-NullEscape" class=nonterminal>NullEscape</A>&nbsp;<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>]
+      =&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassRanges" class=nonterminal>ClassRanges</A>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><A name="V-characterRange"></A><SPAN class=semantic-keyword>proc</SPAN>&nbsp;<SPAN class=global-variable>characterRange</SPAN>(<VAR>low</VAR>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{},&nbsp;<VAR>high</VAR>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{}):&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{}</DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;|<VAR>low</VAR>|&nbsp;<SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT>&nbsp;1&nbsp;<SPAN class=semantic-keyword>or</SPAN>&nbsp;|<VAR>high</VAR>|&nbsp;<SCRIPT type="text/javascript">document.write(U_ne)</SCRIPT>&nbsp;1&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>throw</SPAN>&nbsp;<A href="#T-syntaxError" class=tag-name>syntaxError</A>&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN>;</DIV>
+    <DIV class=stmt><VAR>l</VAR>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=semantic-keyword>min</SPAN>&nbsp;<VAR>low</VAR>;</DIV>
+    <DIV class=stmt><VAR>h</VAR>:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_larr)</SCRIPT>&nbsp;<SPAN class=semantic-keyword>min</SPAN>&nbsp;<VAR>high</VAR>;</DIV>
+    <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<VAR>l</VAR>&nbsp;<SCRIPT type="text/javascript">document.write(U_le)</SCRIPT>&nbsp;<VAR>h</VAR>&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;{<VAR>l</VAR>&nbsp;...&nbsp;<VAR>h</VAR>}&nbsp;<SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>throw</SPAN>&nbsp;<A href="#T-syntaxError" class=tag-name>syntaxError</A>&nbsp;<SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN></DIV>
+  </DIV>
+  <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>proc</SPAN>;</DIV>
+</DIV>
+
+<H3>Character Class Range Atoms</H3>
+
+<H4>Syntax</H4>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ClassAtom"></A><SPAN class=nonterminal>ClassAtom</SPAN><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ClassCharacter" class=nonterminal>ClassCharacter</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>\</CODE>&nbsp;<A href="#N-ClassEscape" class=nonterminal>ClassEscape</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ClassCharacter"></A><SPAN class=nonterminal>ClassCharacter</SPAN><SUP class=nonterminal-attribute>dash</SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-UnicodeCharacter" class=nonterminal>UnicodeCharacter</A>&nbsp;<B>except</B>&nbsp;<CODE>\</CODE>&nbsp;|&nbsp;<CODE>]</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>ClassCharacter</SPAN><SUP class=nonterminal-attribute>noDash</SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-ClassCharacter" class=nonterminal>ClassCharacter</A><SUP class=nonterminal-attribute>dash</SUP>&nbsp;<B>except</B>&nbsp;<CODE>-</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ClassEscape"></A><SPAN class=nonterminal>ClassEscape</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-DecimalEscape" class=nonterminal>DecimalEscape</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE>b</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A></DIV>
+</DIV>
+
+<H4>Semantics</H4>
+
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{};</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-ClassCharacter" class=nonterminal>ClassCharacter</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>]&nbsp;=&nbsp;{<A href="#N-ClassCharacter" class=nonterminal>ClassCharacter</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>};</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassAtom" class=nonterminal>ClassAtom</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_delta)</SCRIPT></SUP>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>\</CODE>&nbsp;<A href="#N-ClassEscape" class=nonterminal>ClassEscape</A>]&nbsp;=&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassEscape" class=nonterminal>ClassEscape</A>];</DIV>
+  </DIV>
+</DIV>
+<DIV class=algorithm>
+  <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassEscape" class=nonterminal>ClassEscape</A>]:&nbsp;<A href="notation.html#D-Character" class=domain-name>Character</A>{};</DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassEscape" class=nonterminal>ClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-DecimalEscape" class=nonterminal>DecimalEscape</A>]</DIV>
+    <DIV class=lvl>
+      <DIV class=stmt><SPAN class=semantic-keyword>begin</SPAN></DIV>
+      <DIV class=lvl>
+        <DIV class=stmt><SPAN class=semantic-keyword>if</SPAN>&nbsp;<SPAN class=action-name>EscapeValue</SPAN>[<A href="#N-DecimalEscape" class=nonterminal>DecimalEscape</A>]&nbsp;=&nbsp;0&nbsp;<SPAN class=semantic-keyword>then</SPAN>&nbsp;<SPAN class=semantic-keyword>return</SPAN>&nbsp;{&#8216;<CODE><SPAN class=control>&#171;NUL&#187;</SPAN></CODE>&#8217;}</DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>else</SPAN>&nbsp;<SPAN class=semantic-keyword>throw</SPAN>&nbsp;<A href="#T-syntaxError" class=tag-name>syntaxError</A></DIV>
+        <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>&nbsp;<SPAN class=semantic-keyword>if</SPAN></DIV>
+      </DIV>
+      <DIV class=stmt><SPAN class=semantic-keyword>end</SPAN>;</DIV>
+    </DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassEscape" class=nonterminal>ClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE>b</CODE>]&nbsp;=&nbsp;{&#8216;<CODE><SPAN class=control>&#171;BS&#187;</SPAN></CODE>&#8217;};</DIV>
+  </DIV>
+  <DIV class=lvl-wide>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassEscape" class=nonterminal>ClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>]&nbsp;=&nbsp;{<SPAN class=action-name>CharacterValue</SPAN>[<A href="#N-CharacterEscape" class=nonterminal>CharacterEscape</A>]};</DIV>
+  </DIV>
+  <DIV class=lvl>
+    <DIV class=stmt><SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-ClassEscape" class=nonterminal>ClassEscape</A>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>]
+      =&nbsp;<SPAN class=action-name>AcceptanceSet</SPAN>[<A href="#N-CharacterClassEscape" class=nonterminal>CharacterClassEscape</A>];</DIV>
+  </DIV>
+</DIV>
+<!--/SEMANTICS-->
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Thursday, February 7, 2002</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="regexp-grammar.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="parser-grammar.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

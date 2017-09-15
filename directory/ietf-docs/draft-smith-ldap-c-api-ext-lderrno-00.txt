@@ -1,0 +1,614 @@
+
+LDAPEXT Working Group                                           M. Smith
+INTERNET-DRAFT                             Netscape Communications Corp.
+Intended Category: Standards Track
+Expires: 20 April 2000
+
+
+                                                          20 October 1999
+
+
+                      C LDAP API LDERRNO Extension
+              <draft-smith-ldap-c-api-ext-lderrno-00.txt>
+
+
+
+1.  Status of this Memo
+
+This document is an Internet-Draft and is in full conformance with all
+provisions of Section 10 of RFC2026.  Internet-Drafts are working docu-
+ments of the Internet Engineering Task Force (IETF), its areas, and its
+working groups.  Note that other groups may also distribute working
+documents as Internet-Drafts.
+
+Internet-Drafts are draft documents valid for a maximum of six months
+and may be updated, replaced, or obsoleted by other documents at any
+time.  It is inappropriate to use Internet-Drafts as reference material
+or to cite them other than as "work in progress."
+
+The list of current Internet-Drafts can be accessed at
+http://www.ietf.org/ietf/1id-abstracts.txt.
+
+The list of Internet-Draft Shadow Directories can be accessed at
+http://www.ietf.org/shadow.html.
+
+This draft document will be submitted to the RFC Editor as a Standards
+Track document. Distribution of this memo is unlimited.  Technical dis-
+cussion of this document will take place on the IETF LDAP Extension
+Working Group mailing list <ietf-ldapext@netscape.com>.  Please send
+editorial comments directly to the author <mcs@netscape.com>.
+
+Copyright (C) The Internet Society (1998-1999). All Rights Reserved.
+
+Please see the Copyright section near the end of this document for more
+information.
+
+
+
+
+
+
+
+
+Expires: 20 April 2000                                          [Page 1]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+2.  Introduction
+
+This document defines an extension to the C LDAP API to support report-
+ing of specific errors for functions in the API that do not provide a
+way to access detailed information about failures.  Three new functions
+are defined:  ldap_get_lderrno(), ldap_set_lderrno(), and
+ldap_dup_string().
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED",  and "MAY" in this document are
+to be interpreted as described in RFC 2119 [KEYWORDS].
+
+
+3.  Table of Contents
+
+1.     Status of this Memo............................................1
+2.     Introduction...................................................2
+3.     Table of Contents..............................................2
+4.     Background and Intended Usage..................................2
+5.     Advertising the LDERRNO C LDAP API Extension...................4
+6.     Retrieving Error Information...................................4
+7.     Setting Error Information......................................5
+8.     Example Code...................................................7
+9.     Security Considerations........................................9
+10.    Copyright......................................................9
+11.    Bibliography...................................................10
+12.    Author's Address...............................................10
+13.    Appendix A - Summary of Additions to the C LDAP API............10
+14.    Appendix B - Open Issues.......................................11
+14.1.     System Errors?..............................................11
+14.2.     Failure of ldap_err2string?.................................11
+14.3.     Why this instead of [ERRREP]?...............................11
+
+
+4.  Background and Intended Usage
+
+In this specification, the phrase "error information" refers to a set of
+LDAP error information that includes an integer LDAP error code, a
+matched DN string, and a text error message string.
+
+The C LDAP API [CAPI] defines a C language application programming
+interface (API) to the Lightweight Directory Access Protocol [LDAP].
+This document defines an extension to that API to support reporting of
+specific errors for functions in the C LDAP API that do not return
+detailed error information.  The mechanism described also provides a
+more convenient method for applications to retrieve error information
+from an LDAP session handle.
+
+
+
+
+Expires: 20 April 2000                                          [Page 2]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+Some of the C LDAP API functions do not return or provide a method to
+retrieve detailed error information (such as by accessing an error code
+from the LDAP session handle).  Excluding functions that only dispose of
+memory, these functions are:
+
+   ber_alloc_t()
+   ber_bvdup()
+   ber_first_element()
+   ber_flatten()
+   ber_init()
+   ber_next_element()
+   ber_peek_tag()
+   ber_printf()
+   ber_scanf()
+   ber_skip_tag()
+   ldap_count_values()
+   ldap_count_values_len()
+   ldap_dn2ufn()
+   ldap_err2string()       -- can we just say that this can never return NULL?
+   ldap_explode_dn()
+   ldap_explode_rdn()
+   ldap_init()
+   ldap_msgid()
+   ldap_msgtype()
+
+The reason these functions do not return a specific error code is so
+that compatibility with existing implementations of the C LDAP API could
+be maintained.  In some environments, such as where memory resources are
+extremely tight and the application may be able to implement a recovery
+algorithm and retry a function call in the face of failure, it is essen-
+tial that access to specific, detailed error information be provided.
+
+This document defines three new functions: ldap_get_lderrno(),
+ldap_set_lderrno(), and ldap_dup_string().  The ldap_get_lderrno() func-
+tion MAY be used by callers of the C LDAP API to retrieve error informa-
+tion.   The ldap_set_lderrno() function MAY be used by callers of the C
+LDAP API to set error information, which can be useful when functions
+that wish to use the provided error reporting mechanisms are layered on
+top of the C LDAP API.  The ldap_dup_string() function SHOULD be used to
+allocate strings that are passed to ldap_set_lderrno().
+
+C LDAP API implementations that support this extension MUST implement
+global error information that is separate from that associated with LDAP
+session handles.  In addition, implementations that support the
+LDAP_API_FEATURE_SESSION_THREAD_SAFE extension described in [CONCURR]
+MUST implement thread-specific storage for the global error information
+and for the information associated with LDAP session handles.
+
+
+
+
+Expires: 20 April 2000                                          [Page 3]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+5.  Advertising the LDERRNO C LDAP API Extension
+
+To conform with the requirements defined in the C LDAP API specification
+[CAPI], implementations that support this extension SHOULD advertise the
+existence of this extension as follows:
+
+   Define the macro LDAP_API_FEATURE_LDERRNO as a value that corresponds
+   to the "level" or revision of this specification.  When this document
+   is published as an RFC, the value to use for LDAP_API_FEATURE_LDERRNO
+   is the RFC number itself.  While this document is an Internet Draft,
+   the value to use is 1000 plus the revision number of this draft,
+   i.e., 1000 for the -00 revision of this draft, 1001 for the -01 ver-
+   sion, and so on.
+
+   Return the text string LDERRNO in the ldapai_extensions array of the
+   LDAPAPIInfo structure following a successful call to
+   ldap_get_option() with an option parameter value of
+   LDAP_OPT_API_INFO.
+
+   Return information about the extension when the ldapaif_name field in
+   the LDAPAPIFeatureInfo structure is set to the text string LDERRNO
+   and a call to ldap_get_option() with an option parameter value of
+   LDAP_OPT_API_FEATURE_INFO is made.
+
+
+
+6.  Retrieving Error Information
+
+The ldap_get_lderrno() function MAY be used by callers of the C LDAP API
+to retrieve error information.  It is RECOMMENDED that this function be
+used instead of the ldap_get_option() call with the
+LDAP_OPT_ERROR_NUMBER, LDAP_OPT_ERROR_STRING, or LDAP_OPT_MATCHED_DN
+options.
+
+    /* function used to retrieve error information: */
+    int ldap_get_lderrno(
+        LDAP            *ld,
+        char            **matcheddnp,
+        char            **errmsgp
+    );
+
+
+When reporting error information for functions that accept an LDAP ses-
+sion handle, the values returned by ldap_get_lderrno() MUST be identical
+to those reported by ldap_get_option().  To retrieve global error infor-
+mation for functions that do not accept an LDAP session handle, callers
+MUST pass NULL for the `ld' parameter.
+
+
+
+
+Expires: 20 April 2000                                          [Page 4]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+The parameters to the ldap_get_lderrno() function are:
+
+ld          An LDAP session handle, as obtained from a call to
+            ldap_init().  If NULL is passed for `ld', global error
+            information is returned.  If the API implementation supports
+            the LDAP_API_FEATURE_SESSION_THREAD_SAFE extension as
+            described in [CONCURR], thread-specific error information is
+            returned.
+
+matcheddnp  A result parameter that will be filled in with a DN indicat-
+            ing how much of the name in the request was recognized.  If
+            no matched DN information is available, this MUST be set to
+            NULL.  If there is no need to retrieve the matched DN infor-
+            mation, callers of ldap_get_lderrno() SHOULD pass NULL for
+            `matcheddnp'.  Note that the string returned is a thread-
+            specific value if the API implementation supports the
+            LDAP_API_FEATURE_SESSION_THREAD_SAFE extension as described
+            in [CONCURR].  The string data MUST NOT be disposed of by
+            the caller as the memory occupied is maintained by the API
+            implementation.
+
+errmsgp     A result parameter that will be filled in with a text string
+            that provides additional error detail, e.g., from the error-
+            Message field of an LDAPResult message.  If no text error
+            message is available, this MUST be set to NULL.  If there is
+            no need to retrieve the text error message, callers of
+            ldap_get_lderrno() SHOULD pass NULL for `errmsgp'.  Note
+            that the string returned is a thread-specific value if the
+            API implementation supports the
+            LDAP_API_FEATURE_SESSION_THREAD_SAFE extension as described
+            in [CONCURR].  The string data MUST NOT be disposed of by
+            the caller as the memory occupied is maintained by the API
+            implementation.
+
+The ldap_get_lderrno() function returns a C LDAP API integer error code.
+The value returned is a thread-specific value if the API implementation
+supports the LDAP_API_FEATURE_SESSION_THREAD_SAFE extension as described
+in [CONCURR].
+
+
+
+7.  Setting Error Information
+
+The ldap_set_lderrno() function MAY be used by callers of the C LDAP API
+to set error information.  It is RECOMMENDED that this function be used
+instead of the ldap_set_option() call with the LDAP_OPT_ERROR_NUMBER,
+LDAP_OPT_ERROR_STRING, or LDAP_OPT_MATCHED_DN options.
+
+
+
+
+Expires: 20 April 2000                                          [Page 5]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+The ldap_dup_string() function SHOULD be used to allocate strings that
+are passed to ldap_set_lderrno().
+
+    /* function used to set error information: */
+    int ldap_set_lderrno(
+        LDAP            *ld,
+        int             lderror,
+        char            *matcheddn,
+        char            *errmsg
+    );
+
+    /* function used to duplicate text strings: */
+    int ldap_dup_string( char **dstp, const char *src );
+
+
+The parameters to the ldap_set_lderrno() function are:
+
+ld          An LDAP session handle, as obtained from a call to
+            ldap_init().  If NULL is passed for `ld', global error
+            information is set.  If the API implementation supports the
+            LDAP_API_FEATURE_SESSION_THREAD_SAFE extension as described
+            in [CONCURR], thread-specific error information is set.
+
+lderror     A C LDAP API integer error code.
+
+matcheddn   A text string that indicates what portion of a DN was
+            matched in carrying out an operation.  The memory that
+            `matcheddn' occupies MUST be allocated by the C LDAP API
+            implementation and not by the calling application.  Accept-
+            able values include those returned through the use of the
+            `a' format modifier with ber_scanf() and values generated by
+            the ldap_dup_string() function.
+
+errmsg      A text string that provides extra textual information about
+            an error.  The memory that `errmsg' occupies MUST be allo-
+            cated by the C LDAP API implementation and not by the cal-
+            ling application.  Acceptable values include those returned
+            through the use of the `a' format modifier with ber_scanf()
+            and values generated by the ldap_dup_string() function.
+
+The ldap_set_lderrno() function returns an LDAP error code that indi-
+cates whether it was able to set the error information.  LDAP_SUCCESS is
+returned if all goes well, and another LDAP error code that is defined
+in [CAPI] is returned if some other problem occurs.
+
+The parameters to the ldap_dup_string() function are:
+
+dstp        This result parameter will be set to memory that contains a
+
+
+
+Expires: 20 April 2000                                          [Page 6]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+            copy of the `src' string.  If `src' is NULL or the
+            ldap_dup_string() call fails, this MUST be set to NULL.
+
+src         A pointer to a string to duplicate.  NULL values for `src'
+            are allowed.
+
+ldap_dup_string() returns an LDAP error code that indicates whether it
+was able to allocate memory and duplicate the contents of `src'.
+LDAP_SUCCESS is returned if all goes well, and another LDAP error code
+that is defined in [CAPI] is returned if some other problem occurs.
+Passing NULL for the `src' parameter MUST result in `*dstp' being set to
+NULL and ldap_dup_string() MUST return LDAP_SUCCESS.
+
+
+8.  Example Code
+
+The following is an example showing how an application may obtain the
+error information resulting from failed C LDAP API calls.
+
+    #include <stdio.h>
+    #include <ldap.h>
+
+    void
+    print_ldap_error( const char *s, int lderr, const char *matcheddn,
+            const char *errmsg )
+    {
+        if ( matcheddn == NULL ) {
+            matcheddn = "<NONE>";
+        }
+        if ( errmsg == NULL ) {
+            errmsg = "<NONE>";
+        }
+        fprintf( stderr, "%s: err=%d (%s)\n\tmatcheddn=%s, text=%s\n",
+                s, lderr, ldap_err2string( lderr ), matcheddn, errmsg );
+    }
+
+
+    int
+    bind_and_unbind( const char *binddn )
+    {
+        LDAP        *ld;
+        char        *ufn, *matcheddn, *errmsg;
+        int         msgid, rc, lderr, binderr;
+        LDAPMessage *res;
+
+        rc = 0;
+
+        /* get an LDAP session handle */
+
+
+
+Expires: 20 April 2000                                          [Page 7]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+        ld = ldap_init( "localhost", LDAP_PORT );
+        if ( ld == NULL ) {
+            lderr = ldap_get_lderrno( NULL, &matcheddn, &errmsg );
+            print_ldap_error( "ldap_init failed", lderr, matcheddn, errmsg );
+            return -1;
+        }
+
+        /* print "user friendly form" of binddn */
+        ufn = ldap_dn2ufn( binddn );
+        if ( ufn == NULL ) {
+            lderr = ldap_get_lderrno( NULL, &matcheddn, &errmsg );
+            print_ldap_error( "ldap_dn2ufn failed", lderr, matcheddn, errmsg );
+        }
+        printf( "About to do an unauthenticated bind as %s\n",
+                ufn == NULL ? binddn : ufn );
+        ldap_memfree( ufn );
+
+        /* perform an unauthenticated bind with binddn as the DN */
+        msgid = ldap_simple_bind( ld, binddn, NULL );
+        if ( msgid == -1 ) {
+            lderr = ldap_get_lderrno( ld, &matcheddn, &errmsg );
+            print_ldap_error( "ldap_simple_bind failed", lderr,
+                    matcheddn, errmsg );
+            rc = -1;
+            goto unbind;
+       }
+
+        if ( ldap_result( ld, msgid, LDAP_MSG_ALL, NULL, &res ) <= 0 ) {
+            lderr = ldap_get_lderrno( ld, &matcheddn, &errmsg );
+            print_ldap_error( "ldap_result failed", lderr, matcheddn, errmsg );
+            rc = -1;
+            goto unbind;
+        }
+
+        if (( lderr = ldap_parse_result( ld, res, &binderr, &matcheddn,
+                &errmsg, NULL, NULL, 1 ) != LDAP_SUCCESS )) {
+            print_ldap_error( "ldap_parse_result failed\n", lderr, NULL,
+                    NULL );
+            rc = -1;
+        } else {
+            print_ldap_error( "bind result", binderr, matcheddn, errmsg );
+            ldap_memfree( matcheddn );
+            ldap_memfree( errmsg );
+            if ( binderr != LDAP_SUCCESS ) {
+                rc = -1;
+            }
+        }
+
+
+
+
+Expires: 20 April 2000                                          [Page 8]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+        ldap_msgfree( res );
+
+        /* ... */
+
+    unbind:
+        /* unbind and dispose of session handle */
+        if ( ldap_unbind( ld ) != 0 ) {
+            lderr = ldap_get_lderrno( NULL, &matcheddn, &errmsg );
+            print_ldap_error( "ldap_unbind failed", lderr, matcheddn, errmsg );
+            rc = -1;
+        }
+
+        return rc;
+    }
+
+
+
+9.  Security Considerations
+
+This C LDAP API extension does not impose any additional security con-
+siderations beyond those discussed in the C LDAP API specification
+[CAPI].
+
+
+10.  Copyright
+
+Copyright (C) The Internet Society (1999). All Rights Reserved.
+
+
+This document and translations of it may be copied and furnished to oth-
+ers, and derivative works that comment on or otherwise explain it or
+assist in its implementation may be prepared, copied, published and dis-
+tributed, in whole or in part, without restriction of any kind, provided
+that the above copyright notice and this paragraph are included on all
+such copies and derivative works.  However, this document itself may not
+be modified in any way, such as by removing the copyright notice or
+references to the Internet Society or other Internet organizations,
+except as needed for the  purpose of developing Internet standards in
+which case the procedures for copyrights defined in the Internet Stan-
+dards process must be followed, or as required to translate it into
+languages other than English.
+
+The limited permissions granted above are perpetual and will not be
+revoked by the Internet Society or its successors or assigns.
+
+This document and the information contained herein is provided on an "AS
+IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING TASK
+FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+
+
+
+Expires: 20 April 2000                                          [Page 9]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT
+INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FIT-
+NESS FOR A PARTICULAR PURPOSE.
+
+
+
+11.  Bibliography
+
+[CAPI]      M. Smith, T. Howes, A. Herron, M. Wahl, A. Anantha, "The C
+            LDAP Application Program Interface", INTERNET-DRAFT,
+            <draft-ietf-ldapext-ldap-c-api-04.txt>, 8 October 1999.
+
+[KEYWORDS]  S. Bradner, "Key words for use in RFCs to Indicate Require-
+            ment Levels", RFC 2119, March 1997.
+
+[LDAP]      M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
+            Protocol (v3)", RFC 2251, December 1997.
+
+[CONCURR]   K. Zeilenga, "LDAP C API Concurrency Extensions", INTERNET-
+            DRAFT, <draft-zeilenga-ldap-c-api-concurrency-00.txt>, 28
+            September 1999.
+
+[ERRREP]    K. Zeilenga, "LDAP C API Error Reporting Extension",
+            INTERNET-DRAFT, <draft-zeilenga-ldap-c-api-errno-00.txt> 28
+            September 1999.
+
+
+12.  Author's Address
+
+   Mark Smith
+   Netscape Communications Corp.
+   501 E. Middlefield Rd., Mailstop MV068
+   Mountain View, CA 94043
+   USA
+   +1 650 937-3477
+   mcs@netscape.com
+
+
+13.  Appendix A - Summary of Additions to the C LDAP API
+
+This extension introduces no additional macros.
+
+This extension introduces no structures or typedefs.
+
+This extension introduces the following functions:
+
+   ldap_get_lderrno()
+   ldap_set_lderrno()
+
+
+
+Expires: 20 April 2000                                         [Page 10]
+
+INTERNET-DRAFT       C LDAP API LDERRNO Extension        20 October 1999
+
+
+   ldap_dup_string()
+
+
+14.  Appendix B - Open Issues
+
+14.1.  System Errors?
+
+What about reporting of "system" errors such as for ldap_init()
+failures?  Do we need to introduce additional error codes such as
+LDAP_HOST_UNREACHABLE and LDAP_HOST_UNKNOWN?
+
+14.2.  Failure of ldap_err2string?
+
+It is almost ridiculous to require that callers of the C LDAP API check
+to see if calls to ldap_err2string() fail.  Can we stipulate that
+ldap_err2string() will never fail; that is, that it MUST return a valid
+string pointer and MUST NOT return NULL?
+
+14.3.  Why this instead of [ERRREP]?
+
+Why is this a better solution than the lderrno approach described in
+[ERRREP]?  One argument is that most implementations will need to define
+lderrno as a macro that calls a function, so why not just be explicit
+and define functions like ldap_get_lderrno() and ldap_set_lderrno()?
+Also, this specification includes support for manipulating the matched
+DN and a text error message as well.  One potential disadvantage of the
+approach defined in this specification is that there is no separation
+between failures within the API implementation and errors returned by an
+LDAP server, but arguably requiring that separation restricts API imple-
+mentors too much.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Expires: 20 April 2000                                         [Page 11]
+

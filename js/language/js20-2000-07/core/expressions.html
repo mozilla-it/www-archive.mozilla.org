@@ -1,0 +1,516 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>JavaScript 2.0 Expressions</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="lexer.html">
+<LINK rel=Next href="statements.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+<BODY>
+
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=draft-title>July 2000 Draft</SPAN></DIV>
+    <DIV class=title2><SPAN class=draft-title>JavaScript 2.0</SPAN></DIV>
+    <DIV class=title2>Core Language</DIV>
+    <DIV class=title1>Expressions</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="lexer.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="statements.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Tuesday, June 6, 2000</P>
+
+
+<P>Most of the behavior of expressions is the same as in JavaScript 1.5. Differences are highlighted below. One general difference
+is that most expression operators can be overridden via operator overloading.</P>
+
+<DIV class=grammar-argument><SPAN class=nonterminal><SPAN class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SPAN></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_isin)</SCRIPT>&nbsp;{<SPAN class=nonterminal><SPAN class=nonterminal-attribute>allowIn</SPAN></SPAN>,&nbsp;<SPAN class=nonterminal><SPAN class=nonterminal-attribute>noIn</SPAN></SPAN>}</DIV>
+
+<H3><A name="identifier"></A>Identifiers</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-AttributeIdentifier"></A><SPAN class=nonterminal>AttributeIdentifier</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=terminal>Identifier</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>get</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>set</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Identifier"></A><SPAN class=nonterminal>Identifier</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-AttributeIdentifier" class=nonterminal>AttributeIdentifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>attribute</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>constructor</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>language</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>namespace</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>use</CODE></DIV>
+</DIV>
+
+<P>The above keywords are not reserved and may be used in identifiers. <CODE class=terminal-keyword>get</CODE> and <CODE class=terminal-keyword>set</CODE>
+may be used as user-defined declaration attributes; the other keywords above may not be used as declaration attributes.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-QualifiedIdentifier"></A><SPAN class=nonterminal>QualifiedIdentifier</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-Qualifier" class=nonterminal>Qualifier</A>&nbsp;<CODE class=terminal-keyword>::</CODE>&nbsp;<A href="#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Qualifier"></A><SPAN class=nonterminal>Qualifier</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-Identifier" class=nonterminal>Identifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>public</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>package</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>private</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>super</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A></DIV>
+</DIV>
+
+<P>Just like in ECMAScript Edition 3, an identifier evaluates to an internal data structure called a reference. However, JavaScript
+2.0 references can be qualified by zero or more qualifiers, which are expressions that must evaluate to either namespaces,
+classes, interfaces, or packages. A qualifier is set to the value of the <A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A>.
+If the <A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A> is a simple <A href="#N-Identifier" class=nonterminal>Identifier</A>
+then the parentheses may be omitted.</P>
+
+<P>The reserved words <CODE class=terminal-keyword>public</CODE>, <CODE class=terminal-keyword>package</CODE>, <CODE class=terminal-keyword>private</CODE>,
+and <CODE class=terminal-keyword>super</CODE> may also be used as qualifiers. <CODE class=terminal-keyword>public</CODE> evaluates
+to the <CODE>public</CODE> <A href="concepts.html#namespace">namespace</A>. <CODE class=terminal-keyword>package</CODE> evaluates
+to the containing package's anonymous <A href="concepts.html#namespace">namespace</A>. If used in a class, <CODE class=terminal-keyword>private</CODE>
+evaluates to the containing class's anonymous <A href="concepts.html#namespace">namespace</A>; otherwise <CODE class=terminal-keyword>private</CODE>
+is the same as <CODE class=terminal-keyword>package</CODE>. <CODE class=terminal-keyword>super</CODE>, which may only be used
+inside a class, restricts the interpretation of the <A href="#N-Identifier" class=nonterminal>Identifier</A> to
+definitions inherited from the superclass.</P>
+
+<H3><A name="primary-expression"></A>Primary Expressions</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PrimaryExpression"></A><SPAN class=nonterminal>PrimaryExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>null</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>true</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>false</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>public</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>Number</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>Number</SPAN>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>this</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>RegularExpression</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ArrayLiteral" class=nonterminal>ArrayLiteral</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ObjectLiteral" class=nonterminal>ObjectLiteral</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FunctionExpression" class=nonterminal>FunctionExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ParenthesizedExpression"></A><SPAN class=nonterminal>ParenthesizedExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-Expression">Expression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>)</CODE></DIV>
+</DIV>
+
+<P>A <SPAN class=terminal>Number</SPAN> literal or <A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A>
+followed by a <SPAN class=terminal>String</SPAN> literal is a unit expression. The unit object specified by the <SPAN class=terminal>String</SPAN>
+is looked up; the result is called as a function and passed two arguments: the numeric value of the <SPAN class=terminal>Number</SPAN>
+literal or <A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A>, and either <CODE>null</CODE>
+(if a <A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A> was provided) or the original
+<SPAN class=terminal>Number</SPAN> literal expressed as a string.</P>
+
+<P>The string representation allows user-defined unit classes to define extended syntaxes for numbers. For instance, a long-integer
+package might define a unit called <CODE>"L"</CODE> that treats the <SPAN class=terminal>Number</SPAN> literal as a full 64-bit
+number without rounding it to a double first.</P>
+
+<P><CODE class=terminal-keyword>public</CODE> evaluates to the <CODE>public</CODE> <A href="concepts.html#namespace">namespace</A>.</P>
+
+<P><CODE class=terminal-keyword>this</CODE> may only be used in <A href="classes.html#method">methods</A> or <A href="functions.html#traditional-function">traditional
+functions</A>.</P>
+
+<P>A <A href="#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A> expression <VAR>id</VAR> resolves
+to the binding of <VAR>id</VAR> in the innermost enclosing scope that has a visible binding of <VAR>id</VAR>. If qualifiers
+are present before the <VAR>id</VAR>, then the <A href="#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>
+expression resolves to the binding of <VAR>id</VAR> in the innermost enclosing scope that has a visible binding of <VAR>id</VAR>
+in the namespaces, classes, interfaces, and/or packages specified by the qualifiers.</P>
+
+<H3>Function Expressions</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FunctionExpression"></A><SPAN class=nonterminal>FunctionExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>function</CODE>&nbsp;<A href="functions.html#N-FunctionSignature" class=nonterminal>FunctionSignature</A>&nbsp;<A href="statements.html#N-Block" class=nonterminal>Block</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>function</CODE>&nbsp;<A href="#N-Identifier" class=nonterminal>Identifier</A>&nbsp;<A href="functions.html#N-FunctionSignature" class=nonterminal>FunctionSignature</A>&nbsp;<A href="statements.html#N-Block" class=nonterminal>Block</A></DIV>
+</DIV>
+
+<P>A <A href="#N-FunctionExpression" class=nonterminal>FunctionExpression</A> creates and returns an anonymous
+<A href="functions.html">function</A>.</P>
+
+<H3>Object Literals</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ObjectLiteral"></A><SPAN class=nonterminal>ObjectLiteral</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>{</CODE>&nbsp;<CODE class=terminal-keyword>}</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>{</CODE>&nbsp;<A href="#N-FieldList" class=nonterminal>FieldList</A>&nbsp;<CODE class=terminal-keyword>}</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FieldList"></A><SPAN class=nonterminal>FieldList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-LiteralField" class=nonterminal>LiteralField</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FieldList" class=nonterminal>FieldList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-LiteralField" class=nonterminal>LiteralField</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-LiteralField"></A><SPAN class=nonterminal>LiteralField</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<A href="#N-FieldName" class=nonterminal>FieldName</A>&nbsp;<CODE class=terminal-keyword>:</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FieldName"></A><SPAN class=nonterminal>FieldName</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>String</SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=terminal>Number</SPAN></DIV>
+</DIV>
+
+<H3>Array Literals</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ArrayLiteral"></A><SPAN class=nonterminal>ArrayLiteral</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>[</CODE>&nbsp;<A href="#N-ElementList" class=nonterminal>ElementList</A>&nbsp;<CODE class=terminal-keyword>]</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ElementList"></A><SPAN class=nonterminal>ElementList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-LiteralElement" class=nonterminal>LiteralElement</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ElementList" class=nonterminal>ElementList</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-LiteralElement" class=nonterminal>LiteralElement</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-LiteralElement"></A><SPAN class=nonterminal>LiteralElement</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+</DIV>
+
+<H3>Postfix Unary Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-PostfixExpression"></A><SPAN class=nonterminal>PostfixExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-FullPostfixExpression" class=nonterminal>FullPostfixExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ShortNewExpression" class=nonterminal>ShortNewExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FullPostfixExpression"></A><SPAN class=nonterminal>FullPostfixExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-PrimaryExpression" class=nonterminal>PrimaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullNewExpression" class=nonterminal>FullNewExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullPostfixExpression" class=nonterminal>FullPostfixExpression</A>&nbsp;<A href="#N-MemberOperator" class=nonterminal>MemberOperator</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullPostfixExpression" class=nonterminal>FullPostfixExpression</A>&nbsp;<A href="#N-Arguments" class=nonterminal>Arguments</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PostfixExpression" class=nonterminal>PostfixExpression</A>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<CODE class=terminal-keyword>++</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PostfixExpression" class=nonterminal>PostfixExpression</A>&nbsp;[no&nbsp;line&nbsp;break]&nbsp;<CODE class=terminal-keyword>--</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FullNewExpression"></A><SPAN class=nonterminal>FullNewExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>new</CODE>&nbsp;<A href="#N-FullNewSubexpression" class=nonterminal>FullNewSubexpression</A>&nbsp;<A href="#N-Arguments" class=nonterminal>Arguments</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ShortNewExpression"></A><SPAN class=nonterminal>ShortNewExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>new</CODE>&nbsp;<A href="#N-ShortNewSubexpression" class=nonterminal>ShortNewSubexpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-FullNewSubexpression"></A><SPAN class=nonterminal>FullNewSubexpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-PrimaryExpression" class=nonterminal>PrimaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullNewSubexpression" class=nonterminal>FullNewSubexpression</A>&nbsp;<A href="#N-MemberOperator" class=nonterminal>MemberOperator</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-FullNewExpression" class=nonterminal>FullNewExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ShortNewSubexpression"></A><SPAN class=nonterminal>ShortNewSubexpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-FullNewSubexpression" class=nonterminal>FullNewSubexpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ShortNewExpression" class=nonterminal>ShortNewExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-MemberOperator"></A><SPAN class=nonterminal>MemberOperator</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>[</CODE>&nbsp;<A href="#N-ArgumentList" class=nonterminal>ArgumentList</A>&nbsp;<CODE class=terminal-keyword>]</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>.</CODE>&nbsp;<A href="#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>.</CODE>&nbsp;<A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>@</CODE>&nbsp;<A href="#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>@</CODE>&nbsp;<A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A></DIV>
+</DIV>
+
+<P>The <CODE class=terminal-keyword>@</CODE> operator performs a type coercion. The second operand specifies the type. Both
+the <CODE class=terminal-keyword>.</CODE> and the <CODE class=terminal-keyword>@</CODE> operators accept either a <A href="#N-QualifiedIdentifier" class=nonterminal>QualifiedIdentifier</A>
+or a <A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A> as the second operand.
+If it is a <A href="#N-ParenthesizedExpression" class=nonterminal>ParenthesizedExpression</A>, the second operand
+of <CODE class=terminal-keyword>.</CODE> must evaluate to a string. <CODE>a.(x)</CODE> is a synonym for <CODE>a[x]</CODE>
+except that the latter can be overridden via operator overloading.</P>
+
+<P><A name="bracket-operator"></A>The <CODE class=terminal-keyword>[]</CODE> operator can take multiple (or even named) arguments.
+This allows users to define data structures such as multidimensional arrays via operator overloading.</P>
+
+<P>Unless the <CODE class=terminal-keyword>[]</CODE> operator is overridden for an object <VAR>o</VAR>, the expression <VAR>o</VAR><CODE>[</CODE><VAR>m</VAR><CODE>]</CODE>
+coerces <VAR>m</VAR> to a string <VAR>s</VAR> and returns the result of <VAR>o</VAR><CODE>.</CODE><VAR>s</VAR>, limiting the
+name lookup to the <CODE>indexable</CODE> members of <VAR>o</VAR>.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Arguments"></A><SPAN class=nonterminal>Arguments</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<CODE class=terminal-keyword>(</CODE>&nbsp;<A href="#N-ArgumentList" class=nonterminal>ArgumentList</A>&nbsp;<CODE class=terminal-keyword>)</CODE></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ArgumentList"></A><SPAN class=nonterminal>ArgumentList</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;&#171;empty&#187;</DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ArgumentListPrefix" class=nonterminal>ArgumentListPrefix</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NamedArgumentListPrefix" class=nonterminal>NamedArgumentListPrefix</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ArgumentListPrefix"></A><SPAN class=nonterminal>ArgumentListPrefix</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ArgumentListPrefix" class=nonterminal>ArgumentListPrefix</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NamedArgumentListPrefix"></A><SPAN class=nonterminal>NamedArgumentListPrefix</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-LiteralField" class=nonterminal>LiteralField</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ArgumentListPrefix" class=nonterminal>ArgumentListPrefix</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-LiteralField" class=nonterminal>LiteralField</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-NamedArgumentListPrefix" class=nonterminal>NamedArgumentListPrefix</A>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<A href="#N-LiteralField" class=nonterminal>LiteralField</A></DIV>
+</DIV>
+
+<P><A name="named-argument"></A>An <A href="#N-ArgumentList" class=nonterminal>ArgumentList</A> can contain both
+positional and named arguments. Named arguments use the same syntax as object literals. Named arguments (and any subsequent
+unnamed arguments) can only match a function's <A href="functions.html#rest-parameter">rest parameter</A>.</P>
+
+<H3>Prefix Unary Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-UnaryExpression"></A><SPAN class=nonterminal>UnaryExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-PostfixExpression" class=nonterminal>PostfixExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>delete</CODE>&nbsp;<A href="#N-PostfixExpression" class=nonterminal>PostfixExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>typeof</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>eval</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>++</CODE>&nbsp;<A href="#N-PostfixExpression" class=nonterminal>PostfixExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>--</CODE>&nbsp;<A href="#N-PostfixExpression" class=nonterminal>PostfixExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>+</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>-</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>~</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>!</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+</DIV>
+
+<H3>Multiplicative Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-MultiplicativeExpression"></A><SPAN class=nonterminal>MultiplicativeExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-MultiplicativeExpression" class=nonterminal>MultiplicativeExpression</A>&nbsp;<CODE class=terminal-keyword>*</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-MultiplicativeExpression" class=nonterminal>MultiplicativeExpression</A>&nbsp;<CODE class=terminal-keyword>/</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-MultiplicativeExpression" class=nonterminal>MultiplicativeExpression</A>&nbsp;<CODE class=terminal-keyword>%</CODE>&nbsp;<A href="#N-UnaryExpression" class=nonterminal>UnaryExpression</A></DIV>
+</DIV>
+
+<H3>Additive Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-AdditiveExpression"></A><SPAN class=nonterminal>AdditiveExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-MultiplicativeExpression" class=nonterminal>MultiplicativeExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-AdditiveExpression" class=nonterminal>AdditiveExpression</A>&nbsp;<CODE class=terminal-keyword>+</CODE>&nbsp;<A href="#N-MultiplicativeExpression" class=nonterminal>MultiplicativeExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-AdditiveExpression" class=nonterminal>AdditiveExpression</A>&nbsp;<CODE class=terminal-keyword>-</CODE>&nbsp;<A href="#N-MultiplicativeExpression" class=nonterminal>MultiplicativeExpression</A></DIV>
+</DIV>
+
+<H3>Bitwise Shift Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ShiftExpression"></A><SPAN class=nonterminal>ShiftExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-AdditiveExpression" class=nonterminal>AdditiveExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A>&nbsp;<CODE class=terminal-keyword>&lt;&lt;</CODE>&nbsp;<A href="#N-AdditiveExpression" class=nonterminal>AdditiveExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A>&nbsp;<CODE class=terminal-keyword>&gt;&gt;</CODE>&nbsp;<A href="#N-AdditiveExpression" class=nonterminal>AdditiveExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A>&nbsp;<CODE class=terminal-keyword>&gt;&gt;&gt;</CODE>&nbsp;<A href="#N-AdditiveExpression" class=nonterminal>AdditiveExpression</A></DIV>
+</DIV>
+
+<H3>Relational Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-RelationalExpression"></A><SPAN class=nonterminal>RelationalExpression<SUP class=nonterminal-attribute>allowIn</SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&lt;</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&gt;</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&lt;=</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&gt;=</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>instanceof</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>in</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><SPAN class=nonterminal>RelationalExpression<SUP class=nonterminal-attribute>noIn</SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>noIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&lt;</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>noIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&gt;</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>noIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&lt;=</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>noIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&gt;=</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-attribute>noIn</SUP></SPAN>&nbsp;<CODE class=terminal-keyword>instanceof</CODE>&nbsp;<A href="#N-ShiftExpression" class=nonterminal>ShiftExpression</A></DIV>
+</DIV>
+
+<H3>Equality Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-EqualityExpression"></A><SPAN class=nonterminal>EqualityExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-EqualityExpression">EqualityExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>==</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-EqualityExpression">EqualityExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>!=</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-EqualityExpression">EqualityExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>===</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-EqualityExpression">EqualityExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>!==</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-RelationalExpression">RelationalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+
+<H3>Binary Bitwise Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseAndExpression"></A><SPAN class=nonterminal>BitwiseAndExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-EqualityExpression">EqualityExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseAndExpression">BitwiseAndExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&amp;</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-EqualityExpression">EqualityExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseXorExpression"></A><SPAN class=nonterminal>BitwiseXorExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseAndExpression">BitwiseAndExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseXorExpression">BitwiseXorExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>^</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseAndExpression">BitwiseAndExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-BitwiseOrExpression"></A><SPAN class=nonterminal>BitwiseOrExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseXorExpression">BitwiseXorExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseOrExpression">BitwiseOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>|</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseXorExpression">BitwiseXorExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+
+<H3>Binary Logical Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-LogicalAndExpression"></A><SPAN class=nonterminal>LogicalAndExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseOrExpression">BitwiseOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalAndExpression">LogicalAndExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>&amp;&amp;</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-BitwiseOrExpression">BitwiseOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-LogicalXorExpression"></A><SPAN class=nonterminal>LogicalXorExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalAndExpression">LogicalAndExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalXorExpression">LogicalXorExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>^^</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-LogicalAndExpression">LogicalAndExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+
+<P>The <CODE class=terminal-keyword>^^</CODE> operator is a logical exclusive-or operator. It evaluates both operands. If
+they both convert to true or both convert to false, then <CODE class=terminal-keyword>^^</CODE> returns false; otherwise <CODE class=terminal-keyword>^^</CODE>
+returns the unconverted value of whichever argument converted to true.</P>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-LogicalOrExpression"></A><SPAN class=nonterminal>LogicalOrExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalXorExpression">LogicalXorExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalOrExpression">LogicalOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>||</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-LogicalXorExpression">LogicalXorExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+
+<H3>Conditional Operator</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-ConditionalExpression"></A><SPAN class=nonterminal>ConditionalExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalOrExpression">LogicalOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalOrExpression">LogicalOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>?</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>:</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-NonAssignmentExpression"></A><SPAN class=nonterminal>NonAssignmentExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalOrExpression">LogicalOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-LogicalOrExpression">LogicalOrExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>?</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-NonAssignmentExpression">NonAssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>:</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-NonAssignmentExpression">NonAssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+
+<H3>Assignment Operators</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-AssignmentExpression"></A><SPAN class=nonterminal>AssignmentExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-ConditionalExpression">ConditionalExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PostfixExpression" class=nonterminal>PostfixExpression</A>&nbsp;<CODE class=terminal-keyword>=</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<A href="#N-PostfixExpression" class=nonterminal>PostfixExpression</A>&nbsp;<A href="#N-CompoundAssignment" class=nonterminal>CompoundAssignment</A>&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-CompoundAssignment"></A><SPAN class=nonterminal>CompoundAssignment</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<CODE class=terminal-keyword>*=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>/=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>%=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>+=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>-=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>&lt;&lt;=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>&gt;&gt;=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>&gt;&gt;&gt;=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>&amp;=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>^=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>|=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>&amp;&amp;=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>^^=</CODE></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<CODE class=terminal-keyword>||=</CODE></DIV>
+</DIV>
+
+<H3>Expressions</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-Expression"></A><SPAN class=nonterminal>Expression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-Expression">Expression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<CODE class=terminal-keyword>,</CODE>&nbsp;<SPAN class=nonterminal><A href="#N-AssignmentExpression">AssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-OptionalExpression"></A><SPAN class=nonterminal>OptionalExpression</SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT></DIV>
+  <DIV class=grammar-rhs>&nbsp;&nbsp;&nbsp;<SPAN class=nonterminal><A href="#N-Expression">Expression</A><SUP class=nonterminal-attribute>allowIn</SUP></SPAN></DIV>
+  <DIV class=grammar-rhs>|&nbsp;&nbsp;&#171;empty&#187;</DIV>
+</DIV>
+
+<H3>Type Expressions</H3>
+
+<DIV class=grammar-rule>
+  <DIV class=grammar-lhs><A name="N-TypeExpression"></A><SPAN class=nonterminal>TypeExpression<SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN>&nbsp;<SCRIPT type="text/javascript">document.write(U_rArr)</SCRIPT>&nbsp;<SPAN class=nonterminal><A href="#N-NonAssignmentExpression">NonAssignmentExpression</A><SUP class=nonterminal-argument><SCRIPT type="text/javascript">document.write(U_beta)</SCRIPT></SUP></SPAN></DIV>
+</DIV>
+
+<H2>Compile-Time Constant Expressions</H2>
+
+<P>The value of a <I>compile-time constant expression</I> can be determined at compile time. If the expression were evaluated
+at run time, it would be guaranteed to evaluate to the same value.</P>
+
+<P>A compile-time expression can consist of the following:</P>
+
+<UL>
+  <LI><CODE>null</CODE>, numeric, boolean, and string constants.</LI>
+  <LI>Uses of the operators <CODE>+</CODE> (unary and binary), <CODE>-</CODE> (unary and binary), <CODE>~</CODE>, <CODE>!</CODE>,
+    <CODE>*</CODE>, <CODE>/</CODE>, <CODE>%</CODE>, <CODE>&lt;&lt;</CODE>, <CODE>&gt;&gt;</CODE>, <CODE>&gt;&gt;&gt;</CODE>,
+    <CODE>&lt;</CODE>, <CODE>&gt;</CODE>, <CODE>&lt;=</CODE>, <CODE>&gt;=</CODE>, <CODE>instanceof</CODE>, <CODE>in</CODE>,
+    <CODE>==</CODE>, <CODE>!=</CODE>, <CODE>===</CODE>, <CODE>!==</CODE>, <CODE>&amp;</CODE>, <CODE>^</CODE>, <CODE>|</CODE>,
+    <CODE>&amp;&amp;</CODE>, <CODE>^^</CODE>, <CODE>||</CODE>, <CODE>?:</CODE>, and <CODE>,</CODE> as long as they are used
+    only on numbers, booleans, strings, <CODE>null</CODE>, or <CODE>undefined</CODE>.</LI>
+  <LI>References to previously-defined constants, functions, classes, interfaces, or namespaces, subject to the restrictions
+    below. The references may be qualified, but the qualifiers themselves have to be compile-time constant expressions.</LI>
+  <LI>Lookup of members of compile-time expressions.</LI>
+  <LI>Calls to pure functions using compile-time expressions as arguments.</LI>
+</UL>
+
+<P>A pure function cannot have any read or write side effects or create any objects. A pure function's result depends only
+on its arguments. A JavaScript host embedding may define some pure functions. Currently there is no way for a script to define
+any such functions, but a future language extension may permit that.</P>
+
+<P>A reference <VAR>R</VAR> to a previous definition <VAR>D</VAR> of a constant, function, class, interface, or namespace
+is allowed inside a compile-time constant expression as long as the conditions below are met. If <VAR>D</VAR> was imported
+from another package, then the location of <VAR>D</VAR> is considered to be the location of the <CODE>import</CODE> statement.
+If <VAR>D</VAR> is visible to <VAR>R</VAR> by virtue of an intervening <CODE>use</CODE> statement <VAR>U</VAR>, then the conditions
+below have to be satisfied both with respect to <VAR>D</VAR> and <VAR>R</VAR> and with respect to <VAR>U</VAR> and <VAR>R</VAR>.</P>
+
+<UL>
+  <LI><VAR>D</VAR> dominates <VAR>R</VAR>.</LI>
+  <LI>There does not exist any scope between <VAR>D</VAR>'s scope and <VAR>R</VAR>'s scope that contains any declarations
+    that can shadow <VAR>D</VAR>.</LI>
+  <LI><VAR>D</VAR> was not hidden or made inaccessible by a conflict arising from another <CODE>use</CODE> statement between
+    <VAR>D</VAR> and <VAR>R</VAR>.</LI>
+</UL>
+
+<P>A statement <VAR>A</VAR> dominates statement <VAR>B</VAR> if any of the following conditions are met:</P>
+
+<UL>
+  <LI><VAR>A</VAR> and <VAR>B</VAR> are the same statement.</LI>
+  <LI><VAR>A</VAR> and <VAR>B</VAR> are in the same block, with <VAR>A</VAR> before <VAR>B</VAR> and no <CODE>case</CODE>
+    or <CODE>default</CODE> labels between them.</LI>
+  <LI>Statement <VAR>B</VAR> is enclosed inside statement <VAR>C</VAR> and <VAR>A</VAR> dominates <VAR>C</VAR>.</LI>
+  <LI>Statement <VAR>A</VAR> is enclosed inside a block <VAR>C</VAR> and <VAR>C</VAR> dominates <VAR>B</VAR>.</LI>
+  <LI>Statement <VAR>A</VAR> is the "then" portion of an <CODE>if</CODE> statement <VAR>C</VAR>, the condition of
+    <VAR>C</VAR> is a compile-time constant expression whose value is true, and <VAR>C</VAR> dominates <VAR>B</VAR>.</LI>
+  <LI>Statement <VAR>A</VAR> is the "else" portion of an <CODE>if</CODE> statement <VAR>C</VAR>, the condition of
+    <VAR>C</VAR> is a compile-time constant expression whose value is false, and <VAR>C</VAR> dominates <VAR>B</VAR>.</LI>
+</UL>
+
+<H3>Restrictions</H3>
+
+<P>In order to make JavaScript 2.0 easier to compile, the following restrictions are imposed:</P>
+
+<UL>
+  <LI><A href="#N-TypeExpression" class=nonterminal>TypeExpression</A>s must be compile-time constant
+expressions that evaluate to types.</LI>
+  <LI>Each <CODE>import</CODE>, <CODE>class</CODE>, <CODE>interface</CODE>, and <CODE>namespace</CODE> statement must dominate
+    the end of the program or package. This restriction limits these statements to the top level of the program, a top-level
+    block, or a top-level conditional whose condition is known at compile time.</LI>
+  <LI>Each declaration of a class or interface member must dominate the end of the <CODE>class</CODE> or <CODE>interface</CODE>
+statement.</LI>
+</UL>
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Tuesday, June 6, 2000</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="lexer.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="statements.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

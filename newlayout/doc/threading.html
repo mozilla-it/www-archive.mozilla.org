@@ -1,0 +1,208 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+
+   <TITLE>New Layout: Threading Model</TITLE>
+<script src="../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+
+
+<hr>
+<h2>New Layout: Threading Model 
+</h2>
+Updated: March 10, 1998 
+<hr>
+This document describes 
+the threading model for the nglayout engine and related services.  
+<H3> Overview</H3>
+There is one thread 
+per top level window, called the UI thread. This thread receives events from the 
+native window systems' event system and distributes the events to the appropriate 
+handles (widgets, callbacks, etc.) This thread does not do network I/O (the network 
+library manages a collection of threads to do network I/O). Modal windows are 
+handled by having this thread block while waiting for a response from a modal 
+dialog.  
+<P>Layout occurs 
+  on this thread, including the original parsing and processing of a document 
+  load, and subsequent incremental layout operations which include resize reflow, 
+  dom activity, and editing. </p>
+To prevent the UI 
+thread from being unresponsive during large scale layout or <br>
+javascript computations, each of these engines has an interface <br>
+which provides a progress call back. The application can choose to <br>
+abort the layout or javascript execution based on it's own criteria. H<br>
+ere is the proposed interface:  
+<UL>
+  <pre> <TT>enum nsExecProgressStatus    {</TT> 
+   <TT> eExecProgressStatus_Continue = 0,</TT> 
+   <TT> eExecProgressStatus_Stop</TT> 
+   <TT>};</TT>     </pre>
+  <pre><TT>class nsIExecProgress      : public nsISupports {</TT> 
+     <TT>public:</TT> 
+     <TT> virtual nsExecProgressStatus Update() = 0;</TT> 
+     <TT>};</TT><TT></TT></pre>
+</UL>
+At some reasonable rate the 
+Update procedure will be called to give the outer invocation a chance to abort 
+or continue the execution.  
+<P>For systems which do not 
+  support pre-emptive threading, this callback is also an opportune time to yield 
+  the processor to other threads. 
+<P><B><I>The above API is speculative.</I></B> 
+    
+  
+<H3> Examples</H3>
+Example 1: A javascript 
+event handler sits and spins for an eternity. The javascript evaluation call takes 
+a pointer to an implementation of nsIExecProgress. Periodically the javascript 
+evaluator will invoke the interface to see if execution should continue. The UI 
+thread which invoked the script can set a timeout, say a couple of seconds, and 
+after the time has expired can abort the evaluation (or put up a modal dialog 
+and see if the user wants the operation to continue; it's really up to the outer 
+context to decide what to do).  
+<P>Example 2: A document 
+  is loading and the user clicks on a link to go somewhere else before the document 
+  is finished loading. In this case, the UI thread needs enough cycles for the 
+  cursor to be responsive and for the user gesture to be translated and mapped 
+  into aborting the document load and moving to a new location. Layout will also 
+  take a pointer to an implementation of nsIExecProgress and will periodically 
+  invoke it to see if layout should continue. 
+<P>Example 3: A dcoument 
+  is loading and the user hits the stop, back, forward, etc. button. This is really 
+  the same as example 2. 
+  
+<H3> Netlib</H3>
+Because the networking 
+I/O is now being done on a seperate thread, the netlib1 library will need modifications. 
+There are two areas:  
+<UL>
+  <LI> First, any 
+    usage of the MWContext by the netlib code needs to be removed and replaced 
+    with a "NetContext" abstraction. This way an environment using netlib can 
+    provide the necessary data for ftp/gopher passwords, and deal with the security 
+    dialog issues.</LI>
+  <LI> Second, when 
+    data is ready to be consumed by a netlib presentation stream handler, we need 
+    to get the data from the netlib thread to the consuming thread.</LI>
+</UL>
+<B><I>How does layout 
+which is running on the UI thread implement a blocking model I/O system in the 
+face of this???</I></B>  
+<H3> Other Libraries</H3>
+The rule of the day 
+is: No global data that isn't thread safe. Thr reason is that once you have multiple 
+threads using these libraries (minimally there will be multiple UI threads) then 
+you have to protect your global data with locks. Fortunately we have NSPR20 and 
+it runs everywhere.  
+<P><B><I>list out 
+  each library and indicate how much work needs to be done</I></B> 
+<H3> FE Code</H3>
+The FE code operates 
+with the same restrictions as the other libraries - global data must be protected. 
+However, for the X and MAC FE's there is no "thread per event loop" concept, therefore 
+we will need to fabricate one. This translates into either dispatching UI events 
+across thread boundaries or, having a single UI thread on those systems and having 
+them deal with modality and lockout problems (they will be inherently less parallel 
+than windows).  
+<H3> Issues</H3>
+Can javascript support 
+re-entrancy? What if I want to pop a modal dialog that is written using an HTML 
+dialog that has javascript in it? <BR>
+ <BR>
+
+
+
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../sitemap.html">Site Map</a></li>
+<li><a href="../../security/">Security Updates</a></li>
+<li><a href="../../contact/">Contact Us</a></li>
+<li><a href="../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified October 29,  1998</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/newlayout/doc/threading.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

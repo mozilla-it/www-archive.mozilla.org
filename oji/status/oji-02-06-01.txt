@@ -1,0 +1,75 @@
+OJI Agenda 6 February 2001
+
+- Action items for next week:
+
+- Action items for this meeting
+
+  * Jeff to add status to buf 67000
+
+  * Xiaobin and Joe now have contributor IDS!  I will sit in on first checkins.
+
+  * Ed to mark 60120 fixed. 
+
+  * Ed to talk to Rose.Ng to get 1.3.0_02 build to NS for testing
+
+    no-op: NS Already shipped 6.01 with 1.3.0_01.
+
+  * Ed to ask IBM to add their weight to printing plea. 
+
+  * Joe to checkin IDL files with Ed observing once approval has been
+    secured.
+
+  * Ed to try netmail java send with trunk: can't build PSM, posted to
+    news group.
+
+  * Ed to check in waterfall to lighthome source.
+
+    I have checked this into the CVS repository at lighthome.  Please
+    use this CVSROOT:
+
+    cvs -d :pserver:YOUR_SWAN_USERID@lighthome.eng.sun.com:/export/cvsroot
+
+    Then do:
+
+    cvs co eng/wf
+
+    to get the sources.  Nikolay.  Let's consider this the main
+    waterfall repository for now.  Nikolay.  Of course you may find it
+    better to keep a local copy, but keep in mind that the real,
+    published, thing is here on lighthome.
+
+- Action items from previous meetings:
+
+
+- Agenda:
+
+  * 64319: Java to JavaScript: pointer to the applet object is hard
+    coded to NULL.  
+
+    Stanley, what do you think of Beard's solution:
+
+    Unfortunately, the MRJ OJI plugin multiplexes multiple Java thread
+    calls into JSObject methods on to the main browser
+    thread. Therefore, it isn't strictly correct to leave a JSContext
+    sticking to the JSJavaThreadState structure associated with the main
+    Java thread. Instead, we need a way to cleanly associate, and
+    disassociate multiple JSContexts with a common JNIEnv.
+
+    It occurs to me that we should count all transitions between JS and
+    Java, but we currently only count transitions from JS to Java, not
+    Java to JS. Thus, if a Java thread calls into JS, that should
+    increment the recursion_depth, otherwise, if the call from Java to
+    JS results in a call back to Java from JS, when Java returns to JS,
+    jsj_ExitJava will incorrectly disassociate the JSContext from the
+    JSJavaThreadState.
+
+    A brute force, but incompatible API change would be to alter the
+    nsILiveconnect interface to require a pointer to the plugin instance
+    in all of the API calls.  This would always be used to associate the
+    proper JSContext with each and every call from Java into JS. I'm not
+    sure why this wasn't done in the first place. The MRJ plugin can do
+    this, because it is able to recover the plugin instance by comparing
+    the class loader of the currently running Java method with the class
+    loader of each running applet.
+
+

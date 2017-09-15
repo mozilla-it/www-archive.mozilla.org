@@ -1,0 +1,80 @@
+# SIMPLE INDEXING SCRIPT
+#
+# This script reads a set of HTML files that have been marked up with special
+# anchor tags and generates an index page. The general format of the tags is:
+#	<A NAME="index_textIDX"></A>
+#
+# It supports the use of colons in the index text to create subentries:
+#	<A NAME="navigator:browsing_the_webIDX"></A>
+#
+# But each entry has to be unique and it has to be on its own line. 
+# And underscores, which must be used in the HTML to separate words,
+# will be turned into the spaces in the actual index text.
+# 
+# To use the script, set the DIR variable a few lines down to the directory
+# in which you want to scan the html files. You may also change the name
+# of the resulting index page, which is currently set to "index.html"
+#
+# Usage: python idx.py
+#
+
+import re, string, os, glob
+rex = re.compile('NAME="([\w|\s|:|_]+IDX)"', re.IGNORECASE)
+
+DIR = '/u/oeschger/tmp_docs'
+target = {}
+prev_item = ''
+os.chdir(DIR)
+files = glob.glob('*.html')
+def key(item):
+	target[item] = '<a href="%s#%sIDX">' % ( file, item )
+
+for file in files:
+	f = open(file)
+	page = f.name
+	print page
+	lines = f.readlines()
+	for line in lines:
+		mat = rex.search(line)
+		if mat: key(mat.group(1)[:-3])
+	f.close()
+
+# note that the index page gets called
+# "index.htm" here so that it is not read
+# in on subsequent generations	
+w = open('help_index.html', 'w')
+top = """<html>
+<head>
+<title>Index</title>
+<base target="_content">
+</head>
+<body><h1><font color="#000099">
+<font size=+2>Index</font></font></h1><font size=-1>"""
+
+w.write(top)
+keylist = target.keys()
+keylist.sort(lambda x, y: cmp(string.lower(x), string.lower(y)))
+
+# for every item in the list of index entries
+for item in keylist:
+	# if the first letter of this item is new to the list, write the letter itself
+	if item[:1].upper() != prev_item[:1].upper(): w.write('<p><b>%s</b><br>\n' % item[:1].upper()) 
+
+	# if the item is of the format entry:subentry
+	if len(item.split(":")) > 1: 
+		# if this base entry is the same as the previous, write only the subentry
+		if (item.split(":")[0] == prev_item.split(":")[0]): 
+			w.write('&nbsp;&nbsp;%s%s</a><br>\n' %( target[item] , item.split(":")[1].replace("_", " ")))
+
+		else: # otherwise, write both the base and the subentry
+			# get rid of the underscores in the printed part of the link
+			base = item.split(":")[0].replace("_"," ")
+			w.write(base + '<br>\n&nbsp;&nbsp;' + target[item] + item.split(":")[1].replace("_", " ") + '</a><br>\n')
+
+	# otherwise, write the entry as a single thing
+	else: w.write(target[item] + item.replace("_", " ") + '</a><br>\n')
+	prev_item = item
+
+w.write("</body></html>")	
+w.close()
+

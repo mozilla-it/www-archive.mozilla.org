@@ -1,0 +1,1910 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta http-equiv="content-type"
+ content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title>Mozilla Support for Linux/UNIX Assistive Technology Developers</title>
+  <link rel="top" title="Home" href="http://www.mozilla.org/">
+  <link rel="stylesheet" type="text/css" href="../../css/print.css"  media="print">
+  <link rel="stylesheet" type="text/css" href="../../css/base/content.css"  media="all">
+  <link rel="stylesheet" type="text/css" href="../../css/cavendish/content.css" title="Cavendish" media="screen">
+  <link rel="stylesheet" type="text/css" href="../../css/base/template.css"  media="screen">
+  <link rel="stylesheet" type="text/css" href="../../css/cavendish/template.css" title="Cavendish" media="screen">
+  <link rel="icon" href="../../images/mozilla-16.png" type="image/png">
+  <style>table { empty-cells: show; }</style>
+</head>
+<body>
+  <h1>
+    Mozilla Support for Linux/UNIX Assistive Technology Developers</h1>
+  <div class="indent">
+    <p>
+      This FAQ explains how makers of Linux- or UNIX- based screen readers, voice dictation
+      packages, onscreen keyboards, magnification software and other assitive technologies
+      can support Gecko-based software. The base of our support for these products is
+      AT-SPI (Assistive Technology Service Provider Interface) and the keyboard API/user
+      interface.</p>
+    <p>
+      For Firefox and all other Gecko-based products: this documentation only applies
+      to up-to-date builds of Firefox -- currently not an official releases. Grab the
+      <a href="http://developer.mozilla.org/en/docs/Accessible_DHTML">current build of Firefox
+        which supports these features</a>
+    </p>
+  </div>
+  <h2>
+    In this document</h2>
+  <ul class="toc">
+    <li><a href="#definitions">Definitions</a></li>
+    <li><a href="#geckopackages">Linux/UNIX
+      Applications Based on the Gecko Layout Engine</a></li>
+    <li><a href="#a11yenabled">Determining if accessibility is enabled in a given Firefox installation</a></li>
+    <li><a href="#content-window">How to
+      Find the Content Window and Load the Document</a></li>
+    <li><a href="#interfaces">AT-SPI Support:
+      interfaces we support</a></li>
+    <li><a href="#roles">AT-SPI Support:
+      Roles</a></li>
+    <li><a href="#states">AT-SPI Support:
+      States</a></li>
+    <li><a href="#relations">AT-SPI Support:
+      Relations</a></li>
+    <li><a href="#obj-attr">AT-SPI Support:
+      Object Attributes</a></li>
+    <li><a href="#text-attr">AT-SPI Support:
+      Text Attributes</a></li>
+    <li><a href="#events">AT-SPI Support:
+      Events</a></li>
+    <li><a href="#notyet">AT-SPI Features
+      We Do Not Currently Support</a></li>
+    <li><a href="#knowndif">Intentional Differences
+      with other applications</a></li>
+    <li><a href="#memleaks">Avoiding Memory
+      Leaks</a></li>
+    <li><a href="#keyboard">Keyboard UI Information</a></li>
+    <li><a href="#examples">HTML Examples</a></li>
+    <li><a href="#beyondhtml">Beyond HTML:
+      Other Types of Web Content -- DHTML, MathML, SVG, XForms and XUL</a></li>
+    <li><a href="#mailinglist">Questions
+      or Comments?</a></li>
+  </ul>
+  <h2>
+    To Do</h2>
+  <ul>
+    <li>Document dynamic content, such as how to track mutations</li>
+    <li>Document text selection</li>
+    <li>Update list of supported features for each role</li>
+    <li>Go through XXX notes and file bugs or deal with questions</li>
+    <li>Add DHTML examples</li>
+    <li>Go through Bill's notes in HTML examples and remove or integrate</li>
+    <li>Explain embedded object characters and other new things in http://www.mozilla.org/access/unix/new-atk</li>
+    <li>Describe how to know where forced and soft line breaks are</li>
+  </ul>
+  <h2>
+    <a id="definitions" name="definitions">Definitions</a></h2>
+    <p class="indent">
+      Here are some basic definitions that you'll need for this document to make sense:</p>
+  <div class="indent">
+    <dl>
+      <dt><a href="http://www.mozilla.org/newlayout/faq.html">Gecko</a>:</dt><dd>The rendering
+        engine for Firefox, Thunderbird, Nvu, Mozilla Seamonkey and other applications.
+        Gecko is the internal engine that Mozilla uses to render any kind of web content.
+        It supports HTML, XHTML, <dfn>Cascading Style Sheets (CSS)</dfn> and the <dfn>Document
+          Object Model (DOM)</dfn>.</dd><dt><a href="http://www.gnome.org/~billh/at-spi-idl/html/">Assistive
+            Technology Service Provider Interface (AT-SPI)</a> </dt>
+      <dd>
+        an API devised by Sun Microsystems so that accessibility aids can track what's going
+        on inside the user interface of any software package that supports it. If you seriously
+        need to understand AT-SPI, you'll need to read the docs on gnome.org and play with
+        the available sample apps and code, such as at-poke. Please note that the web docs
+        are sometimes out of date, and the <a href="http://cvs.gnome.org/viewcvs/at-spi/">
+          latest AT-SPI is available on CVS</a>.</dd><dt><a class="ex-ref" href="http://www.w3.org/DOM/"><dfn>DOM:
+            Document Object Model</dfn></a></dt><dd>This is the W3C's specification for how web
+              content is exposed to Javascript and other languages. It covers content, style and
+              events. Inside the Gecko process, code has full access to DOM APIs. However, exposing
+              the entire DOM to external software packages is quite involved, partially because
+              changes to the DOM in Firefox must occur on the main thread. We have chosen a subset
+              of readonly methods in the DOM needed for assistive technology vendors. Events such
+              as focus changes must be tracked through AT-SPI events, rather than DOM events.</dd><dt><a
+                class="ex-ref" href="http://www.xulplanet.com/"><dfn>XUL: eXtensible User-interface
+                  Language</dfn></a></dt><dd>The XML-based language used by Firefox and Mozilla to develop
+                    the UI. Similar to HTML in that it can be combined with CSS and Javascript to make
+                    powerful applications. Contains more desktop-style widgets than HTML and follows
+                    a box layout model, rather than being text-flow based.</dd><dt><a class="ex-ref"
+                      href="http://www.ajax.org/"><dfn>AJAX: Asynchronous JavaScript And XML</dfn></a></dt><dd>AJAX
+                        is a method of building interactive web applications that process user requests,
+                        user actions <strong>immediately</strong> in real time, unlike an HTTP request,
+                        during which users must wait for a whole page to reload or for a new page to load.
+                        Data is therefore stored and retrieved dynamically much faster.</dd><dt>Roles, states
+                          and events:</dt><dd>please read the AT-SPI documentation if you are unfamiliar with
+                            these.</dd></dl>
+  </div>
+    <h3>
+      AT-SPI tree vs. DOM tree - what's the relation?</h3>
+      <p class="indent">
+        The AT-SPI tree and the DOM tree are parallel structures, although the AT-SPI tree is
+        a subset of the DOM tree. <code>QueryInterface()</code> can be used to switch between
+        the interfaces (Accessible, AccessibleText, AccessibleValue, etc.).</p><p class="indent">
+          What is exposed? Any DOM node that ...</p>
+  <div class="indent">
+    <ul>
+      <li>Is focusable</li>
+      <li>Is formatted with a blank line before and after (display:block in web jargon)</li>
+      <li>Conveys important information about the structure
+        of the document, such as a heading</li>
+      <li>Contains a value that can change</li>
+      <li>Uses a <a href="http://developer.mozilla.org/en/docs/Accessible_DHTML">dynamic
+        content role attribute</a> that is not equal to "presentation"</li>
+      <li>Uses one of the universal <a href="http://developer.mozilla.org/en/docs/Accessible_DHTML">
+        dynamic content property attributes</a>, which are currently aaa:describedby, aaa:labelledby,
+        aaa:required or aaa:invalid</li>
+      <li>Uses an onclick handler</li>
+      <li>Is in list of accessible elements <a href="#roles">in the role table</a> </li>
+    </ul>
+  </div>
+  <h2>
+    <a id="geckopackages" name="geckopackages">Linix/UNIX Applications Based on the Gecko
+      Layout Engine</a></h2>
+  <div class="indent">
+    <p>
+      Gecko is a rendering engine that Firefox, SeaMonkey, Netscape and yelp use. Gecko
+      can render a variety of content, not just HTML and supports key web standards such
+      as Cascading Style Sheets, Javascript and the W3C DOM. Gecko also handles the users
+      keystrokes and mouse clicks. Gecko is the core architecture that we are adding accessibility
+      to, in order to support basic accessibility in all applications that are based on
+      it.</p>
+    <p>
+      The Mozilla Gecko engine must be version 1.9 or later to have high quality AT-SPI
+      support, as documented here.</p>
+    <h3>
+      Embedded Clients</h3>
+    <div class="indent">
+      <p>
+        Embedded clients use Gecko only in the content window, at the moment for HTML and
+        generic XML only. They typically use standard Windows controls for their user interface
+        -- the area outside of the client content window, plus the context menu.</p>
+      <ul>
+        <li>Yelp help viewer. No version is yet known to be available that uses a recent enough
+          version of the Mozilla Gecko engine, for quality AT-SPI support.</li><li>Evolution email: no version is yet known to be available that uses a recent
+    enough version of the Mozilla Gecko engine, for quality AT-SPI support.</li>
+        <li>Many more applications exist and are expected to be released</li>
+      </ul>
+    </div>
+    <h3>
+      XUL-Based Clients</h3>
+    <div class="indent">
+      <p>
+        XUL-based clients make full use of the Gecko architecture, not only for HTML content,
+        as well as for menus, dialogs and the entire user interface via an XML language
+        called <dfn>XUL (eXtensible User-interface Language)</dfn>. None of the user interface
+        contains standard Windows controls -- not even the menus! This is done to ensure
+        a common look and feel across all supported platforms, and to allow for different
+        skins (appearances).</p>
+      <ul>
+        <li>Firefox browser (<em><a href="http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/">please
+          use recent alpha builds for testing</a></em>)</li>
+        <li>Thunderbird email (<em><a href="http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/">please
+          use recent alpha builds for testing</a></em>)</li>
+        <li>Seamonkey suite (<em><a href="http://ftp.mozilla.org/pub/mozilla.org/seamonkey/nightly/latest-trunk/">please
+          use recent alpha builds for testing</a></em>)</li>
+        <li>Nvu HTML editor:&nbsp; no version is yet known to be available that uses a recent
+          enough version of the Mozilla Gecko engine, for quality AT-SPI support.</li>
+        <li>Any Xulrunner application (Songbird media player, etc.)</li>
+        <li>Many more applications exist and are expected to be released</li>
+      </ul>
+    </div>
+  </div>
+  <h2 id="a11yenabled">
+    Determining if Accessibility is Enabled in a Firefox Installation</h2>
+  <p>
+    See the <a href="https://addons.mozilla.org/firefox/2407/">about:accessibilityenabled
+      Firefox extension</a>.</p>
+  <h2>
+    <a id="content-window" name="content-window">How to Find the Content Window and Load
+      the Document</a></h2>
+  <div class="indent">
+    <p>
+      In XUL-based clients, screen
+readers may need to find the content window so that they know where to start
+      grabbing the AT-SPI tree, in order to load the current document into a buffer in their
+      own process.</p>
+    <p>
+      Use <a href="#relation_embeds">RELATION_EMBEDS</a>
+      on the ROLE_FRAME, which is at the root of each top level window. This will point
+      to the root content accessible(s) for that XUL window.</p>
+    <p>
+      When you see the content window receive focus, first check the role. If it is a
+      ROLE_DOCUMENT then this should be treated as a document for the default modality
+      of the screen reader. If it is a ROLE_EMBEDDED, ROLE_DIALOG or ROLE_ALERT then
+      stay in focus tracking mode -- there is no need to parse
+the document. In addition,
+      if it is a ROLE_ALERT, a screen reader should treat it as a message box -- that
+      is, to read the entire contents. These roles can occur on content because of the
+      new <a href="http://developer.mozilla.org/en/docs/Accessible_DHTML">Accessible DHTML
+        technology</a> which allows the author to specify the type of document or container.</p>
+    <p>
+      Gecko also helps determine when to load a new window by firing the following document
+      events: document:load-complete, document:reload and document:load-stopped</p>
+    <p>
+      &nbsp;</p>
+  </div>
+<h2 id="interfaces">Supported AT-SPI Interfaces</h2>
+<table cellspacing="1" cellpadding="1" width="90%"
+  border="1" class="indent" summary=">AT-SPI supported interfaces">
+<thead>
+  <tr>
+    <th>Interface</th>
+    <th>Supported</th>
+    <th>Notes</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Accessible</td>
+    <td>Yes</td>
+    <td>See supported <a href="#obj-attr">object attributes</a> below</td>
+  </tr>
+  <tr>
+    <td>Action</td>
+    <td>Yes</td>
+    <td>All methods</td>
+  </tr>
+  <tr>
+    <td>Application</td>
+    <td>Yes</td>
+    <td>All methods</td>
+  </tr>
+  <tr>
+    <td>Component</td>
+    <td>Yes</td>
+    <td>All methods</td>
+  </tr>
+  <tr>
+    <td>Desktop</td>
+    <td>No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Document</td>
+    <td>
+      Yes</td>
+    <td>
+      All methods?</td>
+  </tr>
+  <tr>
+    <td>EditableText</td>
+    <td>Yes</td>
+    <td>All methods</td>
+  </tr>
+  <tr>
+    <td>Event</td>
+    <td>Yes</td>
+    <td>See supported <a href="#events">events</a> below</td>
+  </tr>
+  <tr>
+    <td>Hyperlink</td>
+    <td>Yes</td>
+    <td>Any object embedded in text is considered a hyperlink!</td>
+  </tr>
+  <tr>
+    <td>Hypertext</td>
+    <td>Yes</td>
+    <td>Any text with objects embedded in it is considered a hypertext!</td>
+  </tr>
+  <tr>
+    <td>Image</td>
+    <td>No</td>
+    <td>ROLE_IMAGE is supported, and is enough</td>
+  </tr>
+  <tr>
+    <td>LoginHelper</td>
+    <td>No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Registry</td>
+    <td>No?</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Relation</td>
+    <td>Yes</td>
+    <td>See supported <a href="#relations">relations</a> below</td>
+  </tr>
+  <tr>
+    <td>Role</td>
+    <td>Yes</td>
+    <td>See supported <a href="#roles">roles</a> below</td>
+  </tr>
+  <tr>
+    <td>Selection</td>
+    <td>Yes</td>
+    <td>Not yet supported for text</td>
+  </tr>
+  <tr>
+    <td>Selector</td>
+    <td>No</td>
+    <td></td>    
+  </tr>
+  <tr>
+    <td>State</td>
+    <td>Yes</td>
+    <td>See supported <a href="#states">states</a> below</td>
+  </tr>
+  <tr>
+    <td>StreamableContent</td>
+    <td>No</td>
+    <td>Could apply to plugins, but probably not objects rendered by Gecko</td>
+  </tr>
+  <tr>
+    <td>Table</td>
+    <td>Yes</td>
+    <td>In addition, the object attribute layout-guess=true when Gecko thinks the table is for layout, not for data</td>
+  </tr>
+  <tr>
+    <td>Text</td>
+    <td>Yes</td>
+    <td>See supported <a href="#text-attr">text attributes</a> below</td>
+  </tr>
+  <tr>
+    <td>Value</td>
+    <td>Yes</td>
+    <td></td>
+  </tr>
+</tbody>
+</table>
+
+<h2 id="roles">Supported AT-SPI Roles</h2>
+<p>The following roles are currently supported:</p>
+  <p>
+    ** XXX Needs updating -- this list is copied from MSAA document ***</p>
+  <table cellspacing="1" cellpadding="1" width="90%"
+  border="1" class="indent" summary="This table shows what MSAA roles Gecko supports,
+  what markup is used to create objects with those roles, and any special features
+  that objects with those roles support">
+  <thead>
+    <tr>
+      <th scope="col">Role</th>
+
+      <th scope="col">Supported?</th>
+
+      <th scope="col">
+        Special features</th>
+    </tr>
+  </thead>
+  <tbody>
+
+  <tr>
+    <td>ROLE_INVALID</td>
+    <td>Not a role that can be supported</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_ACCELERATOR_LABEL</td>
+    <td>No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td style="height: 40px">ROLE_ALERT</td>
+    <td style="height: 40px">
+      XUL: &lt;browsermessage&gt;<br />
+      DHTML: xhtml2:role="wairole:alert"</td>
+    <td style="height: 40px">
+      </td>
+  </tr>
+  <tr>
+    <td>ROLE_ANIMATION</td> 
+      <td>
+      No. Animated images use ROLE_GRAPHIC with STATE_ANIMATED.</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_ARROW</td> 
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_CALENDAR</td> 
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_CANVAS</td>
+    <td>
+      No<br />
+      *** XXX File bug to support for &lt;canvas&gt; ***</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_CHECK_BOX</td>
+    <td>
+        XUL: &lt;checkbox&gt;<br />
+        HTML: &lt;input type="checkbox"&gt;<br />
+        DHTML: role="wairole:checkbox"</td>
+    <td>
+      Fires Fires object:state-changed when radiobutton is set/unset when checkbox is toggled
+    </td>
+  </tr>
+  <tr>
+    <td>ROLE_CHECK_MENU_ITEM</td>
+    <td>
+      XUL: &lt;menuitem type="checkbox"&gt;<br />
+      DHTML: *** XXX file bug to support via role="wairole:menuitemcheckbox" ***</td>
+    <td>
+      Supports STATE_CHECKED</td>
+  </tr>
+  <tr>
+    <td>ROLE_COLOR_CHOOSER</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td>ROLE_COLUMN_HEADER</td>
+    <td>
+      XUL: tree column headers<br />
+      HTML: &lt;th&gt;<br />
+      DHTML: role="wairole:columnheader"</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_COMBO_BOX</td>
+    <td>
+      XUL: &lt;menulist&gt;<br />
+      HTML: &lt;select size="1"&gt;<br />
+      DHTML: role="wairole:combobox"</td>
+    <td>
+      What event do we fire for changes in closed combo box?</td>
+  </tr>
+  <tr>
+    <td>ROLE_DATE_EDITOR</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_DESKTOP_ICON</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_DESKTOP_FRAME</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <th>Role</th>
+    <th>Supported?</th>
+    <th>Special features</th>
+  </tr>
+  <tr>
+    <td>ROLE_DIAL</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_DIALOG</td>
+    <td>
+      <p>
+        XUL: &lt;dialog&gt;<br />
+        DHTML: role="wairole:dialog"</p>
+    </td>
+    <td>
+      accessible name exposes the &lt;title&gt; of the current dialog</td>
+  </tr>
+  <tr>
+    <td>ROLE_DIRECTORY_PANE</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td style="height: 22px">ROLE_DRAWING_AREA</td>
+    <td style="height: 22px">
+      No</td>
+    <td style="height: 22px; width: 376px;"></td>
+  </tr>
+  <tr>
+    <td>ROLE_FILE_CHOOSER</td>
+    <td>
+      Supported for native filepicker</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_FILLER</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_FONT_CHOOSER</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_FRAME</td>
+    <td>
+      Top level window</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_GLASS_PANE</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_HTML_CONTAINER</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_ICON</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td style="height: 22px">ROLE_IMAGE</td> 
+    <td style="height: 22px">
+      XUL: &lt;image&gt;<br />
+      HTML: &lt;img&gt;</td>
+      <td style="height: 22px; width: 376px;">
+      </td>
+      XUL: &lt;image&gt;<br />
+      HTML: &lt;img&gt;
+  </tr>
+  <tr>
+    <td>ROLE_INTERNAL_FRAME</td> 
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_LABEL</td>
+    <td>
+      XUL: &lt;label&gt;<br />
+      HTML: &lt;label&gt;<br />
+      DHTML: role="wairole:label"</td>
+      <td>
+      Supports RELATION_LABEL_FOR (although technically anthing can)</td>
+      <p>
+        XUL: &lt;label&gt; or &lt;description&gt;<br />
+        HTML: &lt;label&gt;<br />
+        DHTML: role="wairole:label"</p>
+  </tr>
+  <tr>
+    <td style="height: 22px">ROLE_LAYERED_PANE</td>
+    <td style="height: 22px">
+      No</td>
+    <td style="height: 22px; width: 376px;"></td>
+  </tr>
+  <tr>
+    <td>ROLE_LIST</td>
+    <td>
+      </td>
+      <td>
+      </td>
+      XUL: &lt;listbox&gt;<br />
+      HTML: &lt;select size=""&gt; where size &gt; 1 -- STATE_READONLY is off<br />
+      HTML: &lt;ol&gt; or &lt;ul&gt; -- STATE_READONLY is on<br />
+      DHTML: role="wairole:list"
+  </tr>
+  <tr>
+    <td>ROLE_LIST_ITEM</td>
+    <td>
+      XUL: &lt;listitem&gt;<br />
+      HTML: &lt;li&gt;, &lt;option&gt; or &lt;optgroup&gt;
+      <br />
+      DHTML: role="wairole:listitem"</td>
+    <td>
+      Sets STATE_SELECTED if the current listitem is selected.<br />
+      <br />
+      *** XXX Perhaps should support object attribute "level" when in ROLE_TREE or ROLE_TREE_TABLE,
+      see <a href="#obj-attr">object attributes</a> section ***</td>
+  </tr>
+  <tr>
+    <td>ROLE_MENU</td>
+    <td>
+      XUL: &lt;menuitem&gt; with children<br />
+      DHTML: role="wairole:menuitem" with child menuitems *** XXX does this work? ***</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_MENU_BAR</td>
+    <td>
+      XUL: &lt;menubar&gt;<br />
+      DHTML: role="wairole:menubar"</td>
+    <td></td>
+  </tr>
+  <tr>
+    <th>Role</th>
+    <th>Supported?</th>
+    <th>Special features</th>
+  </tr>
+  <tr>
+    <td>ROLE_MENU_ITEM</td>
+    <td>
+    </td>
+      <td>
+      </td>
+      <p>
+        XUL: &lt;menuitem&gt;<br />
+        DHTML: role="wairole:menuitem"</p>
+  </tr>
+  <tr>
+    <td>ROLE_OPTION_PANE</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_PAGE_TAB</td>
+    <td>
+      XUL: &lt;tab&gt;<br />
+      DHTML: role="wairole:tab"</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_PAGE_TAB_LIST</td> 
+    <td>
+    </td>
+      <td>
+      </td>
+      <p>
+        XUL: &lt;tab&gt;<br />
+        DHTML: role="wairole:tablist"</p>
+  </tr>
+  <tr>
+    <td>ROLE_PANEL</td>
+    <td>
+      XUL: &lt;radiogroup&gt;, &lt;groupbox&gt;, &lt;iframe&gt;<br />
+      HTML: &lt;fieldset&gt;, &lt;frame&gt;, &lt;iframe&gt;<br />
+      DHTML: role="wairole:group", role="wairole:radiogroup"</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_PASSWORD_TEXT</td>
+    <td>
+      XUL: &lt;textbox type="password"&gt;<br />
+      HTML: &lt;input type="password"&gt;<br />
+      DHTML: role="wairole:secret"</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_POPUP_MENU</td>
+    <td>
+      No, apparently we use ROLE_MENU even for the context menu. XXX *** Is this right?
+      ***</td>
+    <td>
+      Supports Text and EditableText interfaces</td>
+  </tr>
+  <tr>
+    <td>ROLE_PROGRESS_BAR</td>
+    <td>
+      XUL: &lt;progressmeter&gt;<br />
+      DHTML: role="wairole:progressbar"</td>
+    <td>
+      <p>
+        Fires "object:property-change:accessible-value" when progressbar moves by at least
+        3%</p>
+      <p>
+        Supports Value interface</p>
+    </td>
+  </tr>
+  <tr>
+    <td>ROLE_PUSH_BUTTON</td>
+    <td>
+    </td>
+      <td>
+      </td>
+      <p>
+        XUL: &lt;button&gt;<br />
+        HTML: &lt;input type="button"&gt; or&lt;button&gt;<br />
+        DHTML: role="wairole:button"</p>
+  </tr>
+  <tr>
+    <td>ROLE_RADIO_BUTTON</td>
+    <td>
+      XUL: &lt;radio&gt;<br />
+      HTML: &lt;input type="radio"&gt;<br />
+      DHTML: role="wairole:radio"</td>
+    <td>
+    </td>
+      <p>
+        Fires object:state-changed when radiobutton is set/unset</p>
+  </tr>
+  <tr>
+    <td>ROLE_RADIO_MENU_ITEM</td>
+    <td>
+      XUL: &lt;menuitem type="radio"&gt;<br />
+      DHTML: *** XXX file bug to support via role="wairole:menuitemradio" *</td>
+    <td>
+      Supports STATE_CHECKED</td>
+  </tr>
+  <tr>
+    <td>ROLE_ROOT_PANE</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td style="height: 22px">ROLE_ROW_HEADER</td>
+    <td style="height: 22px">
+      DHTML: role="wairole:columnheader"</td>
+    <td style="height: 22px; width: 376px;"></td>
+  </tr>
+  <tr>
+    <td>ROLE_SCROLL_BAR</td>
+    <td>
+      Not yet, <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=285167">bug 285167</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_SCROLL_PANE</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <th>Role</th>
+    <th>Supported?</th>
+    <th>Special features</th>
+  </tr>
+  <tr>
+    <td>ROLE_SEPARATOR</td>
+    <td>
+      </td>
+      <td>
+      </td>
+      XUL: &lt;separator&gt;<br />
+      HTML: &lt;hr&gt;<br />
+      DHTML: role="wairole:separator"
+  </tr>
+  <tr>
+    <td>ROLE_SLIDER</td>
+    <td>
+      XUL:slider should be supported soon via <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=109215">
+        <span style="color: #0000ff">bug 109215</span></a><br />
+      DHTML: role="wairole:slider"</td>
+    <td>
+      Fires "object:property-change:accessible-value" when slider thumb is moved<br />
+      <br />
+      Supports Value interface</td>
+  </tr>
+  <tr>
+    <td>ROLE_SPIN_BUTTON</td>
+    <td>
+      DHTML: role="wairole:spinbutton"</td>
+    <td>
+      Fires "object:property-change:accessible-value" when changed<br />
+      <br />
+      Supports Value interface</td>
+  </tr>
+  <tr>
+    <td>ROLE_SPLIT_PANE</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_STATUS_BAR</td>
+    <td>
+      XUL: &lt;statusbar&gt;</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_TABLE</td>
+    <td>
+      HTML: &lt;table&gt;<br />
+      DHTML: role="wairole:grid"</td>
+    <td>
+      Supports Table interface<br />
+      Supports object attribute "layout-guess", see <a href="#obj-attr">object attributes</a>
+      section</td>
+  </tr>
+  <tr>
+    <td>ROLE_TABLE_CELL</td>
+    <td>
+      HTML: &lt;td&gt;<br />
+      DHTML: role="wairole:gridcell"</td>
+    <td>
+      *** XXX Perhaps should support object attribute "level" when in ROLE_TREE or ROLE_TREE_TABLE,
+      see <a href="#obj-attr">object attributes</a> section ***</td>
+  </tr>
+  <tr>
+    <td style="height: 22px">ROLE_TABLE_COLUMN_HEADER</td>
+    <td style="height: 22px">
+      HTML: &lt;th&gt;<br />
+      DHTML: role="wairole:columnheader" *** XXX Actually, do we use this one or ROLE_COLUMN_HEADER?
+      ***</td>
+    <td style="height: 22px; width: 376px;"></td>
+  </tr>
+  <tr>
+    <td>ROLE_TABLE_ROW_HEADER</td>
+    <td>
+      DHTML: role="wairole:rowheader" *** XXX Actually, do we use this one or ROLE_ROW_HEADER?
+      ***</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_TEAROFF_MENU_ITEM</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_TERMINAL</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_TEXT</td>
+    <td>
+      HTML: fallback for display-block styled elements with no known semantic role for
+      the tag<br />
+      DHTML: role="wairole:description"<br />
+      XXX *** We are using ROLE_TEXT for DHTML descriptions but ROLE_LABEL for XUL ones,
+      that's inconsistent XXX</td>
+    <td>
+      Supports Text interface</td>
+  </tr>
+  <tr>
+    <td>ROLE_TOGGLE_BUTTON</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_TOOL_BAR</td>
+    <td>
+      XUL: &lt;toolbar&gt;<br />
+      DHTML: role="wairole:toolbar"</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_TOOL_TIP</td>
+    <td>
+      </td>
+      <td>
+      </td>
+      XUL: &lt;tooltip&gt; or tooltiptext attribute
+  </tr>
+  <tr>
+    <td>ROLE_TREE</td>
+    <td>
+      No, XXX *** We should use this when there is only 1 column in the tree ***<br />
+      DHTML: ?</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_TREE_TABLE</td>
+    <td>
+      XUL: &lt;tree&gt;<br />
+      DHTML: role="wairole:tree" ?</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_UNKNOWN</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_VIEWPORT</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_WINDOW</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_HEADER</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <th>Role</th>
+    <th>Supported?</th>
+    <th>Special features</th>
+  </tr>
+  <tr>
+    <td>ROLE_FOOTER</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_PARAGRAPH</td>
+    <td>
+      HTML: &lt;p&gt;</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_RULER</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_APPLICATION</td>
+    <td>
+      Root accessible object, parent of top level ROLE_FRAME's</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_AUTOCOMPLETE</td>
+    <td>
+      XUL: &lt;textbox type="autocomplete"&gt;</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_EDITBAR</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_EMBEDDED</td>
+    <td>
+      DHTML: role="wairole:application"</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_ENTRY</td>
+    <td>
+      &nbsp;XUL: &lt;textbox&gt;<br />
+      HTML: &lt;input type="text"&gt; or &lt;textarea&gt;<br />
+      DHTML: role="wairole:textfield" or<br />
+      role="wairole:textarea"</td>
+    <td>
+      Supports Text interface</td>
+  </tr>
+  <tr>
+    <td>ROLE_CHART</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_CAPTION</td>
+    <td>
+      HTML: &lt;caption&gt;</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_DOCUMENT_FRAME</td>
+    <td>
+      HTML: &lt;body&gt; without a role on the &lt;html&gt; or &lt;body&gt; element (unless
+      that is wairole:document)<br />
+      DHTML: role="wairole:document"</td>
+    <td>
+      Supports Document interface</td>
+  </tr>
+  <tr>
+    <td>ROLE_HEADING</td>
+    <td>
+      HTML: &lt;h1&gt;, &lt;h2&gt;, &lt;h3&gt;, &lt;h4&gt;, &lt;h5&gt;, &lt;h6&gt;</td>
+    <td>
+      Supports Text interface<br />
+      <br />
+      Supports object attribute "level", see <a href="#obj-attr">object attributes</a>
+      section ***</td>
+  </tr>
+  <tr>
+    <td>ROLE_PAGE</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_SECTION</td>
+    <td>
+      HTML: &lt;div&gt;</td>
+    <td>
+      Supports Text interface</td>
+  </tr>
+  <tr>
+    <td>ROLE_FORM</td>
+    <td>
+      HTML: &lt;form&gt;</td>
+    <td>
+      Supports Text interface</td>
+  </tr>
+  <tr>
+    <td>ROLE_REDUNDANT_OBJECT</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_LINK</td>
+    <td>
+      XUL: &lt;label class="text-link"&gt;<br />
+      HTML: &lt;a&gt;, &lt;area&gt;<br />
+      DHTML: role="wairole:link"</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>ROLE_INPUT_METHOD_WINDOW</td>
+    <td>
+      No</td>
+    <td></td>
+  </tr>
+
+    <tr>
+      <th>Role</th>
+
+      <th>Supported?</th>
+
+      <th>Special features</th>
+    </tr>
+
+  </tbody>
+  </table>
+<h2 id="states">Supported AT-SPI States</h2>
+<p>The following states are currently supported:</p>
+
+<table cellspacing="1" cellpadding="1" width="90%"
+  border="1" class="indent" summary=">Supported AT-SPI States">
+<thead>
+  <tr>
+    <th>State</th>
+    <th>Supported?</th>
+    <th>Where used</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>STATE_INVALID</td>
+    <td>No</td>
+    <td>Not a usable state -- should not be confused with STATE_INVALID_ENTRY for form controls, which is supported</td>
+  </tr>
+  <tr>
+    <td>STATE_ACTIVE</td>
+    <td>Yes</td>
+    <td>
+      Top level window</td>
+  </tr>
+  <tr>
+    <td>STATE_ARMED</td>
+    <td>No</td>
+    <td>
+      *** XXX Where should this be supported? Same as MSAA's STATE_HASPOPUP? ***</td>
+  </tr>
+  <tr>
+    <td>STATE_BUSY</td>
+    <td>Yes</td>
+    <td>Documents which are loading</td>
+  </tr>
+  <tr>
+    <td>STATE_CHECKED</td>
+    <td>Yes</td>
+    <td>Checkboxes as well as checkable menuitems and treeitems</td>
+  </tr>
+  <tr>
+    <td>STATE_COLLAPSED</td>
+    <td>Yes</td>
+    <td>Outline items which have children but are not expanded -- always used with STATE_EXPANDABLE</td>
+  </tr>
+  <tr>
+    <td>STATE_DEFUNCT</td>
+    <td>Yes</td>
+    <td>Old objects which are no longer available</td>
+  </tr>
+  <tr>
+    <td>STATE_EDITABLE</td>
+    <td>Yes</td>
+    <td>Anything that supports the EditableText interface</td>
+  </tr>
+  <tr>
+    <td>STATE_ENABLED</td>
+    <td>Yes</td>
+    <td>Form controls</td>
+  </tr>
+  <tr>
+    <td>STATE_EXPANDABLE</td>
+    <td>Yes</td>
+    <td>Outline items which have children</td>
+  </tr>
+  <tr>
+    <td>STATE_EXPANDED</td>
+    <td>Yes</td>
+    <td>Outline items which are expandable and the children are shown -- always used with STATE_EXPANDABLE</td>
+  </tr>
+  <tr>
+    <td>STATE_FOCUSABLE</td>
+    <td>Yes</td>
+    <td>Nearly any element can be focusable</td>
+  </tr>
+  <tr>
+    <td>STATE_FOCUSED</td>
+    <td>Yes</td>
+    <td>Only 1 item at a time is ever focused -- always used with STATE_FOCUSABLE</td>
+  </tr>
+  <tr>
+    <td>STATE_HAS_TOOLTIP</td>
+    <td>No</td>
+    <td>*** XXX Need to file bug ***</td>
+  </tr>
+  <tr>
+    <td>STATE_HORIZONTAL</td>
+    <td>No</td>
+    <td>*** XXX need to file a bug for this and STATE_VERTICAL -- check XUL CSS ***</td>
+  </tr>
+  <tr>
+    <td>STATE_ICONIFIED</td>
+    <td>No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>STATE_MODAL</td>
+    <td>Yes</td>
+    <td>Modal dialog boxes</td>
+  </tr>
+  <tr>
+    <td>STATE_MULTI_LINE</td>
+    <td>Yes</td>
+    <td>ROLE_ENTRY -- always used with STATE_EDITABLE</td>
+  </tr>
+  <tr>
+    <td>STATE_MULTISELECTABLE</td>
+    <td>Yes</td>
+    <td>ROLE_TREE, ROLE_LIST, ROLE_TREE_TABLE. Indicates that Enter will insert a new line.</td>
+  </tr>
+  <tr>
+    <td>STATE_OPAQUE</td>
+    <td>No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>STATE_PRESSED</td>
+    <td>Yes</td>
+    <td>ROLE_BUTTON</td>
+  </tr>
+  <tr>
+    <td>STATE_RESIZABLE</td>
+    <td>No</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>STATE_SELECTABLE</td>
+    <td>Yes</td>
+    <td>ROLE_TREEITEM, ROLE_TABLE_CELL, ROLE_LIST_ITEM</td>
+  </tr>
+  <tr>
+    <td>STATE_SELECTED</td>
+    <td>Yes</td>
+    <td>ROLE_TREEITEM, ROLE_TABLE_CELL, ROLE_LIST_ITEM -- always used with STATE_SELETABLE</td>
+  </tr>
+  <tr>
+    <td>STATE_SENSITIVE</td>
+    <td>No</td>
+    <td>Where should this be used?</td>
+  </tr>
+  <tr>
+    <td>STATE_SHOWING</td>
+    <td>Yes</td>
+    <td>Anything</td>
+  </tr>
+  <tr>
+    <td>STATE_SINGLE_LINE</td>
+    <td>Yes</td>
+    <td>ROLE_ENTRY -- always used with STATE_EDITABLE. Indicates that Enter will submit the default button.</td>
+  </tr>
+  <tr>
+    <td>STATE_STALE</td>
+    <td>No</td>
+    <td>Where should this be used?</td>
+  </tr>
+  <tr>
+    <td>STATE_TRANSIENT</td>
+    <td>Yes</td>
+    <td>Where should this be used?</td>
+  </tr>
+  <tr>
+    <td>STATE_VERTICAL</td>
+    <td>No</td>
+    <td>*** XXX need to file a bug for this and STATE_HORIZONTAL -- check XUL CSS ***</td>
+  </tr>
+  <tr>
+    <td>STATE_VISIBLE</td>
+    <td>Yes</td>
+    <td>Absence of this state is important on documents, popups and tree items</td>
+  </tr>
+  <tr>
+    <td>STATE_MANAGES_DESCENDANTS</td>
+    <td>No</td>
+    <td>Not needed, although potentially useful for trees</td>
+  </tr>
+  <tr>
+    <td>STATE_INDETERMINATE</td>
+    <td>No</td>
+    <td>*** XXX File bug to support this based on nsIAccessible::STATE_MIXED. Should work on ROLE_CHECK_BOX, ROLE_TREE_ITEM, ROLE_LIST_ITEM, ROLE_PROGRESS_BAR ***</td>
+  </tr>
+  <tr>
+    <td>STATE_REQUIRED</td>
+    <td>Yes</td>
+    <td>XForms form controls, and any element with aaa:required="true"</td>
+  </tr>
+  <tr>
+    <td>STATE_TRUNCATED</td>
+    <td>No</td>
+    <td>Where should we use this?</td>
+  </tr>
+  <tr>
+    <td>STATE_ANIMATED</td>
+    <td>Yes</td>
+    <td>Animated images.</td>
+  </tr>
+  <tr>
+    <td>STATE_INVALID_ENTRY</td>
+    <td>Yes</td>
+    <td>XForms form controls, and any element with aaa:invalid="true"</td>
+  </tr>
+  <tr>
+    <td>STATE_SUPPORTS_AUTOCOMPLETION</td>
+    <td>No</td>
+    <td>*** XXX File bug to support this ***</td>
+  </tr>
+  <tr>
+    <td>STATE_SELECTABLE_TEXT</td>
+    <td>Yes</td>
+    <td>Anything that supports the Text interface</td>
+  </tr>
+  <tr>
+    <td>STATE_IS_DEFAULT</td>
+    <td>Yes</td>
+    <td>Default ROLE_BUTTON's, such as OK in XUL dialogs or Submit in HTML</td>
+  </tr>
+  <tr>
+    <td>STATE_VISITED</td>
+    <td>Yes</td>
+    <td>ROLE_LINK</td>
+  </tr>
+</tbody>
+</table>
+<h2 id="relations">Supported AT-SPI Relations</h2>
+<p>The following relations are currently supported:</p>
+  <div class="indent">
+    <pre class="code">enum {RELATION_LABEL_FOR = 0x1002 };<br />
+enum {RELATION_DESCRIPTION_FOR = 0x100f };
+</pre>
+    <p class="indent">
+      These two relations can be used on object to determine what form control is being
+      labelled or desribed.</p><div class="indent">
+    <pre class="code">enum {RELATION_LABELLED_BY = 0x1003 };<br />
+enum {RELATION_DESCRIBED_BY = 0x100e };
+</pre>
+      </div>
+    <p class="indent">
+      These two relations are they inverse; they can be used on form controls. If the
+      form control has an accName, you can get the IAccessible that it was labelled by
+      in order to get more formatting information. It is also useful to check for a description.</p>
+    <p class="indent">
+      Note that the label and description relations may be used to prevent redundant information
+      from being presented by the screen reader, since the label and description can occur
+      both on their own, and in the name or description fields of an IAccessible.</p><div class="indent">
+    <pre id="relation_embeds" class="code">enum {RELATION_EMBEDS = 0x1009 };
+</pre>
+      </div>
+    <p class="indent">
+      This relation is used on the root accessible object for a top level Mozilla window,
+      corresponding to what's returned for OBJID_CLIENT for that window. It points to
+      the accessible object corresponding to the root of content in that window. This
+      relation is very useful for finding the content quickly, and will be the proper
+      method for finding content in Firefox 3 and beyond.</p><div class="indent">
+    <pre class="code">enum {RELATION_CONTROLLED_BY = 0x1000 };<br />
+enum {RELATION_CONTROLLER_FOR = 0x1001 };
+</pre>
+      </div>
+    <p class="indent">
+      These two relations show what form controls may dynamically change areas of the
+      document, in response to user changes in the form controls themselves. Both controlled_by
+      and controller_for are set in markup from the single dynamic content accessibility
+      dynamic content aaa:controls attribute. The inverse controlled_by relation is automatically
+      calculated.
+    </p><div class="indent">
+    <pre class="code">enum {RELATION_FLOWS_TO = 0x1006 };<br />
+enum {RELATION_FLOWS_FROM = 0x1007 };
+</pre>
+    </div>
+    <p class="indent">
+      These two relations allow the reading flow to break out of the normal DOM flow.
+      Both flows_to and flows_from are set in markup from the single dynamic content accessibility
+      aaa:flowsto relation -- the inverse flow_from relation is automatically calculated.
+    </p>
+    <h2 class="indent">
+      Supported AT-SPI Object Attributes</h2>
+<p class="indent">The following object attributes are currently supported:</p><div class="indent">
+<table cellspacing="1" cellpadding="1" width="90%"
+  border="1" class="indent" summary=">Supported AT-SPI Object Attributes">
+  <thead>
+    <tr>
+      <th>Object attribute</th>
+      <th>Applies to (content/UI/any/[role])</th>
+      <th>Possible values</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>tag</td>
+      <td>any</td>
+      <td>The actual markup tag used to create this element (also used in XUL)</td>
+    </tr>
+    <tr>
+      <td>xml-roles</td>
+      <td>any</td>
+      <td>If a <a href="http://developer.mozilla.org/en/docs/Accessible_DHTML">dynamic content accessibility</a> role string is used, it is exposed here. This may provide more information than the AT-SPI role, which is best-fit. In the future, this may be a space or comma delimited list of roles</td>
+    </tr>
+    <tr>
+      <td>id</td>
+      <td>any</td>
+      <td>Any value, defined by UI/content developers. Used to indicate a persistant identifier for any object, useful for scripting</td>
+    </tr>
+    <tr>
+      <td>layout-guess</td>
+      <td>ROLE_TABLE</td>
+      <td> "true" when Gecko's heuristic determines that it is a table that is probably used for layout, not for table.<br />
+          Value not set means it is probably a data table.</td>
+    </tr>
+    <tr>
+      <td>
+        level</td>
+      <td>
+        ROLE_HEADING</td>
+      <td>
+        The heading level</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+  <p class="indent">
+    &nbsp;</p>
+<h2 id="text-attr" class="indent">Supported AT-SPI Text Attributes</h2>
+<p class="indent">The following text attributes are currently supported:</p><div class="indent">
+<table cellspacing="1" cellpadding="1" width="90%"
+  border="1" class="indent" summary=">Supported AT-SPI Text Attributes">
+  <thead>
+    <tr>
+      <th>Text attribute</th>
+      <th>Possible values</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>static</td>
+      <td> "true" for list bullet/numbering text or layout-inserted text (such as via CSS pseudo styles :before or :after)</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="events" class="indent">Supported AT-SPI Events</h2>
+<p class="indent">The following events are currently supported:</p>
+  <ul>
+    <li>object:focus<i></i><i></i></li>
+    <li>object:property-change ... *** XXX fill in list of properties we support this
+      for ***</li><li>object:state-changed for ... *** XXX fill in list of states we support this
+    for ***</li><li>object:text-changed:delete </li>
+    <li>object:text-changed:insert </li>
+    <li>object:text-selection-changed </li>
+    <li>object:text-caret-moved </li>
+    <li>object:selection-changed </li>
+    <li>window:activate </li>
+    <li>window:deactivate </li>
+  </ul>
+    <p>
+      The document: events are not supported yet but should be soon.</p>
+    <p>
+      The event object:link-selected is purposely not supported, but focus events are
+      fired on ROLE_LINK objects instead.</p>
+    <h2 id ="notyet">
+  AT-SPI Features We Currently Do Not Support</h2>
+    <p>
+      As just stated, the event object::link-selected is purposely not supported, but
+      focus events are fired on ROLE_LINK objects instead.</p>
+    <p>
+      See <a href="https://bugzilla.mozilla.org/showdependencytree.cgi?id=342901&hide_resolved=1">
+        <span style="color: #0000ff">Firefox 3</span></a> dependencies, and in particular
+      the <a href="https://bugzilla.mozilla.org/showdependencytree.cgi?id=333492&hide_resolved=1">
+        <span style="color: #0000ff">New ATK</span></a> blocking bugs.</p>
+<h2 id="knowndif">
+  Known Differences with Other Applications</h2>
+<p>*** XXX To Be Done ***</p>
+<h2>
+<a id="memleaks" name="memleaks">Avoiding Memory Leaks</a></h2>
+
+  <div class="indent">
+    <p>
+      It is the assistive technology's responsibility to watch for events that indicate
+      when windows or content subtrees are being destroyed, and to release all Accessible
+      objects related
+      to that window. In addition, STATE_DEFUNCT is set on objects that
+      should be released by the assistive technology. XXX *** Indicate what events, I
+      think we need to add object:children-changed:foo support ***</p>
+    <p>
+      To help developers in that regard, there is <a href="https://addons.mozilla.org/firefox/2490/">
+        <span style="color: #0000ff">Memory Leak monitor, a Firefox extension</span></a>.</p>
+
+  <h2><a id="keyboard" name="keyboard">Keyboard User Interface
+  and API</a></h2>
+
+  <div class="indent">
+    <p>Fortunately, Gecko uses the standard keyboard API's for each
+    supported platform.</p>
+
+    <p>
+      The Mozilla keyboard shortcuts for content are similar to what is used in other
+      browsers. Here is a list of <a href="http://www.mozilla.org/support/firefox/keyboard">
+        Firefox keyboard shortcuts</a>.</p>
+  </div>
+
+  <h2 id="examples">HTML Examples</h2>
+<table border="1" cellpadding="2" cellspacing="2" summary="Mapping between HTML and the AT-SPI representation">
+<caption>
+  Each AT-SPI accessible object is
+encapsulated in braces ("{}"), and meaningful AT-SPI interfaces and attributes,
+including specializations, are represented as name/value pairs inside
+the braces.<br />
+  For convenience, accessible text is shown merely as
+'text="contents
+of the text"'.<br>
+  <strong><span style="color: #ff0066">* = Embedded object character (0xfffc),
+    used when no text from the object will be inserted in the parent Hypertext<br />
+  </span></strong>
+  </caption>
+  <thead>
+    <tr>
+      <th>HTML content</th>
+      <th>HTML source</th>
+      <th>AT-SPI representation<br />
+</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+      <h1>This is a heading</h1>
+      <p> This is a paragraph with an <img src="image.gif"
+ alt="some image"> image in it. </p>
+      <h2>This is another heading</h2>
+      </td>
+      <td>
+      <pre>&lt;h1&gt;This is a heading&lt;/h1&gt;<br>&lt;p&gt;<br>  This is a paragraph with an<br>  &lt;image src="image.gif"<br>         alt="some image"/&gt;<br>  image in it.<br>&lt;/p&gt;<br>&lt;h2&gt;This is another heading&lt;/h2&gt;<br> </pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre>{parent Text, role=ROLE_HEADING, objattr="xhtml:tag=h1",<br>   text-attributes="css:font-size=LARGER",<br>   text="This is a heading"}<br>{parent Hypertext, role=ROLE_PARAGRAPH, attr="xhtml:tag=p"<br> text="This is a paragraph with an<strong> <span style="font-size: 14pt; color: #ff0066">*</span></strong> image in it"}<br>  {child Image, Hyperlink, role=ROLE_IMAGE, <br>   ImageDescription ="some image",<br>   AccessibleName = "" <span
+ style="font-style: italic;">[the HTML title attribute, if present]</span><br>   hyperlink-range=[28,29]}<br>{parent Text, role=ROLE_HEADING, objattr="xhtml-role:h2",<br>   text-attributes="css:font-size=LARGE",<br>   text="This is another heading"}</pre>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      <p>Hey!<br>
+Tell me something.</p>
+      </td>
+      <td>
+      <pre>&lt;p&gt;Hey!&lt;br&gt;Tell me something.&lt;/p&gt;<br></pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre>{parent Text, role=ROLE_PARAGRAPH, attr="xhtml:tag=p"}<br> text="Hey!\nTell me something"}<br>   </pre>
+      </td>
+    </tr>
+    <tr style="font-size: 12pt; font-family: Times New Roman;">
+      <td><a href="http://www.google.com/">Hey!<br>
+Tell me something.</a></td>
+      <td>
+      <pre><span style="font-size: 10pt;">&lt;a href="http://www.google.com"&gt;Hey!<br>&lt;br&gt;Tell me something.&lt;/a&gt;</span></pre>
+      </td>
+      <td style="vertical-align: top;"><span
+ style="font-size: 10pt; font-family: Courier New;">
+      <pre>{parent Hyperlink, Text, role=ROLE_LINK<br> objattr="html:tag=a;link-type=anchor", <br> text="Hey!\nTell me something",<br> hyperlink-range=<span
+ style="font-style: italic;">[depends on the containing context]</span>,<br> hyperlink-URI="http://www.google.com",<br> hyperlink-Object=Text}</pre>
+      </span></td>
+    </tr>
+    <tr style="font-size: 12pt;">
+      <td>
+      <p>Hey</p>
+      <hr>
+      <p>Tell me something</p>
+      </td>
+      <td>
+      <pre><span style="font-size: 10pt;">&lt;p&gt;Hey&lt;/p&gt;&lt;hr/&gt;<br>&lt;p&gt;Tell me something&lt;/p&gt;</span></pre>
+      </td>
+      <td style="vertical-align: top; font-family: monospace;"><span
+ style="font-size: 10pt;">{parent1 Text, role=ROLE_PARAGRAPH,<br>
+&nbsp;text="Hey"}<br>
+{parent2 role=ROLE_SEPARATOR,<br>
+&nbsp;<span style="font-style: italic;">[note: State doesn't include
+STATE_VERTICAL, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; to distinguish from vsep]</span>}<br>
+{parent3 Text, role=ROLE_PARAGRAPH,&nbsp;<br>
+&nbsp;text="Tell me something"}</span></td>
+    </tr>
+    <tr>
+      <td>
+      <p>You <em>are</em> a nice person.</p>
+      </td>
+      <td>
+      <pre>&lt;p&gt;<br>  You &lt;em&gt;are&lt;/em&gt; a nice person.<br>&lt;/p&gt;</pre>
+      </td>
+      <td style="vertical-align: top;"><span style="font-size: 10pt;"><span
+ style="font-family: monospace;">{parent Text,
+role=ROLE_PARAGRAPH, attr="html:tag=p",&nbsp;</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp;text="You are a nice
+person",</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp;attribute run for
+"are", with objattr="role
+        = html:em", textattr="css:text-style=oblique"}</span></span></td>
+    </tr>
+    <tr>
+      <td>
+      <p>Here is a <a href="http://foo.bar.com/">bartending
+site</a>.</p>
+      </td>
+      <td>
+      <pre>&lt;p&gt;<br>&nbsp; Here is a<br>&nbsp; &lt;a href="http://foo.bar.com"&gt;<br> &nbsp;&nbsp; bartending site<br>&nbsp; &lt;/a&gt;<br> .<br>&lt;/p&gt; </pre>
+      </td>
+      <td style="vertical-align: top; font-family: monospace;"><span
+ style="font-size: 10pt;">{parent Hypertext,
+role=ROLE_PARAGRAPH, attr="html:tag=p"<br>
+&nbsp; text="Here is a <strong><span style="font-size: 14pt; color: #ff0066">*</span></strong>.",<br>
+&nbsp; attribute run for "bartending site." with
+textattr="link=true,&nbsp;&nbsp;&nbsp;&nbsp; <br>
+&nbsp; css:text-decoration=underline, css:color=(0,0,255)"}<br>
+&nbsp;&nbsp; {child Text,&nbsp; Hyperlink,<br>
+&nbsp; &nbsp;&nbsp; role=ROLE_LINK, attr="html:tag=a,
+link-type:anchor", <br>
+&nbsp;&nbsp;&nbsp;&nbsp; text="bartending site",<br>
+&nbsp;&nbsp;&nbsp;&nbsp; hyperlink-indices=[10,11]<br>
+&nbsp; &nbsp;&nbsp; hyperlink-URI="http://foo.bar.com"}</span></td>
+    </tr>
+    <tr>
+      <td>
+      <p>Here is a <a href="http://foo.bar.com/"> <img src="beerglass.GIF" alt="beer glass">bartending site</a>.</p>
+      </td>
+      <td>
+      <pre>&lt;p&gt;<br>  Here is a<br>  &lt;a href="http://foo.bar.com"&gt;<br>    &lt;image src="beerglass.GIF"<br>           alt="beer glass"/&gt;<br>    bartending site<br>  &lt;/a&gt;<br>  .<br>&lt;/p&gt;</pre>
+      </td>
+      <td style="vertical-align: top;"><span
+ style="font-family: monospace;">{parent Hypertext,
+role=ROLE_PARAGRAPH, attr="html:tag=p"</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp;text="Here is a <strong><span style="font-size: 14pt;
+        color: #ff0066">*</span></strong>."<br>
+      </span><span style="font-size: 10pt;">&nbsp;<span
+ style="font-family: monospace;">attribute run for "bartending site."
+with textattr="link=true,&nbsp;&nbsp;&nbsp;&nbsp; </span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;
+css:text-decoration=underline, css:color=(0,0,255)"}</span></span><span
+ style="font-family: monospace;"></span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;">&nbsp;&nbsp; {child
+Hypertext, </span><span style="font-family: monospace;">Hyperlink,
+      </span><br style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp; &nbsp;&nbsp;
+role=ROLE_LINK,</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp; &nbsp;&nbsp; text="<strong><span style="font-size: 14pt;
+        color: #ff0066">*</span></strong>bartending site" <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hypertext-indices=[10,11],<br>
+      </span><span
+ style="font-style: italic;">[not sure if we need to dup textattrs
+here, or add them to defaulttextattrs]</span> <span
+ style="font-family: monospace;">,</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp; &nbsp;&nbsp;
+hypertext-URI="http://foo.bar.com"}</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp; &nbsp; &nbsp;&nbsp;
+&nbsp; {grandchild Image, Hyperlink</span><br
+ style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp; &nbsp; &nbsp;
+&nbsp; &nbsp;&nbsp; role=ROLE_IMAGE, attr="html:tag=img,
+link-type=image"</span><br style="font-family: monospace;">
+      <span style="font-family: monospace;"> &nbsp;&nbsp; &nbsp;
+&nbsp;&nbsp; AccName/ImageDescription="beer glass",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hyperlink-indices=[0,1]<br style="font-family: monospace;">
+      </span><span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        URI="beerglass.GIF"}</span><br
+ style="font-family: monospace; font-style: italic;">
+      <span style="font-style: italic;">[don't know if the URIs should
+always be fully specified, or if omitting the base URI is OK<br />
+        <span style="color: #006600">At the moment, not planning to do this, instead plan
+          to expose repair text in the name if no alt/title exists </span>]</span> 
+      </td>
+    </tr>
+    <tr>
+      <td style="height: 238px;">
+      <p> Here is a <img src="beerglass.GIF" alt="beer glass"> <a
+ href="http://foo.bar.com/"> bartending site</a> . </p>
+      </td>
+      <td style="height: 238px;">
+      <pre>&lt;p&gt;<br>  Here is a<br>  &lt;image src="beerglass.GIF"<br>         alt="beer glass"/&gt;<br>  &lt;a href="http://foo.bar.com"&gt;<br>    bartending site<br>  &lt;/a&gt;<br>  .<br>&lt;/p&gt;</pre>
+      </td>
+      <td style="vertical-align: top;"><span
+ style="font-size: 10pt; font-family: monospace;">{parent Hypertext,
+role=ROLE_PARAGRAPH, attr="html:tag=p",&nbsp;<br>
+&nbsp; text="Here is a <strong><span style="font-size: 14pt"><span style="color: #ff0066">*</span><span
+          style="color: #ff0066">*</span></span></strong>."}<br>
+&nbsp;&nbsp; {child Image, Hyperlink,<br>
+&nbsp; &nbsp;&nbsp; role=ROLE_IMAGE, attr="html:tag=img,
+link-type=image"<br>
+&nbsp; &nbsp;&nbsp; AccName/ImageDescription="beer glass",<br>
+&nbsp;&nbsp;&nbsp;&nbsp; hyperlink-indices=[10,11]<br>
+&nbsp;&nbsp;&nbsp;&nbsp; hyperlink-URI="beerglass.GIF"}<br>
+&nbsp;&nbsp; {child Text, Hyperlink, Action,<br>
+&nbsp; &nbsp; Hypertext, role=ROLE_LINK,<br>
+&nbsp;&nbsp;&nbsp;&nbsp; action-names="activate", </span><span
+ style="font-size: 10pt; font-family: sans-serif;"><span
+ style="font-style: italic;">[others?]</span></span><span
+ style="font-size: 10pt; font-family: monospace;"><br>
+&nbsp;&nbsp;&nbsp;&nbsp; attr="html:tag=a, link-type=anchor"<br>
+&nbsp; &nbsp;&nbsp; text="bartending site",<br>
+&nbsp;&nbsp;&nbsp;&nbsp; textattr=</span><span
+ style="font-size: 10pt; font-family: sans-serif;"><span
+ style="font-style: italic;">[as
+in above examples]</span></span><span
+ style="font-size: 10pt; font-family: monospace;"><br>
+&nbsp;&nbsp;&nbsp;&nbsp; hypertext-indices=[11,22],<br>
+&nbsp; &nbsp;&nbsp; hypertext-URI="http://foo.bar.com"}</span></td>
+    </tr>
+    <tr>
+      <td><br>
+      </td>
+      <td>
+      <pre>&lt;p&gt;<br>  &lt;IMG SRC="sitemap.gif" <br>       ALT="Site map"<br>       USEMAP="#mymap"&gt;<br>  &lt;MAP NAME="mymap" title="site map"&gt;<br>    &lt;AREA HREF="1.html" ALT="Bar"<br>          COORDS="5,5,95,195"&gt;<br>    &lt;AREA HREF="2.html" ALT="Baz"<br>          COORDS="105,5,195,195"&gt;<br>    &lt;AREA HREF="3.html" ALT="Fu"<br>          COORDS="205,5,295,195"&gt;<br>  &lt;/MAP&gt;<br>&lt;/p&gt;</pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre>{parent Hypertext, role=ROLE_PARAGRAPH,<br> text="<strong><span style="font-size: 14pt;
+  color: #ff0066">*</span></strong>"}<br>  {child Image, Hypertext, text="<strong>
+    <span style="font-size: 14pt"><span style="color: #ff0066">**</span><span style="color: #ff0066">*</span></span></strong>", Hyperlink,<br>   role=ROLE_IMAGE,<br>   attr="html:tag=map",<br>   ImageBounds=<span
+ style="font-style: italic;">[entire map area] </span><br>   AccName and ImageDescription="Site map"}<br>    {grandchild Hyperlink, Action, <br>     action-names="click", role=ROLE_LINK, <br>     attr="html:tag=area", hyperlink-URI="1.html", name="Bar"}<br>    {grandchild Hyperlink, Action, <br>     action-names="click", role=ROLE_LINK,<br>     attr="html:tag=area", hyperlink-URI="2.html", name="Baz"}<br>    {grandchild Hyperlink, Action,<br>     action-names="click", role=ROLE_LINK,<br>     attr="html:tag=area", hyperlink-URI="3.html", name="Fu"}<br><span
+ style="font-style: italic; font-family: sans-serif;">[note that the component bounds of the areas correspond to their rectangular bounding boxes]</span> </pre>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      <ul>
+        <li>This is a list item.</li>
+        <li>This is another list item.</li>
+      </ul>
+      </td>
+      <td>
+      <pre>&lt;ul&gt;<br>  &lt;li&gt;This is a list item.&lt;/li&gt;<br>  &lt;li&gt;This is another list item.&lt;/li&gt;<br>&lt;/ul&gt;</pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre><br>{parent Object, role=ROLE_LIST, attr="css:list-style-type=disc"}<br>  {child Text, role=ROLE_LIST_ITEM,<br>   text="This is a list item.", attribute run "static" first 2 chars}<br>  {child Text, role=ROLE_LIST_ITEM,<br>   text="This is another list item.", attribute run "static" first 2 chars}<br> </pre>
+      <br>
+        <em>[Bill: we
+should be able to support list-style=image, and
+"list-style-image=URL()", etc. this way.&nbsp; In the above example,
+it's
+not clear whether the bullet should be a unicode char or just omitted
+and implied by the list style..&nbsp; my guess is the latter (i.e.
+bullets
+don't appear in the text)] </em>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      <ol>
+        <li>This is a list item.</li>
+        <li>This is another list item.</li>
+      </ol>
+      </td>
+      <td>
+      <pre>&lt;ol&gt;<br>  &lt;li&gt;This is a list item.&lt;/li&gt;<br>  &lt;li&gt;This is another list item.&lt;/li&gt;<br>&lt;/ol&gt;</pre>
+      </td>
+      <td style="vertical-align: top;"><br>
+      <pre>{parent Object, role=ROLE_LIST, attr="html:tag=ol, css:list-style-type:decimal"}<br>  {child Text, role=ROLE_LIST_ITEM,<br>   text="1. This is a list item.", attribute run "static" first 3 chars}<br>  {child Text, role=ROLE_LIST_ITEM,<br>   text="2. This is another list item.", attribute run "static" first 3 chars}<br></pre>
+      </td>
+    </tr>
+    <tr>
+      <td style="height: 545px;">
+      <ul>
+        <li>This is a list item
+          <ul>
+            <li>Nested item 1. </li>
+            <li>Nested item 2.<br>
+            </li>
+          </ul>
+        </li>
+        <li>This is another list item.</li>
+      </ul>
+      </td>
+      <td style="height: 545px;">
+      <pre>&lt;ul&gt;<br>  &lt;li&gt;<br>    This is a list item.<br>    &lt;ul&gt;<br>      &lt;li&gt;Nested item 1&lt;/li&gt;<br>      &lt;li&gt;Nested item 2&lt;/li&gt;<br>    &lt;/ul&gt;<br>  &lt;/li&gt;<br>  &lt;li&gt;This is another list item.&lt;/li&gt;<br>&lt;/ul&gt;</pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre><br><br>{parent Object, role=ROLE_LIST, attr="html:tag=ul, css:list-style-type=disc"}<br>  {child Hypertext, role=ROLE_LIST_ITEM,<br>   text="This is a list item.<strong><span style="font-size: 14pt; color: #ff0066">*</span></strong>"}<br>     {grandchild Object, Hyperlink, role=ROLE_LIST,<br>      attr="html:tag=ul, css:list-style-type=circle, link-type=child",<br>      hyperlink-indices=[20,21],<br>      hyperlink-URI="", <span
+ style="font-style: italic; font-family: sans-serif;">[Hmm, degenerate case here...] </span><span
+ style="font-family: sans-serif;">}</span> <br>    	{great-grandchild Text, role=ROLE_LIST_ITEM, attr="html:tag=li"<br>         text="Nested item 1"}<br>    	{great-grandchild Text, role=ROLE_LIST_ITEM, attr="html:tag=li"<br>         text="Nested item 2"}<br>&nbsp;&nbsp; {child Text, role=ROLE_LIST_ITEM,<br>    text="This is another list item."}<br> <br> <br
+ style="font-family: sans-serif;"><span
+ style="font-style: italic; font-family: sans-serif;">[Note that unlike user interface ROLE_LIST objects, these lists don't <br>implement Selection, and the list items' StateSets do not include <br>STATE_SELECTABLE.  There is a question here as to whether &lt;ul&gt; and &lt;ol&gt; elements<br>should always implement Text or not.  I think it would be better if they did not, unless they had <br>non-empty text content, but this may prove impractical.]</span> </pre>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      <form>
+        <div><label for="self"> Tell me a little more: </label></div>
+        <div><textarea> I am a monkey
+with a long tail. I like to swing from trees and eat bananas. I've
+recently taken up typing and plan to write my memoirs. </textarea></div>
+      </form>
+      </td>
+      <td>
+      <pre>&lt;form&gt;<br>  &lt;div&gt;<br>   &nbsp;&lt;label for="self"/&gt;<br>      Tell me a little more:<br>    &lt;/label&gt;<br>  &lt;/div&gt;<br>  &lt;div&gt;<br>    &lt;textarea&gt;<br>      I am a monkey with a long <br>      tail. I like to swing from <br>      trees and eat bananas. I've <br>      recently taken up typing <br>      and plan to write my memoirs.<br>    &lt;/textarea&gt;<br>  &lt;/div&gt;<br>&lt;/form&gt;</pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre>{parent Object, role=ROLE_FORM, text=""}<br>  {child1 Object, role=ROLE_SECTION? <span style="font-style: italic;">[or should we use ROLE_PANE?]</span> }<br>     {grandchild Text,<br>      role=ROLE_LABEL,<br>      RELATION_LABEL_FOR=child2,<br>      text="Tell me a little more:"}<br>  {child2 role=ROLE_SECTION?}<br>    {grandchild EditableText,<br>     Relation, StateSet, Action,<br>     ROLE_ENTRY,<br>     text="I am a monkey with ..."}, <br>     RELATION_LABELLED_BY=child1,<br>     STATE_MULTILINE,<br>     STATE_REQUIRED allowed}<br><br
+ style="font-style: italic; font-family: sans-serif;"><span
+ style="font-style: italic; font-family: sans-serif;">[ attribute run over the portion of the text scrolled into view?</span><br
+ style="font-style: italic; font-family: sans-serif;"><span
+ style="font-style: italic; font-family: sans-serif;">  CONTROLLER_FOR/CONTROLLED_BY for the scrollbar/viewport? <br>  Alternative would be to treat all the text content as though it were visible, but that's no good<br>  for magnifiers and ATs for the mobility-impaired.  Probably the textarea needs to be expanded somewhat,<br>  or at least fitted with Actions for scrolling plus text attribution for determining what parts of the text are<br>  currently scrolled into view, without the AT client having to resort to bounds checking in the<br>  "screen review" fashion.  This is, however, a general problem with multiline text in viewports.<br>The relatively new Text getBoundedRanges API reduces the pain somewhat since you can<br>feed it the Component bounds and it will give you back the visible text.]</span> </pre>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      <form>
+        <p>Check one or more: <input id="cb1" type="checkbox"><label
+ for="cb1">Red</label> <input id="cb2" type="checkbox"><label for="cb2">Blue</label>
+        <input id="cb3" type="checkbox"><label for="cb3">Green</label> </p>
+      </form>
+      </td>
+      <td>
+      <pre>&lt;form aaa:describedby="checkhelp"&gt; <br>  &lt;p&gt;<br>    &lt;span<br>     x2:tag="wairole:description"<br>     id="checkhelp"&gt;<br>        Check one or more:<br>    &lt;/span&gt;<br>    &lt;input id="cb1" type="checkbox"/&gt;<br>    &lt;label for="cb1"&gt;Red&lt;/label&gt;<br>    &lt;input id="cb2" type="checkbox"/&gt;<br>    &lt;label for="cb2"&gt;Blue&lt;/label&gt;<br>    &lt;input id="cb3" type="checkbox"/&gt;<br>    &lt;label for="cb3"&gt;Green&lt;/label&gt;<br>  &lt;/p&gt;<br>&lt;/form&gt;</pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre>{parent Object,<br> role=ROLE_FORM,<br> attr="html:tag=form",<br> RELATION_DESCRIBED_BY=grandchild1,<br> text="?"}<br>  {child Text,<br>   role=ROLE_PARAGRAPH, attr="html:tag=p", text=""}<br>    {grandchild1 Text,<br>     role=ROLE_LABEL,<br>     RELATION_DESCRIPTION_FOR=parent,<br>     attr="html:tag=wairole:description"}<br>     text="Check one or more:"}<br>    {grandchild2 Action, <br>     StateSet, role=ROLE_CHECK_BOX, <br>     attr="html:tag=input", <span
+ style="font-style: italic; font-family: sans-serif;">[and same with other elements, expose html:role]<br>                            [note also that these objects do NOT have accessible names, because they are labelled;<br>                             accessible-name would presumably come from the HTML title attribute or other attribute.<br>                             This is mainly to make it easier for ATs to avoid highly redundant speech in these cases.]<br></span>      RELATION_LABELLED_BY=grandchild3}<br>    {grandchild3 Text, <br>     role=ROLE_LABEL, text="Red", <br>     RELATION_LABEL_FOR=grandchild2}<br>    {grandchild4 Action, <br>     StateSet, role=ROLE_CHECK_BOX, <br>     RELATION_LABELLED_BY=grandchild5}<br>    {grandchild5 Text, <br>     role=ROLE_LABEL, text="Blue", <br>     RELATION_LABEL_FOR=grandchild4}<br>    {grandchild6 Action, <br>     StateSet, role=ROLE_CHECK_BOX, <br>     RELATION_LABELLED_BY=grandchild7}<br>    {grandchild7 Text, <br>     role=ROLE_LABEL, text="Green", <br>     RELATION_LABEL_FOR=grandchild6}<br><br><span
+ style="font-style: italic; font-family: sans-serif;">[RFE: add RELATION_DESCRIBED_BY<br>  and  RELATION_DESCRIPTION_FOR to match AT-SPI/DHTML.  Also, I thought we had <br>  ROLE_FORM, but it seems not to be there.  Did I miss something?]</span> </pre>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      <form> <label for="beverage">Make a selection:</label>
+        <select id="beverage">
+        <option>Water</option>
+        <option>Wine</option>
+        <option>Whiskey</option>
+        </select>
+      </form>
+      </td>
+      <td>
+      <pre>&lt;form&gt;<br>  &lt;label for="beverage"&gt;<br>    Make a selection:<br>  &lt;/label&gt;<br>  &lt;select id="beverage"&gt;<br>    &lt;option&gt;Water&lt;/option&gt;<br>    &lt;option&gt;Wine&lt;/option&gt;<br>    &lt;option&gt;Whiskey&lt;/option&gt;<br>  &lt;/select&gt;<br>&lt;/form&gt;<br></pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre>{parent role=ROLE_FORM?}<br>  {child Text,<br>   role=ROLE_LABEL, <br>   RELATION_LABEL_FOR=child,<br>   text="Make a selection:"}  <br>  {child Action,<br>   StateSet, Selection, <br>   attr="html:tag=select",<br>   role=ROLE_COMBO_BOX, <br>   RELATION_LABELLED_BY}<br>       {grandchild, <br>	Text,	<br>&nbsp;	StateSet=...SELECTABLE, SELECTED..., <br>	attr="html:tag=option",<br>        role=ROLE_LIST_ITEM, text="Water"}<br>       {grandchild,<br>	Text,<br>&nbsp;	StateSet=...SELECTABLE..., <br>	attr="html:tag=option",<br> 	role=ROLE_LIST_ITEM, text="Wine"}<br>       {grandchild Text, <br>	StateSet=...SELECTABLE...,<br>	role=ROLE_LIST_ITEM,<br>	attr="html:tag=option",<br>        text="Whiskey"}<br><br style="font-style: italic;"><span
+ style="font-style: italic;">[note that because the entry field is not editable, but just displays the current </span><br
+ style="font-style: italic;"><span style="font-style: italic;">selection, I think it should not be exposed (especially since it represents a node</span><br
+ style="font-style: italic;"><span style="font-style: italic;">which is not present in the HTML DOM.  The list items need not implement Action,</span><br
+ style="font-style: italic;"><span style="font-style: italic;">since the Selection interface is used by the client to select among them.]</span> </pre>
+      </td>
+    </tr>
+    <tr>
+      <td>
+      <form>
+        <p>Which sports do you like?<br>
+        <select name="sports" multiple="multiple" size="3">
+        <option>Hockey</option>
+        <option>Basketball</option>
+        <option>Football</option>
+        <option>Baseball</option>
+        </select>
+        </p>
+      </form>
+      </td>
+      <td>
+      <pre>&lt;form&gt;<br>  &lt;label for="sports"&gt;<br>    Which sports do you like: <br>    &lt;br&gt;<br>    &lt;select id="sports"<br>            multiple="multiple"<br>            size="3"&gt;<br>      &lt;option&gt;<br>        &lt;img src="beerglass.gif" <br>             alt="Beer"/&gt;<br>        Baseball<br>      &lt;/option&gt;<br>      &lt;option&gt;Basketball&lt;/option&gt;<br>      &lt;option&gt;Football&lt;/option&gt;<br>    &lt;/select&gt;<br>  &lt;/label&gt;<br>&lt;/form&gt;</pre>
+      </td>
+      <td style="vertical-align: top;">
+      <pre>{parent role=ROLE_FORM?}<br>  {child1 Text,<br>   role=ROLE_LABEL, <br>   RELATION_LABEL_FOR=child2,<br>   text="Which sports do you like:\n<strong><span style="font-size: 14pt; color: #ff0066">*</span></strong>"}  <br>  {child2 Object,<br>   accessible-name="sports" <span
+ style="font-style: italic; font-family: sans-serif;">[not sure exposing the id is a good idea though],</span> <br>   Selection,
+   Hyperlink, <br>   StateSet=...MULTISELECT...<br>   attr="html:tag=select",<br>   role=ROLE_LIST, <br>   RELATION_LABELLED_BY=child2}<br>       {grandchild1, <br>	HyperText,	<br>&nbsp;	StateSet=...SELECTABLE, SELECTED..., <br>	attr="html:tag=option",<br>        role=ROLE_LIST_ITEM, text="<strong><span style="font-size: 14pt; color: #ff0066">*</span></strong>Baseball"}<br>	  {great-grandchild Image, Hyperlink,<br>	   role=ROLE_IMAGE,<br>           attr="html:tag=img, link-type=image",<br>	   hyperlink-URI="beerglass.gif",<br>	   hyperlink-indices=[0,1]}<br>       {grandchild2,<br>	Text,<br>&nbsp;	StateSet=...SELECTABLE..., <br>	attr="html:tag=option",<br> 	role=ROLE_LIST_ITEM, text="Basketball"}<br>       {grandchild3 Text, <br>	StateSet=...SELECTABLE...,<br>	role=ROLE_LIST_ITEM,<br>	attr="html:tag=option",<br>        text="Football"}<br></pre>
+      </td>
+    </tr>
+    <tr>
+      <td>
+To do: HTML table example</td>
+      <td>
+      </td>
+      <td style="vertical-align: top">
+      </td>
+    </tr>
+    <tr>
+      <td>
+        To do: DHTML role example</td>
+      <td>
+      </td>
+      <td style="vertical-align: top">
+      </td>
+    </tr>
+  </tbody>
+</table>
+  <h2><a id="beyondhtml" name="beyondhtml">Beyond HTML: Other
+  Types of Web Content</a></h2>
+
+  <ul>
+    <li style="list-style: none none outside">
+      <p>You may have heard of some content types beyond HTML, and
+      want to know if Gecko based products will support them:</p>
+    </li>
+
+    <li><a href="http://developer.mozilla.org/en/docs/Accessible_DHTML">DHTML and AJAX</a>: Gecko and other browsers have
+    long supported dynamic content, where the page appearance
+    changes because of JavaScript. This can be used to create the
+    appearance of desktop-style widgets like menus, spreadsheets
+    and tree views which HTML lacks. Or, it can be used to
+    completely change content on the fly, without loading a new
+    page. Previously it was not posible to make this accessible,
+    but Mozilla supports
+    <a href="http://developer.mozilla.org/en/docs/Accessible_DHTML">Accessible DHTML</a>,
+    which allows authors to make advanced widgets and web applications accessible.</li>
+
+    <li><a href="http://www.w3.org/Math/" class="ex-ref">MathML</a>: an XML
+    dialect used to display full math notation on web pages.
+    <a href="../../projects/mathml/">Here's the
+    ongoing Mozilla project to support MathML</a> . We do not
+    currently have plans to support MSAA for MathML - we will
+    likely suggest use of the external DOM for this, because MSAA
+    simply does not have the right semantics in it to support
+    mathematics. MathML support is currently built into
+    Firefox.</li>
+
+    <li><a href=
+    "http://www.w3.org/Graphics/SVG/Overview.html" class="ex-ref">SVG</a> :
+    Scalable Vector Graphics. Essentially W3C's XML-based version
+    of Flash - mixes well with other markup based content, supports
+    the DOM and has accessibility features.
+    <a href="../../projects/svg/">Mozilla's SVG
+    Project</a> has been through several stalls and rebirths -- SVG
+    will probably become more of a priority if other well known
+    browsers support it. We will not know how, or whether, we will
+    support SVG accessibility until a better implementation comes
+    along. Firefox 1.5 supports SVG. Potentially it can make use of the same
+    namespaced role and state attributes as DHTML accessibility, but it
+    may require more powerful author-definable relationships.</li>
+
+    <li><a href="../../projects/xforms/">XForms</a>:
+    XForms is the future of online forms as envisioned by the W3C. Drawing on
+    other W3C standards like XML Schema, XPath, and XML Events,
+    XForms tries to address some of the limitations with the
+    current HTML forms model. One of the key features of XForms is
+    accessibility. XForms accessibility
+      development is currently being developed for Mozilla 1.9 (Firefox 3) by Alexander
+      Surkov.</li><li><a href="http://www.xulplanet.com/" class="ex-ref">XUL</a>: The XML-based
+    language used by Firefox and Mozilla to develop the UI. Similar
+    to HTML in that it can be combined with CSS and Javascript to
+    make powerful applications. Contains more desktop-style widgets
+    than HTML and follows a box layout model, rather than being
+    text-flow based. In the future more standalone applications will
+    use XUL via <a href="http://wiki.mozilla.org/XUL:Xul_Runner">Xulrunner</a>.</li>
+  </ul>
+  <h2>
+  <a id="mailinglist" name="mailinglist">Questions or Comments?</a>
+  </h2>
+  <div class="indent">
+    <p>
+      Please discuss accessibility issues on the <a href="http://www.mozilla.org/community/developer-forums.html#dev-accessibility">
+        <span style="color: #0000ff">Mozilla Accessibility mailing list</span></a> or
+      on the <a href="irc://irc.mozilla.org/accessibility"><span style="color: #0000ff">
+        Mozilla Accessibility IRC channel</span></a>.</p>
+  </div>
+</body>
+</html>

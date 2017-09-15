@@ -1,0 +1,160 @@
+<HTML>
+<HEAD>
+   <META NAME="Author" CONTENT="Kipp E.B. Hickman">
+   <TITLE>NGLayout Windows Build Instructions</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000"
+      LINK="#0000EE" VLINK="#551A8B" ALINK="#FF0000">
+
+<H2>
+NGLayout Windows Build Instructions</H2>
+This document explains how to build NGLayout for the Windows platform. It was last updated on October 21, 1998.
+<HR><B><FONT SIZE=+1>Required Tools:</FONT></B>
+<UL>
+<LI>
+<B>Microsoft Visual C++ version 4.2 or later</B></LI>
+
+<LI>
+<B>The same set of tools for building <A HREF="http://www.mozilla.org/build/win32.html">Mozilla</A></B></LI>
+</UL>
+<B><FONT SIZE=+1>Setting up:</FONT></B>
+<UL>
+<LI>
+You need a Pentium with at least a 133 MHz processor and at least 250 megs
+(NTFS partition) or 500 megs (FAT partition) of hard drive space. You need
+to have a minimum of 64 megs of memory in order to build this tree. These
+numbers are approximations.</LI>
+
+<LI>The preferred platform is NT 4.0. NT 3.51 will also work, and Win95 might
+work if you're lucky. Maybe.</LI>
+
+<LI>
+Install MSVC. If you don't choose to have the MSVC install modify your
+environment variables for PATH, INCLUDE, and LIB information, be sure to
+run VCVARS32.BAT out of the MSVC bin directory prior to attempting to build.
+We use VC 4.2, 5.0, and 6.0 successfully. You need VC 5 or 6 to build Adam's 
+ActiveX control, because it requires ATL.
+</LI>
+
+<LI>
+Download and install <a href="http://www.cygnus.com/misc/gnu-win32">GNU tools</a>. Put them in your path. 
+<b>Change the name of date.exe (GNU tool) to unix_date.exe</b></LI>
+<li>
+If you're on Windows, you'll need to download our
+<a href="ftp://ftp.mozilla.org/pub/mozilla/source/wintools.zip">Windows build tools</a>.</li>
+
+<LI>
+There are several environment variables you will need to set, either manually
+or via a script within a command session, or by setting them in your system
+environment located through the Control Panel | System icon.<P>
+<B>Note: There is an additional variable for building NGLayout!
+Use this list carefully!</B>
+<p>
+You can  download a <a href="setenv.bat.txt">batch file</a> that sets
+all these variables properly; you'll need to tweak it a bit for your environment.
+<P>
+The variables are:</LI>
+
+<UL>
+<LI>
+set MOZ_BITS=32</LI>
+
+<LI>
+set MOZ_DEBUG=1 (don't set this if you want to build an optimized release
+build)</LI>
+
+<LI>
+set MOZ_NT=351 (if running NT 3.51, don't set otherwise)</LI>
+
+<LI>
+set MOZ_OUT=(location of resulting executable and totally optional, see
+Notes for more details)</LI>
+
+<LI>
+set MOZ_SRC=(top of your tree, drive letter and path, i.e. set MOZ_SRC=d:\mozilla_src.
+The topmost directory under this should be "mozilla")</LI>
+
+<LI>
+set MOZ_TOOLS=(location of the bin directory containing your GNU tools.
+The build looks for MOZ_TOOLS\bin\gmake.exe, so make sure your MOZ_TOOLS
+is figured appropriately)</LI>
+
+<LI>
+if you are running VC++ 5.0 or higher: set _MSC_VER=1100; if you are running
+VC++ 4.2 then set MOZ_VCVER=42</LI>
+
+<LI>
+<B>set STANDALONE_IMAGE_LIB=1</B></LI> 
+
+</UL>
+</UL>
+<B><FONT SIZE=+1>Building:</FONT></B>
+<ol>
+<li>Go to your MOZ_SRC directory and check out the following: (<b>this is how you get your source code</b>)
+<pre>     cvs co mozilla/nglayout.mak
+     cvs co mozilla/config
+</pre>
+<li>Go to mozilla and check out everything
+<pre>     cd mozilla 
+     nmake -f nglayout.mak pull_all 
+</pre>
+
+<li>If this is the 1st time doing step 2 then skip step 3, otherwise clobber as follows: 
+<pre>
+     nmake -f nglayout.mak clobber_all 
+</pre>
+<li>Build everything
+<pre>
+     nmake -f nglayout.mak all 
+</pre>
+</ol>
+<p>
+<b><font size=+1>Run It!</font></b><br>
+You will end up with a viewer.exe and an xpviewer.exe at the end. These binaries will be in
+your dist\win32_[OD].obj\bin directory (O will be used when you don't set
+MOZ_DEBUG; D will be used when you set MOZ_DEBUG). The xpviewer is the current state of Navigator
+using XPFE and Raptor with nice looking chrome, etc.
+The viewer.exe binary is a simple test harness for the NGLayout engine useful for debugging purposes.
+</p>
+
+<p>
+<b><font size=+1>Subsequent Builds</font></b><br>
+Assumming that the above has been done at least once and the various other systems it uses have not
+changed, the latest NGLayout can be built as follows: 
+</p>
+<ul>
+     Run the script mentioned above (to set your environment variables), and go to your MOZ_SRC directory.
+<ul><tt>
+     cd base<br>
+     cvs update -d <br>
+     nmake -f makefile.win clobber<br>
+     nmake -f makefile.win <br>
+</tt>
+</ul>
+<ul><tt>
+     cd .. <br>
+     nmake -f nglayout.mak pull_all_nglayout <Br>
+     nmake -f nglayout.mak clobber_nglayout <Br>
+     nmake -f nglayout.mak all_nglayout <br>
+</tt>
+</ul>
+</ul>
+
+<B><FONT SIZE=+1>Notes:</FONT></B>
+<UL>
+<LI>
+This build process does not use Visual C++ generated project files for
+several reasons having to do with (among other things) size, maintainability,
+and the long term desire to start using more of tools like gmake, or plug
+and play developer tools. This does not preclude you from using the Visual
+C++ IDE, or it's debugger. Once you have built a viewer.exe do this to
+run it under the debugger:</LI>
+<ul>
+<LI>
+cd mozilla\dist\win32_[OD].obj\bin</LI>
+<LI>
+msdev viewer.exe</LI>
+</UL>
+</ul>
+</BODY>
+</HTML>

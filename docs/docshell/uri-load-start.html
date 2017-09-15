@@ -1,0 +1,273 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+          "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Document Loading: From Load Start to Finding a Handler</title>
+<style type="text/css">
+/* XXX adding this so that we actually scroll to items correctly... I need a better idea here. */
+body { padding-bottom: 1000px }
+h1 { text-align: center }
+#loadDiagram { display: block; margin-left: auto; margin-right: auto }
+address { text-align: right }
+</style>
+</head>
+<body>
+<h1>Document Loading: From Load Start to Finding a Handler
+<div style="font-size: medium">
+by Boris Zbarsky &lt;<a href="mailto:bzbarsky@mit.edu">bzbarsky@mit.edu</a>&gt;
+</div>
+</h1>
+
+<p>This document describes the beginning of the document loading process.  We start
+with the request to load a particular link in a particular window, and proceed
+up to the point at which the data stream is dispatched to the proper handler.
+The final goal is to find the correct stream listener to pump the data into
+when necko calls OnDataAvailable (e.g., we may find the HTML parser as the
+stream listener to give the data to).</p>
+
+<h2>Dramatis Personae</h2>
+
+This document focuses on the interaction of three classes with each other, but
+other Mozilla components are also involved.
+
+<h3>Main Roles</h3>
+<dl>
+<dt><a name="nsDocShell"></a><code>nsDocShell</code>/<code>nsWebShell</code></dt>
+
+<dd>This class corresponds, basically, to a "window" object in JavaScript --
+each frame, iframe, content area, tab, etc has its own docshell.  A docshell
+can have a name associated with it (e.g. a named frame).  All loads that we
+consider in this document are initiated via the docshell.
+<code>nsDocShell/nsWebShell</code> implements too many interfaces to count; the
+ones that matter to us most are <code>nsIWebNavigation</code> and
+<code>nsILinkHandler</code>.</dd>
+
+<dt><a name="nsURILoader"></a><code>nsURILoader</code></dt>
+
+<dd>This is a service implementing <code>nsIURILoader</code>.  It keeps track
+of currently pending loads and registered content listeners.  Some facilities
+are provided for starting loads, canceling loads, and other such
+micromanagement.</dd>
+
+<dt><a name="nsDocumentOpenInfo"></a><code>nsDocumentOpenInfo</code></dt>
+
+<dd>This class encapsulates all the information related to a particular load.
+There is basically one of these per load (though see the section on <a
+href="#stream-converter">stream converters</a>).
+<code>nsDocumentOpenInfo</code> implements <code>nsIStreamListener</code> and
+proxies the <code>nsIStreamListener</code> calls over to the "real" stream
+listener once one is chosen.  This is the class that handles deciding where the data from the load should go.</dd>
+
+</dl>
+<h3>Supporting Roles</h3>
+<dl>
+<dt><a name="necko">Necko</a></dt>
+
+<dd>This is the Mozilla networking library.  This handles actually going out
+and getting the data.  It also handles determining the MIME type of the data,
+which is used to decide who gets the data.</dd>
+
+<dt><a name="nsCategoryManager">Category Manager</a></dt>
+
+<dd>This is used in a <a href="#CategoryManager">last-ditch attempt</a> to find a
+content listener.</dd>
+
+<dt><a name="nsIURIContentListener"><code>nsIURIContentListener</code>
+implementations</a></dt>
+
+<dd>We try to find one of these which can handle data of the type we're looking
+at (that is, it can give us an <code>nsIStreamListener</code> to pump data
+into).  Most often, the one we find is <code>nsDSURIContentListener</code>,
+which corresponds to a docshell and handles most of the data types that Mozilla
+handles internally.
+</dd>
+
+<dt><a name="nsIExternalHelperAppService"><code>nsIExternalHelperAppService</code></a></dt>
+
+<dd>If we can't do anything else with a load, we give it to the <code>nsIExternalHelperAppService</code> and let it look for a helper app, put up the "what do I do now?" dialog, and so forth.
+</dl>
+
+<h2>Bird's Eye View</h2>
+
+<p>
+<map name="loadDiagramMap">
+<area coords="534,239,715,300" href="#nsIExternalHelperAppService::DoContent" alt="(13) DoContent()">
+<area shape="poly" coords="575,418,821,418,821,455,629,455,629,484,575,484" href="#CategoryManager" alt="(10) GetCategoryEntry()">
+<area coords="539,133,583,163" href="#stream-converter" alt="(12)">
+<area coords="485,133,537,163" href="#ContentHandler" alt="(11)">
+<area coords="445,132,484,165" href="#nsDocumentOpenInfo::DispatchContent" alt="(9)">
+<area coords="405,133,439,162" href="#OnStartRequest-innards" alt="(8)">
+<area shape="poly" coords="639,129,703,129,703,165,833,165,833,204,639,204" href="#OnStartRequest" alt="(7) OnStartRequest()">
+<area shape="poly" coords="637,121,709,121,709,96,783,96,783,58,637,58" href="#AsyncOpen" alt="(6) AsyncOpen()">
+<area coords="311,306,432,371" href="#Open" alt="(5) Open()">
+<area coords="90,384,127,417" href="#openURI-innards" alt="(4)">
+<area shape="poly" coords="37,474,346,474,346,505,88,505,88,535,37,535" href="#RegisterContentListener" alt="(0) RegisterContentListener()">
+<area coords="5,207,312,269" href="#openURI" alt="(3) openURI() (nsURILoader)">
+<area coords="102,114,139,148" href="#InternalLoad" alt="(2)">
+<area coords="77,5,449,59" href="#loadURI" alt="(1) loadURI/onLinkClick">
+<area coords="527,305,839,339" href="#nsIExternalHelperAppService" alt="nsIExternalHelperAppService">
+<area coords="683,467,807,527" href="#nsCategoryManager" alt="Category Manager">
+<area coords="371,71,635,185" href="#nsDocumentOpenInfo" alt="nsDocumentOpenInfo">
+<area coords="721,113,821,157" href="#necko" alt="Necko">
+<area coords="23,335,215,455" href="#nsURILoader" alt="nsURILoader">
+<area coords="227,515,485,575" href="#nsIURIContentListener">
+<area coords="47,83,203,153" href="#nsDocShell" alt="nsDocShell">
+</map>
+
+<img id="loadDiagram" src="uri-load-start.gif" usemap="#loadDiagramMap" alt="Diagram showing relationships between nsDocShell, nsURILoader, nsDocumentOpenInfo, etc.">
+</p>
+
+<h2>Guided Tour</h2>
+
+<ol start="0">
+<li><a name="RegisterContentListener"></a>
+  <p>During startup and component initialization, components register
+  themselves with the URILoader via <code>RegisterContentListener</code>.
+  These registered listeners are used later during <a
+  href="#nsDocumentOpenInfo::DispatchContent">content dispatch</a>.</p>
+</li>
+
+<li><a name="loadURI"></a>
+  <p>API calls to load a new URI.  These can come in via
+  <code>nsIWebNavigation</code> (a scriptable embedding interface) or
+  <code>nsILinkHandler</code> (an internal interface used for link clicks).
+  Both interfaces are implemented by <code>nsWebShell/nsDocShell</code>.  These
+  API calls will typically pass in a URI string or object to load, and may
+  include information like the name of the target frame (for <code>&lt;a
+  target="something"&gt;</code>, e.g.).</p>
+</li>
+
+<li><a name="InternalLoad"></a>
+  <p><code>nsDocShell::InternalLoad()</code> handles targeting to the correct
+  docshell (if the load has a target window associated with it), scrolling to
+  anchors (if the load is an anchor within the current page), and session
+  history issues.  It calls <code>DoURILoad()</code>.
+  </p>
+
+  <p><code>DoURILoad()</code> creates a channel, massages it to have the right
+  POST data, load flags, cache key, referrer, etc.  It then passes the channel
+  to <code>DoChannelLoad</code>, which does some more flag massaging and then
+  calls into the URILoader.
+  </p>
+</li>
+
+<li><a name="openURI"></a>
+  <p><code>nsURILoader::OpenURI</code> gets a channel to open, a boolean
+  indicating whether this load is the result of a link click, and an
+  <code>nsISupports</code> "window context" (the docshell triggering the load,
+  actually, but in drag and heavy makeup).</p>
+</li>
+
+<li><a name="openURI-innards"></a>
+  <p><code>nsURILoader::OpenURI</code> notifies the
+  <code>nsIURIContentListener</code> hanging off the window context, if any, of
+  the start of the load; this gives embedders a chance to abort the load if
+  this URI type is something they want to handle in the embedding app.  If the
+  load is not aborted, we create an <code>nsDocumentOpenInfo</code> object for
+  this load, passing it the "this is a link click" boolean and the window
+  context.</p>
+</li>
+
+<li><a name="Open"></a>
+  <p><code>nsDocumentOpenInfo::Open</code> is passed the channel to open.  It
+  calls <code>GetInterface</code> on the window context to get and save that
+  context's <code>nsIURIContentListener</code>.</p>
+</li>
+
+<li><a name="AsyncOpen"></a>
+  <p><code>nsDocumentOpenInfo</code> just opens the channel, setting itself as
+  the stream listener.</p>
+</li>
+
+<li><a name="OnStartRequest"></a>
+  <p><code>OnStartRequest</code> notification comes back from Necko</p>
+</li>
+
+<li><a name="OnStartRequest-innards"></a>
+  <p><code>nsDocumentOpenInfo::OnStartRequest</code> checks the response status
+  code on the channel for HTTP channels and drops the load on the floor if
+  warranted (e.g. 204 or 205 responses).  Then it calls
+  <code>nsDocumentOpenInfo::DispatchContent</code></p>
+</li>
+
+<li><a name="nsDocumentOpenInfo::DispatchContent"></a>
+  <p><code>nsDocumentOpenInfo::DispatchContent</code> starts doing the real
+  dirty work.  First it checks whether the channel has "Content-Disposition:
+  attachment" set.  If so, it skips trying to find an internal viewer and goes
+  right over to <a href="#stream-converter">looking for a stream
+  converter</a>.  Otherwise, <code>DispatchContent</code> goes through a
+  three-step process to try to find the correct listener.</p>
+
+  <p>The basic idea is that <code>DispatchContent</code> calls
+  <code>nsDocumentOpenInfo::TryContentListener</code> on various content
+  listeners; if that returns true, we have found the right listener and we are
+  done.  <code>TryContentListener</code> makes use of the
+  <code>IsPreferred</code> and <code>CanHandleContent</code> functions on
+  <code>nsIURIContentListener</code> and calls <code>DoContent()</code> on the
+  listener if it claims to handle the data, as well as hooking up a stream
+  converter if the listener asks for one.  If any of those steps fails, the
+  function returns false so that another content listener will be looked
+  for.</p>
+
+  <p>The first content listener we check is the content listener associated
+  with our window context (the docshell that initiated the load).  If this
+  can't handle the content type, we loop over our stored list of possible
+  listeners (<a href="#RegisterContentListener">previously registered via
+  <code>RegisterContentListener</code></a>) and ask each one in turn whether it
+  can handle the data.
+</li>
+
+<li><a name="CategoryManager"></a>
+  <p>If we <em>still</em> have not found an <code>nsIURIContentListener</code>,
+  we ask the category manager whether it has an entry for the desired content
+  type under the <code>NS_CONTENT_LISTENER_CATEGORYMANAGER_ENTRY</code> key.
+  If it does, we instantiate that component using its contractid (via
+  <code>CreateInstance</code>) and call <code>TryContentListener</code> on it.
+</li>
+
+<li><a name="ContentHandler"></a>
+  <p>If we find no content listener willing to handle the data, we look for a
+  content handler (using <code>CreateInstance</code> on
+  <code>NS_CONTENT_HANDLER_CONTRACTID_PREFIX + aContentType</code>).  If a
+  handler is found, we call <code>HandleContent</code> on it to give it a
+  chance to take over the load.  If it does so, we abort the entire dispatch
+  process right here and cancel the necko request; we will not be getting a
+  stream listener to stream data into, since the content handler has taken over
+  completely.</p>
+</li>
+
+<li><a name="stream-converter"></a>
+  <p>If at this point we do not have an <code>nsIURIContentListener</code>, we
+  have failed to find a way to handle this content type.  If that is the case,
+  <code>DispatchContent</code> tries to convert the data to
+  some other content type by looking for a stream converter that takes our
+  content type as input and outputs the magic type "*/*" (which just means
+  we'll take anything it can give us).  If the type of the data is
+  "application/x-unknown-content-type" (another magic type), this is where
+  nsUnknownDecoder would be instantiated.</p>
+
+  <p>The conversion attempt is made by calling <code>ConvertData</code>.  This
+  creates a new <code>nsDocumentOpenInfo</code> object and sets it as the
+  output streamlistener of the converter.  This way, once we know what type
+  we've managed to get we can attempt to redispatch it.</p>
+
+  <p>If a converter is found, we hook that up as our stream listener and are
+  done -- we just need to pump data into it and let the downstream
+  <code>nsDocumentOpenInfo</code> handle the final dispatch.</p>
+</li>
+
+<li><a name="nsIExternalHelperAppService::DoContent"></a>
+  <p>If we <em>still</em> do not have a stream listener, that means that we
+  failed to find an <code>nsIURIContentListener</code> or
+  <code>nsIContentHandler</code> for this type.  Give the load to the helper
+  app service; this will return an <code>nsIStreamListener</code> that we can
+  use.</p>
+</li>
+</ol>
+
+<address>
+Send feedback to <a href="mailto:bzbarsky@mit.edu">bzbarsky@mit.edu</a>.
+</address>
+</body>
+</html><!--  LocalWords:  eg
+ -->

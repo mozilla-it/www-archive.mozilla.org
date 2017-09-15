@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>August 22, 2000 ECMAScript 1-on-1</TITLE>
+<STYLE type="text/css">
+CODE, PRE {font-family: "Courier New", Courier, mono; color: #0000FF}
+PRE {margin-left: 0.5in}
+</STYLE>
+</HEAD>
+
+<BODY>
+
+<H1>Notes from August 22, 2000 meeting between Waldemar Horwat and Herman Venter</H1>
+
+<P>General: Herman is readying an implementation of JScript for servers and wants to freeze the language and make it easily
+interoperable with Microsoft's .NET runtime. Waldemar is concerned about the language's applicability to browsers and retaining
+the language's dynamism, which he sees as the language's differentiator. He's concerned about the language's drift towards
+Java or C# because he thinks that there is little need for another language in that space, and the result would be inferior
+to C# for static programming anyway. Herman also recommends that new server projects use C# instead of JScript, seeing the
+new JScript as a language geared towards developers already used to programming in JScript.</P>
+
+<UL>
+  <LI>Strict mode: Herman would like to eliminate it from Edition 4 and leave it as extensions for Netscape and Microsoft
+    to implement. Waldemar is willing to agree but is worried about divergence between Netscape's and Microsoft's strict modes
+    (Microsoft's called Option Fast). Herman says that Microsoft's Option Fast serves a different purpose from Netscape's
+    strict mode. Waldemar would like input from the rest of the group.</LI>
+  <LI>Herman would prefer to eliminate the <CODE>3_in</CODE> syntax for units, leaving only <CODE>3in</CODE> and <CODE>3&nbsp;"in"</CODE>.
+    Waldemar is OK with that, subject to agreement from the rest of the group.</LI>
+  <LI>Herman expressed some willingness to accept the <CODE>::</CODE> notation for namespace qualification and doesn't think
+    that it would fatally clash with Microsoft's current usage of <CODE>::</CODE>. The plain <CODE>.</CODE> doesn't work for
+    a member qualifier -- <CODE>a.b.c</CODE> is interpreted as <CODE>(a.b).c</CODE> rather than <CODE>a.(b.c)</CODE>. Waldemar
+    dropped the semantics of supplying multiple namespaces to a single member lookup: <CODE>a::b::c</CODE> used to mean "look
+    up the <CODE>c</CODE> that is in both namespaces <CODE>a</CODE> and <CODE>b</CODE>"; now <CODE>x.a::b::c</CODE> means
+    <CODE>x.(a.b)::c</CODE> -- <CODE>a.b</CODE> should evaluate to a namespace in which the name <CODE>c</CODE> is looked
+    up. Herman suggested the syntax <CODE>x::a.b.c</CODE> instead of <CODE>x.a::b::c</CODE>, but Waldemar doesn't like it
+    because it goes counter to C++ expectations and associates in the wrong way: one would have to write <CODE>(x::a.b.c).d</CODE>
+    instead of <CODE>x.a::b::c.d</CODE>.</LI>
+  <LI>Waldemar clarified that, when <CODE>a</CODE> is not preceded by a dot, either <CODE>a::b</CODE> or <CODE>a.b</CODE>
+    can be used to look up member <CODE>b</CODE> of namespace <CODE>a</CODE>.</LI>
+  <LI>By Herman's request, Waldemar took the <CODE>@</CODE> operator out of the Edition 4 proposal. It will be a Netscape
+    extension.</LI>
+  <LI>Waldemar suggested that there be some way to make compile-time array constants (something like <CODE>[3,4]</CODE> doesn't
+    work because it creates a mutable array) and/or read-only arrays, but no consensus was reached.</LI>
+  <LI>Waldemar added attributes that take arguments to his proposal and figured out a way of doing it while keeping the grammar
+    LR(1).</LI>
+  <LI>Herman does not want scope blocks (i.e. <CODE>scope{</CODE>&nbsp;...&nbsp;<CODE>}</CODE> creating a local scope) in
+    Edition 4. Waldemar is unhappy about that because the working group spent several days on this subject and earlier appeared
+    to reach consensus to keep them but would go along if the rest of the group wants to drop them, in which case they would
+    become a Netscape extension.</LI>
+  <LI>Herman does not want attribute blocks (i.e. <CODE>private{</CODE>&nbsp;...&nbsp;<CODE>}</CODE> distributing the <CODE>private</CODE>
+    attribute among the declarations in ...) in Edition 4. Waldemar is also unhappy about that but would go along if the rest
+    of the group wants to drop them, in which case they would become a Netscape extension.</LI>
+  <LI>Microsoft currently accepts <CODE>catch&nbsp;(x:RangeError)</CODE> but not <CODE>var&nbsp;x:RangeError</CODE>. Waldemar
+    doesn't think that this is a significant issue if <CODE>RangeError</CODE> is a host object.</LI>
+  <LI>Waldemar expects to be able to write <CODE>var&nbsp;x:foo</CODE> if <CODE>foo</CODE> is an Edition 3-style constructor
+    of prototype-based classes; this would mean that <CODE>x</CODE> can hold any object that has <CODE>foo.prototype</CODE>
+    on the prototype chain. Herman has some reservations.</LI>
+  <LI>Herman doesn't like the <CODE>volatile</CODE> attribute and would like to rename it to <CODE>virtual</CODE>. Waldemar
+    agrees. There already is a <CODE>virtual</CODE> attribute and the issue of what the new <CODE>virtual</CODE> would mean
+    was not discussed; there probably is disagreement there regarding whether the overriding method must match the base method's
+    signature or not.</LI>
+  <LI>In addition to the <CODE>override</CODE> attribute, Microsoft has a <CODE>hide</CODE> attribute that creates a new vtable
+    entry rather than reusing an existing vtable entry. Operationally, <CODE>hide</CODE> and <CODE>override</CODE> appear
+    to be equivalent for code that dispatches on untyped variables, but their behavior differs when dispatching on variables
+    with static types. Waldemar says that <CODE>hide</CODE> breaks the Dollin principle. Agreed that <CODE>hide</CODE> will
+    be a Microsoft extension rather than a feature of Edition 4.</LI>
+  <LI>Herman asked about <CODE>mayOverride</CODE>. Waldemar explained that they are useful for writing scripts that define
+    a method that is present in the base class on some implementations/platforms but not on others.</LI>
+  <LI>Herman doesn't want to have anti-attributes (attributes such as <CODE>implicit</CODE>, <CODE>instance</CODE>, <CODE>concrete</CODE>,
+    etc. that negate other attributes), saying that they are unnecessary. Waldemar wants to keep them to turn off attributes
+    that were earlier turned on by user-defined attributes. No agreement.</LI>
+  <LI>Herman asked about the <CODE>explicit</CODE> attribute. Waldemar explained that it's necessary for versioning to declare
+    a new version name itself in a way so that it cannot clash with a name defined in another package, solving a problem discovered
+    by Dave Raggett in an earlier meeting. Agreed to keep it.</LI>
+  <LI>Herman doesn't want user-defined attributes to be combinations of existing attributes (i.e. defining <CODE>const&nbsp;spriv1&nbsp;=&nbsp;static&nbsp;private&nbsp;Version1</CODE>
+    and then using <CODE>spriv1</CODE> as an attribute). Waldemar thinks that they are an important abstraction mechanism,
+    enabling one to switch attributes on a large number of definitions by editing one line of code. No agreement.</LI>
+  <LI>Microsoft has an <CODE>expando</CODE> attribute that one can put on a class to allow instances to hold ad-hoc properties.
+    In light of the previous agreement to restrict ad-hoc properties to only classes that are marked as allowing them, this
+    is clearly needed. Waldemar will add it (perhaps proposing a different name) to Netscape's proposal.</LI>
+  <LI>Microsoft has a <CODE>protected</CODE> attribute, where <CODE>protected</CODE> means accessible only in subclasses (like
+    in C++ but not like in Java, where the local package can also access the definition). Waldemar doesn't care whether this
+    is in the language or not.</LI>
+  <LI>Herman doesn't want to have the <CODE>local</CODE>, <CODE>scope</CODE>, and <CODE>global</CODE> attributes. This topic
+    needs further discussion, especially since there was consensus in an earlier meeting (<A href="http://www2.hursley.ibm.com/tc39/mod9910.htm">October
+    1999</A>) to have at least some of them.</LI>
+  <LI>Herman doesn't want the language to have the "early Pascal" behavior where in the program
+    <PRE>const x = 10;
+{
+   a = x;
+   ...
+   if (foo)
+      const x:t = 20;
+}</PRE>
+
+    variable <CODE>a</CODE> gets the value <CODE>10</CODE>. Waldemar says that this behavior, or something similar, is essential
+    to support Netscape's dynamic superset of Edition 4. There was a little progress, but no definite agreement was reached.</LI>
+  <LI>Microsoft uses <CODE>static&nbsp;{</CODE>&nbsp;...&nbsp;<CODE>}</CODE> as a static initializer inside a class and does
+    not allow anything other than definitions inside a class. Netscape treats it <CODE>static&nbsp;{</CODE>&nbsp;...&nbsp;<CODE>}</CODE>
+    as distributing the <CODE>static</CODE> attribute among the definitions inside the block. Netscape allows ordinary code
+    inside a class; that code is executed at the time the class is defined; local variables can be created using the <CODE>local</CODE>
+    attribute. No agreement.</LI>
+  <LI>Herman says that classes should be initialized lazily on first use. Waldemar says that classes should be initialized
+    as part of their package loading process. No agreement.</LI>
+  <LI>Herman would prefer to not have anything other than class definitions inside a package but was willing to allow other
+    things (that would be internally collected into a special class). Waldemar wants to allow arbitrary code inside a package.</LI>
+  <LI>Herman has some reservations about <CODE>export</CODE>. Waldemar wants the facility in some form, although is willing
+    to change the syntax.</LI>
+  <LI>Herman would like to issue a warning about declarations that mix typed and untyped variables such as <CODE>var&nbsp;x,y:Integer</CODE>,
+    where <CODE>x</CODE>'s type is actually <CODE>Object</CODE>. This is a consequence of us adopting the Pascal-style syntax
+    rather than the C-style <CODE>var&nbsp;Integer x,y</CODE>. Waldemar agrees.</LI>
+  <LI>Herman suggested syntax distinguishing constant definitions from compile-time constant definitions. Waldemar pointed
+    out that this was what <CODE>compile</CODE> blocks (which were dropped at a previous meeting) had been designed to accomplish.</LI>
+  <LI>Waldemar clarified that <CODE>any</CODE> has been replaced by <CODE>Object</CODE>; he hadn't gone through the entire
+    web site with the search-and-replace yet.</LI>
+  <LI>Herman presented a way of interpreting literal numbers as either IEEE doubles or 64-bit integers without loss of precision
+    and without using source code tags. Waldemar is curious but needs more details to understand the proposal and its implications.</LI>
+  <LI>Herman would prefer that every constant declaration also include a definition: <CODE>const &nbsp;x:t=expr</CODE>. Waldemar
+    currently allows a constant to be declared before it is defined: <CODE>const&nbsp;x:t</CODE>; ... <CODE>const x=expr</CODE>.
+    Waldemar will look into why he had thought that this was necessary and agreed to drop it from Edition 4 if it turns out
+    to be unnecessary.</LI>
+  <LI>Waldemar's proposal has named class constructors that are callable as though they were static methods of a class. Herman
+    said that it would be difficult to implement two different class constructors with the same signature but later found
+    a way to do this.</LI>
+  <LI>There was some disagreement about the constructor syntax. Herman wants to use the Java-style syntax of declaring a function
+    with the same name as a class. Waldemar wants to use the <CODE>constructor</CODE> keyword instead of the <CODE>function</CODE>
+    keyword. Waldemar agreed to make <CODE>constructor</CODE> into an attribute so that one would declare a constructor using
+    <CODE>constructor&nbsp;function&nbsp;f(</CODE>...<CODE>) {</CODE>...<CODE>}</CODE> instead of just <CODE>constructor&nbsp;f(</CODE>...<CODE>){</CODE>...<CODE>}</CODE>.
+    The <CODE>constructor</CODE> attribute would be optional if <CODE>f</CODE> was the name of the class. However, Waldemar
+    thinks that giving special meaning to a method that has the same name as the class is confusing.</LI>
+  <LI>Herman doesn't want the rest parameter to be able to take named arguments because of efficiency reasons. After some
+    discussion it turned out that the inefficiency can be avoided for the cases where the rest parameter is defined as a typed
+    array because typed arrays don't accept named arguments. If the rest parameter has no type or is a plain array then the
+    code appears to be no less efficient than a plain dynamic dispatch where the signature of the method is not known at all.
+    Herman reluctantly agreed to allow the rest parameter to accept named arguments but only if there are no parameters other
+    than the rest parameter. Waldemar insists on no such restriction. No agreement yet.</LI>
+  <LI>Discussed whether static class members should be visible via instances. Microsoft is evenly split into two camps on
+    this issue. Waldemar says that static members should be separate from instance members to match Edition 3's behavior:
+    In edition 3, a static member of a prototype-based "class" <CODE>c</CODE> is a member of the object <CODE>c</CODE>
+    and is not present on the prototype chain of <CODE>c</CODE>'s instances. Members of <CODE>c.prototype</CODE> are not static
+    members of <CODE>c</CODE> for a couple of reasons: they can't be accessed via the syntax <CODE>c.foo()</CODE>, and writing
+    to one through an instance creates a copy inside that instance rather than modifying it in place.</LI>
+  <LI>Herman would like to use the <CODE>super.foo()</CODE> syntax to call a method of a superclass. Waldemar prefers the
+    <CODE>this.super::foo()</CODE> syntax but agreed to also support Microsoft's syntax.</LI>
+  <LI>Agreed that for security reasons there should be no way to access a method of a specific ancestor class other than via
+    <CODE>super</CODE>.</LI>
+  <LI>There was a long discussion about packages and their names. Herman wants the names integrated into the .NET namespace,
+    so that a package is defined using a dot-separated name and imported using a dot-separated name, with the system taking
+    care of figuring out where the package lives and how to load it. Waldemar points out that dot-separated names are meaningless
+    in a client environment, where a script that imports a package located somewhere on the web would most likely identify
+    that package using some URI. Waldemar also has parsing difficulties with the language grammar if dot-separated names are
+    allowed for package names. Tentatively agreed on a compromise where a package is defined using a dot-separated name and
+    can be imported using either a dot-separated name or a string. The interpretation of the string would be host-defined
+    (on a host such as a browser the string could hold a URI).</LI>
+  <LI>In Microsoft's current implementation, executing <CODE>import&nbsp;foo.bar.baz</CODE> causes a global variable <CODE>foo</CODE>
+    to be defined. This can be a problem if <CODE>foo</CODE> is already used for something else. Agreed that this will behavior
+    will not be in Edition 4; to access a package via a name, the import statement will explicitly have to introduce an alias
+    name for the package: <CODE>import&nbsp;f=foo.bar.baz</CODE>.</LI>
+  <LI>Herman doesn't like the <CODE>use&nbsp;import</CODE> syntax and says that opening the package's namespace should be
+    the default. Waldemar agreed to rename <CODE>use&nbsp;import</CODE> (the kind that makes a package's globals available
+    without qualification) to <CODE>import</CODE> and <CODE>import</CODE> (the kind that makes requires qualification) to
+    <CODE>qualified&nbsp;import</CODE>.</LI>
+  <LI>Herman and Waldemar agreed to late-bound dispatch for operator overloads. Waldemar will take a look again at the C#
+    syntax for declaring operator overloads and will come up with suggestions for Edition 4. (The current syntax in Netscape's
+    proposal is out of date.)</LI>
+  <LI>Did not discuss ways to use reserved words as identifiers.</LI>
+  <LI>Did not discuss typed arrays. This looks like it may be a contentious issue.</LI>
+  <LI>Discussed class extensions (declaring methods of existing classes such as <CODE>String</CODE>), but not in detail. Waldemar
+    says that users have been demanding this functionality.</LI>
+  <LI>Herman would like more motivation for the <CODE>use</CODE> statement that selects the version and options (strict, etc.)
+    of the language.</LI>
+</UL>
+<P><I>Notes and mistakes written by Waldemar Horwat</I></P>
+
+</BODY>
+</HTML>

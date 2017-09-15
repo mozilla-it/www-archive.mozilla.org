@@ -1,0 +1,415 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Design info for spec compliant Webclient Implementation</title>
+  </head>
+
+  <body BGCOLOR="#FFFFFF">
+    <h1>Design info for spec compliant Webclient Implementation</h1>
+
+    <H2>Table of Contents</H2>
+
+    <OL>
+      
+      <LI> <A HREF="#Intro">Introduction</A>
+      </LI>
+
+      <LI> <A HREF="#Directories">Source Code Directory and Java Package Hierarchies</A>
+      </LI>
+      <LI> <A HREF="#Objects">Object Hierarchy</A>
+
+	<OL TYPE="A">
+
+	  <LI><A HREF="#Public">Public Interfaces and Classes</A>
+	  </LI>
+
+	  <LI><A HREF="#PrimaryPrivate">Primary Private Classes</A>
+	  </LI>
+
+	  <LI><A HREF="#SecondaryPrivate">Secondary Private Classes</A>
+
+	    <OL>
+
+	      <LI><A HREF="#Bookmarks">Bookmarks</A>
+	      </LI>
+	      
+	    </OL>
+
+	  </LI>
+
+	</OL>
+
+
+
+      </LI>
+
+      <LI> <A HREF="#Startup">Startup Sequence</A>
+      </LI>
+
+    </OL>
+
+<H2><A NAME="Intro">Introduction</A></H2>
+
+<P>
+
+This document is an engineer's overview of the mozilla wrapping
+implementation of webclient that is compliant with the requirements
+spec.  It is intended as a supplement to the comments in the code.  The
+implementation was written toward <A
+HREF="../RequirementsSpec.html">version 1.6 of the spec</A>.  The term
+"custom app" is used in this document.  The custom app is the third
+party written application that is using webclient to add browsing
+capability to its feature set.  As of this writing, all of the classes
+and interfaces mentioned here do exist in the current implementation,
+but not nearly all of the methods are implemented.  Enough is
+implemented to provide webclient M2 functionality, plus bookmarks
+viewing, and a DocumentLoadListener event.
+
+</P>
+
+<H2><A NAME="Directories">Source Code Directory and Java Package
+Hierarchies</A></H2>
+
+<P>
+
+This section explains the source code directory structure, and what is
+available in each directory.  All paths are relative to
+<CODE>mozilla/java/webclient</CODE>.  Directories are examined
+depth-first.
+
+</P>
+
+<DL>
+
+<DT>classes
+</DT>
+
+<DD><P>This is the root of the java code for the pre-spec-compliant
+implementation.  The code in classes doesn't concern this document.
+</P></DD>
+
+<DT>classes_spec
+</DT>
+
+<DD><P>This is the root of the java code for the spec-compliant
+implementation.  The subdirectory structure of classes_spec mirrors java
+packages, so code in classes_spec/org/mozilla/webclient is in java
+package org.mozilla.webclient.
+</P></DD>
+
+<DT>classes_spec/org/mozilla/webclient
+</DT>
+
+<DD><P>This directory contains the webclient public interfaces,
+BrowserControlFactory, which is the user's entry point, and a few
+classes used in sub-packages.
+</P></DD>
+
+<DT>classes_spec/org/mozilla/webclient/test
+</DT>
+
+<DD><P>This directory contains the EmbeddedMozilla test browser.
+</P></DD>
+
+<DT>classes_spec/org/mozilla/webclient/test/swing
+</DT>
+
+<DD><P>This directory contains the SwingEmbeddedMozilla test browser.  This
+code hasn't been reved to use the spec-compliant implementation.
+</P></DD>
+
+<DT>classes_spec/org/mozilla/webclient/wrapper_native
+</DT>
+
+<DD><P>This directory contains the java code for wrapping a native browser.
+There is no browser specific java code in webclient.  All browser
+specific code for wrapping native browsers is contained in the JNI
+implementation code.  This directory contains java classes that define
+native methods which must be implemented by the browser provider.  For
+example, the code in classes_spec/org/mozilla/webclient/src_moz provides
+an implementation for these native methods.
+</P></DD>
+
+<DT>classes_spec/org/mozilla/webclient/wrapper_native/motif
+</DT>
+
+<DD><P>This directory contains java code for wrapping a native browser on X.
+</P></DD>
+
+<DT>classes_spec/org/mozilla/webclient/wrapper_native/win32
+</DT>
+
+<DD><P>This directory contains java code for wrapping a native browser on win32.
+</P></DD>
+
+<DT>classes_spec/org/mozilla/webclient/wrapper_nonnative
+</DT>
+
+<DD><P>This directory will contain code for wrapping a java based web browser.
+</P></DD>
+
+<DT>src
+</DT>
+
+<DD><P>This is the root of the native code for the pre-spec-compliant
+implementation.  The code in src doesn't concern this document.
+</P></DD>
+
+<DT>src_ie
+</DT>
+
+<DD><P>The code for the IE implementation of the JNI interfaces in
+classes_spec/org/mozilla/webclient/wrapper_native will be kept here.
+</P></DD>
+
+<DT>src_moz
+</DT>
+
+<DD><P>The code for the Mozilla implementation of the JNI interfaces in
+classes_spec/org/mozilla/webclient/wrapper_native is kept here.
+</P></DD>
+
+<DT>src_moz/motif
+</DT>
+
+<DD><P>The unix specific code for the Mozilla implemenation of the JNI
+interfaces is here.
+</P></DD>
+
+
+</DL>
+
+<H2><A NAME="Objects">Object Hierarchy</A></H2>
+
+<P>This section covers the interface and implementation object
+hierarchies.
+</P>
+
+<H3><A NAME="Public">Public</A> Interfaces and Classes</H3>
+
+<P> The following UML diagram shows the interfaces and classes
+comprising the current implementation and the relationships among them.
+Other interfaces and classes defined in the spec, but not yet
+implemented will be filled in as appropriate.
+</P>
+
+<CENTER>
+<IMG SRC="classdiag.gif"></IMG>
+</CENTER>
+
+<P> There is one BrowserControlFactory instance per webclient
+application.  This instance is used to create BrowserControl instances.
+There is one BrowserControl instance per browser window.  Each
+BrowserControl instance is composed of several constituent interfaces.
+Instances of these interfaces can be obtained by doing queryInterface()
+on the BrowserControl instance, passing in the appropriate string, of
+the form "webclient.BrowserControlCanvas", "webclient.CurrentPage", etc.
+</P>
+
+<P>
+The custom app add()'s the BrowserControlCanvas instance to its window
+hierarchy.  The custom app can be notified of webclient events by
+implementing a WebclientEventListener subinterface and adding that
+implementation using the EventRegistration interface.  The
+custom-app-defined listener will then receive WebclientEvent instances
+of the appropriate type at the appropriate time.  The custom app can
+display the browser's bookmarks in a JTree using the Bookmarks
+interface.
+</P>
+
+<P>For descriptions of all the clases, please consult the spec.</P>
+
+<H3><A NAME="PrimaryPrivate">Primary</A> Private Classes</H3>
+
+<P>The following UML diagram shows the primary private classes that
+comprise the java wrapper for the native implementation.  Bookmarks and
+other secondary classes are dealt with separately.  Please note that the
+classes BrowserControlImpl, ImplObject, and WrapperFactory are in the
+org.mozilla.webclient java package, while all the other classes are in
+the org.mozilla.webcllient.wrapper_native package.  In general, when one
+implementation class interacts with another, the interaction is done
+through the public interface.  That is, webclient classes don't have
+access to other webclient classes's implementation details.
+</P>
+
+<CENTER>
+<IMG SRC="private-classdiag.gif"></IMG>
+</CENTER>
+
+<P>WrapperFactoryImpl and BrowserControlImpl</P>
+
+<P>BrowserControlImpl implements the BrowserControl interface.
+BrowserControlImpl uses a concrete subclass of WrapperFactory,
+WrapperFactoryImpl, to create instances of implementations of webclient
+interfaces.  The concrete WrapperFactory subclass is provided by the
+wrapper_native package.  See
+classes_spec/org/mozilla/webclient/WrapperFactory.java for details.
+WrapperFactoryImpl calls the first native method, nativeInitialize.  See
+classes_spec/org/mozilla/webclient/wrapper_native/WrapperFactoryImpl.java#nativeInitialize()
+for details, but briefly, nativeInitialize() does the per-application
+(as opposed to per-window) browser initialization.
+</P>
+
+<P>BrowserControlCanvas</P>
+
+<P>The user must send queryInterface() to the BrowserControl instance to
+obtain implementations of webclient interfaces.  The first interface
+asked for must be "webclient.BrowserControlCanvas".  PENDING(): is this
+requirement a problem?  The user must then add() the canvas to its
+window hierarchy.</P>
+
+<P>ImplObject and WindowControlImpl</P>
+
+<P>Adding the canvas to the display hierarchy causes a WindowControlImpl
+to be created.  This class, as well as all classes implementing
+webclient interfaces, inherit from ImplObject.  ImplObject simply
+defines the common attributes for all webclient implementation classes.
+These attributes are currently: the WrapperFactory, and the
+BrowserControl.  See
+classes_spec/org/mozilla/webclient/ImplObject.java#myFactory for details.
+The first method of WindowControl called is createWindow().
+createWindow() calls the first per-window native call,
+nativeCreateInitContext(), which allows the native code to create a
+"context object" that is passed to all subsequent native methods.  It
+then creates and starts a java thread, NativeEventThread, and wait()s.
+When run, this thread completes the initialization process, sends the
+WindowControl instance notify(), and goes into an infinite loop.  On
+receiving notify() WindowControl.createWindow() returns.  All of this
+happens on the add() method.  PENDING(): is it a problem that the user
+must add() the BrowserControlCanvas in order for createWindow() to be
+called, to do per-window initialization?
+</P>
+
+<P>NavigationImpl, CurrentPageImpl, HistoryImpl</P>
+
+<P>
+After add()ing the canvas to the custom app display hierarchy, the user
+may then call BrowserControl.queryInterface() for any other webclient
+interfaces.  The following classes all have similar, straightforward,
+implementations: NavigationImpl, CurrentPageImpl, HistoryImpl.  These
+classes all use a native event system, explained below in the
+descriptions for nsActionEvent, and NativeEventThread, to cause the
+propogation of actions to the underlying browser.
+</P>
+
+<P>nsActionEvent and subclasses</P>
+
+<P>The webclient native method implementations use an event queue to
+send actions to the browser.  The use of an event queue for sending
+actions to the browser was present in the initial webclient code
+obtained from Kirk and Ian.  Using the event queue provides
+synchronization at the native level via mozilla monitors.  To examine
+how these nsActions work, see the comments for the nsActionEvent class
+definition in nsActions.h.  These comments lead you through the source
+files that touch nsActionEvent subclasses. </P>
+
+<P>NativeEventThread and EventRegistrationImpl</P>
+
+<P>
+NativeEventThread is a java.lang.Thread subclass.  It is created as
+mentioned in the section on WindowControlImpl.  There is one instance of
+NativeEventThread per BrowserControlImpl.  NativeEventThread has two
+purposes: 1. to process events from the java to the browser. 2. to
+process events from the browser to java.  The details of sending events
+from java to the browser is described above, in the section on
+nsActionEvent.  The details of sending an event from the browser to java
+are as follows.  When the custom app calls
+EventRegistration.add*Listener(), the corresponding method in
+EventRegistrationImpl is called.  The different add*Listener methods
+simply provide type safety.  They all call thru to
+NativeEventThread.addListener(), which ends up adding the corresponding
+mozilla listener type.  See NativeEventThread#addListener().  When a
+mozilla event occurrs for which the appropriate listener has been added,
+the native code calls NativeEventThread.nativeEventOccurred(), passing
+the listener to which the event should be sent, and an event specific
+long value.  nativeEventOccurred() uses java reflection to determine
+what kind of WebclientEvent should be created and sent to the listener's
+eventDispatched() method.
+</P>
+
+<P>WebShellInitContext</P>
+
+<P>There is one instance of this struct per Java WindowControlImpl.
+This is a context struct used for holding per-window mozilla references.
+The instance is created as a result of calling
+WindowControl.createWindow().  PENDING(): it should be destroyed as a
+result of calling BrowserControl.terminate(). </P>
+
+<P>*ObserverImpl</P>
+
+<P>Currently, there is only DocumentLoaderObserverImpl, which serves as
+the shim between mozilla events and DocumentLoadListener events.  See
+DocumentLoaderObserverImpl.h.
+</P>
+
+<H3><A NAME="SecondaryPrivate">Secondary</A> Private Classes</H3>
+
+<P>This section deals with private webclient classes that are not part
+of the core functionality.</P>
+
+<H4><A NAME="Bookmarks">Bookmarks</A></H4>
+
+<P>The bookmarks interface uses mozilla's RDF bookmarks system to allow
+the custom app to have acces to mozilla's bookmarks.  The following
+class diagram describes the bookmarks system.</P>
+
+<CENTER>
+<IMG SRC="bookmarks.gif"></IMG>
+</CENTER>
+
+<P>BookmarksImpl</P>
+
+<P>As expected, the custom app obtains a reference to the singleton
+BookmarksImpl by doing queryInterface on the BrowserControl.  Bookmarks
+provides a way for the custom app developer to show a Swing JTree based
+UI for the bookmarks.  When sent getBookmarks, it calls
+nativeGetBookmarks(), wraps a BookmarkEntryImpl instance around the
+returned int, which is actually an nsIRDFResource, and creates a
+DefaultTreeModel around the new BookmarkEntryImpl.</P>
+
+<P>RDFTreeNode</P>
+
+<P>This abstract base class provides a java wrapper to the mozilla RDF
+implementation.  PENDING(): this only works with RDF graphs that don't
+have cycles.  There is an abstract method, newRDFTreeNode, which is
+called from several other places in RDFTreeNode.  </P>
+
+<P>ISupportsPeer</P>
+
+<P>This abstract class allows RDFTreeNode instances, which have an
+associated native nsIRDFResource peer, to be properly garbage collected
+in both Java and XPCOM.  It does this by simply providing native methods
+for XPCOM's AddRef() and Release().  nativeAddRef() can be called from
+the constructor of a java subclass.  This method isn't used since the
+AddRef()ing comes at the native level.  nativeRelease() is called from
+the java subclass's finalize() method.
+</P>
+
+<P>BookmarkEntryImpl</P>
+
+<P>This concrete subclass of RDFTreeNode provides a Properties instance
+into which the bookmarks meta-data is stored.  PENDING(): not yet
+implemented.  Instances of BookmarkEntryImpl are created both by the
+RDFTreeNode's newRDFTreeNode() method, and by
+Bookmarks.newBookmarkEntry().  The latter method is for when the custom
+app wants to add a new bookmark.  They will call
+Bookmarks.newBookmarkEntry(), fill in the Properties, and call
+Bookmarks.addBookmark() with the new bookmark and an option parent
+BookmarkEntry. </P>
+
+<P>RDFEnumeration</P>
+
+<P>In order to fulfill the TreeNode contract, RDFTreeNode must provide a
+children() method which returns a java.util.Enumeration of the node's
+children.  This class provides that enumeration.  It simply calls
+through to native RDF methods.</P>
+
+
+    <hr>
+    <address><a href="mailto:Ed Burns <ed.burns@sun.com>"></a></address>
+<!-- Created: Fri Feb 18 11:46:11 Pacific Standard Time 2000 -->
+<!-- hhmts start -->
+Last modified: Thu Mar 09 15:27:40 Pacific Standard Time 2000
+<!-- hhmts end -->
+  </body>
+</html>

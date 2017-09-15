@@ -1,0 +1,172 @@
+<srilatha> momoi: When we store preferences do we need to store them as unicode?
+<dmose> urgh; sorry i'm late
+<srilatha> good morning
+<dmose> slept right through my alarm
+<momoi> LDAP uses UTF-8 as the data code. In Comm 4.5 onward, we have used UTF-8 as the store code as well.
+<momoi> It's simple that way. No change to the data received from the server. Easily storable as LDIF file which needs to be in UTF-8 also.
+<dmose> momoi: i was talking to phil about this a bit, and he said that problem that they ran across is that LDAP v2 was defined to use "T.61" 
+<dmose> and that because very few people actually know what T.61 was, they just put Latin into their LDAP server
+<dmose> which is unfortunately not a subset of UTF8
+<momoi> For preferences (i.e. prefs.js), it is already in UTF-8 for other data like e-mail user names.
+<dmose> momoi: ah, good
+<momoi> Right. But in Comm 4, we dealt with it by having a prefs.js item which could set a folder charset to 
+<momoi> be T.61. Normally it defaulted to UTF-8 for any LDAP servers but the user could designate that folder as T.61 in which case, we assume that server tobe sending T.61 data.
+<dmose> what do you mean by a "folder" charset?
+<momoi> Wel, in Address Book, each addressbook folder was assumed to have a charset associated with it.
+<momoi> So the main address book folder, pab, would have a charset of the operating system, e.g. Shift_JIS for Japanese on a Japanese Windows but
+<momoi> ISO-8859-1 if the opearting system was US Windows. 
+<momoi> For LDAP folders, we assumed it to be in UTF-8 no matter what the operating system was. 
+<momoi> In other words, each LDAP entry in prefs.js would have a line indicating that is in UTF-8. 
+<dmose> ok
+<momoi> Just look in a 4.7x prefs.js and look for LDAP entries. You will find charset names like UTF-8 associated with it, I think.
+<dmose> srilatha: so in our case, it sounds like it would make sense to use the preference that csaba was suggesting a week or two ago
+<srilatha> This is the csid preference
+<dmose> srilatha: right.  ie assume UTF8, unless that pref is set to something else.
+<srilatha> yes, but csaba was saying with -i option the user can set the language for input
+<leif> srilatha: that was just an example, it's how a client called "ldapsearch" works.
+<momoi> I wonder hw important it is to support T.61 at ths point.
+<momoi> We implemented T.61 for 4.5 but were never able to test that implementation because the customer 
+<momoi> in Canad never got back to us with the actual working server which had T.61 data.
+<dmose> momoi: is T.61 some superset of ASCII that is a different superset than iso-8859-1 and a different superset than UTF8?  or am i confused?
+<momoi> In any case, if we need T.61, we should be able to re-use T.61 conversion table from 4.7x.
+<momoi> I forgot the details but T.61 is somewhat like Latin 1. I have an ISO document which defines T.61.
+<momoi> In any case, if we need T.61, we should file a request to the i18n group for a new conversion table to/from Unicode.
+<momoi> Frank Tang put in that table for 4.5, I beleive,
+<dmose> yeah, i wish we had more data on what people are actually using in their servers
+<dmose> we should probably bug mitch green about that
+<dmose> how does one put in a request to the i18n group?
+<momoi> Just a feature request for an additional Unicode converter for T.61 in the bug report stating the need for it.
+<dmose> ah, ok
+<momoi> I would still look hard for any customer needing T.61, though. For 4.5, there was a stink about it and
+<momoi> we implemented it but no customer ever got back to us sayign they use T.61.
+* dmose  chuckles
+<momoi> By the way, back to prefs.js, there are cases like Search Domain names in LDAP that might be using
+<momoi> non-ASCI names. 
+<momoi> In fact we have an i18n LDAP server running now which has a Search Root name in Japanese.
+<momoi> That will have to be stored in UTF-8 in the prefs.js.
+<dmose> momoi: but it gets specified in a XUL text field, which means we get it in unicode, right?
+<srilatha> so, csid for this server would be shift jis
+<momoi> What server?
+<dmose> srilatha: well, depends if the server in question is running LDAPv2 or v3
+<dmose> srilatha: if v3, it would be UTF8
+<srilatha> right
+<momoi> As I recall LDAPv2 supported only Latin1 and there was a special case like T.61.
+<momoi> I know that Netscape LDAP group never claimed to support Japanese or other non-ASCII languages until LDAP v3 was introduced.
+<momoi> I think that it the right approahc for Mozilla also. It is futile to try to support anything other than ASCII or Latin 1 with LDAPv2.
+<dmose> alright, that sounds like a fine plan
+<dmose> so do we just assume Latin-1 since it's a superset of ASCII and skip the charset id preference?
+<momoi> I don't know if the 4.x approach is the right one for Mozilla. Do we need to associate a charset ID for adbook 
+<leif> dmose: I think we should. Remember, we're always gonna try using LDAP v3 first, so in a majority of the cases, UTF-8 is used and supported.
+<momoi> folders in Mozilla? 
+<momoi> In 4.x we were not processing Unicode internally and so we needed to associate casid for folders.
+<leif> Considering the time crunch we have to deliver this, I'd punt on any kind of special feature which is for LDAP v2 only.
+<dmose> ok, sounds like the right thing to me
+<dmose> momoi: so XUL text fields will generate unicode, right?
+<momoi> I think we might be able to do without for Mozilla since everything is in Unicode anyway. The only thing is that LDAP server data need to be assumed to be in UTF-8.
+<momoi> I mentioned folder CSID only as a point of reference for 4.7x. 
+<momoi> I would talk to nhotta@netscape.com about Mozilla csid issue.
+<dmose> momoi: ie we just need to convert from unicode to UTF8 before writing out to prefs.js?
+<leif> momoi: I know almost nothing about Unicode and UTF-8. But, assuming an LDAP server is v2, and uses regular ascii (or maybe latin1), what happens if we assume it's encoded in UTF-8 ?
+<dmose> bad things if it's latin-1, accordding to phil\
+<momoi> Nothing bad. It will show ASCII because it is a transparent subset of ASCII. But any Latin 1 data in eth 8-bit range would
+<momoi> be different between Latin 1 and UTF-8.
+<dmose> that's what i meant
+<dmose> latin-1 data wouldn't work, and it sounded as though there was some non-trivial number of folks using that
+<dmose> at least at that time
+<momoi> Would you not negotiate the LDAP version first anyway?
+<dmose> yes
+<momoi> So that you know not to assume UTF-8 unless  it is v3 and up?
+<dmose> yeah, that sounds like the right thing
+<momoi> Do you know if the Mozilla AdBook pab currently stores in UTF-8 or in Unicode (which would be UCS-2 or UTF016)?
+<leif> afk for a minute
+<dmose> not sure.  we're actually focussing almost entirely on getting autocomplete to work right now, outside of the addressbook framework
+<srilatha> repeating dmose's question. Before writing out to prefs.js do  we need to convert from unicode to UTF8?
+<momoi> Yes if the data is not in UTF-8. prefs.js i sassumed to be in UTF-8 if it contains any 8-bit data.
+<momoi> If the original data is not in UTF-8 but something like UCS-2 or UTF-16 used in the Mozilla layout.
+<dmose> are UCS-2 and UTF-16 the same thing?
+<momoi> They are sometimes used synonymously but technically different.
+<momoi> I understand we use UTF-16 internally.
+<dmose> but it's referred to as UCS2 sometimes in the APIs?
+<momoi> I don't know for sure. But UTF-16 can cover what is known as the surrogate range of Unicode, which is what makes UTF-16 cover a bigger range of characters than UCS-2. But the surrogate range is rarely used and so sometimes, we loosely talk of UTF_16 an dUCS-2 in the same breath.
+<dmose> ok, fair enough
+<dmose> are URIs themselves assumed to be encoded in UTF-8?
+<momoi> Basically UTF-16 allows 2 16 but sequences to desigante a single character but UCS-2 is always fixed 16-bit per one character. That is is the differebce.
+<dmose> ah, got it
+<momoi> As I recall, in 4.x if we used ldap:// protocol, we got back the results in escaped UTF-8 if the ldap url contained 8-bit UTF-8 characters.
+<dmose> "escaped"?
+<momoi> %A4%90 type of URL
+<momoi> That is a single 2-byte character %-escaped.
+<dmose> i'm confused.  got it back from where?
+<momoi> From an ldap server. Here is an example:
+<momoi> ldap://polyglot.mcom.com:8000/uid%3Dnsasaki%2Co%3D%E3%83%8D%E3%83%83%E3%83%88%E3%82%B9%E3%82%B1%E3%83%BC%E3%83%97
+<dmose> but servers themselves don't hand back URIs
+<momoi> This is my LDAP server and I just brough up an Japanese entry name and dispalyed it in the Browser window rather than in AdBook display area. The URL is what I got in the Browser location window.
+<dmose> ok, so we should UTF8 escape any LDAP URL, it sounds like
+<dmose> leif: maybe check to see what the LDAP URL RFC says about that one
+<momoi> Anyway that was teh implementation in 4.x.
+<dmose> ok, cool.
+<momoi> >   but servers themselves don't hand back URIs
+<leif> dmose: I'll check the rfc. Guys, I have to drive in to work now (I commute with Michelle).
+<dmose> leif: ok
+<dmose> say, is everyone here cool with us posting a log of this chat on www.mozilla.org
+<momoi> I guess you're right. We are probably sending that to the server to access data if Search Roto contained 8-bit characters, which is what the above examples shows.
+<srilatha> dmose:yes
+<leif> sure, please post it.
+<momoi> I would like to have an opportnity to correct factual errors if any. Do you mind?
+<dmose> momoi: no problem; i'll forward it along first
+<dmose> so a question about how content communicates charset encoding to layout
+<momoi> Can you send me a log later -- I will look at it later today.
+<dmose> sure
+<dmose> i've got a channel, which writes its data down an AsyncStream through which it ultimately ends up in layout
+<dmose> but it just treats the data being written as bytes
+<dmose> any idea how i can either
+<momoi> As I understand it, the content is always expecting UTF-16.
+<dmose> but sending the content down in it's raw form (UTF8) seems to work fine
+<dmose> and i would expect to see alternating skipped chars if layout were expecting UTF16
+--> momoi1 (momoi@adsl-216-103-212-1.dsl.snfc21.pacbell.net) has joined #addressbook
+<momoi1> I got disconnected, sorry.
+<dmose> ah, ok.  i'll repaste my last comments
+<dmose> <dmose> but sending the content down in it's raw form (UTF8) seems to work fine
+<dmose> <dmose> and i would expect to see alternating skipped chars if layout were expecting UTF16
+<momoi1> Hmm, I don't know if we are using anything other than UTF-16 in content. The onyl excpetion I know is Mail body display,
+<momoi1> which sends UTF-8 in HTML format but in that case we specify the UTF-8 charset in the HTML document in the form
+<momoi1> of HTTP Meta-equivalent charset tag.
+<momoi1> Plesase check with nhotta about this.
+<dmose> ok, i'll do that, thanks
+<-- momoi has quit (Ping timeout: 361 seconds)
+<dmose> i think that's all the questions I've got for the moment
+<momoi1> Is this it then?
+<dmose> srilatha, do you know of any other info that kat might be able to help us with?
+<srilatha> Can i ask you about lcalization questions too?
+<momoi1> If so, please send the info via mail to momoi.  I'll talk to nhotta and make sure that the questions get answered.
+<momoi1> Sure. abotu L10n.
+<momoi1> I'll be expecting mail, then.
+<srilatha> The strings that need to be translated have tobe in the properties file right?
+<momoi1> Yes. They need to be extracted out to .dtd files or .properties files.
+<momoi1> These .dtd and .properties files will be placed in locale directories.
+<srilatha> ok, how about the strings that we save in prefs.js like ldap_2.servername.description
+<momoi1> So if you add AdBook UI, make sure that all localizable strings are extracted out.
+<srilatha> ok
+<momoi1> Those are profile specific items. If so, they don't have to be extracted out unless some default settings in all.js or mailnews.js contain localizable strings, then they need to be extracted out.
+<srilatha> Actually we are not addinga anything to the adbook ui but will be adding to  to mail/news accout settings
+<dmose> srilatha: i assume that we could just save the description as unicode
+<momoi1> Well, in that case, you do need to add these strings to Account UI dialog .dtd files.
+<momoi1> >  i assume that we could just save the description as unicode
+<momoi1> If the server name is input as Japanese, then it should written out in UTF-8 into prefs.js.
+<dmose> oh, because otherwise the pref string might have nulls in it? 
+<momoi1> I guess I'm using Unicode to mean UCS-2 or UTF-16. UTF-8 is a transfer format of Unicode and used in data tarnsmisison and storage.
+<srilatha> I want to know if the string"ldap_2.servers.servername.description" has to be localized or not.  i am not talking about the value of hte preference
+<dmose> momoi1: ah, ok
+<momoi1> So any time we write out to storable or network transferrable output, it is safe to assume that we would be using UTF-8.
+<momoi1> OK. I don't think. That is a place holder for a server and would not have to be exposed to the user, right?
+<dmose> right.  seems like localizing it would be overkill, since we're not supporting users who edit prefs.js by hand.
+<momoi1> We never did for 4.7x.
+<srilatha> ok
+<momoi1> I need to get going soon.
+<srilatha> Thanks momoi.
+<dmose> yes, you've been a great help
+<dmose> i'll mail you the log in a bit
+<momoi1> Thanks everyone for finally gettting to LDAP work!!
+<dmose> :-)
+<momoi1> Bye.
+<dmose> see ya

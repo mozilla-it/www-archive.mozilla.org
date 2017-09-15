@@ -1,0 +1,100 @@
+Webclient FAQ
+
+I. Building webclient
+
+  Q1: I can't get webclient to build, can you please help me?
+
+  A1: This is the number one problem people have with webclient, partly
+  due to the relatively complex building process, partly due to multiple
+  build environments existing.  Here's what happens when webclient is
+  built.  For each step, I'll list the directory in which the command is
+  occurring, followed by some text about what happens and the outcome:
+
+    1. mozilla\java
+
+    nmake -f Makefile.win
+
+    Causes the make to simply traverse into the util directory, followed by
+    the webclient directory.
+
+    2. mozilla\java\util
+
+    nmake -f Makefile.win (called from step 1)
+
+    Causes make to traverse into the classes directory
+
+    3. mozilla\java\util\classes
+
+    nmake -f Makefile.win (called from step 2)
+
+    This actually builds the java classes in the subdirectory
+    org\mozilla\util.  After this completes, you should have the following
+    directory structure:
+
+    mozilla\dist\classes\org\mozilla\util\*.class
+
+    4. mozilla\java\webclient
+
+    nmake -f Makefile.win (called from step 1, after step 3 completes)
+
+    Causes make to traverse into the classes directory, then the src
+    directory.
+
+    5. mozilla\java\webclient\classes
+
+    This actually builds the java classes in the subdirectories
+    org\mozilla\util.  After this completes, you should have the following
+    directory structure, in addition to the one from step 3:
+
+    mozilla\dist\classes\org\mozilla\webclient\*.class
+    mozilla\dist\classes\org\mozilla\webclient\test\*.class
+    mozilla\dist\classes\org\mozilla\webclient\win32\*.class
+
+    6. mozilla\java\webclient\src
+
+    nmake -f Makefile.win (called from step 5, after step 5 completes)
+
+    This builds the JNI header files, then builds the C++ classes that
+    implement them.  
+
+    First, it checks to see that the proper .class files have been built in
+    steps 3 and 5.  If not, it should fail.  
+
+    If the proper classes have been built, it generates the
+    BrowserControlNativeShim.h header file, then the object files, then the
+    dynamic library
+
+    The most important thing is to see that steps 3, 5 and 6 complete
+    successfully.  Here's a dependency graph.  A<-B means B depends on A.
+
+    Step 3. <- Step 5. <- Step 6.
+
+    When reporting problems, please tell me which steps fail.
+
+II. Debugging Webclient
+
+  Q1: How do you debug webclient on Win32?
+
+  A1: Use the Microsoft Visual C++ debugger
+
+    0. Build webclient successfully and run it as far as you can.
+
+    1. cd %JDKHOME%\bin 
+
+    2. msdev .\java.exe 
+
+    3. go to Projects->Settings->Debug
+
+      In the "Program Arguments" field, fill in the arguments to
+      java.exe from the "runem.bat" batch file generated in step 0.  It
+      should be something like:
+
+      -Djava.library.path=D:\Projects\mozilla\dist\win32_d.obj\bin -classpath D:\Projects\mozilla\dist\classes;D:\Projects\mozilla\sun-java\classrc11;D:\Projects\mozilla\sun-java\classrc org.mozilla.webclient.test.EmbeddedMozilla D:\Projects\mozilla\dist\win32_d.obj\bin <INSERT STARTING URL HERE>
+
+      Change the "Category" to "Additional DLLs".  Click on the little
+      dotted box icon.  A text field should appear with the cursor
+      blinking and a button with "..." to the right of it.  Click on the
+      "..." button.  Select the webclient.dll in the mozilla bin directory.
+
+    4. You can now load webclient .cpp source files and set breakpoints.
+

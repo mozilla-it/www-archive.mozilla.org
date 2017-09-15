@@ -1,0 +1,187 @@
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<link rel="top" title="Home" href="http://www.mozilla.org/">
+<link rel="stylesheet" type="text/css" href="../../../css/print.css"  media="print">
+<link rel="stylesheet" type="text/css" href="../../../css/base/content.css"  media="all">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/content.css" title="Cavendish" media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/base/template.css"  media="screen">
+<link rel="stylesheet" type="text/css" href="../../../css/cavendish/template.css" title="Cavendish" media="screen">
+<link rel="icon" href="../../../images/mozilla-16.png" type="image/png">
+
+    <title>Extension Component Registration</title>
+  <script src="../../../__utm.js" type="text/javascript"></script>
+</head>
+<body id="www-mozilla-org" class="deepLevel">
+<div id="container">
+<p class="important">You are currently viewing a snapshot of www.mozilla.org taken on April 21, 2008. Most of this content is
+highly out of date (some pages haven't been updated since the project began in 1998) and exists for historical purposes only.  If
+there are any pages on this archive site that you think should be added back to www.mozilla.org, please <a
+href="https://bugzilla.mozilla.org/enter_bug.cgi?product=Websites&component=www.mozilla.org">file a bug</a>.</p>
+<p class="skipLink"><a href="#mainContent" accesskey="2">Skip to main content</a></p>
+<div id="header">
+<h1><a href="/" title="Return to home page" accesskey="1">Mozilla</a></h1>
+<ul>
+<li id="menu_aboutus"><a href="../../../about/" title="Getting the most out of your online experience">About</a></li>
+<li id="menu_developers"><a href="../../../developer/" title="Using Mozilla's products for your own applications">Developers</a></li>
+<li id="menu_store"><a href="http://store.mozilla.org/?r=mozorg1" title="Shop for Mozilla products on CD and other merchandise">Store</a></li>
+<li id="menu_support"><a href="../../../support/" title="Installation, trouble-shooting, and the knowledge base">Support</a></li>
+<li id="menu_products"><a href="../../../products/" title="All software Mozilla currently offers">Products</a></li>
+</ul>
+<form id="searchbox_002443141534113389537:ysdmevkkknw" action="http://www.google.com/cse" title="mozilla.org Search">
+<div>
+<label for="q" title="Search mozilla.org's sites">search mozilla:</label>
+<input type="hidden" name="cx" value="002443141534113389537:ysdmevkkknw">
+<input type="hidden" name="cof" value="FORID:0">
+<input type="text" id="q" name="q" accesskey="s" size="30">
+<input type="submit" id="submit" value="Go">
+</div>
+</form>
+</div>
+<hr class="hide">
+<div id="mBody">
+<div id="side">
+
+<ul id="nav">
+<li><a title="Roadmap" href="../../../roadmap.html"><strong> Roadmap</strong></a></li>
+<li><a title="Projects" href="../../../projects/"><strong> Projects</strong></a></li>
+<li><a title="For developers" href="../../../developer/"><strong> Coding</strong></a>
+<ul>
+<li><a title="Module Owners" href="../../../owners.html"> Module Owners</a></li>
+<li><a title="Hacking" href="../../../hacking/"> Hacking</a></li>
+<li><a title="Get the Source" href="http://developer.mozilla.org/en/docs/Download_Mozilla_Source_Code"> Get the Source</a></li>
+<li><a title="Building Mozilla" href="http://developer.mozilla.org/en/docs/Build_Documentation"> Build It</a></li>
+</ul>
+</li>
+<li><a title="Testing" href="../../../quality/"><strong> Testing</strong></a>
+<ul>
+<li><a title="Downloads of mozilla.org software releases" href="../../../download.html"> Releases</a></li>
+<li><a title="Latest mozilla builds for testers" href="../../../developer/#builds"> Nightly Builds</a></li>
+<li><a title="For testers to report bugs" href="https://bugzilla.mozilla.org/"> Report A Problem</a></li>
+</ul>
+</li>
+<li><a title="Tools for mozilla developers" href="../../../tools.html"><strong> Tools</strong></a>
+<ul>
+<li><a title="Bug tracking system for mozilla testers." href="https://bugzilla.mozilla.org/"> Bugzilla</a></li>
+<li><a title="Latest status of mozilla builds" href="http://tinderbox.mozilla.org/showbuilds.cgi?tree=Firefox"> Tinderbox</a></li>
+<li><a title="Latest checkins" href="http://bonsai.mozilla.org/cvsqueryform.cgi"> Bonsai</a></li>
+<li><a title="Source cross reference" href="http://lxr.mozilla.org/seamonkey/"> LXR</a></li>
+</ul>
+</li>
+<li><a title="Frequently Asked Questions." href="../../../faq.html"><strong> FAQs</strong></a></li>
+</ul>
+
+</div>
+<hr class="hide">
+<div id="mainContent">
+
+  
+  
+  
+  
+    <h2>Extension Component Registration</h2>
+    
+    <p>Firefox's new <a href="/">extensions system</a> allows each extension to 
+       supply its own set of XPCOM components in its own components directory.
+       This is to allow extensions to create their own components that do not
+       interfere with the application's components directory. (Basically we don't
+       want extensions installing files outside of the file hierarchy described in
+       other documents.</p>
+       
+    <h3>Two problems remain - </h3>
+    
+    <ol>
+      <li>The component registry (compreg.dat) lives with the application in an
+          area of the system that the user may not have permissions to write to, 
+          so the benefits of caching profile extension components is unavailable,
+      <li>There is no scheme for handling the removal or disabling of an extension
+          and its components, if such an event causes the removal of component
+          registry entries and subsequently removes entries set by the application's
+          versions of those components, there is no way to restore those entries.
+    </ol>
+    
+    <h3>Proposed Solution</h3>
+    <p>Consider the Component Registry as a cache, a cache that prevents component 
+       registration via scanning at each start. Since the new extension system 
+       proposed offers profile components, components could be in the profile
+       directory as well as the application directory. The compreg.dat file is
+       thus a cache of all of these sources, and should reside in the profile folder
+       with other caches:</p>
+       
+    <p>
+      <code>
+        &lt;profile&gt;/compreg.dat<br>
+        &lt;profile&gt;/extensions/* &lt;-- Extensions Structure<br>
+      </code>
+    </p>
+        
+    <p>Since the component registry is a registration cache of components from 
+       the application components folder, the application extensions folder and
+       the profile extensions folder, it belongs in the root of the profile, 
+       rather than in the extensions folder.</p>
+    
+    <p>If no profile is specified (and there is more than one profile), XPCOM
+       is started and the profile manager UI shown. When a profile is selected
+       XPCOM is shut down and restarted with the correct registry. When there
+       is only one profile or the user specifies one from the command line, 
+       the profile is known early enough (i.e. it is a parameter to main()) 
+       to locate the component registry during XPCOM initialization. Restarting
+       Geck could even mean re-launching the application with the selected profile
+       as a command line argument.</p>
+
+    <h3>Registering Extension Components</h3>
+    
+    <p>When a new extension is installed that supplies components, the extension
+       manager places a .autoreg file in the profile directory that forces the
+       component registry to be erased and re-generated at the next startup. This
+       is an acceptable cost to incur as extension installation is not frequent.</p>
+    
+    <h3>Uninstalling/Disabling Extensions</h3>
+    
+    <p>When an extension is uninstalled or disabled through the front end, the 
+       removal can only be done at the next startup since components and front end
+       overlays cannot be unloaded dynamically.</p>
+       
+    <p>When an extension is uninstalled the extension manager can write to a
+       text log file identifying the paths to extension components folders that
+       are <strong>not</strong> to be registered at the next startup. An .autoreg
+       file is then placed in the profile directory. At the subsequent launch
+       the component registry is regenerated and the uninstalled/disabled extensions
+       are not registered, but all the others are.</p>
+       
+    <p>This solution gets around problem 2 identified above - when an extension
+       overrides an existing component, the application's version of the compnent
+       is re-registered after the extensions is uninstalled because the component
+       registry is always regenerated after an uninstall/disable event.</p>
+
+    <h3>Notes</h3>
+    
+    <p>The Component Manager would need to know to scan in <br>&lt;profile&gt;/extensions/&lt;extension&gt;/components/*</p>
+
+    <p>-- Benjamin Smedberg, Darin Fisher, Ben Goodger, et al. </p>
+       
+  
+
+<hr class="hide">
+</div>
+</div>
+<div id="footer">
+<ul>
+<li><a href="../../../sitemap.html">Site Map</a></li>
+<li><a href="../../../security/">Security Updates</a></li>
+<li><a href="../../../contact/">Contact Us</a></li>
+<li><a href="../../../foundation/donate.html">Donate</a></li>
+</ul>
+<p class="copyright">
+Portions of this content are &copy; 1998&#8211;2009 by individual mozilla.org
+contributors; content available under a Creative Commons license | <a
+href="http://www.mozilla.org/foundation/licensing/website-content.html">Details</a>.</p>
+<p>
+<span>Last modified February 20,  2004</span>
+<span><a href="http://bonsai-www.mozilla.org/cvslog.cgi?file=mozilla-org/html/projects/firefox/extensions/components.html&amp;rev=&amp;root=/www/">Document History</a></span>
+</p>
+</div>
+</div>
+</body>
+</html>

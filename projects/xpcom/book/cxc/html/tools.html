@@ -1,0 +1,849 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta name="GENERATOR" content="Quadralay WebWorks Publisher Professional Edition 6.0.5">
+<meta name="TEMPLATEBASE" content="Portable HTML Professional Edition">
+<meta name="LASTUPDATED" content="07/02/03 09:55:43">
+<title>CHAPTER 5 Tutorial: Using XPCOM Utilities To Make Things Easier</title>
+</head>
+
+<body link="#3366CC" vlink="#9999CC" text="#000000" alink="#0000CC" bgcolor="#FFFFFF">
+
+<table width="331" border="0" align="right" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23"
+    border="0" alt="TOC"> </a></td>
+    <td><a href="components.html"><img src="images/navprev.gif" width="81" height="23"
+    border="0" alt="PREV"> </a></td>
+    <td><a href="weblock.html"><img src="images/navnext.gif" width="81" height="23"
+    border="0" alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23"
+    border="0" alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+<p><img src="images/xpcom.gif"></p>
+<hr align="left">
+
+<blockquote>
+<h1>
+  <a name="1007132"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">CHAPTER 5	 Tutorial: Using XPCOM Utilities To Make Things Easier</font>
+</h1><hr>
+
+
+<p>
+  <a name="1007133"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif"><b>Topics covered in this chapt		er</b></font>:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1007137"> </a><a href="tools.html#998962">"Generic XPCOM Module Macros"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1007008"> </a><a href="tools.html#1010737">"String Classes in XPCOM"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1007015"> </a><a href="tools.html#1007052">"Smart Pointers"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1007020"> </a><a href="tools.html#1011463">"weblock2.cpp"</a></font>
+</ul>
+
+<p>
+  <a name="1007141"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This chapter goes back over the code you've already created in the first part of the tutorial (see <a href="components.html#1007774">"webLock1.cpp"</a> in the previous chapter) and uses XPCOM  tools that make coding a lot easier and more efficient. It also introduces a basic string type that is used with many of the APIs in both XPCOM and Gecko.</font>
+</p>
+
+
+<p>
+  <a name="1007152"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">To begin with, the first section describes <font  face="Verdana, Arial, Helvetica, sans-serif"><i>C++ macros</i></font> that can replace a lot of the code in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>webLock1.cpp</i></font>. Much of the code created to get the software recognized and registered as a component can be reduced to a small data structure and a single macro. </font>
+</p>
+
+
+<h2>
+  <a name="1006831"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">XPCOM Macros</font>
+</h2>
+
+
+<p>
+  <a name="1006835"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The XPCOM framework includes a number of macros for making C++ development easier. Though they overlap somewhat (e.g., high-level macros expand to other macros), they fall into the following general categories.</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006836"> </a><a href="tools.html#998962">"Generic XPCOM Module Macros"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006856"> </a><a href="tools.html#1002918">"Common Implementation Macros"</a></font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1006857"> </a><a href="tools.html#1006850">"Declaration Macros"</a></font>
+</ul>
+
+<h3>
+  <a name="998962"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Generic XPCOM Module Macros</font>
+</h3>
+
+
+<p>
+  <a name="998822"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The work in the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Getting Started</i></font> chapter was useful in setting up the generic component code. But there are only a few places in that code that are unique to the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component, and it was a lot of typing. To write a different component library, you could copy the listing at the end of the chapter, change very little, and paste it into a new project. To avoid these kinds of redundancies, to regulate the way generic code is written, and to save typing, XPCOM provides <font  face="Verdana, Arial, Helvetica, sans-serif"><i>generic module macros</i></font> that expand into the module code you've already seen.</font>
+</p>
+
+
+<p>
+  <a name="1007192"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Since these macros expand into "generic" implementations, they may not offer as much flexibility as you have when you are writing your own implementation. But they have the advantage of allowing much more rapid development. To get an idea about how much can be handled with the macros described in this section, compare the code listing in the <a href="tools.html#1011463">"weblock2.cpp"</a> section at the end of the chapter with <a href="components.html#1007774">"webLock1.cpp"</a> in the previous.</font>
+</p>
+
+
+<p>
+  <a name="1004808"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The module macros include one set of macros that define the exported <font  face="Verdana, Arial, Helvetica, sans-serif">NSGetModule</font> entry point, the required <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> implementation code and another that creates a generic factory for your implementation class. Used together, these macros can take care of a lot of the component implementation code and leave you working on the actual logic for your component. </font>
+</p>
+
+
+<a name="1010296"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1011504"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that all of the macros described in this section are similar, but used in slightly different situations. Some differ only in whether or not a method is called when the module is created and/or destroyed.  <a href="tools.html#1004818"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Table 1</i></font></a> lists the macros discussed in this section.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<a name="1004812"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004818"> </a><font face="Times New Roman">TABLE 1.  XPCOM Module Macros</font></font></i></b></caption>
+  <tr align="center" bgcolor="#CCCCCC">
+    <th><font face="Verdana, Arial, Helvetica, sans-serif" color="#003366"><a name="1004822"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Macro</font></font></th>
+    <th><font face="Verdana, Arial, Helvetica, sans-serif" color="#003366"><a name="1004824"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Description</font></font></th>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004826"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_NSGETMODULE(name, components)</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004828"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Implements the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIModule</font> interface with the module name of _name and the component list in _components.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004830"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_NSGETMODULE_WITH_CTOR(name, components, ctor) </font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004832"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Same as above but allows for a special function to be called when the module is created.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004834"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_NSGETMODULE_WITH_DTOR(name, components, dtor)</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1004836"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Same as the first macro but allows for a special function to be called when the module is destroyed.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_NSGETMODULE_WITH_CTOR_DTOR(name, components, ctor, dtor)</font></font><a name="1006439"> </a>
+</pre>
+</font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1006435"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This combines the last to macros so that you can define functions to be called at the construction and destruction of the module object.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h5>
+  <a name="998864"> </a><i><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Module Implementation Macros</font></i>
+</h5>
+
+
+<p>
+  <a name="1011516"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The general case is to use <font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_NSGETMODULE</font>, which doesn't take any callbacks, but all the macros follow the same general pattern. All of these macros work on an array of structures represented by the <font  face="Verdana, Arial, Helvetica, sans-serif">_components</font> parameter. Each structure describes a CID that is to be registered with XPCOM.</font>
+</p>
+
+
+<p>
+  <a name="998866"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first parameter for each of these macros is an arbitrary string that names the module. In a debugging environment, this string will be printed to the screen when the component library is loaded or unloaded. You should pick a name that makes sense and helps you keep track of things. The four required parts<a href="#1010315"><sup>1</sup></a> of the structure contain the following information:</font>
+</p>
+
+<ul>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1001563"> </a>A human readable class name</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1001569"> </a>the class ID (CID)</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1001570"> </a>the contract ID (This is an optional but recommended argument.)</font>
+  <font  face="Verdana, Arial, Helvetica, sans-serif"><li ><a name="1001571"> </a>a constructor for the given object</font>
+</ul>
+
+<a name="1010351"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">static const nsModuleComponentInfo components[] =</font><a name="1010342"> </a>
+<font face="Courier New">{</font><a name="1010343"> </a>
+<font face="Courier New">    { "Pretty Class Name", </font><a name="1010344"> </a>
+<font face="Courier New">      CID,</font><a name="1010345"> </a>
+<font face="Courier New">      CONTRACT_ID, </font><a name="1010346"> </a>
+<font face="Courier New">      Constructor </font><a name="1010347"> </a>
+<font face="Courier New">    },</font><a name="1010348"> </a>
+<font face="Courier New">   ....</font><a name="1010349"> </a>
+<font face="Courier New">}</font><a name="1010350"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1010352"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The important thing to note in the fictitious listing above is that it can support multiple components in a module. Modules such as the networking libraries in Gecko ("necko") have over 50 components declared in a single <font  face="Verdana, Arial, Helvetica, sans-serif">nsModuleComponentInfo</font> array like this.  </font>
+</p>
+
+
+<p>
+  <a name="1007381"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first entry of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsModuleComponentInfo</font> above is the name of the component.  Though it isn't used that much internally at the present time, this name should be something that meaningfully describes the module.</font>
+</p>
+
+
+<p>
+  <a name="1007396"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The second entry of the <font  face="Verdana, Arial, Helvetica, sans-serif">nsModuleComponentInfo</font> is the CID.  The usual practice is to put the class ID (CID) into a <font  face="Verdana, Arial, Helvetica, sans-serif">#define</font> and use the define to declare the CID in the components list. Many CIDs take the following form:</font>
+</p>
+
+
+<a name="1010403"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">#define NS_IOSERVICE_CID                             \</font><a name="1010410"> </a>
+<font face="Courier New">{ /* 9ac9e770-18bc-11d3-9337-00104ba0fd40 */         \</font><a name="1010411"> </a>
+<font face="Courier New">    0x9ac9e770,                                      \</font><a name="1010412"> </a>
+<font face="Courier New">    0x18bc,                                          \</font><a name="1010413"> </a>
+<font face="Courier New">    0x11d3,                                          \</font><a name="1010414"> </a>
+<font face="Courier New">    {0x93, 0x37, 0x00, 0x10, 0x4b, 0xa0, 0xfd, 0x40} \</font><a name="1010415"> </a>
+<font face="Courier New">}</font><a name="1010416"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+</font><br></font>
+
+
+<p>
+  <a name="1007351"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The next entry is the Contract ID string, which is also usually defined in a <font  face="Verdana, Arial, Helvetica, sans-serif">#define</font> in a header file.</font>
+</p>
+
+
+<p>
+  <a name="1010435"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">These three entries constitute the required parameters for the <font  face="Verdana, Arial, Helvetica, sans-serif">RegisterFactoryLocation</font> method we looked at in the prior chapter. When you use these implementation macros, you must declare a constructor for the object, and this keeps you from having to write a factory object. </font>
+</p>
+
+
+<h5>
+  <a name="1011587"> </a><i><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Factory Macros</font></i>
+</h5>
+
+
+<p>
+  <a name="1010443"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The factory macro makes it easy to write factory implementations. Given the class name <font  face="Verdana, Arial, Helvetica, sans-serif">ConcreteClass</font>, the factory macro declaration is:</font>
+</p>
+
+<pre>
+<font face="Courier New">NS_GENERIC_FACTORY_CONSTRUCTOR(ConcreteClass)</font><a name="998883"> </a>
+</pre>
+
+<p>
+  <a name="998885"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This results in a function called <font  face="Verdana, Arial, Helvetica, sans-serif">ConcreteClassConstructor</font> that can be used in the <font  face="Verdana, Arial, Helvetica, sans-serif">nsModuleComponentInfo</font> structure.</font>
+</p>
+
+
+<a name="1002890"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">#include "nsIGenericFactory.h"</font><a name="1002902"> </a>
+<font face="Courier New"></font><a name="1002903"> </a>
+<font face="Courier New">static const nsModuleComponentInfo components[] =</font><a name="1002904"> </a>
+<font face="Courier New">{</font><a name="1002905"> </a>
+<font face="Courier New">  { "Pretty Class Name", </font><a name="1012017"> </a>
+<font face="Courier New">    SAMPLE_CID, </font><a name="1012018"> </a>
+<font face="Courier New">    "@company.com/sample"</font><a name="1012019"> </a>
+<font face="Courier New">    <font  face="Verdana, Arial, Helvetica, sans-serif">SampleConstructor</font></font><a name="1012020"> </a>
+<font face="Courier New">  }</font><a name="1012021"> </a>
+<font face="Courier New">}</font><a name="1002911"> </a>
+<font face="Courier New"></font><a name="1002912"> </a>
+<font face="Courier New">NS_IMPL_NSGETMODULE(nsSampleModule, components)</font><a name="1002913"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="998901"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Most of the components in the Mozilla browser client use this approach. </font>
+</p>
+
+
+<h3>
+  <a name="1002918"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Common Implementation Macros</font>
+</h3>
+
+
+<p>
+  <a name="1007460"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Every XPCOM object implements <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font>, but writing this implementation over and over is tedious. Unless you have very special requirements for managing reference counting or handling interface discovery, the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>implementation macros</i></font> that XPCOM provides can be used. Instead of implementing the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> yourself, <font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_ISUPPORTS1</font> can expand to the implementation of <font  face="Verdana, Arial, Helvetica, sans-serif">AddRef</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">Release</font>, and <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> for any object.  </font>
+</p>
+
+<pre>
+<font face="Courier New">NS_IMPL_ISUPPORTS1(classname, interface1)</font><a name="998905"> </a>
+</pre>
+
+<p>
+  <a name="1010529"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Also, if you implement more than one interface, you can simply change the '1' in the macro to the number of interfaces you support and list the interfaces, separated by commas. For example:</font>
+</p>
+
+<pre>
+<font face="Courier New">NS_IMPL_ISUPPORTS2(classname, interface1, interface2)</font><a name="998911"> </a>
+<font face="Courier New">NS_IMPL_ISUPPORTSn(classname, interface1, ..., interfacen)</font><a name="998912"> </a>
+</pre>
+
+<p>
+  <a name="998914"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">These macros automatically add the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> entry for you, so you don't need to do something like this:</font>
+</p>
+
+<pre>
+<font face="Courier New">NS_IMPL_ISUPPORTS2(classname, interface1, <font  face="Verdana, Arial, Helvetica, sans-serif"><b>nsISupports</b></font>)</font><a name="998916"> </a>
+</pre>
+
+<p>
+  <a name="998918"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Take a close look at the above example.  Note that it uses the actual name of the interface and not an IID.  Inside the macro, the interface name expands to <font  face="Verdana, Arial, Helvetica, sans-serif">NS_GET_IID()</font>, which is another macro that extracts the IID from the generated header of the interface. When an interface is written in XPIDL, the headers include  static declarations of their IIDs. On any interface that generated with XPIDL, you can call <font  face="Verdana, Arial, Helvetica, sans-serif">NS_GET_IID()</font> to obtain the IID which is associated with that interface.</font>
+</p>
+
+
+<a name="1011895"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"> // returns a reference to a shared nsIID object.</font><a name="1011984"> </a>
+<font face="Courier New"> static const nsIID iid1 = NS_GET_IID(nsISupports);</font><a name="1011985"> </a>
+<font face="Courier New"></font><a name="1011986"> </a>
+<font face="Courier New"> // constructs a new nsIID object</font><a name="1011987"> </a>
+<font face="Courier New"> static const nsIID iid2 = NS_ISUPPORTS_IID;</font><a name="1011988"> </a>
+<font face="Courier New"></font><a name="1012009"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+  <br></font>
+
+
+<p>
+  <a name="1007473"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In order to use <font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_ISUPPORTSn</font>, you must be sure that a member variable of type <font  face="Verdana, Arial, Helvetica, sans-serif">nsrefcnt</font> is defined and named <font  face="Verdana, Arial, Helvetica, sans-serif">mRefCnt</font> in your class. But why even bother when you can use another macro?</font>
+</p>
+
+
+<h3>
+  <a name="1006850"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Declaration Macros</font>
+</h3>
+
+
+<p>
+  <a name="998922"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_NSISUPPORTS</font> declares <font  face="Verdana, Arial, Helvetica, sans-serif">AddRef</font>, <font  face="Verdana, Arial, Helvetica, sans-serif">Release</font>, and <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> for you, and it also defines the <font  face="Verdana, Arial, Helvetica, sans-serif">mRefCnt</font> required by <font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_ISUPPORTS</font>. Furthermore,  <font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_</font> appended with any interface name in all caps will declare all of the methods of that interface for you.  For example, <font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_NSIFOO</font> will declare all of the methods of <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFoo</font> provided that it exists and that <font  face="Verdana, Arial, Helvetica, sans-serif"><i>nsIFoo.h</i></font> was generated by the XPIDL compiler. Consider the following real class:</font>
+</p>
+
+
+<p>
+  <a name="1007500"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">class myEnumerator : public nsISimpleEnumerator</font><a name="1007505"> </a>
+<font face="Courier New">{</font><a name="1007506"> </a>
+<font face="Courier New">public:</font><a name="1007507"> </a>
+<font face="Courier New">    NS_DECL_ISUPPORTS</font><a name="1007508"> </a>
+<font face="Courier New">    NS_DECL_NSISIMPLEENUMERATOR</font><a name="1007509"> </a>
+<font face="Courier New"></font><a name="1007510"> </a>
+<font face="Courier New">    myEnumerator();</font><a name="1007511"> </a>
+<font face="Courier New">    virtual ~myEnumerator() {}</font><a name="1007512"> </a>
+<font face="Courier New">};</font><a name="1007503"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+</font>
+</p>
+
+
+<p>
+  <a name="1010621"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The declaration of this <font  face="Verdana, Arial, Helvetica, sans-serif">nsISimpleEnumerator</font> class doesn't include any methods other than the contructor and destructor. Instead, the class uses the <font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_</font> macro<a href="#1011420"><sup>2</sup></a>. </font>
+</p>
+
+
+<p>
+  <a name="1007475"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Using these declaration macros not only saves a tremendous amount of time when you're writing the code, it can also save time if you make changes to your IDL file, since the C++ header file will then automatically include the updated list of methods to be supported. </font>
+</p>
+
+
+<a name="1010659"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="1010672"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The <font  face="Verdana, Arial, Helvetica, sans-serif">NS_INIT_ISUPPORTS</font> macro is also a bit of a special case. Historically, it gets called in the constructor for your class and sets <font  face="Verdana, Arial, Helvetica, sans-serif">mRefCnt</font> to zero. But a change has gone into XPCOM recently that makes <font  face="Verdana, Arial, Helvetica, sans-serif">NS_INIT_ISUPPORTS</font> no longer necessary:  The <font  face="Verdana, Arial, Helvetica, sans-serif">mRefCnt</font> type has been changed from an integer to a class that provides its own auto-initialization. If you are building with versions earilier than Mozilla 1.3, this macro is still required.</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1007568"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="tools.html#999044"><font  face="Verdana, Arial, Helvetica, sans-serif"><i>Table 2</i></font></a> summarizes the macro usage in this portion of the <font  face="Verdana, Arial, Helvetica, sans-serif"><i>weblock.cpp</i></font> source file:</font>
+</p>
+
+
+<a name="999038"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999044"> </a><font face="Times New Roman">TABLE 2.  Common XPCOM Macros</font></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999048"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_IMPL_ISUPPORTSn</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999050"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Implements nsISupports for a given class with n number of interfaces.</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999052"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_ISUPPORTS</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999054"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Declares methods of nsISupports including mRefCnt</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999073"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_INIT_ISUPPORTS</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999075"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Initalizes mRefCnt to zero.  Must be called in classes constructor</font></font></td>
+  </tr>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999056"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">NS_GET_IID</font></font></font></td>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><a name="999058"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Returns the IID given the name of an interface.  Interface must be generated by XPIDL</font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1010717"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Using the macros described here, the code for the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component has gone from around 340 lines of code to just under 40. Clearly from a code maintenance point of view, this kind of reduction is outstanding. The entire source file with these macros included appears in the next section, <a href="tools.html#1011463">"weblock2.cpp"</a>. </font>
+</p>
+
+
+<h2>
+  <a name="1011463"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">weblock2.cpp</font>
+</h2>
+
+
+<p>
+  <a name="1011467"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The listing below shows the generic module code from the <a href="components.html#1007774">"webLock1.cpp"</a> section of the previous chapter using the macros described in this chapter. </font>
+</p>
+
+
+<a name="1002944"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">#include "nsIGenericFactory.h"</font><a name="1002955"> </a>
+<font face="Courier New"></font><a name="1002956"> </a>
+<font face="Courier New">#define SAMPLE_CID \</font><a name="1002958"> </a>
+<font face="Courier New">{ 0x777f7150, 0x4a2b, 0x4301, \</font><a name="1002959"> </a>
+<font face="Courier New">{ 0xad, 0x10, 0x5e, 0xab, 0x25, 0xb3, 0x22, 0xaa}}</font><a name="1002960"> </a>
+<font face="Courier New"></font><a name="1002961"> </a>
+<font face="Courier New">class Sample: public nsISupports {    </font><a name="1002962"> </a>
+<font face="Courier New">public:  </font><a name="1002963"> </a>
+<font face="Courier New">  Sample();  </font><a name="1002964"> </a>
+<font face="Courier New">  virtual ~Sample();  </font><a name="1002965"> </a>
+<font face="Courier New"></font><a name="1002966"> </a>
+<font face="Courier New">  NS_DECL_ISUPPORTS</font><a name="1002967"> </a>
+<font face="Courier New">};  </font><a name="1002968"> </a>
+<font face="Courier New"></font><a name="1002969"> </a>
+<font face="Courier New">Sample::Sample()  </font><a name="1002970"> </a>
+<font face="Courier New">{  </font><a name="1002971"> </a>
+<font face="Courier New">  // note: in newer versions of Gecko (1.3 or later)</font><a name="1011862"> </a>
+<font face="Courier New">  // you don't have to do this: </font><a name="1011863"> </a>
+<font face="Courier New">  NS_INIT_ISUPPORTS();  </font><a name="1002972"> </a>
+<font face="Courier New">}  </font><a name="1002973"> </a>
+<font face="Courier New">Sample::~Sample()  </font><a name="1002974"> </a>
+<font face="Courier New">{  </font><a name="1002975"> </a>
+<font face="Courier New">}  </font><a name="1002976"> </a>
+<font face="Courier New"></font><a name="1002977"> </a>
+<font face="Courier New">NS_IMPL_ISUPPORTS(Sample, nsISupports);</font><a name="1002978"> </a>
+<font face="Courier New"></font><a name="1002979"> </a>
+<font face="Courier New">NS_GENERIC_FACTORY_CONSTRUCTOR(Sample);</font><a name="1007608"> </a>
+<font face="Courier New"></font><a name="1002980"> </a>
+<font face="Courier New">static const nsModuleComponentInfo components[] =</font><a name="1002981"> </a>
+<font face="Courier New">{</font><a name="1002982"> </a>
+<font face="Courier New">  { "Pretty Class Name", </font><a name="1002983"> </a>
+<font face="Courier New">    SAMPLE_CID, </font><a name="1002984"> </a>
+<font face="Courier New">    "@company.com/sample"</font><a name="1007622"> </a>
+<font face="Courier New">    <font  face="Verdana, Arial, Helvetica, sans-serif">SampleConstructor</font></font><a name="1002985"> </a>
+<font face="Courier New">  }</font><a name="1002986"> </a>
+<font face="Courier New">};</font><a name="1002987"> </a>
+<font face="Courier New"></font><a name="1002988"> </a>
+<font face="Courier New">NS_IMPL_NSGETMODULE(nsSampleModule, components)</font><a name="1002989"> </a>
+<font face="Courier New"></font><a name="1002951"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+<a name="1007044"> </a><font face="Times New Roman">Figure 1.  weblock2.cpp</font>
+<h2>
+  <a name="1010737"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">String Classes in XPCOM</font>
+</h2>
+
+
+<p>
+  <a name="1007048"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Strings are usually thought of as linear sequences of characters. In C++, the string literal "XPCOM", for example, consists of 6 consecutive bytes, where `X' is at byte offset zero and a null character is at byte offset 5. Other kinds of strings like "wide" strings use two bytes to represent each character, and are often used to deal with Unicode strings.</font>
+</p>
+
+
+<p>
+  <a name="1007726"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The string classes in XPCOM are not just limited to representing a null terminated sequence of characters, however. They are fairly complex because they support the Gecko layout engine and other subsystems that manage large chucks of data. The string classes can support sequences of characters broken up into multiple fragments (fragments which may or may not be null terminated)<a href="#1011932"><sup>3</sup></a>.</font>
+</p>
+
+
+<p>
+  <a name="1007751"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">All string classes in XPCOM derive from one of two abstract classes<a href="#1010786"><sup>4</sup></a>: <font  face="Verdana, Arial, Helvetica, sans-serif">nsAString</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">nsACString</font>. The former handles double byte characters, and the latter tends to be used in more general circumstances, but both of these classes define the functionality of a string. You can see these classes being passed as arguments in many of the XPCOM interfaces we'll look at in the following chapters.</font>
+</p>
+
+
+<h3>
+  <a name="1007707"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Using Strings</font>
+</h3>
+
+
+<p>
+  <a name="1010829"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Explaining how all the string classes work is outside the scope of this book, but we can show you how to use strings in the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component. The first thing to note is that the  string classes themselves are not frozen, which means that you should not link against them when you can avoid it. </font>
+</p>
+
+
+<p>
+  <a name="1010843"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Linking the full string library (.lib or .a) into a component may raise its footprint by more than 100k (on Windows), which in many cases is an unacceptable gain (see the online string guide at <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.mozilla.org/projects/xpcom/string-guide.html</i></font>). For <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font>, where the string classes need to be only wrappers around already existing string data, trading advanced functionality for a much smaller footprint is the right way to go. The <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> string classes don't need to append, concatenate, search, or do any other real work on the string data, they just need to represent <font  face="Verdana, Arial, Helvetica, sans-serif">char*</font> and other data and pass them to methods that expect an <font  face="Verdana, Arial, Helvetica, sans-serif">nsACString</font>.</font>
+</p>
+
+
+<h3>
+  <a name="1007853"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedString and nsEmbedCString</font>
+</h3>
+
+
+<p>
+  <a name="1010917"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The strings used in this tutorial are <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedString</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedCString</font>, which implement the <font  face="Verdana, Arial, Helvetica, sans-serif">nsAString</font> abstract class and the <font  face="Verdana, Arial, Helvetica, sans-serif">nsACString</font> abstract classes, respectively. This first example shows an <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedCString</font> being used to pass an <font  face="Verdana, Arial, Helvetica, sans-serif">nsACString</font> to a method that's not expected to modify the string.   </font>
+</p>
+
+
+<a name="1010955"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"></font><a name="1007934"> </a>
+<font face="Courier New">    // in IDL: method(in ACString thing);</font><a name="1007935"> </a>
+<font face="Courier New"></font><a name="1007922"> </a>
+<font face="Courier New">    char* str = "How now brown cow?";</font><a name="1007956"> </a>
+<font face="Courier New">    nsEmbedCString data(str);</font><a name="1007908"> </a>
+<font face="Courier New">    rv = object-&gt;Method(data);</font><a name="1007909"> </a>
+<font face="Courier New"></font><a name="1007910"> </a>
+<font face="Courier New"></font><a name="1007911"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1007051"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">In this next example, the method is going to set the value of the string-as it might need to do when it returns the name of the current user or the last viewed URL.  </font>
+</p>
+
+
+<a name="1007994"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">    </font><a name="1008000"> </a>
+<font face="Courier New">    // in IDL:  attribute ACString data;</font><a name="1008016"> </a>
+<font face="Courier New">    </font><a name="1008005"> </a>
+<font face="Courier New">    nsEmbedCString data;</font><a name="1008017"> </a>
+<font face="Courier New">    method-&gt;GetData(data);</font><a name="1008001"> </a>
+<font face="Courier New">    </font><a name="1008020"> </a>
+<font face="Courier New">    // now to extract the data from the url class:</font><a name="1008021"> </a>
+<font face="Courier New"></font><a name="1008022"> </a>
+<font face="Courier New">    const char* aStringURL = data.get();</font><a name="1008024"> </a>
+<font face="Courier New"></font><a name="1008023"> </a>
+<font face="Courier New"></font><a name="1007998"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1007995"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that the memory pointed to by <font  face="Verdana, Arial, Helvetica, sans-serif">aStringURL</font> after the call to <font  face="Verdana, Arial, Helvetica, sans-serif">url.get()</font> is owned by the URL string object. If you need to keep this string data around past the lifetime of the string object, you must make a copy.</font>
+</p>
+
+
+<a name="1008079"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif">
+<h4>
+  <a name="1011649"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">String Size</font>
+</h4>
+
+<a name="1011657"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The examples above illustrate the use of the single byte string class, <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedCString</font>. The double byte version, <font  face="Verdana, Arial, Helvetica, sans-serif">nsEmbedString</font>, has the same functionality but the constructor takes and the <font  face="Verdana, Arial, Helvetica, sans-serif">.get()</font> method returns the type <font  face="Verdana, Arial, Helvetica, sans-serif">PRUnichar*</font>.  Note that <font  face="Verdana, Arial, Helvetica, sans-serif">PRUnichar</font> is a two byte value. In the coming chapters, you'll see examples that use this version in the <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font> component. </font></font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<h2>
+  <a name="1007052"> </a><font color="#003366"  face="Verdana, Arial, Helvetica, sans-serif">Smart Pointers</font>
+</h2>
+
+
+<p>
+  <a name="1007081"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">All of the interfaces that you've seen so far are reference counted. Leaking a reference by not releasing an object, as the code below demonstrates, can be a major problem.</font>
+</p>
+
+
+<a name="1008132"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New"></font><a name="1008136"> </a>
+<font face="Courier New">{</font><a name="1008137"> </a>
+<font face="Courier New">    nsISupports* value = nsnull;</font><a name="1008138"> </a>
+<font face="Courier New">    object-&gt;method(&amp;value);  </font><a name="1008145"> </a>
+<font face="Courier New">    if (!value) return;</font><a name="1008150"> </a>
+<font face="Courier New"></font><a name="1008151"> </a>
+<font face="Courier New">    ...</font><a name="1008152"> </a>
+<font face="Courier New">    </font><a name="1008153"> </a>
+<font face="Courier New">    if (NS_FAILED(error))</font><a name="1008155"> </a>
+<font face="Courier New">        return;   // &lt;------------ leaks |value|</font><a name="1008156"> </a>
+<font face="Courier New">    ...</font><a name="1008154"> </a>
+<font face="Courier New"></font><a name="1008139"> </a>
+<font face="Courier New">    NS_RELEASE(value);  // release our reference</font><a name="1008140"> </a>
+<font face="Courier New">}</font><a name="1008141"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1008133"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">A method returns an <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> interface pointer that has been reference counted before it is returned (assuming it wasn't null). If you handle an error condition by returning prematurely, whatever <font  face="Verdana, Arial, Helvetica, sans-serif">value</font> points at will leak-it will never be deleted.  This is a trivial fix in this example, but in real code, this can easily happen in "goto" constructs, or in deep nesting with early returns.  </font>
+</p>
+
+
+<p>
+  <a name="1011099"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Having more than one interface pointer that needs to be released when a block goes out of scope begs for a tool that can aid the developer. In XPCOM, this tool is the <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font>, or <font  face="Verdana, Arial, Helvetica, sans-serif"><i>smart pointer</i></font> class, which can save you countless hours and simplify your code when you're dealing with interface pointers. Using smart pointers, the code above can be simplified to:</font>
+</p>
+
+
+<a name="1011118"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">{</font><a name="1008242"> </a>
+<font face="Courier New">    nsCOMPtr&lt;nsISupports&gt; value;</font><a name="1008197"> </a>
+<font face="Courier New">    object-&gt;method(getter_AddRefs(value));  </font><a name="1008198"> </a>
+<font face="Courier New">    if (!value) return;</font><a name="1008199"> </a>
+<font face="Courier New"></font><a name="1008200"> </a>
+<font face="Courier New">    ...</font><a name="1008201"> </a>
+<font face="Courier New">    </font><a name="1008202"> </a>
+<font face="Courier New">    if (NS_FAILED(error))</font><a name="1008203"> </a>
+<font face="Courier New">        return;</font><a name="1008204"> </a>
+<font face="Courier New">    ...</font><a name="1008205"> </a>
+<font face="Courier New">}</font><a name="1008194"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1008219"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The style or syntax may be unfamilar, but smart pointers are worth learning and using because they simplify the task of managing references. <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> is a C++ template class that acts almost exactly like raw pointers, that can be compared and tested, and so on. When you pass them to a getter, you must do something special, however: You must wrap the variable with the function <font  face="Verdana, Arial, Helvetica, sans-serif">getter_AddRefs</font>, as in the example above. </font>
+</p>
+
+
+<p>
+  <a name="1008267"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">You cannot call the <font  face="Verdana, Arial, Helvetica, sans-serif">nsISupports</font> <font  face="Verdana, Arial, Helvetica, sans-serif">AddRef</font> or <font  face="Verdana, Arial, Helvetica, sans-serif">Release</font> methods on a <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font>.. But this restriction is desirable, since the <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> is handling reference counting for you. If for some reason you need to adjust the reference count, you must assign the <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> to a new variable and <font  face="Verdana, Arial, Helvetica, sans-serif">AddRef</font> that. This is a common pattern when you have a local <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> in a function and you must pass back a reference to it, as in the following:</font>
+</p>
+
+
+<a name="1008289"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">SomeClass::Get(nsISupports** aResult)</font><a name="1008438"> </a>
+<font face="Courier New">{</font><a name="1008439"> </a>
+<font face="Courier New">    if (! aResult)</font><a name="1008344"> </a>
+<font face="Courier New">        return NS_ERROR_NULL_POINTER;</font><a name="1008345"> </a>
+<font face="Courier New"></font><a name="1008346"> </a>
+<font face="Courier New">    nsCOMPtr&lt;nsISupports&gt; value;</font><a name="1008349"> </a>
+<font face="Courier New">    object-&gt;method(getter_AddRefs(value));  </font><a name="1008321"> </a>
+<font face="Courier New">   </font><a name="1008330"> </a>
+<font face="Courier New">    *aResult = value.get();</font><a name="1008339"> </a>
+<font face="Courier New">    NS_IF_ADDREF(*aResult);</font><a name="1008355"> </a>
+<font face="Courier New">    return <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>;</font><a name="1008356"> </a>
+<font face="Courier New">}</font><a name="1008294"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1008399"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The first thing that this method does is check to see that the caller passed a valid address. If not, it doesn't even try to continue. Next, it calls another method on an object that is presumed to exist in this context. You can call a <font  face="Verdana, Arial, Helvetica, sans-serif">.get()</font> method on the <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font> and have it returned for use as a raw pointer.  This raw pointer can then be assigned to a variable and have its reference updated by <font  face="Verdana, Arial, Helvetica, sans-serif">NS_IF_ADDREF</font>.  Be very careful with the result of <font  face="Verdana, Arial, Helvetica, sans-serif">.get()</font>, however.  You should never call <font  face="Verdana, Arial, Helvetica, sans-serif">Release</font> on this result because it may result in a crash. Instead, to explicitly release the object being held by a <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font>, you can assign zero to that pointer.</font>
+</p>
+
+
+<p>
+  <a name="1008485"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Another nice feature of smart pointers-the part that makes them smart-is that you can <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> them quite easily. For example, there are two interfaces for representing a file on a file system, the <font  face="Verdana, Arial, Helvetica, sans-serif">nsIFile</font> and <font  face="Verdana, Arial, Helvetica, sans-serif">nsILocalFile</font>, and they are both implemented by an object. Although we haven't formally introduced these two interfaces, the next code sample shows how simple it is to switch between these two interface:</font>
+</p>
+
+
+<a name="1008496"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">
+
+<table border="1" cellpadding="5" cellspacing="0">
+  <caption><b><i><font face="Verdana, Arial, Helvetica, sans-serif"></font></i></b></caption>
+  <tr>
+    <td><font face="Verdana, Arial, Helvetica, sans-serif"><pre>
+<font face="Courier New">SomeClass::DoSomething(nsIFile* aFile)</font><a name="1008488"> </a>
+<font face="Courier New">{</font><a name="1008489"> </a>
+<font face="Courier New">   if (! aResult)</font><a name="1008490"> </a>
+<font face="Courier New">       return NS_ERROR_NULL_POINTER;</font><a name="1008491"> </a>
+<font face="Courier New"></font><a name="1008492"> </a>
+<font face="Courier New">   nsresult rv;</font><a name="1008493"> </a>
+<font face="Courier New">   nsCOMPtr&lt;nsILocalFile&gt; localFile = do_QueryInterface(aFile, &amp;rv);</font><a name="1008494"> </a>
+</pre>
+</font></td>
+  </tr>
+</table>
+
+
+
+<br></font>
+
+
+<p>
+  <a name="1008499"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">If the <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> is successful, <font  face="Verdana, Arial, Helvetica, sans-serif">localFile</font> will be non-null, and <font  face="Verdana, Arial, Helvetica, sans-serif">rv</font> will be set to <font  face="Verdana, Arial, Helvetica, sans-serif">NS_OK</font>.  If <font  face="Verdana, Arial, Helvetica, sans-serif">QueryInterface</font> fails, <font  face="Verdana, Arial, Helvetica, sans-serif">localFile</font> will be null, and <font  face="Verdana, Arial, Helvetica, sans-serif">rv</font> will be set to a specific error code corresponding to the reason for the failure. In this construct, the result code <font  face="Verdana, Arial, Helvetica, sans-serif">rv</font> is an optional parameter. If you don't care what the error code is, you can simply drop it from the function call.</font>
+</p>
+
+
+<p>
+  <a name="1008527"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">From this point on, we'll be using <font  face="Verdana, Arial, Helvetica, sans-serif">nsCOMPtr</font>s as much as possible in <font  face="Verdana, Arial, Helvetica, sans-serif"><b>WebLock</b></font>. For a complete listing of smart pointer functionality, see <font  face="Verdana, Arial, Helvetica, sans-serif"><i>http://www.mozilla.org/projects/xpcom/nsCOMPtr/</i></font>.</font>
+</p>
+
+
+  
+<a name="1010315"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#998866"><sup>1</sup></a>
+<a name="1010315"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">This section discusses the main parameters of this structure. For a complete listing of all available options you can look at the complete reference in <font  face="Verdana, Arial, Helvetica, sans-serif"><i>Appendix B</i></font>.<br></font>
+
+<br></font>
+
+
+<a name="1011420"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#1010621"><sup>2</sup></a>
+<a name="1011420"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">Note that <font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_ISUPPORTS</font> doesn't obey the general rule in which every interface has a declaration macro of the form <font  face="Verdana, Arial, Helvetica, sans-serif">NS_DECL_INTERFACENAME</font>, where <font  face="Verdana, Arial, Helvetica, sans-serif">INTERFACENAME</font> is the name of the interface being compiled. <br></font>
+
+<br></font>
+
+
+<a name="1011932"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#1007726"><sup>3</sup></a>
+<a name="1011932"> </a><font  face="Verdana, Arial, Helvetica, sans-serif">The string classes may also support embedded nulls. <br></font>
+
+<br></font>
+
+
+<a name="1010786"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><a href="#1007751"><sup>4</sup></a>
+<a name="1010786"> </a><font  face="Verdana, Arial, Helvetica, sans-serif"><font  face="Verdana, Arial, Helvetica, sans-serif">There are other abstract string classes, but they are outside the scope of this book.</font><br></font>
+
+<br></font>
+</blockquote>
+
+<hr>
+
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+  <td><font size="1"><font face="courier"> Copyright (c)
+  2003 by Doug Turner and Ian Oeschger. This material may be
+  distributed only subject to the terms and conditions set forth in
+  the <a href="http://www.opencontent.org/openpub/">Open Publication
+  License</a>, v1.02 or later. Distribution of substantively modified
+  versions of this document is prohibited without the explicit
+  permission of the copyright holder. Distribution of the work or
+  derivative of the work in any standard (paper) book form is
+  prohibited unless prior permission is obtained from the copyright
+  holder.</td>
+  </tr>
+</table>
+
+<table width="331" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td><a href="newbookTOC.html"><img src="images/navtoc.gif" width="84" height="23" border="0"
+    alt="TOC"> </a></td>
+    <td><a href="components.html"><img src="images/navprev.gif" width="81" height="23" border="0"
+    alt="PREV"> </a></td>
+    <td><a href="weblock.html"><img src="images/navnext.gif" width="81" height="23" border="0"
+    alt="NEXT"> </a></td>
+    <td><a href="newbookIX.html"><img src="images/navidx.gif" width="85" height="23" border="0"
+    alt="INDEX"> </a></td>
+  </tr>
+</table>
+
+</body>
+</html>

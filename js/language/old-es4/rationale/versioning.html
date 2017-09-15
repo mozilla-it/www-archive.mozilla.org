@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>ECMAScript 4 Versioning</TITLE>
+<LINK rel=stylesheet href="../../styles.css">
+<LINK rel=Start href="../index.html">
+<LINK rel=Contents href="../index.html">
+<LINK rel=Prev href="member-lookup.html">
+<LINK rel=Next href="named.html">
+<SCRIPT type="text/javascript" language="JavaScript1.2" src="../../unicodeCompatibility.js"></SCRIPT>
+</HEAD>
+
+<BODY>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+<TR>
+  <TD valign=TOP nowrap>
+    <DIV class=title2><SPAN class=es-title>ECMAScript 4 Netscape Proposal</SPAN></DIV>
+    <DIV class=title2>Rationale</DIV>
+    <DIV class=title1>Versioning</DIV>
+  </TD>
+  <TD valign=TOP nowrap align=RIGHT><A href="member-lookup.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="named.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+</TR>
+</TABLE>
+
+<P class=mod-date>Tuesday, October 9, 2001</P>
+
+<!--IMPORT "../../js20/rationale/versioning.html" -class=js2 -class=js2-hidden +class=es4 +class=es4-hidden -->
+
+<H2>Motivation</H2>
+
+<P>As a package evolves over time it often becomes necessary to change its exported interface. Most of these changes involve
+adding definitions (top-level or class members), although occasionally a definition may be deleted or renamed. In a monolithic environment
+where all ECMAScript source code comes preassembled from the same source, this is not a problem. On the other hand, if packages
+are dynamically linked from several sources then versioning problems are likely to arise.</P>
+
+<P>One of the most common avoidable problems is collision of definitions. Unless we solve this problem, an author of a library
+will not be able to add even one definition in a future version of his library because that definition&#8217;s name could already
+be in use by some client or some other library that a client also links with. This problem occurs both in the global scope
+and in the scopes of classes from which clients are allowed to inherit.</P>
+
+<H3><A name="collision"></A>Example</H3>
+
+<P>Here&#8217;s an example of how such a collision can arise. Suppose that a library provider creates a library called <CODE>BitTracker</CODE>
+that exports a class <CODE>Data</CODE>. This library becomes so successful that it is bundled with all web browsers produced
+by the BrowsersRUs company:</P>
+
+<PRE>package BitTracker;
+
+public class Data {
+  public field author;
+  public field contents;
+  function save() {...}
+};
+
+function store(d) {
+  ...
+  storeOnFastDisk(d);
+}</PRE>
+
+<P>Now someone else writes a web page <VAR>W</VAR> that takes advantage of <CODE>BitTracker</CODE>. The class <CODE>Picture</CODE>
+derives from <CODE>Data</CODE> and adds, among other things, a method called <CODE>size</CODE> that returns the dimensions
+of the picture:</P>
+
+<PRE>import BitTracker;
+
+class Picture extends Data {
+  public method size() {...}
+  field palette;
+};
+
+function orientation(d) {
+  if (d.size().h &gt;= d.size().v)
+    return "Landscape";
+  else
+    return "Portrait";
+}</PRE>
+
+<P>The author of the <CODE>BitTracker</CODE> library, who hasn&#8217;t seen <VAR>W</VAR>, decides in response to customer requests
+to add a method called <CODE>size</CODE> that returns the number of bytes of data in a <CODE>Data</CODE> object. He then releases
+the new and improved <CODE>BitTracker</CODE> library. BrowsersRUs includes this library with its latest NavigatorForInternetComputing
+17.0 browser:</P>
+
+<PRE>package BitTracker;
+
+public class Data {
+  public field author;
+  public field contents;
+  public method size() {...}
+  function save() {...}
+};
+
+function store(d) {
+  ...
+  if (d.size() &gt; limit)
+    storeOnSlowDisk(d);
+  else
+    storeOnFastDisk(d);
+}</PRE>
+
+<P>An unsuspecting user <VAR>U</VAR> upgrades his old BrowsersRUs browser to the latest NavigatorForInternetComputing 17.0
+browser and a week later is dismayed to find that page <VAR>W</VAR> doesn&#8217;t work anymore. <VAR>U</VAR>&#8217;s granddaughter Alyssa
+P. Hacker tries to explain to <VAR>U</VAR> that he&#8217;s experiencing a name conflict on the <CODE>size</CODE> methods, but <VAR>U</VAR>
+has no idea what she is talking about. <VAR>U</VAR> attempts to contact the author of <VAR>W</VAR>, but she has moved on to
+other pursuits and is on a self-discovery mission to sub-Saharan Africa. Now <VAR>U</VAR> is steaming at BrowsersRUs, which
+in turn is pointing its finger at the author of <CODE>BitTracker</CODE>.</P>
+
+<H3>Solutions</H3>
+
+<P>How could the author of <CODE>BitTracker</CODE> have avoided this problem? Simply choosing a name other than <CODE>size</CODE>
+wouldn&#8217;t work, because there could be some other page <VAR>W2</VAR> that conflicts with the new name. There are several possible
+approaches:</P>
+
+<UL>
+  <LI><B>Naming conventions</B>. We could require each defined name to be prefixed by the full name of the party from which
+    this definition originates. Unfortunately, this would get tedious and unnecessarily impact casual uses of the language. Furthermore,
+    this approach is impractical for the names of methods because it is often desirable to share the same method name across
+    several classes to attain polymorphism; this would not be possible if Netscape&#8217;s objects all used the <CODE>com_netscape_length</CODE>
+    method while MIT&#8217;s objects used the <CODE>edu_mit_length</CODE> method.</LI>
+  <LI><B>Explicit imports</B>. We could require each client package to import every external name it references. This works
+    reasonably well for global names but becomes tedious for the names of class members, which would have to be imported separately
+    for each class. Alternatives exist for bulk importing members of a class, but they are somewhat complicated and do not
+    work for interfaces or multiple inheritance.</LI>
+  <LI><B>Versions</B>. We could require package authors to mark the names they export with explicit versions. A package&#8217;s
+    developer could introduce a new version of the package with additional names as long as those names were made invisible
+    to prior versions.</LI>
+</UL>
+<P>The last approach appears to be the most desirable because it places the smallest burden on casual users of the language,
+who merely have to import the packages they use and supply the current version numbers in the import statements. A package
+author has to be careful not to disturb the set of visible prior-version definitions when releasing an updated package, but authors
+of dynamically linkable packages are assumed to be more sophisticated users of the language and could be supplied with tools
+to automatically check updated packages&#8217; consistency.</P>
+
+<H2>Versioning in ECMAScript 4</H2>
+
+<P>ECMAScript 4 employs <A href="../core/namespaces.html">namespaces</A> to provide safe versioning. A package can export
+several namespaces, each of which provides a different view of the package&#8217;s contents. Each namespace corresponds to a version
+of the package&#8217;s API.</P>
+
+<H3>Terminology</H3>
+
+<P>A <I>version</I> describes the API of a package. A <I>release</I> refers to the entirety of a package, including its code.
+One release can export many versions of its API. A package developer should make sure that multiple releases of a package
+that export version <VAR>V</VAR> export exactly the same set of definitions in version <VAR>V</VAR>.</P>
+
+<H3>Example</H3>
+
+<P>As an example, suppose that a developer wrote a sorting package <CODE>Sorter</CODE> with functions <CODE>sort</CODE> and <CODE>merge</CODE>
+that called bubble sort in the initial version. In the next release the developer adds a function called <CODE>stablesort</CODE>
+and includes it in version <CODE>V2</CODE>. In a subsequent release <CODE>V3</CODE>, the developer changes the <CODE>sort</CODE>
+algorithm to a quicksort that calls <CODE>stablesort</CODE> as a subroutine and adds the <CODE>permute</CODE> function. That
+last release of the package might look like:</P>
+
+<PRE>package Sorter {
+explicit namespace V2;
+explicit namespace V3;
+internal const V2and3 = V2 V3;
+
+public var serialNumber;
+
+public function sort(compare:&nbsp;Function, array:&nbsp;Array):Array {...}
+public function merge(compare:&nbsp;Function, array1:&nbsp;Array, array2:&nbsp;Array):Array {...}
+V2and3 function stablesort(compare:&nbsp;Function, array:&nbsp;Array):Array {...}
+V3 function permute(array:&nbsp;Array):Array {...}
+}</PRE>
+
+<P>Suppose, further, that client packages <VAR>C</VAR><SUB class=var-sub>1</SUB> and <VAR>C</VAR><SUB class=var-sub>2</SUB>
+both import <CODE>Sorter</CODE>. There is only <I>one</I> instance of <CODE>Sorter</CODE> running &#8212; the latest <I>release</I>.
+By default, both <VAR>C</VAR><SUB class=var-sub>1</SUB> and <VAR>C</VAR><SUB class=var-sub>2</SUB> see only <CODE>Sorter</CODE>&#8217;s
+original API. However, suppose that <VAR>C</VAR><SUB class=var-sub>2</SUB> is aware that <CODE>Sorter</CODE> has been
+extended and would like to also use some of its newer functionality. To do this, <VAR>C</VAR><SUB class=var-sub>2</SUB>
+evaluates the magic incantation</P>
+
+<PRE>use namespace(Sorter.V2);</PRE>
+
+<P>after it imports <CODE>Sorter</CODE>. This enables <VAR>C</VAR><SUB class=var-sub>2</SUB> to also see the <CODE>stablesort</CODE>
+function. Note that, in this example, both clients see the same <CODE>sort</CODE> and <CODE>merge</CODE> functions and the
+same <CODE>serialNumber</CODE> variable (in particular, if <VAR>C1</VAR> wrote to <CODE>serialNumber</CODE>, then <VAR>C2</VAR>
+would see the updated value), but only <VAR>C2</VAR> can see the <CODE>stablesort</CODE> function. Both clients get the quicksort
+release of <CODE>sort</CODE>. If client package <VAR>C1</VAR> defined its own <CODE>stablesort</CODE> function, then that
+function would not conflict with <CODE>Sorter</CODE>&#8217;s <CODE>stablesort</CODE>; furthermore, <CODE>Sorter</CODE>&#8217;s <CODE>sort</CODE>
+would still refer to <CODE>Sorter</CODE>&#8217;s <CODE>stablesort</CODE> in its internal subroutine call.</P>
+
+<P>Had only the first release of <CODE>Sorter</CODE> been available, client <VAR>C</VAR><SUB class=var-sub>2</SUB> would
+obtain an error because <CODE>Sorter.V2</CODE> would be undefined. Client <VAR>C</VAR><SUB class=var-sub>1</SUB> could
+run normally, although the <CODE>sort</CODE> function it calls would use bubble sort instead of the quicksort.</P>
+
+<P>The example above illustrates versioning as it applies to a package&#8217;s globals. The same techniques can be used to add members
+to existing classes, and there versioning is much more useful.</P>
+
+<!--/IMPORT-->
+
+<HR>
+<TABLE width="100%" border=0 cellspacing=2 cellpadding=0>
+  <TR>
+    <TD valign=BOTTOM nowrap>
+      <ADDRESS><A href="mailto:waldemar@netscape.com">Waldemar Horwat</A><BR>
+      Last modified Tuesday, October 9, 2001</ADDRESS>
+    </TD>
+    <TD valign=TOP nowrap align=RIGHT><A href="member-lookup.html"><IMG src="../../arrows/left.gif" align=BOTTOM width=37 height=37 alt="previous"></A><A href="../index.html"><IMG src="../../arrows/up.gif" align=BOTTOM width=37 height=37 alt="up"></A><A href="named.html"><IMG src="../../arrows/right.gif" align=BOTTOM width=37 height=37 alt="next"></A></TD>
+  </TR>
+</TABLE>
+</BODY>
+</HTML>

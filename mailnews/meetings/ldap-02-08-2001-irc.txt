@@ -1,0 +1,324 @@
+Log file opened at: 2/8/01 7:04:14 PM
+#addressbook: peterv_logger rsr411 ch88 James peterv srilatha leif dmoseAwy dmose cuchulainn 
+*** End of /NAMES list.
+*** Mode is + 
+*** Channel created at Monday, February 5, 2001 7:05:32 PM
+*** jm84909 (jm84909@beryllium.eu.sun.com) has joined channel #addressbook
+     dmose: other folks, care to introduce yourselves?
+   jm84909: John Marmion here from Dublin ...
+     James: I'm James, responsible for the addressbook project in Sun
+    peterv: i'm Peter Van der Beken, working for Netscape on XSLT
+    peterv: hacked a bit on LDAP
+    rsr411: I'm Dick Rhoads, mostly an interested LDAP user
+*** bursi (bursi@beryllium.eu.sun.com) has joined channel #addressbook
+cuchulainn: Martin Maher working with John Marmion in Sun Ireland
+*** Signoff: bursi ([x]chat)
+*** BenB (ben@pD901451C.dip.t-dialin.net) has joined channel #addressbook
+      BenB: hi
+     dmose: howdy
+*** BenB has set the topic on channel #addressbook to LDAP meeting
+     dmose: ok, so I wrote most of the XPCOM LDAP wrapper that's currently in the Mozilla tree
+     dmose: and I've just moved over to join Leif and Srilatha in Netscape's eClient team
+     James: Dan, I understand you know what we are trying todo from Paul Sandoz
+            BenB is Ben Bucksch, founder of Beonex, loser rtg LDAP support
+      ch88: Can you explain a little on what's your approach?   My understanding on LDAP for address book is from using 4.x.   In 4.x , we search on ldap server and save it into database  that;s it.  It looks like you are going to do more than that.
+      BenB: eClient?
+     dmose: James: yes, in fact yesterday I posted the HTML files from your PDF on mozilla.org
+     dmose: the link can be found from http://www.mozilla.org/directory/
+     dmose: under "addressbook refactoring proposal"
+     dmose: so our (Netscape's) goals overlap a fair bit with the Sun Ireland goals
+*** bursi (csaba@beryllium.eu.sun.com) has joined channel #addressbook
+     dmose: but our theory is that we are looking for typedown address completion to land in mozilla for the 0.9 timeframe
+     dmose: (mid march)
+     dmose: whereas the issues that the Sun folks are working on are very interesting to us too, but in a slightly longer term than that.
+     James: Is typedown the same as autocompletion
+     dmose: so there's a couple of issues to bring up here, I think.
+     dmose: James: yes
+     dmose: the first issue is probably to hear any feedback on the addressbook refactoring proposal
+     James: We have refactored code so that we have access to locall AB and quesry access to LDAP
+     James: We have had no feedback as far as I know
+     dmose: candace, did you get a chance to look at that paper (it's the same info as the link mentioned above)
+     dmose: ?
+      ch88: I'm s slow typer.  wait..
+     James: We would expect to have working code by the end of the month
+     dmose: I've looked at the paper myself, and on the surface it seems reasonable, but I'm just a beginner in the addressbook code, so I can't provide a lot of better feedback than that)
+     James: Our main question is how we might integrate this
+*** David (david@129.59.47.205) has joined channel #addressbook
+     dmose: it certainly seems like the only way to get to a more generic addressbook structure is to factor the mork database stuff out of the addressbook
+cuchulainn: well not out more to the side..
+     dmose: into different interfaces, that is
+     James: yes
+cuchulainn: yeah that's it
+      ch88: I did see it.  I think it's ok to restructure. I need to know how are you getting the data from and how are you going to store it? directly from the server, rdf or local.
+cuchulainn: at the moment it's local
+     James: through Dan's LDAP XPCOM component
+      leif: Before we go too deep, do we have two "issues", or just one? I mean, is typedown/address completion going to stay separate from Addressbook, or are they closely tide together?
+     dmose: leif: that's the second thing on my agenda.
+     dmose: leif: i'd like to get this sorted out first, though, as i think it's a larger issue and will have some bearing on our thoughts about the typedown
+     James: Martin - I thoough only the prefs were stored locally
+     dmose: so James, cuchulainn: the theory then, will be to have multiple addressbooks, some of which get their data from reading mork databases, and others of which get their data by talking to (eg) LDAP servers.  true?
+cuchulainn: dmose: yes
+      ch88: Would it be slow if you doing the typedown by talk ingto LDAP directly?
+      leif: ch88: Isn't that how Comm 4.x does it?
+     dmose: ch88: well, it'll be a lot slower than local disk.  but i'd be surprised if the slowdown were actually perceptible by the user.
+     bursi: leif: yes, the Comm 4.x does that
+   jm84909: we have not investigated autocompletion + ldap 
+     James: we think we will need to differentiate between corporate and personal ABs 
+     dmose: James: I liked that part of the proposal a lot.
+     James: in corporate, the autocompletion will have to happen on the server side
+      ch88: People already compain the address book is slow,  we need to think about it.
+     dmose: James: in fact, it sounded like you guys were more interested in focussing on the personal addressbooks.
+     James: on personal, we could filter on the client side
+     dmose: James: which is cool, because I think netscape management is more interested in 4.x style addressbooks (ie corporate)
+      leif: James: Would a "personal" user even use LDAP?
+     dmose: leif: this is the star webtop thing, i believe. 
+     dmose: right?
+     James: yes
+      leif: ah
+     dmose: ch88: true.  has any profiling been done on the addressbook code to see where it's bottlenecks are?
+      BenB: dmose: I do know that mork is not very scalebale. I think, bienvenu said that.
+      ch88: I guess most is from a bug address and we don't have a good way for query in mork.
+     dmose: bug address?
+      BenB: dmose: up to 1000 or a few thousand, perf is reasonable, declining lineary, IIRC. There is a post about that on .mail-news, dated a few months back
+      ch88: dmore: a big address book
+     dmose: James et al: so the plan is not to use mork for the address book, right?
+      leif: so when would the Mork bottleneck come into place, when replicating (off-line) data from an outside source (LDAP)?
+     dmose: s/address book/ LDAP entriess/
+      BenB: leif: yes.
+cuchulainn: whoa there 
+cuchulainn: mork stays all we are doping is adding extra datasources
+     dmose: right; i typo'ed
+     dmose: that's what the s/// fixup was
+     James: dan : one can use mork alongside ldap
+      leif: Well, we do need to support off-line LDAP support, which can mean 100K entries into Mork, or more...
+     dmose: what i was really asking was a version of leif's question: the mork slowness shouldn't affect the more abstracted addressbook layer if just using LDAP
+     James: no
+     dmose: BenB, Candace: so what is the prognosis for Mork in mail-news?  is it here to stay?
+      ch88: I don't get it , do you mean mork will go away.
+     dmose: s/Candace/Candice/  sorry!
+      BenB: dmose: i don't know for sure, but i think so. iirc, it was rewritten for Mozilla.
+     dmose: right
+     dmose: well, it was written for mozilla
+     dmose: but if it's causing bottlenecks in parts of the code, i'm curious as to whether it will stay
+      BenB: dmose: IIRc, there is room for improvement in perf
+     dmose: as i've heard occasional speculation that we could do better than mork
+      BenB: dmose: well, XUL is slow, too :)
+      leif: lets rewrite XUL then :)
+cuchulainn: I think we're getting off the point mork is here for the immediate future 
+      BenB: leif: no, throw it away! ;-P
+   jm84909: Well if mork goes away at some point -then refactoring will aid this
+     dmose: cuchulainn: yes.
+     dmose: jm84909: excellent point.
+      ch88: I haven't heard anything about getting rid of mork inside our team though.
+     dmose: ok, so i know that local disk caching of LDAP addressbooks isn't terribly high on our priority list just yet.
+      leif: yes, that is a very good point, refactoring should make it very easy to replace Mork once it's performance limitation becomes critical for new features.
+     dmose: so maybe we can cross that bridge when we get to it
+   jm84909: our main concern would be to keep existing functionality but add LDAP access 
+     dmose: ch88: thanks; that's what wanted to know.
+cuchulainn: candice/dmose what is the process for trying to get code back into mozilla
+     dmose: submit it as a patch, get it reviewed, get module owner-approval, ge super-review checkin
+      ch88: My manager is concerning this should not affect our beta.
+cuchulainn: when is the beta
+     dmose: so in this case, candice is the module owner
+      BenB: cuchulainn: fiist, file a bug.
+cuchulainn: BenB: there already is one
+      BenB: cuchulainn: see www.mozilla.orghttp://www.mozilla.org/hacking/
+     James: should we have specific functionality
+     dmose: ok, i'm gonna zoom forward to our second issue for a moment, as that seems relevant....
+     James: or problem is the longer we write code the more problems we have merging
+     dmose: because we eclient folks are interested in typedown addressing for 0.9
+     dmose: our theory is that it'll probably be too hard to do the elegant/right thing and wait to integration with any addressbook refactoring
+      BenB: cuchulainn: mozilla 0.9 == beta for ns6.5, I think.
+     bursi: dmose: before that. Do you have reference platform to build?
+     dmose: so my current best guess is that we'll do typedown-addressing directly between LDAP/XPCOM and autocomplete, with no addressbook layer in between
+     dmose: and perhaps migrate to the addressbook layer in the future if that seems feasible
+     dmose: bursi: mac, linux, win32.  the URL that BenB pasted above should have most of the relevant info.
+      leif: dmose: One thing though, shouldn't we try to make the UI to configure the LDAP server(s) be the same for Addressbook and typedown?
+     James: then our work should not initially clash
+      BenB: James: yes, get the stuff into cvs
+     dmose: James: right, except for what Leif said
+     dmose: ducarroz said he'd try and show up here in about an hour, and i'm gonna talk to him more then about how feasible this current thinking on typedown is
+   jm84909: dmose: will you add auto-c to the existing LDAP/XPCOM wrapper
+     dmose: autoconfig?
+     dmose: er autoconf?
+   jm84909: autocompletion
+     dmose: probably not exactly
+     dmose: i need to talk to ducarroz about this...
+     James: will you filter the result set in Mozilla
+     dmose: but my current guess is that we'll write code that lives in or near nsAbAutoCompleteSession
+    peterv: does it currently use RDF?
+     dmose: typedown does not currently use RDF, no
+    peterv: hmm
+     dmose: the addressbook does though
+     dmose: and that code that lives in or near nsAbAutoComplete session will call into the LDAP XPCOM wrapper to do the work
+     dmose: James: how do you mean "filter"?
+     James: if the XPCOM/LDAP wrapper does autocompletion, then we could use it
+*** putterman (scottip@208.12.40.143) has joined channel #addressbook
+     dmose: scott!
+ putterman: hey
+     James: i am not clear where the results are being accepted/doiscarded against the typedown
+     dmose: James: so the text entry widget in the To: and Cc: lines of the compose window have an autocomplete XBL handler bound to the,
+     dmose: s/the,/them/
+     dmose: that handler gets called with the current prefix, and gets asked to return a set of matches
+     dmose: which are then put directly into the menu, i believe
+     dmose: does that answer your question?
+cuchulainn: leif: when do plan to add support for adding/editing cards to LDAP
+     bursi: dmose: Correct me, if I'm wrong: The autocomletion is "just" a front and issue. Tha LDAP XPCOM wrapper doesn't have to prepare for that.
+     dmose: bursi: correct
+     dmose: bursi: which is why i don't entirely understand James comment "if the XPCOM/LDAP wrapper does autocompletion, then we could use it"
+      leif: I'm not sure what the plans are for all LDAP related features. I know we need typdown for the march beta, which is the #1 priority
+cuchulainn: so it will be after that?
+     dmose: bursi: it's unlikely that we'll be doing any writing/modification code for the LDAP XPCOM wrapper
+     James: okay but does this scale on a corporate ldap server to return all cards to the frontend
+      leif: Probably, depends how we're doing on time (but my guts feeling is that just getting typedown in there is going to be more than enough to keep us busy)
+     dmose: bursi: but we're accepting patces.  :-)
+      leif: What I'd like us to do thoug is getting the UI around LDAP configurations "unified", so that it doesn't have to change once we add more LDAP related features, that would just confuse the users.
+     bursi: dmose: OK.
+     dmose: James: so we were talking about that the other day.  and one theory we came up with is to ask the server how many matches it would return for a given search...
+     dmose: James: and if it's more than can conveniently fit in a menu, simply refuse to autocomplete
+     dmose: and wait for further typedown
+     James: leif : have you done work on this
+      leif: Unfortunately you can't ask for the number of entries to be returned when doing async LDAP.
+     dmose: leif: agreed; that would be a fine thing
+     dmose: leif: but didn't we decide we could do this indirectly?
+      leif: What you can do is set a size limit on the search, and if the search results in more than that limit, an error is returned
+     bursi: dmose: The number of the matches would be a preference or configure setting.
+     dmose: leif: by asking for a maximum return set size of 20 or something and seeing if it errors out?
+     dmose: bursi: sure; that makes sense
+      BenB: dmose: will servers be happy, if you ask them "how many entires do you have for "a*""?
+      leif: No, searches like a* is *VERY* bad, autocompletion should never be attempted on that... :(
+    peterv: so how does 4.x handle that? synchronously?
+      BenB: leif: you already answere my question before...
+     dmose: so we'll have to code in some other constraints about when to simply not autocomplete
+     dmose: that shouldn't be difficult
+     James: i though autocompletion required a return key press
+      leif: At a minimum, two characters should be required, because the way iPlanet LDAP servers handle searches, something like a* will always be an unindexed search, and it has to walk through the entire database.
+     dmose: James: i think srilatha has been doing some thinking on prefs front, maybe she has input there.
+     bursi: James: in Netscape not.
+*** ducarroz (ducarroz@208.12.41.190) has joined channel #addressbook
+     James: i see it in netscape 4.75
+     dmose: ducarroz!
+    peterv: James: right
+     bursi: James, dmose: Sometimes it is annoying, when you stop with typing and Netscape starts to search. Of course, you can switch off the autocompl.
+  srilatha: James: then we will have the same in 6.5
+  ducarroz: Hi, I am here just for few minutes...
+     dmose: duccaroz: ok, lemme catch you up on the relevant issues via /msg
+      BenB: leif: well, my personal little LDAP server will prbably be fine with a*, and I may want that.
+      leif: BenB: The sizelimit on the search wouldn't prevent an LDAP server to be unhappy with a search like a*, it'd still have to walk the entire database... We see this all the time on our local LDAP servers... :(
+      BenB: leif: oh, ok.
+     bursi: dmose: I suugest to have a cancel operation for autocompletion. But this is already low level issue, isn't it?
+      leif: A cancel feature would be awesome, particularly if an LDAP server is unreachable (for whatever reason). In Comm 4.x the userhas to wait for the TCP timeout before getting back an error... :(
+     dmose: bursi: that's a good idea
+  ducarroz: autocomplete already fire a cancel operation when the user press a key.
+      leif: Cool!
+  ducarroz: but cancel will really work with an async search engin which it can support already
+     bursi: dmose: ie. yesterday I could not reach an LDAP server, and my Netscape was freezed for 3-4 minutes during the autocompletion
+     dmose: ducarroz: can you elaborate on that last sentence?
+     dmose: bursi: yeah, that's bad
+      leif: LDAP is async (if you use the async API, which I believe the XPCOM wrapper uses exclusively)
+     dmose: it does
+  ducarroz: the current search engin for autocompletion is synchronus, therefore once the search initiated, you cannot stop it.
+      leif: The C-SDK API should also have functions to cancel an outstanding request.
+  ducarroz: but the way I have designed tha autocomplete widget, you can plug an asynchronus search engin
+      leif: alrighty, thank you!
+  ducarroz: the LDAP search engin must be async.
+     bursi: ducarroz: That's why I suggested the cancel function as you type further.
+     dmose: ducarroz: the search engine?  you mean the implementor of nsIAutoCompleteSession?
+      leif: are we going to stay "compatible" with Comm 4.x when it comes to autocompletion and it's behaviour? Like search personal abook first, and then any selected LDAP server if needed?
+  ducarroz: right
+     bursi: ducarroz: in a level of LDAP access, it is async. At least I hope, that the LDAP wrapper use that type of query.
+     dmose: bursi: it does
+     dmose: ducarroz: ok, that shouldn't be a problem
+     bursi: dmose: fine!
+     dmose: leif: i like idea of making it slightly more configurable.... like mail-filters
+  ducarroz: Yes, we should try to be as must as possible compatible with 4.x
+     dmose: leif: have a list where you can change the order of precedence
+      BenB: leif: what dmose says makes sense.
+     dmose: leif: but the scenario you described would be the default sort order
+      leif: One thing I'd like to see is the possibility of searching more than one configured LDAP server (or maybe same server, but multiple base-DNs for multiple searches)
+      BenB: leif: e.g. autocollect - I may keep my address book on the serverm, but use autocollect, which is local. i want the server entiries to have precedence
+     dmose: leif: the UI I just described should be able to do that nicely, i think
+     dmose: ducarroz: is it possible to bind multiple autocomplete handlers to a single text field?
+      leif: dmose: Yeah, maybe a list UI of all addressbook data sources, where you can arrange order, check box if it should be used, and maybe a checkbox if searches should stop after finding one single entry matching (and so on)
+  ducarroz: no
+  ducarroz: sorry, gotta go, I'll be back in about 30 minutes...
+     dmose: ducarroz: so either I need to hack nsAbAutoCompleteSession or construct a "composite autocomplete sesssion"?
+     dmose: leif: exactly
+    rsr411: leif: yes, exactly like that
+      ch88: Head for another meeting, be abck
+     dmose: wow; time flies when you're having fun
+     dmose: didn't realize it was already 11
+     bursi: dmose: one more : Do we have to care about any internationalisation issue?
+      leif: dmose: It sounds like we need to come up with a new autocomplete session, which can handle the multiple searches/sources.
+     dmose: bursi: yes
+     dmose: bursi: I don't exactly know what, though.
+     bursi: dmose: where can we get info about it?
+      BenB: dmose: lol
+     dmose: bursi: i'd start by asking candice when she returns
+     dmose: leif: right, that's what i meant by "composite" autocomplete session, analogous to the way RDF datasources can be composited
+      BenB: at least, the entires (names) can be unicode
+      leif: It gets particulaly narly with LDAP, because you can have tagged attributes like CN;en=Leif hedstrom  CN;sv=<something else using swedish umlauts>
+      BenB: (obviously)
+     dmose: LDAP itself speaks UTF-8
+     dmose: so i suspect this isn't terribly difficult, we just have to wedge the right converters in the right places.
+     dmose: dunno about non-Roman alphabets, bidi, etc.
+      leif: Yes, but LDAP also allows you to have multiple values for CN, and you have to pick the "right" one depending on langugate prference.
+     dmose: oh, that's interesting
+      leif: (or most values)
+     dmose: leif: do man people use that feature?
+     dmose: s/man/many/
+      leif: Probably not in the US...
+     bursi: dmose: And one more: What LDAP card sheme do we want to support? (inetOrgPerson?)
+     dmose: bursi: this seems like it makes the most sense, since it's what most folks use in their LDAP servers today, I believe
+      leif: But, I can see it being used more widely in Asia, where you want to have one represantion using regular characters and one using the native symbols
+     bursi: dmose: I think too.
+     dmose: and since the existing addressbook code in Mozilla uses something that's almost exactly that format
+     bursi: dmose: OK, that is fine.
+     dmose: leif: so we might have to hook into the prefs to find out the preferred language.
+      leif: Maybe
+     dmose: leif: i suspect that won't be too hard.
+      leif: There are a few entries in the Netscape LDAP server that uses this feature I think.
+   jm84909: See you guys - I am away - thanks for all the responses
+     dmose: so as far as getting the Sun addressbook refactoring into the tree, probably the first step..
+     dmose: is to talk to candice more, and send her your code.  
+     dmose: probably the most interesting thing will be what the refactoring might break that uses the existing interfaces
+     dmose: eg the AddressBook Sync stuff
+     James: that sounds good. thanks.
+     dmose: sure thing
+*** Signoff: jm84909 ([x]chat)
+     James: who is writes the sync stuff 
+     James: s/is/
+     dmose: i'm not sure; try poking around with lxr and cvsblame
+cuchulainn: dmose: we needed to cover a lot of stufff with candice about putbacks
+     dmose: candice would know, i'm sure
+cuchulainn: and with others about what possible might break the build
+cuchulainn: it's not looking like we'll get to do this tonight 
+     dmose: cuchulainn: understand.  well maybe a good forum for this would be .mail-news, as most of the folks who care about the addressbook book hang out there
+      BenB: dmose: can't use the navigator language preference? or is that overload (i.e. might a user want to have different values)?
+     dmose: cuchulainn: no, i think another meeting or two could be useful
+      leif: cuchulainn: Is your code ready?
+      BenB: dmose: maybe just compibe the UI=
+      BenB: combine
+     dmose: BenB: that's what i meant, actually, using the navigator preference.  but i haven't given it much thought.
+     dmose: some time soon I'll try and get one or two of the i18n folks to come lend some expertise.
+cuchulainn: not yet but will be by the end of Feb
+     bursi: I gotta go too. See you and thanks for contribution.
+      leif: Ok, so it's fair to say that for Mozilla 0.9, we can't rely on addressbook being refactored.
+      BenB: rhp wrote absync, but he is gone.
+cuchulainn: what date is 0.9
+*** Signoff: bursi ([x]chat)
+      leif: March 13 or something like that?
+cuchulainn: well then it has a chance 
+  srilatha: 3/14
+     dmose: BenB: but didn't some other guy (Tony something?) write a bunch of the absync converters?
+     dmose: leif: if you mean we == eClient relying it on for typedown work being done by then, i believe that's correct.
+      BenB: dmose: i know about rhp only.
+      leif: well, also, remember, if there is a chance to get LDAP support in the Addressbook for 3/13, JPM would be very happy... :)
+     James: i've got to go. thanks for your time.
+     dmose: absolutely, this would be a fine thing
+     dmose: ok, thanks for joining us everyone
+      BenB: dmose: this is state of a few months ago, duuno if something new came in since then
+    peterv: dmose: any idea if the datasource would help for the addressbook?
+     dmose: peterv: i believe so, yes.  cuchulainn and the other sun guys probably have more expertise there than i do.
+    peterv: hmm, i might be tempted to work on it further. But i'd need to know what's important first.
+Log file closed at: 2/8/01 8:25:26 PM
